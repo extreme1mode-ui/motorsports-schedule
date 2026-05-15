@@ -84,7 +84,6 @@ export function WebApp() {
 
       <main style={{ padding: `${gutter + 8}px ${gutter}px ${gutter * 2}px`, maxWidth: '100%', minWidth: 0 }}>
         <div style={{ maxWidth: maxMain, margin: '0 auto' }}>
-          <DataBanner theme={theme} loading={schedule.loading} usingFallback={schedule.usingFallback} />
           {view === 'home' && <WebHome theme={theme} now={now} races={raceList}
             onOpenRace={onOpenRace} onGo={onGo} favorites={favorites} toggleFav={toggleFav} tier={tier} />}
           {view === 'schedule' && <WebSchedule theme={theme} races={raceList}
@@ -100,28 +99,6 @@ export function WebApp() {
         favorites={favorites} toggleFav={toggleFav} tier={tier} />}
 
       {tweaks && <WebTweaks theme={theme} setTheme={setTheme} />}
-    </div>
-  );
-}
-
-function DataBanner({ theme, loading, usingFallback }) {
-  if (!loading && !usingFallback) return null;
-  const t = TOKENS[theme];
-  return (
-    <div style={{
-      marginBottom: 20,
-      padding: '12px 14px',
-      borderRadius: 14,
-      border: `1px solid ${t.line}`,
-      background: theme === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 10,
-    }}>
-      <span style={{ width: 8, height: 8, borderRadius: '50%', background: loading ? '#6BA3FF' : '#FFB800' }} />
-      <div style={{ fontSize: 13, color: t.text2 }}>
-        {loading ? 'Updating schedule data…' : 'Live F1 fetch failed. Showing local fallback schedule.'}
-      </div>
     </div>
   );
 }

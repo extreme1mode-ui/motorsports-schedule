@@ -21,6 +21,9 @@ export function useScheduleData(now = new Date()) {
     async function refresh() {
       const nextState = await loadScheduleData(seasonYear, getCurrentNow());
       if (cancelled) return;
+      if (nextState.error) {
+        console.warn('[schedule] Falling back to local schedule data', nextState.error);
+      }
       setState({
         races: nextState.races,
         loading: false,
@@ -43,4 +46,3 @@ export function useScheduleData(now = new Date()) {
     seasonYear,
   }), [seasonYear, state]);
 }
-

@@ -69,7 +69,6 @@ function App() {
         WebkitOverflowScrolling: 'touch',
         paddingBottom: mobileBottomNavSpace,
       }}>
-        <DataBanner theme={theme} loading={schedule.loading} usingFallback={schedule.usingFallback} />
         {view === 'home' && <Home theme={theme} now={now} races={raceList} onOpenRace={(race) => setOpenRaceId(race.id)} onGo={onGo} favorites={favorites} toggleFav={toggleFav} seasonYear={safeSeasonYear} />}
         {view === 'schedule' && <Schedule theme={theme} races={raceList} onOpenRace={(race) => setOpenRaceId(race.id)} now={now} seasonYear={safeSeasonYear} />}
         {view === 'series' && <SeriesView theme={theme} races={raceList} onOpenRace={(race) => setOpenRaceId(race.id)} initialCategory={categoryFilter || 'F1'} seasonYear={safeSeasonYear} />}
@@ -82,28 +81,6 @@ function App() {
       <TabBar theme={theme} view={view} onGo={setView} favCount={favorites.size} />
 
       {tweaks && <TweaksPanel theme={theme} setTheme={setTheme} onClose={() => setTweaks(false)} />}
-    </div>
-  );
-}
-
-function DataBanner({ theme, loading, usingFallback }) {
-  if (!loading && !usingFallback) return null;
-  const t = TOKENS[theme];
-  return (
-    <div style={{
-      margin: '16px 18px 0',
-      padding: '10px 12px',
-      borderRadius: 12,
-      border: `1px solid ${t.line}`,
-      background: theme === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 10,
-    }}>
-      <span style={{ width: 7, height: 7, borderRadius: '50%', background: loading ? '#6BA3FF' : '#FFB800' }} />
-      <div style={{ fontSize: 12, color: t.text2 }}>
-        {loading ? '최신 일정을 불러오는 중입니다.' : '실시간 F1 업데이트에 실패해 로컬 대체 일정으로 표시 중입니다.'}
-      </div>
     </div>
   );
 }
