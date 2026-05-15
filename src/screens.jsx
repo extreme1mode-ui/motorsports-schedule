@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
-import { SERIES } from './data.js';
+import { CATEGORIES, SERIES, getDateKeyInKst } from './schedule/index.js';
 import { TOKENS, MONTHS_KO, DAYS_KO, kstDate, fmtDate, fmtDateFull, Mono, SeriesTag, StatusPill } from './primitives.jsx';
 
-export function Schedule({ theme, races, onOpenRace, now }) {
+export function Schedule({ theme, races, onOpenRace, now, seasonYear }) {
   const t = TOKENS[theme];
+  const safeSeasonYear = Number.isFinite(seasonYear) ? seasonYear : 2026;
   const [month, setMonth] = useState(Math.max(now.getMonth(), 0));
+  const [category, setCategory] = useState('ALL');
+  const filtered = category === 'ALL' ? races : races.filter((race) => race.category === category);
 
   const byMonth = {};
-  for (const r of races) {
+  for (const r of filtered) {
     const m = parseInt(r.raceDateKst.slice(5,7)) - 1;
     (byMonth[m] = byMonth[m] || []).push(r);
   }
@@ -15,8 +18,23 @@ export function Schedule({ theme, races, onOpenRace, now }) {
   return (
     <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 110 }}>
       <div style={{ padding: '64px 18px 12px' }}>
-        <Mono size={10} color={t.text3} style={{ letterSpacing: '0.14em' }}>2026 SEASON</Mono>
+        <Mono size={10} color={t.text3} style={{ letterSpacing: '0.14em' }}>{safeSeasonYear} SEASON</Mono>
         <div style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>일정</div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 6, padding: '0 18px 12px', overflowX: 'auto' }}>
+        {[{ id: 'ALL', short: 'ALL', accent: t.text }, ...Object.values(CATEGORIES)].map((item) => {
+          const active = item.id === category;
+          return (
+            <button key={item.id} onClick={() => setCategory(item.id)} style={{
+              padding: '8px 12px', borderRadius: 999,
+              border: `1px solid ${active ? (item.id === 'ALL' ? t.text : item.accent) : t.line}`,
+              background: active ? (item.id === 'ALL' ? t.text : item.accent) : 'transparent',
+              color: active ? (item.id === 'ALL' ? t.bg : '#fff') : t.text2,
+              fontSize: 12, fontWeight: 700, cursor: 'pointer', flex: 'none', fontFamily: 'inherit',
+            }}>{item.short}</button>
+          );
+        })}
       </div>
 
       <div style={{ display: 'flex', gap: 6, padding: '0 18px 10px', overflowX: 'auto' }}>
@@ -39,14 +57,14 @@ export function Schedule({ theme, races, onOpenRace, now }) {
         })}
       </div>
 
-      <MonthGrid month={month} races={byMonth[month] || []} theme={theme} onOpen={onOpenRace} now={now} />
+      <MonthGrid month={month} races={byMonth[month] || []} theme={theme} onOpen={onOpenRace} now={now} seasonYear={safeSeasonYear} />
     </div>
   );
 }
 
-function MonthGrid({ month, races, theme, onOpen, now }) {
+function MonthGrid({ month, races, theme, onOpen, now, seasonYear }) {
   const t = TOKENS[theme];
-  const year = 2026;
+  const year = seasonYear;
   const first = new Date(year, month, 1);
   const firstDow = first.getDay();
   const daysInMonth = new Date(year, month+1, 0).getDate();
@@ -62,7 +80,7 @@ function MonthGrid({ month, races, theme, onOpen, now }) {
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
   while (cells.length % 7) cells.push(null);
 
-  const todayStr = now.toISOString().slice(0,10);
+  const todayStr = getDateKeyInKst(now);
 
   return (
     <div style={{ padding: '8px 14px 0' }}>
@@ -78,7 +96,7 @@ function MonthGrid({ month, races, theme, onOpen, now }) {
         {cells.map((d, i) => {
           if (!d) return <div key={i} style={{ aspectRatio: '1/1.05' }} />;
           const dayRaces = byDay[d] || [];
-          const dateKey = `2026-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+          const dateKey = `${seasonYear}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
           const isToday = dateKey === todayStr;
           const isSun = i % 7 === 0; const isSat = i % 7 === 6;
           return (
@@ -130,7 +148,10 @@ export function ScheduleRow({ race, theme, onOpen }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
           <SeriesTag series={race.series} theme={theme} variant="ghost" />
           <Mono size={10} color={t.text3}>R{String(race.round || race.plannedRound || 0).padStart(2,'0')}</Mono>
+          {race.isNextRace && <StatusPill status="next" theme={theme} />}
+          {race.status === 'live' && <StatusPill status="live" theme={theme} />}
           {race.status === 'cancelled' && <StatusPill status="cancelled" theme={theme} />}
+          {race.status === 'completed' && <StatusPill status="completed" theme={theme} />}
         </div>
         <div style={{ fontSize: 14, fontWeight: 600, color: t.text, letterSpacing: '-0.005em', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', textDecoration: race.status === 'cancelled' ? 'line-through' : 'none' }}>
           {race.name}
@@ -142,22 +163,23 @@ export function ScheduleRow({ race, theme, onOpen }) {
   );
 }
 
-export function SeriesView({ theme, races, onOpenRace, initialSeries }) {
+export function SeriesView({ theme, races, onOpenRace, initialCategory, seasonYear }) {
   const t = TOKENS[theme];
-  const [sel, setSel] = useState(initialSeries || 'F1');
-  useEffect(() => { if (initialSeries) setSel(initialSeries); }, [initialSeries]);
-  const s = SERIES[sel];
-  const list = races.filter(r => r.series === sel).sort((a,b) => a.raceDateKst.localeCompare(b.raceDateKst));
+  const safeSeasonYear = Number.isFinite(seasonYear) ? seasonYear : 2026;
+  const [sel, setSel] = useState(initialCategory || 'F1');
+  useEffect(() => { if (initialCategory) setSel(initialCategory); }, [initialCategory]);
+  const s = CATEGORIES[sel];
+  const list = races.filter(r => r.category === sel).sort((a,b) => a.raceDateKst.localeCompare(b.raceDateKst));
 
   return (
     <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 110 }}>
       <div style={{ padding: '64px 18px 12px' }}>
-        <Mono size={10} color={t.text3} style={{ letterSpacing: '0.14em' }}>BY SERIES · 2026</Mono>
-        <div style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>시리즈별</div>
+        <Mono size={10} color={t.text3} style={{ letterSpacing: '0.14em' }}>BY CATEGORY · {safeSeasonYear}</Mono>
+        <div style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>카테고리별</div>
       </div>
 
       <div style={{ display: 'flex', gap: 6, padding: '0 18px 14px', overflowX: 'auto' }}>
-        {Object.values(SERIES).map(ss => (
+        {Object.values(CATEGORIES).map(ss => (
           <button key={ss.id} onClick={() => setSel(ss.id)} style={{
             padding: '8px 14px', borderRadius: 999,
             border: `1px solid ${sel === ss.id ? ss.accent : t.line}`,
@@ -179,7 +201,7 @@ export function SeriesView({ theme, races, onOpenRace, initialSeries }) {
         <div style={{ display: 'flex', gap: 18, marginTop: 12 }}>
           <Stat label="ROUNDS" val={String(list.filter(r => r.status !== 'cancelled').length).padStart(2,'0')} dark={theme === 'dark'} />
           <Stat label="FINISHED" val={String(list.filter(r => r.status === 'completed').length).padStart(2,'0')} dark={theme === 'dark'} />
-          <Stat label="NEXT UP" val={list.find(r => r.status !== 'cancelled' && r.status !== 'completed') ? 'NEXT' : '—'} dark={theme === 'dark'} />
+          <Stat label="NEXT UP" val={list.find(r => r.isNextRace || r.status === 'upcoming') ? 'NEXT' : '—'} dark={theme === 'dark'} />
         </div>
       </div>
 
@@ -219,6 +241,8 @@ function RoundRow({ race, idx, theme, onOpen }) {
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 2 }}>
           {done && <StatusPill status="completed" theme={theme} />}
+          {race.status === 'live' && <StatusPill status="live" theme={theme} />}
+          {race.isNextRace && <StatusPill status="next" theme={theme} />}
           {cancelled && <StatusPill status="cancelled" theme={theme} />}
           <Mono size={10} color={t.text3}>{fmtDate(race.raceDateKst)} · {DAYS_KO[d.getDay()]}</Mono>
         </div>
@@ -300,6 +324,8 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav }) {
               ROUND {String(race.round || race.plannedRound || 0).padStart(2,'0')}
             </Mono>
             {race.isSprint && <span style={{ padding: '2px 6px', fontSize: 9, fontWeight: 800, letterSpacing: '0.08em', borderRadius: 3, background: 'rgba(255,255,255,0.18)', color: '#fff', fontFamily: '"JetBrains Mono", ui-monospace' }}>SPRINT</span>}
+            {race.isNextRace && <StatusPill status="next" theme={theme} />}
+            {race.status === 'live' && <StatusPill status="live" theme={theme} />}
             {race.status === 'cancelled' && <StatusPill status="cancelled" theme={theme} />}
             {race.status === 'completed' && <StatusPill status="completed" theme={theme} />}
           </div>
@@ -346,6 +372,8 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav }) {
         <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <InfoCell label="시작" value={fmtDateFull(race.weekendStart)} theme={theme} />
           <InfoCell label="종료" value={fmtDateFull(race.weekendEnd)} theme={theme} />
+          <InfoCell label="현지 시각" value={race.localTime || 'TBA'} theme={theme} />
+          <InfoCell label="TIMEZONE" value={race.timezone || 'TBA'} theme={theme} />
         </div>
       </section>
 

@@ -1,14 +1,12 @@
-import { TOKENS, DAYS_KO, fmtDate, fmtDateFull, Mono, SeriesTag } from './primitives.jsx';
-import { ALL_RACES, SERIES } from './data.js';
+import { TOKENS, DAYS_KO, fmtDate, fmtDateFull, Mono, SeriesTag, StatusPill } from './primitives.jsx';
+import { CATEGORIES, SERIES, getDateKeyInKst } from './schedule/index.js';
 import { PageHeader } from './web.jsx';
 
 export function WebHome({ theme, now, races, onOpenRace, onGo, favorites, toggleFav, tier }) {
   const t = TOKENS[theme];
 
-  const upcoming = races.filter(r =>
-    r.status !== 'cancelled' && new Date(r.raceKstIso || r.raceDateKst + 'T23:59:59+09:00') >= now
-  );
-  const next = upcoming[0];
+  const upcoming = races.filter(r => r.status === 'upcoming');
+  const next = races.find(r => r.isNextRace) || upcoming[0];
   const followUps = upcoming.slice(1, tier === 'ultra' ? 9 : 6);
 
   const weekStart = new Date(now); weekStart.setHours(0, 0, 0, 0);
@@ -21,7 +19,7 @@ export function WebHome({ theme, now, races, onOpenRace, onGo, favorites, toggle
 
   const weekDays = Array.from({ length: 14 }, (_, i) => {
     const d = new Date(weekStart); d.setDate(d.getDate() + i);
-    const key = d.toISOString().slice(0, 10);
+    const key = getDateKeyInKst(d);
     const dayRaces = races.filter(r => r.raceDateKst === key && r.status !== 'cancelled');
     return { d, key, races: dayRaces };
   });
@@ -97,8 +95,8 @@ export function WebHome({ theme, now, races, onOpenRace, onGo, favorites, toggle
       <section style={{ marginTop: 40 }}>
         <SectionTitle theme={theme} kicker="SERIES" title="시리즈별 보기" />
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${seriesCols}, 1fr)`, gap: 12 }}>
-          {Object.values(SERIES).map(s => {
-            const list = races.filter(r => r.series === s.id);
+          {Object.values(CATEGORIES).map(s => {
+            const list = races.filter(r => r.category === s.id);
             const done = list.filter(r => r.status === 'completed').length;
             return (
               <button key={s.id} onClick={() => onGo('series', s.id)} style={{
@@ -174,6 +172,7 @@ function WebNextRaceHero({ race, now, theme, tier, onOpen, favorites, toggleFav 
             <Mono size={11} color={theme === 'dark' ? 'rgba(255,255,255,0.55)' : s.dark} style={{ letterSpacing: '0.16em' }}>
               ROUND {String(race.round || race.plannedRound).padStart(2, '0')} · NEXT UP
             </Mono>
+            {race.status === 'live' && <StatusPill status="live" theme={theme} />}
             {race.isSprint && (
               <span style={{
                 padding: '2px 7px', fontSize: 10, fontWeight: 800, letterSpacing: '0.1em',
@@ -343,6 +342,8 @@ function UpNextCard({ race, now, theme, onOpen, favorites, toggleFav }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <SeriesTag series={race.series} theme={theme} variant="ghost" />
             <Mono size={10} color={t.text3}>R{String(race.round || race.plannedRound || 0).padStart(2, '0')}</Mono>
+            {race.isNextRace && <StatusPill status="next" theme={theme} />}
+            {race.status === 'live' && <StatusPill status="live" theme={theme} />}
           </div>
           <button onClick={e => { e.stopPropagation(); toggleFav(race.id); }} style={{
             background: 'none', border: 0, padding: 2, cursor: 'pointer', color: faved ? s.accent : t.text3,
@@ -391,6 +392,7 @@ function OnTrackCard({ race, theme, onOpen }) {
     }}>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: s.accent }} />
       <SeriesTag series={race.series} theme={theme} />
+      {race.isNextRace && <StatusPill status="next" theme={theme} />}
       <div style={{
         fontSize: 16, fontWeight: 700, color: theme === 'dark' ? '#fff' : '#111',
         marginTop: 10, letterSpacing: '-0.005em', lineHeight: 1.25,

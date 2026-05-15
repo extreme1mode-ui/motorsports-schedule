@@ -1,16 +1,20 @@
-import { SERIES } from './data.js';
-import { TOKENS, MONTHS_KO, DAYS_KO, fmtDate, fmtDateFull, Mono, SeriesTag } from './primitives.jsx';
+import { CATEGORIES, SERIES, getDateKeyInKst } from './schedule/index.js';
+import { TOKENS, DAYS_KO, fmtDate, fmtDateFull, Mono, SeriesTag, StatusPill } from './primitives.jsx';
 
-export function Home({ theme, now, races, onOpenRace, onGo, favorites, toggleFav }) {
+export function Home({ theme, now, races, onOpenRace, onGo, favorites, toggleFav, seasonYear }) {
   const t = TOKENS[theme];
+  const raceList = Array.isArray(races) ? races : [];
+  const safeSeasonYear = Number.isFinite(seasonYear)
+    ? seasonYear
+    : Number((raceList.find((race) => race?.raceDateKst)?.raceDateKst || '').slice(0, 4)) || 2026;
 
-  const upcoming = races.filter(r => r.status !== 'cancelled' && (new Date(r.raceKstIso || (r.raceDateKst + 'T23:59:59+09:00')) >= now));
-  const next = upcoming[0];
+  const upcoming = raceList.filter(r => r.status === 'upcoming');
+  const next = raceList.find(r => r.isNextRace) || upcoming[0];
   const followUps = upcoming.slice(1, 5);
 
   const weekStart = new Date(now); weekStart.setHours(0,0,0,0);
   const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 7);
-  const thisWeek = races.filter(r => {
+  const thisWeek = raceList.filter(r => {
     if (r.status === 'cancelled') return false;
     const d = new Date(r.raceDateKst + 'T00:00:00+09:00');
     return d >= weekStart && d < weekEnd;
@@ -18,14 +22,14 @@ export function Home({ theme, now, races, onOpenRace, onGo, favorites, toggleFav
 
   const weekDays = Array.from({length:7}, (_,i) => {
     const d = new Date(weekStart); d.setDate(d.getDate() + i);
-    const key = d.toISOString().slice(0,10);
-    const dayRaces = races.filter(r => r.raceDateKst === key && r.status !== 'cancelled');
+    const key = getDateKeyInKst(d);
+    const dayRaces = raceList.filter(r => r.raceDateKst === key && r.status !== 'cancelled');
     return { d, key, races: dayRaces };
   });
 
   return (
     <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 110 }}>
-      <TopBar theme={theme} />
+      <TopBar theme={theme} seasonYear={safeSeasonYear} />
       {next && <NextRaceHero race={next} now={now} theme={theme} onOpen={() => onOpenRace(next)} favorites={favorites} toggleFav={toggleFav} />}
 
       <section style={{ padding: '28px 18px 0' }}>
@@ -58,8 +62,8 @@ export function Home({ theme, now, races, onOpenRace, onGo, favorites, toggleFav
       <section style={{ padding: '28px 18px 0' }}>
         <SectionHeader theme={theme} label="SERIES" sub="시리즈별 보기" />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 12 }}>
-          {Object.values(SERIES).map(s => {
-            const count = races.filter(r => r.series === s.id).length;
+          {Object.values(CATEGORIES).map(s => {
+            const count = raceList.filter(r => r.category === s.id).length;
             return (
               <button key={s.id} onClick={() => onGo('series', s.id)} style={{
                 background: t.surface, border: `1px solid ${t.line}`, borderRadius: 14,
@@ -83,7 +87,7 @@ export function Home({ theme, now, races, onOpenRace, onGo, favorites, toggleFav
   );
 }
 
-function TopBar({ theme }) {
+function TopBar({ theme, seasonYear = 2026 }) {
   const t = TOKENS[theme];
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '64px 18px 4px' }}>
@@ -102,7 +106,7 @@ function TopBar({ theme }) {
         </div>
         <div>
           <div style={{ fontSize: 18, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', lineHeight: 1 }}>PADDOCK</div>
-          <Mono size={9} color={t.text3} style={{ letterSpacing: '0.15em' }}>2026 · SEASON</Mono>
+          <Mono size={9} color={t.text3} style={{ letterSpacing: '0.15em' }}>{seasonYear} · SEASON</Mono>
         </div>
       </div>
       <div style={{ width: 36, height: 36, borderRadius: 999, background: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
@@ -161,6 +165,7 @@ function NextRaceHero({ race, now, theme, onOpen, favorites, toggleFav }) {
             <Mono size={10} color={theme === 'dark' ? 'rgba(255,255,255,0.5)' : s.dark} style={{ letterSpacing: '0.12em' }}>
               R{String(race.round || race.plannedRound).padStart(2,'0')} · NEXT UP
             </Mono>
+            {race.status === 'live' && <StatusPill status="live" theme={theme} />}
           </div>
           <button onClick={(e) => { e.stopPropagation(); toggleFav(race.id); }} style={{ background: 'none', border: 0, padding: 4, cursor: 'pointer', color: theme === 'dark' ? '#fff' : s.dark }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill={faved ? s.accent : 'none'} stroke={faved ? s.accent : 'currentColor'} strokeWidth="2">
@@ -255,6 +260,8 @@ function WeekendCard({ race, theme, onOpen }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
           <SeriesTag series={race.series} theme={theme} variant="ghost" />
           <Mono size={10} color={t.text3}>R{String(race.round || race.plannedRound).padStart(2,'0')}</Mono>
+          {race.isNextRace && <StatusPill status="next" theme={theme} />}
+          {race.status === 'live' && <StatusPill status="live" theme={theme} />}
         </div>
         <div style={{ fontSize: 15, fontWeight: 700, color: t.text, letterSpacing: '-0.005em', marginBottom: 2, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
           {race.name}
@@ -288,6 +295,7 @@ function UpNextRow({ race, now, theme, onOpen }) {
       <div style={{ minWidth: 0 }}>
         <div style={{ marginBottom: 2 }}>
           <SeriesTag series={race.series} theme={theme} variant="ghost" />
+          {race.isNextRace && <StatusPill status="next" theme={theme} />}
         </div>
         <div style={{ fontSize: 14, fontWeight: 600, color: t.text, letterSpacing: '-0.005em', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
           {race.name}

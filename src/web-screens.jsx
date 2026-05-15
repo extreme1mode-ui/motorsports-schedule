@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import { TOKENS, MONTHS_KO, DAYS_KO, kstDate, fmtDate, fmtDateFull, Mono, SeriesTag, StatusPill } from './primitives.jsx';
-import { SERIES } from './data.js';
+import { CATEGORIES, SERIES } from './schedule/index.js';
 import { PageHeader } from './web.jsx';
 import { SectionTitle } from './web-home.jsx';
 
-export function WebSchedule({ theme, races, onOpenRace, now, tier }) {
+export function WebSchedule({ theme, races, onOpenRace, now, tier, seasonYear }) {
   const t = TOKENS[theme];
+  const safeSeasonYear = Number.isFinite(seasonYear) ? seasonYear : 2026;
   const [month, setMonth] = useState(now.getMonth());
-  const [filterSeries, setFilterSeries] = useState('ALL');
+  const [filterCategory, setFilterCategory] = useState('ALL');
 
-  const filtered = filterSeries === 'ALL' ? races : races.filter(r => r.series === filterSeries);
+  const filtered = filterCategory === 'ALL' ? races : races.filter(r => r.category === filterCategory);
   const monthRaces = filtered.filter(r => parseInt(r.raceDateKst.slice(5, 7)) - 1 === month);
   const sortedMonth = [...monthRaces].sort((a, b) => a.raceDateKst.localeCompare(b.raceDateKst));
 
@@ -20,10 +21,10 @@ export function WebSchedule({ theme, races, onOpenRace, now, tier }) {
   return (
     <div>
       <PageHeader theme={theme}
-        kicker="CALENDAR · 2026"
+        kicker={`CALENDAR · ${safeSeasonYear}`}
         title="일정"
-        subtitle={`${MONTHS_KO[month]} · ${sortedMonth.length}개 경기${filterSeries !== 'ALL' ? ` · ${SERIES[filterSeries].short}` : ''}`}
-        right={<SeriesFilterBar theme={theme} value={filterSeries} onChange={setFilterSeries} />} />
+        subtitle={`${MONTHS_KO[month]} · ${sortedMonth.length}개 경기${filterCategory !== 'ALL' ? ` · ${CATEGORIES[filterCategory].short}` : ''}`}
+        right={<CategoryFilterBar theme={theme} value={filterCategory} onChange={setFilterCategory} />} />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 6, marginBottom: 28 }}>
         {Array.from({ length: 12 }, (_, m) => m).map(m => {
@@ -54,7 +55,7 @@ export function WebSchedule({ theme, races, onOpenRace, now, tier }) {
         gridTemplateColumns: tier === 'tablet' ? '1fr' : 'minmax(0, 1.4fr) minmax(0, 1fr)',
         gap: 24, alignItems: 'flex-start',
       }}>
-        <BigMonthGrid theme={theme} month={month} races={monthRaces} onOpen={onOpenRace} now={now} />
+        <BigMonthGrid theme={theme} month={month} races={monthRaces} onOpen={onOpenRace} now={now} seasonYear={safeSeasonYear} />
 
         <div>
           <SectionTitle theme={theme} kicker={`${MONTHS_KO[month].toUpperCase()} ROUNDS`} title="경기 일정" />
@@ -73,9 +74,9 @@ export function WebSchedule({ theme, races, onOpenRace, now, tier }) {
   );
 }
 
-function BigMonthGrid({ theme, month, races, onOpen, now }) {
+function BigMonthGrid({ theme, month, races, onOpen, now, seasonYear }) {
   const t = TOKENS[theme];
-  const year = 2026;
+  const year = seasonYear;
   const first = new Date(year, month, 1);
   const firstDow = first.getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -112,7 +113,7 @@ function BigMonthGrid({ theme, month, races, onOpen, now }) {
         {cells.map((d, i) => {
           if (!d) return <div key={i} style={{ minHeight: 96 }} />;
           const dayRaces = byDay[d] || [];
-          const dateKey = `2026-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          const dateKey = `${seasonYear}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
           const isToday = dateKey === todayStr;
           const isSun = i % 7 === 0; const isSat = i % 7 === 6;
           return (
@@ -179,6 +180,8 @@ function WebScheduleRow({ race, theme, onOpen }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
           <SeriesTag series={race.series} theme={theme} variant="ghost" />
           <Mono size={10} color={t.text3}>R{String(race.round || race.plannedRound || 0).padStart(2, '0')}</Mono>
+          {race.isNextRace && <StatusPill status="next" theme={theme} />}
+          {race.status === 'live' && <StatusPill status="live" theme={theme} />}
           {race.status === 'cancelled' && <StatusPill status="cancelled" theme={theme} />}
           {race.status === 'completed' && <StatusPill status="completed" theme={theme} />}
         </div>
@@ -199,9 +202,9 @@ function WebScheduleRow({ race, theme, onOpen }) {
   );
 }
 
-function SeriesFilterBar({ theme, value, onChange }) {
+function CategoryFilterBar({ theme, value, onChange }) {
   const t = TOKENS[theme];
-  const all = [{ id: 'ALL', short: 'ALL', accent: t.text }, ...Object.values(SERIES)];
+  const all = [{ id: 'ALL', short: 'ALL', accent: t.text }, ...Object.values(CATEGORIES)];
   return (
     <div style={{
       display: 'flex', gap: 4, padding: 3, borderRadius: 10,
@@ -224,25 +227,26 @@ function SeriesFilterBar({ theme, value, onChange }) {
   );
 }
 
-export function WebSeries({ theme, races, onOpenRace, initialSeries, tier }) {
+export function WebSeries({ theme, races, onOpenRace, initialCategory, tier, seasonYear }) {
   const t = TOKENS[theme];
-  const [sel, setSel] = useState(initialSeries || 'F1');
-  useEffect(() => { if (initialSeries) setSel(initialSeries); }, [initialSeries]);
-  const s = SERIES[sel];
-  const list = races.filter(r => r.series === sel).sort((a, b) => a.raceDateKst.localeCompare(b.raceDateKst));
+  const safeSeasonYear = Number.isFinite(seasonYear) ? seasonYear : 2026;
+  const [sel, setSel] = useState(initialCategory || 'F1');
+  useEffect(() => { if (initialCategory) setSel(initialCategory); }, [initialCategory]);
+  const s = CATEGORIES[sel];
+  const list = races.filter(r => r.category === sel).sort((a, b) => a.raceDateKst.localeCompare(b.raceDateKst));
   const done = list.filter(r => r.status === 'completed').length;
   const cancelled = list.filter(r => r.status === 'cancelled').length;
-  const upcoming = list.filter(r => r.status === 'scheduled').length;
+  const upcoming = list.filter(r => r.status === 'upcoming').length;
 
   return (
     <div>
       <PageHeader theme={theme}
-        kicker="BY SERIES · 2026"
-        title="시리즈별"
-        subtitle={`${Object.keys(SERIES).length}개 시리즈 · 라운드별 상세 일정`}
+        kicker={`BY CATEGORY · ${safeSeasonYear}`}
+        title="카테고리별"
+        subtitle={`${Object.keys(CATEGORIES).length}개 카테고리 · 라운드별 상세 일정`}
         right={
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            {Object.values(SERIES).map(ss => (
+            {Object.values(CATEGORIES).map(ss => (
               <button key={ss.id} onClick={() => setSel(ss.id)} style={{
                 padding: '9px 14px', borderRadius: 999, fontFamily: 'inherit',
                 border: `1px solid ${sel === ss.id ? ss.accent : t.line}`,
@@ -272,7 +276,7 @@ export function WebSeries({ theme, races, onOpenRace, initialSeries, tier }) {
         <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
           <div>
             <Mono size={11} color={theme === 'dark' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.55)'} style={{ letterSpacing: '0.18em' }}>
-              {s.short} · 2026 SEASON
+              {s.short} · {safeSeasonYear} SEASON
             </Mono>
             <div style={{
               fontSize: tier === 'ultra' ? 56 : 44, fontWeight: 800, letterSpacing: '-0.025em',
@@ -345,6 +349,8 @@ function WebRoundRow({ race, idx, theme, onOpen }) {
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>
           {done && <StatusPill status="completed" theme={theme} />}
+          {race.status === 'live' && <StatusPill status="live" theme={theme} />}
+          {race.isNextRace && <StatusPill status="next" theme={theme} />}
           {cancelled && <StatusPill status="cancelled" theme={theme} />}
           {race.isSprint && (
             <span style={{
@@ -426,6 +432,7 @@ function FavCard({ race, theme, onOpen, toggleFav }) {
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: s.accent }} />
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
         <SeriesTag series={race.series} theme={theme} />
+        {race.isNextRace && <StatusPill status="next" theme={theme} />}
         <button onClick={e => { e.stopPropagation(); toggleFav(race.id); }} style={{
           background: 'none', border: 0, padding: 0, cursor: 'pointer', color: s.accent,
         }}>
@@ -534,6 +541,8 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier })
                   fontFamily: '"JetBrains Mono", ui-monospace',
                 }}>SPRINT</span>
               )}
+              {race.isNextRace && <StatusPill status="next" theme={theme} />}
+              {race.status === 'live' && <StatusPill status="live" theme={theme} />}
               {race.status === 'cancelled' && <StatusPill status="cancelled" theme={theme} />}
               {race.status === 'completed' && <StatusPill status="completed" theme={theme} />}
             </div>
@@ -587,6 +596,8 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier })
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <DrawerCell theme={theme} label="시작" value={fmtDateFull(race.weekendStart)} />
               <DrawerCell theme={theme} label="종료" value={fmtDateFull(race.weekendEnd)} />
+              <DrawerCell theme={theme} label="현지 시각" value={race.localTime || 'TBA'} />
+              <DrawerCell theme={theme} label="TIMEZONE" value={race.timezone || 'TBA'} />
             </div>
           </section>
 

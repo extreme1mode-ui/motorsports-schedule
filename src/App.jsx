@@ -1,44 +1,36 @@
 import { useState, useEffect } from 'react';
-import { ALL_RACES, SERIES } from './data.js';
+import { getCurrentNow, useScheduleData } from './schedule/index.js';
 import { TOKENS, Mono } from './primitives.jsx';
-import { IOSDevice } from './IOSFrame.jsx';
 import { Home } from './home.jsx';
 import { Schedule, SeriesView, Favorites, RaceDetail } from './screens.jsx';
-import { WebApp, useViewport, getSimulatedNow } from './web.jsx';
+import { WebApp, useViewport } from './web.jsx';
 
 export default function Root() {
   const { isWeb } = useViewport();
   if (isWeb) return <WebApp />;
-  return (
-    <div style={{
-      minHeight: '100vh', display: 'grid', placeItems: 'center', padding: '28px 20px',
-      background: `radial-gradient(1000px 600px at 20% -10%, rgba(255,77,95,0.08), transparent 70%),
-                   radial-gradient(800px 600px at 100% 110%, rgba(46,125,255,0.08), transparent 60%),
-                   #07080B`,
-    }}>
-      <div style={{ position: 'relative' }}>
-        <IOSDevice width={402} height={874} dark={true}>
-          <App />
-        </IOSDevice>
-      </div>
-    </div>
-  );
+  return <App />;
 }
 
 function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('paddock.theme') || 'dark');
   const [view, setView] = useState('home');
-  const [seriesFilter, setSeriesFilter] = useState(null);
-  const [openRace, setOpenRace] = useState(null);
+  const [categoryFilter, setCategoryFilter] = useState(null);
+  const [openRaceId, setOpenRaceId] = useState(null);
   const [favorites, setFavorites] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('paddock.fav') || '[]')); }
     catch { return new Set(); }
   });
-  const [now, setNow] = useState(() => getSimulatedNow());
+  const [now, setNow] = useState(() => getCurrentNow());
   const [tweaks, setTweaks] = useState(false);
+  const schedule = useScheduleData(now);
+  const raceList = Array.isArray(schedule.races) ? schedule.races : [];
+  const safeSeasonYear = Number.isFinite(schedule.seasonYear)
+    ? schedule.seasonYear
+    : Number((raceList.find((race) => race?.raceDateKst)?.raceDateKst || '').slice(0, 4)) || 2026;
+  const openRace = raceList.find((race) => race.id === openRaceId) || null;
 
   useEffect(() => {
-    const i = setInterval(() => setNow(getSimulatedNow()), 1000);
+    const i = setInterval(() => setNow(getCurrentNow()), 1000);
     return () => clearInterval(i);
   }, []);
 
@@ -54,28 +46,59 @@ function App() {
   };
 
   const onGo = (v, arg) => {
-    if (v === 'series') { setSeriesFilter(arg); setView('series'); }
+    if (v === 'series') { setCategoryFilter(arg); setView('series'); }
     else setView(v);
   };
 
   const t = TOKENS[theme];
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden', background: t.bg }}>
+    <div style={{
+      position: 'relative',
+      width: '100%',
+      minHeight: '100dvh',
+      overflow: 'hidden',
+      background: t.bg,
+      paddingTop: 'env(safe-area-inset-top, 0px)',
+      paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+    }}>
       {/* Scrollable content area — sits inside the fixed-height App shell */}
-      <div style={{ height: '100%', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
-        {view === 'home' && <Home theme={theme} now={now} races={ALL_RACES} onOpenRace={setOpenRace} onGo={onGo} favorites={favorites} toggleFav={toggleFav} />}
-        {view === 'schedule' && <Schedule theme={theme} races={ALL_RACES} onOpenRace={setOpenRace} now={now} />}
-        {view === 'series' && <SeriesView theme={theme} races={ALL_RACES} onOpenRace={setOpenRace} initialSeries={seriesFilter || 'F1'} />}
-        {view === 'fav' && <Favorites theme={theme} races={ALL_RACES} favorites={favorites} onOpenRace={setOpenRace} toggleFav={toggleFav} />}
+      <div style={{ minHeight: '100dvh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <DataBanner theme={theme} loading={schedule.loading} usingFallback={schedule.usingFallback} />
+        {view === 'home' && <Home theme={theme} now={now} races={raceList} onOpenRace={(race) => setOpenRaceId(race.id)} onGo={onGo} favorites={favorites} toggleFav={toggleFav} seasonYear={safeSeasonYear} />}
+        {view === 'schedule' && <Schedule theme={theme} races={raceList} onOpenRace={(race) => setOpenRaceId(race.id)} now={now} seasonYear={safeSeasonYear} />}
+        {view === 'series' && <SeriesView theme={theme} races={raceList} onOpenRace={(race) => setOpenRaceId(race.id)} initialCategory={categoryFilter || 'F1'} seasonYear={safeSeasonYear} />}
+        {view === 'fav' && <Favorites theme={theme} races={raceList} favorites={favorites} onOpenRace={(race) => setOpenRaceId(race.id)} toggleFav={toggleFav} />}
       </div>
 
       {/* Overlays and chrome are outside the scroll wrapper so they stay fixed */}
-      {openRace && <RaceDetail race={openRace} theme={theme} onClose={() => setOpenRace(null)} favorites={favorites} toggleFav={toggleFav} />}
+      {openRace && <RaceDetail race={openRace} theme={theme} onClose={() => setOpenRaceId(null)} favorites={favorites} toggleFav={toggleFav} />}
 
       <TabBar theme={theme} view={view} onGo={setView} favCount={favorites.size} />
 
       {tweaks && <TweaksPanel theme={theme} setTheme={setTheme} onClose={() => setTweaks(false)} />}
+    </div>
+  );
+}
+
+function DataBanner({ theme, loading, usingFallback }) {
+  if (!loading && !usingFallback) return null;
+  const t = TOKENS[theme];
+  return (
+    <div style={{
+      margin: '16px 18px 0',
+      padding: '10px 12px',
+      borderRadius: 12,
+      border: `1px solid ${t.line}`,
+      background: theme === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+    }}>
+      <span style={{ width: 7, height: 7, borderRadius: '50%', background: loading ? '#6BA3FF' : '#FFB800' }} />
+      <div style={{ fontSize: 12, color: t.text2 }}>
+        {loading ? '최신 일정을 불러오는 중입니다.' : '실시간 F1 업데이트에 실패해 로컬 대체 일정으로 표시 중입니다.'}
+      </div>
     </div>
   );
 }
@@ -91,7 +114,7 @@ function TabBar({ theme, view, onGo, favCount }) {
   return (
     <div style={{
       position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 70,
-      padding: '10px 14px 28px',
+      padding: '10px 14px calc(16px + env(safe-area-inset-bottom, 0px))',
       background: theme === 'dark'
         ? 'linear-gradient(180deg, rgba(10,11,14,0) 0%, rgba(10,11,14,0.92) 30%)'
         : 'linear-gradient(180deg, rgba(242,242,245,0) 0%, rgba(242,242,245,0.95) 30%)',

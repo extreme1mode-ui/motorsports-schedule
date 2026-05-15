@@ -1,14 +1,8 @@
 import { useState, useEffect } from 'react';
 import { TOKENS, Mono, SeriesTag } from './primitives.jsx';
-import { ALL_RACES } from './data.js';
+import { getCurrentNow, useScheduleData } from './schedule/index.js';
 import { WebHome } from './web-home.jsx';
 import { WebSchedule, WebSeries, WebFavorites, RaceDrawer } from './web-screens.jsx';
-
-export function getSimulatedNow() {
-  const base = new Date('2026-03-10T14:30:00+09:00').getTime();
-  if (!window.__pkStart) window.__pkStart = Date.now();
-  return new Date(base + (Date.now() - window.__pkStart));
-}
 
 export function useViewport() {
   const [w, setW] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1440);
@@ -27,18 +21,24 @@ export function useViewport() {
 export function WebApp() {
   const [theme, setTheme] = useState(() => localStorage.getItem('paddock.theme') || 'dark');
   const [view, setView] = useState('home');
-  const [seriesFilter, setSeriesFilter] = useState(null);
-  const [openRace, setOpenRace] = useState(null);
+  const [categoryFilter, setCategoryFilter] = useState(null);
+  const [openRaceId, setOpenRaceId] = useState(null);
   const [favorites, setFavorites] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('paddock.fav') || '[]')); }
     catch { return new Set(); }
   });
-  const [now, setNow] = useState(() => getSimulatedNow());
+  const [now, setNow] = useState(() => getCurrentNow());
   const [tweaks, setTweaks] = useState(false);
   const { tier } = useViewport();
+  const schedule = useScheduleData(now);
+  const raceList = Array.isArray(schedule.races) ? schedule.races : [];
+  const safeSeasonYear = Number.isFinite(schedule.seasonYear)
+    ? schedule.seasonYear
+    : Number((raceList.find((race) => race?.raceDateKst)?.raceDateKst || '').slice(0, 4)) || 2026;
+  const openRace = raceList.find((race) => race.id === openRaceId) || null;
 
   useEffect(() => {
-    const i = setInterval(() => setNow(getSimulatedNow()), 1000);
+    const i = setInterval(() => setNow(getCurrentNow()), 1000);
     return () => clearInterval(i);
   }, []);
   useEffect(() => { localStorage.setItem('paddock.theme', theme); }, [theme]);
@@ -61,9 +61,9 @@ export function WebApp() {
       return next;
     });
   };
-  const onOpenRace = (r) => setOpenRace(r);
+  const onOpenRace = (r) => setOpenRaceId(r.id);
   const onGo = (v, arg) => {
-    if (v === 'series') { setSeriesFilter(arg); setView('series'); }
+    if (v === 'series') { setCategoryFilter(arg); setView('series'); }
     else setView(v);
   };
 
@@ -84,21 +84,44 @@ export function WebApp() {
 
       <main style={{ padding: `${gutter + 8}px ${gutter}px ${gutter * 2}px`, maxWidth: '100%', minWidth: 0 }}>
         <div style={{ maxWidth: maxMain, margin: '0 auto' }}>
-          {view === 'home' && <WebHome theme={theme} now={now} races={ALL_RACES}
+          <DataBanner theme={theme} loading={schedule.loading} usingFallback={schedule.usingFallback} />
+          {view === 'home' && <WebHome theme={theme} now={now} races={raceList}
             onOpenRace={onOpenRace} onGo={onGo} favorites={favorites} toggleFav={toggleFav} tier={tier} />}
-          {view === 'schedule' && <WebSchedule theme={theme} races={ALL_RACES}
-            onOpenRace={onOpenRace} now={now} tier={tier} />}
-          {view === 'series' && <WebSeries theme={theme} races={ALL_RACES}
-            onOpenRace={onOpenRace} initialSeries={seriesFilter || 'F1'} tier={tier} />}
-          {view === 'fav' && <WebFavorites theme={theme} races={ALL_RACES}
+          {view === 'schedule' && <WebSchedule theme={theme} races={raceList}
+            onOpenRace={onOpenRace} now={now} tier={tier} seasonYear={safeSeasonYear} />}
+          {view === 'series' && <WebSeries theme={theme} races={raceList}
+            onOpenRace={onOpenRace} initialCategory={categoryFilter || 'F1'} tier={tier} seasonYear={safeSeasonYear} />}
+          {view === 'fav' && <WebFavorites theme={theme} races={raceList}
             favorites={favorites} onOpenRace={onOpenRace} toggleFav={toggleFav} tier={tier} />}
         </div>
       </main>
 
-      {openRace && <RaceDrawer race={openRace} theme={theme} onClose={() => setOpenRace(null)}
+      {openRace && <RaceDrawer race={openRace} theme={theme} onClose={() => setOpenRaceId(null)}
         favorites={favorites} toggleFav={toggleFav} tier={tier} />}
 
       {tweaks && <WebTweaks theme={theme} setTheme={setTheme} />}
+    </div>
+  );
+}
+
+function DataBanner({ theme, loading, usingFallback }) {
+  if (!loading && !usingFallback) return null;
+  const t = TOKENS[theme];
+  return (
+    <div style={{
+      marginBottom: 20,
+      padding: '12px 14px',
+      borderRadius: 14,
+      border: `1px solid ${t.line}`,
+      background: theme === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 10,
+    }}>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: loading ? '#6BA3FF' : '#FFB800' }} />
+      <div style={{ fontSize: 13, color: t.text2 }}>
+        {loading ? 'Updating schedule data…' : 'Live F1 fetch failed. Showing local fallback schedule.'}
+      </div>
     </div>
   );
 }

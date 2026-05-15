@@ -1,4 +1,4 @@
-import { SERIES } from './data.js';
+import { SERIES } from './schedule/index.js';
 
 export const TOKENS = {
   dark: {
@@ -69,6 +69,20 @@ export function SeriesTag({ series, theme = 'dark', variant = 'solid' }) {
 
 export function StatusPill({ status, theme = 'dark' }) {
   const t = TOKENS[theme];
+  if (status === 'next') return (
+    <span style={{
+      padding: '2px 6px', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
+      borderRadius: 3, background: 'rgba(46,125,255,0.15)', color: '#6BA3FF',
+      fontFamily: '"JetBrains Mono", ui-monospace', textTransform: 'uppercase',
+    }}>NEXT</span>
+  );
+  if (status === 'live') return (
+    <span style={{
+      padding: '2px 6px', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
+      borderRadius: 3, background: 'rgba(20,209,155,0.16)', color: '#22D77E',
+      fontFamily: '"JetBrains Mono", ui-monospace', textTransform: 'uppercase',
+    }}>LIVE</span>
+  );
   if (status === 'cancelled') return (
     <span style={{
       padding: '2px 6px', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
