@@ -67,6 +67,56 @@ export function SeriesTag({ series, theme = 'dark', variant = 'solid' }) {
   );
 }
 
+export function getRoundDisplay(race, fallbackIndex) {
+  if (race?.roundLabel) return race.roundLabel;
+  const roundNumber = race?.round ?? race?.plannedRound ?? fallbackIndex;
+  if (!Number.isFinite(roundNumber)) return 'TBA';
+  return `R${String(roundNumber).padStart(2, '0')}`;
+}
+
+export function getRoundDescriptor(race, fallbackIndex) {
+  if (race?.roundLabel) {
+    return race?.roundDescriptor || `FEATURE ${race.roundLabel}`;
+  }
+  const roundNumber = race?.round ?? race?.plannedRound ?? fallbackIndex;
+  if (!Number.isFinite(roundNumber)) return 'EVENT';
+  return `ROUND ${String(roundNumber).padStart(2, '0')}`;
+}
+
+export function EventBadge({ label, tone = 'accent', theme = 'dark' }) {
+  const t = TOKENS[theme];
+  const tones = {
+    accent: {
+      background: 'rgba(255,255,255,0.12)',
+      color: theme === 'dark' ? '#fff' : t.text,
+    },
+    endurance: {
+      background: theme === 'dark' ? 'rgba(255,196,77,0.18)' : 'rgba(185,126,12,0.12)',
+      color: theme === 'dark' ? '#FFD36A' : '#8B6200',
+    },
+    neutral: {
+      background: theme === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)',
+      color: t.text2,
+    },
+  };
+  const colors = tones[tone] || tones.accent;
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      padding: '2px 6px',
+      fontSize: 9,
+      fontWeight: 800,
+      letterSpacing: '0.08em',
+      borderRadius: 3,
+      background: colors.background,
+      color: colors.color,
+      fontFamily: '"JetBrains Mono", ui-monospace',
+      textTransform: 'uppercase',
+    }}>{label}</span>
+  );
+}
+
 export function StatusPill({ status, theme = 'dark' }) {
   const t = TOKENS[theme];
   if (status === 'next') return (

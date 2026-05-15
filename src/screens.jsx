@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CATEGORIES, SERIES, getDateKeyInKst } from './schedule/index.js';
-import { TOKENS, MONTHS_KO, DAYS_KO, kstDate, fmtDate, fmtDateFull, Mono, SeriesTag, StatusPill } from './primitives.jsx';
+import { TOKENS, MONTHS_KO, DAYS_KO, kstDate, fmtDate, fmtDateFull, Mono, SeriesTag, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
 
 export function Schedule({ theme, races, onOpenRace, now, seasonYear }) {
   const t = TOKENS[theme];
@@ -147,7 +147,8 @@ export function ScheduleRow({ race, theme, onOpen }) {
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
           <SeriesTag series={race.series} theme={theme} variant="ghost" />
-          <Mono size={10} color={t.text3}>R{String(race.round || race.plannedRound || 0).padStart(2,'0')}</Mono>
+          <Mono size={10} color={t.text3}>{getRoundDisplay(race)}</Mono>
+          {race.specialBadge && <EventBadge label={race.specialBadge} tone={race.specialBadgeTone} theme={theme} />}
           {race.isNextRace && <StatusPill status="next" theme={theme} />}
           {race.status === 'live' && <StatusPill status="live" theme={theme} />}
           {race.status === 'cancelled' && <StatusPill status="cancelled" theme={theme} />}
@@ -170,6 +171,8 @@ export function SeriesView({ theme, races, onOpenRace, initialCategory, seasonYe
   useEffect(() => { if (initialCategory) setSel(initialCategory); }, [initialCategory]);
   const s = CATEGORIES[sel];
   const list = races.filter(r => r.category === sel).sort((a,b) => a.raceDateKst.localeCompare(b.raceDateKst));
+  const roundCount = list.filter(r => r.includeInRoundCount !== false && r.status !== 'cancelled').length;
+  const finishedCount = list.filter(r => r.includeInRoundCount !== false && r.status === 'completed').length;
 
   return (
     <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 110 }}>
@@ -199,8 +202,8 @@ export function SeriesView({ theme, races, onOpenRace, initialCategory, seasonYe
           {s.name}
         </div>
         <div style={{ display: 'flex', gap: 18, marginTop: 12 }}>
-          <Stat label="ROUNDS" val={String(list.filter(r => r.status !== 'cancelled').length).padStart(2,'0')} dark={theme === 'dark'} />
-          <Stat label="FINISHED" val={String(list.filter(r => r.status === 'completed').length).padStart(2,'0')} dark={theme === 'dark'} />
+          <Stat label="ROUNDS" val={String(roundCount).padStart(2,'0')} dark={theme === 'dark'} />
+          <Stat label="FINISHED" val={String(finishedCount).padStart(2,'0')} dark={theme === 'dark'} />
           <Stat label="NEXT UP" val={list.find(r => r.isNextRace || r.status === 'upcoming') ? 'NEXT' : '—'} dark={theme === 'dark'} />
         </div>
       </div>
@@ -235,7 +238,7 @@ function RoundRow({ race, idx, theme, onOpen }) {
       <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <Mono size={9} color={t.text3} style={{ letterSpacing: '0.08em' }}>RND</Mono>
         <Mono size={16} weight={700} color={done ? t.text3 : t.text} style={{ lineHeight: 1, marginTop: 2, textDecoration: cancelled ? 'line-through' : 'none' }}>
-          {String(race.round || race.plannedRound || (idx+1)).padStart(2,'0')}
+          {race.roundLabel || String(race.round || race.plannedRound || (idx+1)).padStart(2,'0')}
         </Mono>
       </div>
       <div style={{ minWidth: 0 }}>
@@ -321,8 +324,9 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <SeriesTag series={race.series} theme={theme} />
             <Mono size={10} color={theme === 'dark' ? 'rgba(255,255,255,0.6)' : s.dark} style={{ letterSpacing: '0.12em' }}>
-              ROUND {String(race.round || race.plannedRound || 0).padStart(2,'0')}
+              {getRoundDescriptor(race)}
             </Mono>
+            {race.specialBadge && <EventBadge label={race.specialBadge} tone={race.specialBadgeTone} theme={theme} />}
             {race.isSprint && <span style={{ padding: '2px 6px', fontSize: 9, fontWeight: 800, letterSpacing: '0.08em', borderRadius: 3, background: 'rgba(255,255,255,0.18)', color: '#fff', fontFamily: '"JetBrains Mono", ui-monospace' }}>SPRINT</span>}
             {race.isNextRace && <StatusPill status="next" theme={theme} />}
             {race.status === 'live' && <StatusPill status="live" theme={theme} />}
@@ -374,6 +378,7 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav }) {
           <InfoCell label="종료" value={fmtDateFull(race.weekendEnd)} theme={theme} />
           <InfoCell label="현지 시각" value={race.localTime || 'TBA'} theme={theme} />
           <InfoCell label="TIMEZONE" value={race.timezone || 'TBA'} theme={theme} />
+          {race.durationLabel && <InfoCell label="DURATION" value={race.durationLabel} theme={theme} />}
         </div>
       </section>
 

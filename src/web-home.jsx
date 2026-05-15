@@ -1,4 +1,4 @@
-import { TOKENS, DAYS_KO, fmtDate, fmtDateFull, Mono, SeriesTag, StatusPill } from './primitives.jsx';
+import { TOKENS, DAYS_KO, fmtDate, fmtDateFull, Mono, SeriesTag, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
 import { CATEGORIES, SERIES, getDateKeyInKst } from './schedule/index.js';
 import { PageHeader } from './web.jsx';
 
@@ -170,8 +170,9 @@ function WebNextRaceHero({ race, now, theme, tier, onOpen, favorites, toggleFav 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
             <SeriesTag series={race.series} theme={theme} />
             <Mono size={11} color={theme === 'dark' ? 'rgba(255,255,255,0.55)' : s.dark} style={{ letterSpacing: '0.16em' }}>
-              ROUND {String(race.round || race.plannedRound).padStart(2, '0')} · NEXT UP
+              {getRoundDescriptor(race)} · NEXT UP
             </Mono>
+            {race.specialBadge && <EventBadge label={race.specialBadge} tone={race.specialBadgeTone} theme={theme} />}
             {race.status === 'live' && <StatusPill status="live" theme={theme} />}
             {race.isSprint && (
               <span style={{
@@ -341,7 +342,8 @@ function UpNextCard({ race, now, theme, onOpen, favorites, toggleFav }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <SeriesTag series={race.series} theme={theme} variant="ghost" />
-            <Mono size={10} color={t.text3}>R{String(race.round || race.plannedRound || 0).padStart(2, '0')}</Mono>
+            <Mono size={10} color={t.text3}>{getRoundDisplay(race)}</Mono>
+            {race.specialBadge && <EventBadge label={race.specialBadge} tone={race.specialBadgeTone} theme={theme} />}
             {race.isNextRace && <StatusPill status="next" theme={theme} />}
             {race.status === 'live' && <StatusPill status="live" theme={theme} />}
           </div>
@@ -392,6 +394,7 @@ function OnTrackCard({ race, theme, onOpen }) {
     }}>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: s.accent }} />
       <SeriesTag series={race.series} theme={theme} />
+      {race.specialBadge && <EventBadge label={race.specialBadge} tone={race.specialBadgeTone} theme={theme} />}
       {race.isNextRace && <StatusPill status="next" theme={theme} />}
       <div style={{
         fontSize: 16, fontWeight: 700, color: theme === 'dark' ? '#fff' : '#111',

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TOKENS, MONTHS_KO, DAYS_KO, kstDate, fmtDate, fmtDateFull, Mono, SeriesTag, StatusPill } from './primitives.jsx';
+import { TOKENS, MONTHS_KO, DAYS_KO, kstDate, fmtDate, fmtDateFull, Mono, SeriesTag, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
 import { CATEGORIES, SERIES } from './schedule/index.js';
 import { PageHeader } from './web.jsx';
 import { SectionTitle } from './web-home.jsx';
@@ -179,7 +179,8 @@ function WebScheduleRow({ race, theme, onOpen }) {
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
           <SeriesTag series={race.series} theme={theme} variant="ghost" />
-          <Mono size={10} color={t.text3}>R{String(race.round || race.plannedRound || 0).padStart(2, '0')}</Mono>
+          <Mono size={10} color={t.text3}>{getRoundDisplay(race)}</Mono>
+          {race.specialBadge && <EventBadge label={race.specialBadge} tone={race.specialBadgeTone} theme={theme} />}
           {race.isNextRace && <StatusPill status="next" theme={theme} />}
           {race.status === 'live' && <StatusPill status="live" theme={theme} />}
           {race.status === 'cancelled' && <StatusPill status="cancelled" theme={theme} />}
@@ -234,9 +235,10 @@ export function WebSeries({ theme, races, onOpenRace, initialCategory, tier, sea
   useEffect(() => { if (initialCategory) setSel(initialCategory); }, [initialCategory]);
   const s = CATEGORIES[sel];
   const list = races.filter(r => r.category === sel).sort((a, b) => a.raceDateKst.localeCompare(b.raceDateKst));
-  const done = list.filter(r => r.status === 'completed').length;
+  const roundCount = list.filter(r => r.includeInRoundCount !== false).length;
+  const done = list.filter(r => r.status === 'completed' && r.includeInRoundCount !== false).length;
   const cancelled = list.filter(r => r.status === 'cancelled').length;
-  const upcoming = list.filter(r => r.status === 'upcoming').length;
+  const upcoming = list.filter(r => r.status === 'upcoming' && r.includeInRoundCount !== false).length;
 
   return (
     <div>
@@ -285,7 +287,7 @@ export function WebSeries({ theme, races, onOpenRace, initialCategory, tier, sea
           </div>
 
           <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
-            <BigStat label="ROUNDS" value={String(list.length).padStart(2, '0')} dark={theme === 'dark'} />
+            <BigStat label="ROUNDS" value={String(roundCount).padStart(2, '0')} dark={theme === 'dark'} />
             <BigStat label="DONE" value={String(done).padStart(2, '0')} dark={theme === 'dark'} />
             <BigStat label="UPCOMING" value={String(upcoming).padStart(2, '0')} dark={theme === 'dark'} accent={s.accent} />
             {cancelled > 0 && <BigStat label="CANCELLED" value={String(cancelled).padStart(2, '0')} dark={theme === 'dark'} />}
@@ -343,7 +345,7 @@ function WebRoundRow({ race, idx, theme, onOpen }) {
         <Mono size={18} weight={700} color={done ? t.text3 : t.text} style={{
           lineHeight: 1, marginTop: 4, textDecoration: cancelled ? 'line-through' : 'none',
         }}>
-          {String(race.round || race.plannedRound || (idx + 1)).padStart(2, '0')}
+          {race.roundLabel || String(race.round || race.plannedRound || (idx + 1)).padStart(2, '0')}
         </Mono>
       </div>
       <div style={{ minWidth: 0 }}>
@@ -352,6 +354,7 @@ function WebRoundRow({ race, idx, theme, onOpen }) {
           {race.status === 'live' && <StatusPill status="live" theme={theme} />}
           {race.isNextRace && <StatusPill status="next" theme={theme} />}
           {cancelled && <StatusPill status="cancelled" theme={theme} />}
+          {race.specialBadge && <EventBadge label={race.specialBadge} tone={race.specialBadgeTone} theme={theme} />}
           {race.isSprint && (
             <span style={{
               padding: '2px 6px', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
@@ -432,6 +435,7 @@ function FavCard({ race, theme, onOpen, toggleFav }) {
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: s.accent }} />
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
         <SeriesTag series={race.series} theme={theme} />
+        {race.specialBadge && <EventBadge label={race.specialBadge} tone={race.specialBadgeTone} theme={theme} />}
         {race.isNextRace && <StatusPill status="next" theme={theme} />}
         <button onClick={e => { e.stopPropagation(); toggleFav(race.id); }} style={{
           background: 'none', border: 0, padding: 0, cursor: 'pointer', color: s.accent,
@@ -532,8 +536,9 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier })
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
               <SeriesTag series={race.series} theme={theme} />
               <Mono size={11} color={theme === 'dark' ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.55)'} style={{ letterSpacing: '0.14em' }}>
-                ROUND {String(race.round || race.plannedRound || 0).padStart(2, '0')}
+                {getRoundDescriptor(race)}
               </Mono>
+              {race.specialBadge && <EventBadge label={race.specialBadge} tone={race.specialBadgeTone} theme={theme} />}
               {race.isSprint && (
                 <span style={{
                   padding: '3px 7px', fontSize: 10, fontWeight: 800, letterSpacing: '0.1em',
@@ -598,6 +603,7 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier })
               <DrawerCell theme={theme} label="종료" value={fmtDateFull(race.weekendEnd)} />
               <DrawerCell theme={theme} label="현지 시각" value={race.localTime || 'TBA'} />
               <DrawerCell theme={theme} label="TIMEZONE" value={race.timezone || 'TBA'} />
+              {race.durationLabel && <DrawerCell theme={theme} label="DURATION" value={race.durationLabel} />}
             </div>
           </section>
 

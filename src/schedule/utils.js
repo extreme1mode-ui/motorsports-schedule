@@ -175,7 +175,9 @@ export function sortRacesByPrimaryDate(races) {
     const leftTime = new Date(left.primaryStartUtc).getTime();
     const rightTime = new Date(right.primaryStartUtc).getTime();
     if (leftTime !== rightTime) return leftTime - rightTime;
-    return left.round - right.round;
+    const leftOrder = left.round ?? left.plannedRound ?? Number.MAX_SAFE_INTEGER;
+    const rightOrder = right.round ?? right.plannedRound ?? Number.MAX_SAFE_INTEGER;
+    return leftOrder - rightOrder;
   });
 }
 

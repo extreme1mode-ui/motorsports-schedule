@@ -1,5 +1,5 @@
 import { CATEGORIES, SERIES, getDateKeyInKst } from './schedule/index.js';
-import { TOKENS, DAYS_KO, fmtDate, fmtDateFull, Mono, SeriesTag, StatusPill } from './primitives.jsx';
+import { TOKENS, DAYS_KO, fmtDate, fmtDateFull, Mono, SeriesTag, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
 
 export function Home({ theme, now, races, onOpenRace, onGo, favorites, toggleFav, seasonYear }) {
   const t = TOKENS[theme];
@@ -163,8 +163,9 @@ function NextRaceHero({ race, now, theme, onOpen, favorites, toggleFav }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <SeriesTag series={race.series} theme={theme} />
             <Mono size={10} color={theme === 'dark' ? 'rgba(255,255,255,0.5)' : s.dark} style={{ letterSpacing: '0.12em' }}>
-              R{String(race.round || race.plannedRound).padStart(2,'0')} · NEXT UP
+              {getRoundDescriptor(race)} · NEXT UP
             </Mono>
+            {race.specialBadge && <EventBadge label={race.specialBadge} tone={race.specialBadgeTone} theme={theme} />}
             {race.status === 'live' && <StatusPill status="live" theme={theme} />}
           </div>
           <button onClick={(e) => { e.stopPropagation(); toggleFav(race.id); }} style={{ background: 'none', border: 0, padding: 4, cursor: 'pointer', color: theme === 'dark' ? '#fff' : s.dark }}>
@@ -259,7 +260,8 @@ function WeekendCard({ race, theme, onOpen }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
           <SeriesTag series={race.series} theme={theme} variant="ghost" />
-          <Mono size={10} color={t.text3}>R{String(race.round || race.plannedRound).padStart(2,'0')}</Mono>
+          <Mono size={10} color={t.text3}>{getRoundDisplay(race)}</Mono>
+          {race.specialBadge && <EventBadge label={race.specialBadge} tone={race.specialBadgeTone} theme={theme} />}
           {race.isNextRace && <StatusPill status="next" theme={theme} />}
           {race.status === 'live' && <StatusPill status="live" theme={theme} />}
         </div>
@@ -295,6 +297,7 @@ function UpNextRow({ race, now, theme, onOpen }) {
       <div style={{ minWidth: 0 }}>
         <div style={{ marginBottom: 2 }}>
           <SeriesTag series={race.series} theme={theme} variant="ghost" />
+          {race.specialBadge && <EventBadge label={race.specialBadge} tone={race.specialBadgeTone} theme={theme} />}
           {race.isNextRace && <StatusPill status="next" theme={theme} />}
         </div>
         <div style={{ fontSize: 14, fontWeight: 600, color: t.text, letterSpacing: '-0.005em', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
