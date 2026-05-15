@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(cp \"/Users/song-yeon-woo/.claude/projects/-Users-song-yeon-woo-Desktop-PencilDev-motorsports-schedule/d1923696-c87f-4812-a997-07e57c6c4ba8/tool-results/webfetch-1778089894047-dt547p.bin\" /tmp/design.gz)",
+      "Bash(gunzip -f /tmp/design.gz)",
+      "Read(//tmp/**)",
+      "Read(//private/tmp/**)",
+      "Bash(tar xf *)",
+      "Bash(mkdir -p /Users/song-yeon-woo/Desktop/PencilDev/motorsports-schedule/public/fonts)",
+      "Bash(cp /tmp/untitled/project/giggle/fonts/*.woff /Users/song-yeon-woo/Desktop/PencilDev/motorsports-schedule/public/fonts/)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(npx vite *)",
+      "mcp__figma__get_metadata",
+      "mcp__figma__use_figma",
+      "mcp__figma__generate_figma_design",
+      "Bash(open *)",
+      "mcp__figma__get_screenshot",
+      "Bash(curl -s -o /tmp/paddock_capture.png \"https://www.figma.com/api/mcp/asset/a154bf26-4083-4a6c-84ea-e314dae2629f\")",
+      "Bash(xxd)"
+    ]
+  }
+}
