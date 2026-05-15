@@ -51,19 +51,24 @@ function App() {
   };
 
   const t = TOKENS[theme];
+  const mobileBottomNavSpace = 'calc(92px + env(safe-area-inset-bottom, 0px))';
 
   return (
     <div style={{
       position: 'relative',
       width: '100%',
-      minHeight: '100dvh',
+      height: '100dvh',
       overflow: 'hidden',
       background: t.bg,
       paddingTop: 'env(safe-area-inset-top, 0px)',
-      paddingBottom: 'env(safe-area-inset-bottom, 0px)',
     }}>
       {/* Scrollable content area — sits inside the fixed-height App shell */}
-      <div style={{ minHeight: '100dvh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+      <div style={{
+        height: '100dvh',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        paddingBottom: mobileBottomNavSpace,
+      }}>
         <DataBanner theme={theme} loading={schedule.loading} usingFallback={schedule.usingFallback} />
         {view === 'home' && <Home theme={theme} now={now} races={raceList} onOpenRace={(race) => setOpenRaceId(race.id)} onGo={onGo} favorites={favorites} toggleFav={toggleFav} seasonYear={safeSeasonYear} />}
         {view === 'schedule' && <Schedule theme={theme} races={raceList} onOpenRace={(race) => setOpenRaceId(race.id)} now={now} seasonYear={safeSeasonYear} />}
@@ -113,18 +118,20 @@ function TabBar({ theme, view, onGo, favCount }) {
   ];
   return (
     <div style={{
-      position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 70,
+      position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 70,
       padding: '10px 14px calc(16px + env(safe-area-inset-bottom, 0px))',
       background: theme === 'dark'
         ? 'linear-gradient(180deg, rgba(10,11,14,0) 0%, rgba(10,11,14,0.92) 30%)'
         : 'linear-gradient(180deg, rgba(242,242,245,0) 0%, rgba(242,242,245,0.95) 30%)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
+      pointerEvents: 'none',
     }}>
       <div style={{
         display: 'grid', gridTemplateColumns: `repeat(${tabs.length}, 1fr)`, gap: 4,
         background: theme === 'dark' ? 'rgba(20,22,27,0.9)' : 'rgba(255,255,255,0.9)',
         border: `1px solid ${t.line}`, borderRadius: 20, padding: 5,
+        pointerEvents: 'auto',
       }}>
         {tabs.map(tab => {
           const active = view === tab.id;
