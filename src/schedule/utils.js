@@ -111,14 +111,81 @@ export function localDateTimeWithOffsetToUtc(dateKey, time, offset) {
   return new Date(`${dateKey}T${time || '00:00'}:00${normalized}`);
 }
 
+export const SESSION_KINDS = ['race', 'finish', 'qualifying', 'sprint', 'practice', 'other'];
+
+// 표시 라벨(t) → 세션 종류. 한글 키는 data.js / fallback-series.json, 영문 키는
+// formatOpenF1SessionName의 sessionMap에 없어 영문 그대로 들어오는 OpenF1 세션명용.
+const SESSION_KIND_BY_LABEL = {
+  '결승': 'race',
+  'Race': 'race',
+  'Power Stage': 'race',
+  '체커기': 'finish',
+  '예선': 'qualifying',
+  'Qualifying': 'qualifying',
+  '탑 퀄리': 'qualifying',
+  '스프린트 예선': 'qualifying',
+  'Sprint Qualifying': 'qualifying',
+  '스프린트': 'sprint',
+  'Sprint': 'sprint',
+  '연습 1': 'practice',
+  '연습 2': 'practice',
+  '연습 3': 'practice',
+  'Practice 1': 'practice',
+  'Practice 2': 'practice',
+  'Practice 3': 'practice',
+  '프리 프랙티스': 'practice',
+};
+
+const SESSION_KIND_BY_LOWER_LABEL = Object.fromEntries(
+  Object.entries(SESSION_KIND_BY_LABEL).map(([label, kind]) => [label.toLowerCase(), kind]),
+);
+
+// 같은 라벨로 반복 경고하지 않도록 한 번 알린 라벨을 기억한다.
+const warnedSessionLabels = new Set();
+
+export function getSessionKind(label) {
+  const trimmed = typeof label === 'string' ? label.trim() : '';
+  const kind = SESSION_KIND_BY_LABEL[trimmed] || SESSION_KIND_BY_LOWER_LABEL[trimmed.toLowerCase()];
+  if (kind) return kind;
+  if (!warnedSessionLabels.has(trimmed)) {
+    warnedSessionLabels.add(trimmed);
+    console.warn(`[schedule] Unmapped session label, using kind "other": "${trimmed}"`);
+  }
+  return 'other';
+}
+
 export function normalizeSessions(sessions = []) {
-  return sessions.map((session) => ({
-    t: session.t || session.name || session.sessionName || '세션',
-    kst: session.kst ?? 'TBA',
-    local: session.local ?? 'TBA',
-    startUtc: session.startUtc || null,
-    endUtc: session.endUtc || null,
-  }));
+  return sessions.map((session) => {
+    const t = session.t || session.name || session.sessionName || '세션';
+    return {
+      t,
+      kind: getSessionKind(t),
+      kst: session.kst ?? 'TBA',
+      local: session.local ?? 'TBA',
+      startUtc: session.startUtc || null,
+      endUtc: session.endUtc || null,
+    };
+  });
+}
+
+// 대표 세션: race → sprint → 첫 세션 순.
+export function getPrimarySession(race) {
+  const sessions = Array.isArray(race?.sessions) ? race.sessions : [];
+  return sessions.find((session) => session.kind === 'race')
+    || sessions.find((session) => session.kind === 'sprint')
+    || sessions[0]
+    || null;
+}
+
+// 관심 수준에 따라 보여줄 세션. 어떤 경기도 0개로 보이지 않도록 최소 대표 세션은 남긴다.
+// 'off'는 시리즈 숨김과 별개이므로 여기서는 'race'와 같게 처리한다.
+export function getVisibleSessions(race, mode = 'all') {
+  const sessions = Array.isArray(race?.sessions) ? race.sessions : [];
+  if (mode === 'all') return sessions;
+  const visible = sessions.filter((session) => session.kind === 'race' || session.kind === 'finish');
+  if (visible.length > 0) return visible;
+  const primary = getPrimarySession(race);
+  return primary ? [primary] : [];
 }
 
 export function buildFallbackEventWindow(race) {
@@ -146,8 +213,9 @@ export function buildNormalizedRace(race, source, now = new Date()) {
   const eventStartUtc = race.eventStartUtc || fallbackWindow.startUtc.toISOString();
   const eventEndUtc = race.eventEndUtc || fallbackWindow.endUtc.toISOString();
   const primaryStartUtc = race.primaryStartUtc || fallbackWindow.mainStartUtc.toISOString();
-  const localTime = race.localTime ?? (race.sessions?.find((session) => session.t === '결승' || session.name === 'Race')?.local ?? 'TBA');
-  const kstTime = race.kstTime ?? (race.sessions?.find((session) => session.t === '결승' || session.name === 'Race')?.kst?.slice(11, 16) ?? null);
+  const primarySession = getPrimarySession({ sessions });
+  const localTime = race.localTime ?? (primarySession?.local ?? 'TBA');
+  const kstTime = race.kstTime ?? (primarySession?.kst && primarySession.kst !== 'TBA' ? primarySession.kst.slice(11, 16) : null);
   const normalized = {
     ...race,
     category,
