@@ -1,5 +1,4 @@
-import fallbackSeries from './fallback-series.json' with { type: 'json' };
-import { ALL_RACES as LEGACY_RACES } from '../data.js';
+import seasonRaces from './season-2026.json' with { type: 'json' };
 import { SUPPORTED_SERIES } from './constants.js';
 import {
   buildNormalizedRace,
@@ -20,15 +19,9 @@ const F1_BROADCAST = ['쿠팡플레이', 'F1 TV Pro'];
 const OPEN_F1_MEETINGS_URL = 'https://api.openf1.org/v1/meetings';
 const OPEN_F1_SESSIONS_URL = 'https://api.openf1.org/v1/sessions';
 
-function getFallbackF1Races() {
-  return LEGACY_RACES.filter((race) => race.series === 'F1');
-}
-
+// 검증된 2026 시즌 정적 데이터. OpenF1 API 실패 시 F1도 이 데이터로 떨어진다.
 function getStaticFallbackRaces() {
-  return [
-    ...getFallbackF1Races(),
-    ...fallbackSeries,
-  ];
+  return seasonRaces;
 }
 
 function normalizeRaceCollection(races, source, now = new Date()) {

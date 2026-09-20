@@ -1,0 +1,4893 @@
+[
+ {
+  "id": "imsa-2026-1-rolex24atdaytona",
+  "series": "IMSA",
+  "round": 1,
+  "name": "Rolex 24 At Daytona",
+  "nameKo": "롤렉스 24 데이토나",
+  "shortNameKo": "롤렉스 24 데이토나",
+  "circuit": "Daytona International Speedway",
+  "circuitKo": "데이토나 인터내셔널 스피드웨이",
+  "city": "Daytona Beach, Florida",
+  "cityKo": "데이토나비치",
+  "country": "United States",
+  "countryKo": "미국",
+  "timezone": "America/New_York",
+  "weekendStart": "2026-01-21",
+  "weekendEnd": "2026-01-25",
+  "status": "completed",
+  "raceDateLocal": "2026-01-24",
+  "raceDateKst": "2026-01-25",
+  "kstTime": "03:40",
+  "raceKstIso": "2026-01-24T18:40:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice #1 - WeatherTech Championship (All Classes)",
+    "kind": "practice",
+    "local": "2026-01-22 10:05",
+    "kst": "2026-01-23 00:05",
+    "startUtc": "2026-01-22T15:05:00.000Z"
+   },
+   {
+    "t": "Qualifying - WeatherTech Championship",
+    "kind": "qualifying",
+    "local": "2026-01-22 14:10",
+    "kst": "2026-01-23 04:10",
+    "startUtc": "2026-01-22T19:10:00.000Z"
+   },
+   {
+    "t": "Practice #2 - WeatherTech Championship Night Practice",
+    "kind": "practice",
+    "local": "2026-01-22 18:15",
+    "kst": "2026-01-23 08:15",
+    "startUtc": "2026-01-22T23:15:00.000Z"
+   },
+   {
+    "t": "Practice #3 - WeatherTech Championship (All Classes)",
+    "kind": "practice",
+    "local": "2026-01-23 11:05",
+    "kst": "2026-01-24 01:05",
+    "startUtc": "2026-01-23T16:05:00.000Z"
+   },
+   {
+    "t": "Start: 64th Rolex 24 At DAYTONA - 24 Hours",
+    "kind": "race",
+    "local": "2026-01-24 13:40",
+    "kst": "2026-01-25 03:40",
+    "startUtc": "2026-01-24T18:40:00.000Z"
+   },
+   {
+    "t": "Finish: 64th Rolex 24 At DAYTONA",
+    "kind": "finish",
+    "local": "2026-01-25 13:40",
+    "kst": "2026-01-26 03:40",
+    "startUtc": "2026-01-25T18:40:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "IMSA.tv",
+   "Peacock"
+  ],
+  "sourceUrl": "https://www.imsa.com/wp-content/uploads/sites/32/2026/01/23/2026-IMSA-Official-Schedule-and-SR-Daytona-24H-REV-012326-1.pdf",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wrc-2026-1-rallyeautomobilemontecarlo",
+  "series": "WRC",
+  "round": 1,
+  "name": "Rallye Automobile Monte-Carlo",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Gap",
+  "circuitKo": null,
+  "city": "Gap",
+  "cityKo": null,
+  "country": "France",
+  "countryKo": null,
+  "timezone": "Europe/Paris",
+  "weekendStart": "2026-01-22",
+  "weekendEnd": "2026-01-25",
+  "status": "completed",
+  "surface": "mixed",
+  "raceDateLocal": "2026-01-25",
+  "raceDateKst": "2026-01-25",
+  "kstTime": "21:15",
+  "raceKstIso": "2026-01-25T12:15:00.000Z",
+  "sessions": [
+   {
+    "t": "Gap [Shakedown]",
+    "kind": "practice",
+    "local": "2026-01-21 14:01",
+    "kst": "2026-01-21 22:01",
+    "startUtc": "2026-01-21T13:01:00.000Z"
+   },
+   {
+    "t": "SS1 Toudon / Saint-Antonin",
+    "kind": "other",
+    "local": "2026-01-22 16:05",
+    "kst": "2026-01-23 00:05",
+    "startUtc": "2026-01-22T15:05:00.000Z"
+   },
+   {
+    "t": "SS17 La Bollène-Vésubie / Moulinet 2 [Power Stage]",
+    "kind": "race",
+    "local": "2026-01-25 13:15",
+    "kst": "2026-01-25 21:15",
+    "startUtc": "2026-01-25T12:15:00.000Z"
+   },
+   {
+    "t": "Podium ceremony, Monaco",
+    "kind": "finish",
+    "local": "2026-01-25 17:00",
+    "kst": "2026-01-26 01:00",
+    "startUtc": "2026-01-25T16:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "WRC+"
+  ],
+  "sourceUrl": "https://en.wikipedia.org/wiki/2026_Monte_Carlo_Rally",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wrc-2026-2-rallysweden",
+  "series": "WRC",
+  "round": 2,
+  "name": "Rally Sweden",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Umeå",
+  "circuitKo": null,
+  "city": "Umeå",
+  "cityKo": null,
+  "country": "Sweden",
+  "countryKo": null,
+  "timezone": "Europe/Stockholm",
+  "weekendStart": "2026-02-12",
+  "weekendEnd": "2026-02-15",
+  "status": "completed",
+  "surface": "snow",
+  "raceDateLocal": "2026-02-15",
+  "raceDateKst": "2026-02-15",
+  "kstTime": "20:15",
+  "raceKstIso": "2026-02-15T11:15:00.000Z",
+  "sessions": [
+   {
+    "t": "Umeå City [Shakedown]",
+    "kind": "practice",
+    "local": "2026-02-12 09:01",
+    "kst": "2026-02-12 17:01",
+    "startUtc": "2026-02-12T08:01:00.000Z"
+   },
+   {
+    "t": "SS1 Umeå 1",
+    "kind": "other",
+    "local": "2026-02-12 19:05",
+    "kst": "2026-02-13 03:05",
+    "startUtc": "2026-02-12T18:05:00.000Z"
+   },
+   {
+    "t": "SS18 Umeå 2 [Power Stage]",
+    "kind": "race",
+    "local": "2026-02-15 12:15",
+    "kst": "2026-02-15 20:15",
+    "startUtc": "2026-02-15T11:15:00.000Z"
+   },
+   {
+    "t": "Podium ceremony, Red Barn Arena",
+    "kind": "finish",
+    "local": "2026-02-15 13:30",
+    "kst": "2026-02-15 21:30",
+    "startUtc": "2026-02-15T12:30:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "WRC+"
+  ],
+  "sourceUrl": "https://en.wikipedia.org/wiki/2026_Rally_Sweden",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-1-australiangrandprix",
+  "series": "F1",
+  "round": 1,
+  "name": "Australian Grand Prix",
+  "nameKo": "호주 그랑프리",
+  "shortNameKo": "호주 GP",
+  "circuit": "Albert Park Circuit",
+  "circuitKo": "앨버트 파크 서킷",
+  "city": "Melbourne",
+  "cityKo": "멜버른",
+  "country": "Australia",
+  "countryKo": "호주",
+  "timezone": "Australia/Melbourne",
+  "weekendStart": "2026-03-06",
+  "weekendEnd": "2026-03-08",
+  "status": "completed",
+  "isSprint": false,
+  "raceDateLocal": "2026-03-08",
+  "raceDateKst": "2026-03-08",
+  "kstTime": "13:00",
+  "raceKstIso": "2026-03-08T04:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-03-06 12:30",
+    "kst": "2026-03-06 10:30",
+    "startUtc": "2026-03-06T01:30:00.000Z"
+   },
+   {
+    "t": "Practice 2",
+    "kind": "practice",
+    "local": "2026-03-06 16:00",
+    "kst": "2026-03-06 14:00",
+    "startUtc": "2026-03-06T05:00:00.000Z"
+   },
+   {
+    "t": "Practice 3",
+    "kind": "practice",
+    "local": "2026-03-07 12:30",
+    "kst": "2026-03-07 10:30",
+    "startUtc": "2026-03-07T01:30:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-03-07 16:00",
+    "kst": "2026-03-07 14:00",
+    "startUtc": "2026-03-07T05:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-03-08 15:00",
+    "kst": "2026-03-08 13:00",
+    "startUtc": "2026-03-08T04:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/australia",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wrc-2026-3-safarirallykenya",
+  "series": "WRC",
+  "round": 3,
+  "name": "Safari Rally Kenya",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Naivasha",
+  "circuitKo": null,
+  "city": "Naivasha",
+  "cityKo": null,
+  "country": "Kenya",
+  "countryKo": null,
+  "timezone": "Africa/Nairobi",
+  "weekendStart": "2026-03-12",
+  "weekendEnd": "2026-03-15",
+  "status": "completed",
+  "surface": "gravel",
+  "raceDateLocal": "2026-03-15",
+  "raceDateKst": "2026-03-15",
+  "kstTime": "19:15",
+  "raceKstIso": "2026-03-15T10:15:00.000Z",
+  "sessions": [
+   {
+    "t": "Nawisa [Shakedown]",
+    "kind": "practice",
+    "local": "2026-03-12 08:01",
+    "kst": "2026-03-12 14:01",
+    "startUtc": "2026-03-12T05:01:00.000Z"
+   },
+   {
+    "t": "SS1 Camp Moran 1",
+    "kind": "other",
+    "local": "2026-03-12 16:05",
+    "kst": "2026-03-12 22:05",
+    "startUtc": "2026-03-12T13:05:00.000Z"
+   },
+   {
+    "t": "SS20 Hell's Gate 2 [Power Stage]",
+    "kind": "race",
+    "local": "2026-03-15 13:15",
+    "kst": "2026-03-15 19:15",
+    "startUtc": "2026-03-15T10:15:00.000Z"
+   },
+   {
+    "t": "Podium ceremony, WSTI Naivasha",
+    "kind": "finish",
+    "local": "2026-03-15 14:15",
+    "kst": "2026-03-15 20:15",
+    "startUtc": "2026-03-15T11:15:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "WRC+"
+  ],
+  "sourceUrl": "https://en.wikipedia.org/wiki/2026_Safari_Rally",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-2-chinesegrandprix",
+  "series": "F1",
+  "round": 2,
+  "name": "Chinese Grand Prix",
+  "nameKo": "중국 그랑프리",
+  "shortNameKo": "중국 GP",
+  "circuit": "Shanghai International Circuit",
+  "circuitKo": "상하이 인터내셔널 서킷",
+  "city": "Shanghai",
+  "cityKo": "상하이",
+  "country": "China",
+  "countryKo": "중국",
+  "timezone": "Asia/Shanghai",
+  "weekendStart": "2026-03-13",
+  "weekendEnd": "2026-03-15",
+  "status": "completed",
+  "isSprint": true,
+  "raceDateLocal": "2026-03-15",
+  "raceDateKst": "2026-03-15",
+  "kstTime": "16:00",
+  "raceKstIso": "2026-03-15T07:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-03-13 11:30",
+    "kst": "2026-03-13 12:30",
+    "startUtc": "2026-03-13T03:30:00.000Z"
+   },
+   {
+    "t": "Sprint Qualifying",
+    "kind": "qualifying",
+    "local": "2026-03-13 15:30",
+    "kst": "2026-03-13 16:30",
+    "startUtc": "2026-03-13T07:30:00.000Z"
+   },
+   {
+    "t": "Sprint",
+    "kind": "sprint",
+    "local": "2026-03-14 11:00",
+    "kst": "2026-03-14 12:00",
+    "startUtc": "2026-03-14T03:00:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-03-14 15:00",
+    "kst": "2026-03-14 16:00",
+    "startUtc": "2026-03-14T07:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-03-15 15:00",
+    "kst": "2026-03-15 16:00",
+    "startUtc": "2026-03-15T07:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/china",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "imsa-2026-2-mobil1twelvehoursofsebring",
+  "series": "IMSA",
+  "round": 2,
+  "name": "Mobil 1 Twelve Hours of Sebring",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Sebring International Raceway",
+  "circuitKo": null,
+  "city": "Sebring, Florida",
+  "cityKo": null,
+  "country": "United States",
+  "countryKo": null,
+  "timezone": "America/New_York",
+  "weekendStart": "2026-03-18",
+  "weekendEnd": "2026-03-21",
+  "status": "completed",
+  "raceDateLocal": "2026-03-21",
+  "raceDateKst": "2026-03-21",
+  "kstTime": "23:10",
+  "raceKstIso": "2026-03-21T14:10:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1 - WeatherTech Championship",
+    "kind": "practice",
+    "local": "2026-03-19 10:05",
+    "kst": "2026-03-19 23:05",
+    "startUtc": "2026-03-19T14:05:00.000Z"
+   },
+   {
+    "t": "Practice 2 - WeatherTech Championship",
+    "kind": "practice",
+    "local": "2026-03-19 16:00",
+    "kst": "2026-03-20 05:00",
+    "startUtc": "2026-03-19T20:00:00.000Z"
+   },
+   {
+    "t": "Practice 3 - WeatherTech Championship",
+    "kind": "practice",
+    "local": "2026-03-19 19:45",
+    "kst": "2026-03-20 08:45",
+    "startUtc": "2026-03-19T23:45:00.000Z"
+   },
+   {
+    "t": "WeatherTech Championship Qualifying",
+    "kind": "qualifying",
+    "local": "2026-03-20 11:25",
+    "kst": "2026-03-21 00:25",
+    "startUtc": "2026-03-20T15:25:00.000Z"
+   },
+   {
+    "t": "74th Annual Mobil 1 Twelve Hours of Sebring - 12 Hours",
+    "kind": "race",
+    "local": "2026-03-21 10:10",
+    "kst": "2026-03-21 23:10",
+    "startUtc": "2026-03-21T14:10:00.000Z"
+   },
+   {
+    "t": "Finish: 74th Annual Mobil 1 Twelve Hours of Sebring",
+    "kind": "finish",
+    "local": "2026-03-21 22:10",
+    "kst": "2026-03-22 11:10",
+    "startUtc": "2026-03-22T02:10:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "IMSA.tv",
+   "Peacock"
+  ],
+  "sourceUrl": "https://www.imsa.com/wp-content/uploads/sites/32/2026/03/11/2026-IMSA-Official-Schedule-and-SR-Sebring-12H-031126.pdf",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-3-japanesegrandprix",
+  "series": "F1",
+  "round": 3,
+  "name": "Japanese Grand Prix",
+  "nameKo": "일본 그랑프리",
+  "shortNameKo": "일본 GP",
+  "circuit": "Suzuka International Racing Course",
+  "circuitKo": "스즈카 서킷",
+  "city": "Suzuka",
+  "cityKo": "스즈카",
+  "country": "Japan",
+  "countryKo": "일본",
+  "timezone": "Asia/Tokyo",
+  "weekendStart": "2026-03-27",
+  "weekendEnd": "2026-03-29",
+  "status": "completed",
+  "isSprint": false,
+  "raceDateLocal": "2026-03-29",
+  "raceDateKst": "2026-03-29",
+  "kstTime": "14:00",
+  "raceKstIso": "2026-03-29T05:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-03-27 11:30",
+    "kst": "2026-03-27 11:30",
+    "startUtc": "2026-03-27T02:30:00.000Z"
+   },
+   {
+    "t": "Practice 2",
+    "kind": "practice",
+    "local": "2026-03-27 15:00",
+    "kst": "2026-03-27 15:00",
+    "startUtc": "2026-03-27T06:00:00.000Z"
+   },
+   {
+    "t": "Practice 3",
+    "kind": "practice",
+    "local": "2026-03-28 11:30",
+    "kst": "2026-03-28 11:30",
+    "startUtc": "2026-03-28T02:30:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-03-28 15:00",
+    "kst": "2026-03-28 15:00",
+    "startUtc": "2026-03-28T06:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-03-29 14:00",
+    "kst": "2026-03-29 14:00",
+    "startUtc": "2026-03-29T05:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/japan",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wrc-2026-4-croatiarally",
+  "series": "WRC",
+  "round": 4,
+  "name": "Croatia Rally",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Rijeka (Automotodrom Grobnik)",
+  "circuitKo": null,
+  "city": "Rijeka",
+  "cityKo": null,
+  "country": "Croatia",
+  "countryKo": null,
+  "timezone": "Europe/Zagreb",
+  "weekendStart": "2026-04-09",
+  "weekendEnd": "2026-04-12",
+  "status": "completed",
+  "surface": "tarmac",
+  "raceDateLocal": "2026-04-12",
+  "raceDateKst": "2026-04-12",
+  "kstTime": "20:15",
+  "raceKstIso": "2026-04-12T11:15:00.000Z",
+  "sessions": [
+   {
+    "t": "Shakedown",
+    "kind": "practice",
+    "local": "2026-04-09 10:01",
+    "kst": "2026-04-09 17:01",
+    "startUtc": "2026-04-09T08:01:00.000Z"
+   },
+   {
+    "t": "SS1 Vodice – Brest 1",
+    "kind": "other",
+    "local": "2026-04-10 09:03",
+    "kst": "2026-04-10 16:03",
+    "startUtc": "2026-04-10T07:03:00.000Z"
+   },
+   {
+    "t": "SS20 Alan – Senj 2 [Power Stage]",
+    "kind": "race",
+    "local": "2026-04-12 13:15",
+    "kst": "2026-04-12 20:15",
+    "startUtc": "2026-04-12T11:15:00.000Z"
+   },
+   {
+    "t": "Podium ceremony, Opatija",
+    "kind": "finish",
+    "local": "2026-04-12 16:00",
+    "kst": "2026-04-12 23:00",
+    "startUtc": "2026-04-12T14:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "WRC+"
+  ],
+  "sourceUrl": "https://en.wikipedia.org/wiki/2026_Croatia_Rally",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "gtwc-2026-1-6hoursofpaulricard",
+  "series": "GTWC",
+  "round": 1,
+  "name": "6 Hours of Paul Ricard",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Circuit Paul Ricard",
+  "circuitKo": null,
+  "city": "Le Castellet",
+  "cityKo": null,
+  "country": "France",
+  "countryKo": null,
+  "timezone": "Europe/Paris",
+  "weekendStart": "2026-04-10",
+  "weekendEnd": "2026-04-12",
+  "status": "completed",
+  "cup": "Endurance Cup",
+  "raceDateLocal": "2026-04-11",
+  "raceDateKst": "2026-04-12",
+  "kstTime": "01:00",
+  "raceKstIso": "2026-04-11T16:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Bronze Test",
+    "kind": "other",
+    "local": "2026-04-10 09:00",
+    "kst": "2026-04-10 16:00",
+    "startUtc": "2026-04-10T07:00:00.000Z"
+   },
+   {
+    "t": "Free Practice 1",
+    "kind": "practice",
+    "local": "2026-04-10 14:25",
+    "kst": "2026-04-10 21:25",
+    "startUtc": "2026-04-10T12:25:00.000Z"
+   },
+   {
+    "t": "Free Practice 2",
+    "kind": "practice",
+    "local": "2026-04-10 19:25",
+    "kst": "2026-04-11 02:25",
+    "startUtc": "2026-04-10T17:25:00.000Z"
+   },
+   {
+    "t": "Qualifying 1",
+    "kind": "qualifying",
+    "local": "2026-04-11 12:05",
+    "kst": "2026-04-11 19:05",
+    "startUtc": "2026-04-11T10:05:00.000Z"
+   },
+   {
+    "t": "Qualifying 2",
+    "kind": "qualifying",
+    "local": "2026-04-11 12:30",
+    "kst": "2026-04-11 19:30",
+    "startUtc": "2026-04-11T10:30:00.000Z"
+   },
+   {
+    "t": "Qualifying 3",
+    "kind": "qualifying",
+    "local": "2026-04-11 12:55",
+    "kst": "2026-04-11 19:55",
+    "startUtc": "2026-04-11T10:55:00.000Z"
+   },
+   {
+    "t": "Main Race",
+    "kind": "race",
+    "local": "2026-04-11 18:00",
+    "kst": "2026-04-12 01:00",
+    "startUtc": "2026-04-11T16:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "GT World Challenge TV",
+   "YouTube Live"
+  ],
+  "sourceUrl": "https://www.gt-world-challenge-europe.com/event/246/circuit-paul-ricard",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-x-saudiarabiangrandprix",
+  "series": "F1",
+  "round": null,
+  "name": "Saudi Arabian Grand Prix",
+  "nameKo": "사우디아라비아 그랑프리",
+  "shortNameKo": "사우디아라비아 GP",
+  "circuit": "Jeddah Corniche Circuit",
+  "circuitKo": "제다 코니시 서킷",
+  "city": "Jeddah",
+  "cityKo": "제다",
+  "country": "Saudi Arabia",
+  "countryKo": "사우디아라비아",
+  "timezone": "Asia/Riyadh",
+  "weekendStart": "2026-04-17",
+  "weekendEnd": "2026-04-19",
+  "status": "cancelled",
+  "isSprint": false,
+  "raceDateLocal": null,
+  "raceDateKst": null,
+  "kstTime": null,
+  "raceKstIso": null,
+  "sessions": [],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.skysports.com/f1/news/12433/13519453/f1-confirms-cancellation-of-bahrain-and-saudi-arabian-grands-prix-due-to-war-in-middle-east-as-2026-calendar-reduced-to-22-races",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wec-2026-1-6hoursofimola",
+  "series": "WEC",
+  "round": 1,
+  "name": "6 Hours of Imola",
+  "nameKo": "이몰라 6시간",
+  "shortNameKo": "이몰라 6시간",
+  "circuit": "Autodromo Internazionale Enzo e Dino Ferrari",
+  "circuitKo": "오토드로모 엔초 에 디노 페라리",
+  "city": "Imola",
+  "cityKo": "이몰라",
+  "country": "Italy",
+  "countryKo": "이탈리아",
+  "timezone": "Europe/Rome",
+  "weekendStart": "2026-04-17",
+  "weekendEnd": "2026-04-19",
+  "status": "completed",
+  "raceDateLocal": "2026-04-19",
+  "raceDateKst": "2026-04-19",
+  "kstTime": "20:00",
+  "raceKstIso": "2026-04-19T11:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Free Practice 1",
+    "kind": "practice",
+    "local": "2026-04-17 10:15",
+    "kst": "2026-04-17 17:15",
+    "startUtc": "2026-04-17T08:15:00.000Z"
+   },
+   {
+    "t": "Free Practice 2",
+    "kind": "practice",
+    "local": "2026-04-17 15:15",
+    "kst": "2026-04-17 22:15",
+    "startUtc": "2026-04-17T13:15:00.000Z"
+   },
+   {
+    "t": "Free Practice 3",
+    "kind": "practice",
+    "local": "2026-04-18 10:30",
+    "kst": "2026-04-18 17:30",
+    "startUtc": "2026-04-18T08:30:00.000Z"
+   },
+   {
+    "t": "Qualifying - LMGT3",
+    "kind": "qualifying",
+    "local": "2026-04-18 14:30",
+    "kst": "2026-04-18 21:30",
+    "startUtc": "2026-04-18T12:30:00.000Z"
+   },
+   {
+    "t": "Hyperpole - LMGT3",
+    "kind": "qualifying",
+    "local": "2026-04-18 14:50",
+    "kst": "2026-04-18 21:50",
+    "startUtc": "2026-04-18T12:50:00.000Z"
+   },
+   {
+    "t": "Qualifying - HYPERCAR",
+    "kind": "qualifying",
+    "local": "2026-04-18 15:10",
+    "kst": "2026-04-18 22:10",
+    "startUtc": "2026-04-18T13:10:00.000Z"
+   },
+   {
+    "t": "Hyperpole - HYPERCAR",
+    "kind": "qualifying",
+    "local": "2026-04-18 15:30",
+    "kst": "2026-04-18 22:30",
+    "startUtc": "2026-04-18T13:30:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-04-19 13:00",
+    "kst": "2026-04-19 20:00",
+    "startUtc": "2026-04-19T11:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "JTBC GOLF&SPORTS2",
+   "FIAWEC.tv"
+  ],
+  "sourceUrl": "https://www.fiawec.com/en/race/6-hours-of-imola-2026",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "imsa-2026-3-acuragrandprixoflongbeach",
+  "series": "IMSA",
+  "round": 3,
+  "name": "Acura Grand Prix of Long Beach",
+  "nameKo": "롱비치 그랑프리",
+  "shortNameKo": "롱비치 그랑프리",
+  "circuit": "Long Beach Street Circuit",
+  "circuitKo": "롱비치 스트리트 서킷",
+  "city": "Long Beach, California",
+  "cityKo": "롱비치",
+  "country": "United States",
+  "countryKo": "미국",
+  "timezone": "America/Los_Angeles",
+  "weekendStart": "2026-04-17",
+  "weekendEnd": "2026-04-19",
+  "status": "completed",
+  "raceDateLocal": "2026-04-18",
+  "raceDateKst": "2026-04-19",
+  "kstTime": "05:05",
+  "raceKstIso": "2026-04-18T20:05:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice #1 - WeatherTech Championship (All Classes)",
+    "kind": "practice",
+    "local": "2026-04-17 09:00",
+    "kst": "2026-04-18 01:00",
+    "startUtc": "2026-04-17T16:00:00.000Z"
+   },
+   {
+    "t": "Practice #2 - WeatherTech Championship (All Classes)",
+    "kind": "practice",
+    "local": "2026-04-17 13:10",
+    "kst": "2026-04-18 05:10",
+    "startUtc": "2026-04-17T20:10:00.000Z"
+   },
+   {
+    "t": "Qualifying - WeatherTech Championship",
+    "kind": "qualifying",
+    "local": "2026-04-17 17:25",
+    "kst": "2026-04-18 09:25",
+    "startUtc": "2026-04-18T00:25:00.000Z"
+   },
+   {
+    "t": "Race - ACURA Grand Prix of Long Beach - 100 Minutes",
+    "kind": "race",
+    "local": "2026-04-18 13:05",
+    "kst": "2026-04-19 05:05",
+    "startUtc": "2026-04-18T20:05:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "IMSA.tv",
+   "Peacock"
+  ],
+  "sourceUrl": "https://www.imsa.com/wp-content/uploads/sites/32/2026/04/08/2026-IMSA-Official-Schedule-and-SR-Long-Beach-040826.pdf",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wrc-2026-5-rallyislascanarias",
+  "series": "WRC",
+  "round": 5,
+  "name": "Rally Islas Canarias",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Las Palmas",
+  "circuitKo": null,
+  "city": "Las Palmas de Gran Canaria",
+  "cityKo": null,
+  "country": "Spain",
+  "countryKo": null,
+  "timezone": "Atlantic/Canary",
+  "weekendStart": "2026-04-23",
+  "weekendEnd": "2026-04-26",
+  "status": "completed",
+  "surface": "tarmac",
+  "raceDateLocal": "2026-04-26",
+  "raceDateKst": "2026-04-26",
+  "kstTime": "21:15",
+  "raceKstIso": "2026-04-26T12:15:00.000Z",
+  "sessions": [
+   {
+    "t": "Santa Brígida [Shakedown]",
+    "kind": "practice",
+    "local": "2026-04-23 09:01",
+    "kst": "2026-04-23 17:01",
+    "startUtc": "2026-04-23T08:01:00.000Z"
+   },
+   {
+    "t": "SS1 BP Ultimate – Circuito Islas Canarias",
+    "kind": "other",
+    "local": "2026-04-23 17:35",
+    "kst": "2026-04-24 01:35",
+    "startUtc": "2026-04-23T16:35:00.000Z"
+   },
+   {
+    "t": "SS18 Santa Lucía – Agüimes 2 [Power Stage]",
+    "kind": "race",
+    "local": "2026-04-26 13:15",
+    "kst": "2026-04-26 21:15",
+    "startUtc": "2026-04-26T12:15:00.000Z"
+   },
+   {
+    "t": "Podium ceremony, Agüimes",
+    "kind": "finish",
+    "local": "2026-04-26 13:35",
+    "kst": "2026-04-26 21:35",
+    "startUtc": "2026-04-26T12:35:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "WRC+"
+  ],
+  "sourceUrl": "https://en.wikipedia.org/wiki/2026_Rally_Islas_Canarias",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-4-miamigrandprix",
+  "series": "F1",
+  "round": 4,
+  "name": "Miami Grand Prix",
+  "nameKo": "마이애미 그랑프리",
+  "shortNameKo": "마이애미 GP",
+  "circuit": "Miami International Autodrome",
+  "circuitKo": "마이애미 인터내셔널 오토드롬",
+  "city": "Miami Gardens, Florida",
+  "cityKo": "마이애미",
+  "country": "United States",
+  "countryKo": "미국",
+  "timezone": "America/New_York",
+  "weekendStart": "2026-05-01",
+  "weekendEnd": "2026-05-03",
+  "status": "completed",
+  "isSprint": true,
+  "raceDateLocal": "2026-05-03",
+  "raceDateKst": "2026-05-04",
+  "kstTime": "02:00",
+  "raceKstIso": "2026-05-03T17:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-05-01 12:00",
+    "kst": "2026-05-02 01:00",
+    "startUtc": "2026-05-01T16:00:00.000Z"
+   },
+   {
+    "t": "Sprint Qualifying",
+    "kind": "qualifying",
+    "local": "2026-05-01 16:30",
+    "kst": "2026-05-02 05:30",
+    "startUtc": "2026-05-01T20:30:00.000Z"
+   },
+   {
+    "t": "Sprint",
+    "kind": "sprint",
+    "local": "2026-05-02 12:00",
+    "kst": "2026-05-03 01:00",
+    "startUtc": "2026-05-02T16:00:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-05-02 16:00",
+    "kst": "2026-05-03 05:00",
+    "startUtc": "2026-05-02T20:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-05-03 13:00",
+    "kst": "2026-05-04 02:00",
+    "startUtc": "2026-05-03T17:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/miami",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "imsa-2026-4-stubhubmontereysportscarcham",
+  "series": "IMSA",
+  "round": 4,
+  "name": "StubHub Monterey SportsCar Championship",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "WeatherTech Raceway Laguna Seca",
+  "circuitKo": null,
+  "city": "Monterey (Salinas), California",
+  "cityKo": null,
+  "country": "United States",
+  "countryKo": null,
+  "timezone": "America/Los_Angeles",
+  "weekendStart": "2026-05-01",
+  "weekendEnd": "2026-05-03",
+  "status": "completed",
+  "raceDateLocal": "2026-05-03",
+  "raceDateKst": "2026-05-04",
+  "kstTime": "05:10",
+  "raceKstIso": "2026-05-03T20:10:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice #1 - WeatherTech Championship (All Classes)",
+    "kind": "practice",
+    "local": "2026-05-01 15:20",
+    "kst": "2026-05-02 07:20",
+    "startUtc": "2026-05-01T22:20:00.000Z"
+   },
+   {
+    "t": "Practice #2 - WeatherTech Championship (All Classes)",
+    "kind": "practice",
+    "local": "2026-05-02 09:55",
+    "kst": "2026-05-03 01:55",
+    "startUtc": "2026-05-02T16:55:00.000Z"
+   },
+   {
+    "t": "Qualifying - WeatherTech Championship",
+    "kind": "qualifying",
+    "local": "2026-05-02 15:15",
+    "kst": "2026-05-03 07:15",
+    "startUtc": "2026-05-02T22:15:00.000Z"
+   },
+   {
+    "t": "Race - StubHub Monterey SportsCar Championship - 2 Hours and 40 Minutes",
+    "kind": "race",
+    "local": "2026-05-03 13:10",
+    "kst": "2026-05-04 05:10",
+    "startUtc": "2026-05-03T20:10:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "IMSA.tv",
+   "Peacock"
+  ],
+  "sourceUrl": "https://www.imsa.com/wp-content/uploads/sites/32/2026/04/22/2026-IMSA-Official-Schedule-and-SR-WRLS-042226.pdf",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "gtwc-2026-1-gtworldchallengeeuropesprint",
+  "series": "GTWC",
+  "round": 1,
+  "name": "GT World Challenge Europe Sprint Cup – Brands Hatch",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Brands Hatch Circuit",
+  "circuitKo": null,
+  "city": "West Kingsdown, Kent",
+  "cityKo": null,
+  "country": "United Kingdom",
+  "countryKo": null,
+  "timezone": "Europe/London",
+  "weekendStart": "2026-05-02",
+  "weekendEnd": "2026-05-03",
+  "status": "completed",
+  "cup": "Sprint Cup",
+  "raceDateLocal": "2026-05-03",
+  "raceDateKst": "2026-05-03",
+  "kstTime": "19:15",
+  "raceKstIso": "2026-05-03T10:15:00.000Z",
+  "sessions": [
+   {
+    "t": "Free Practice 1",
+    "kind": "practice",
+    "local": "2026-05-02 09:35",
+    "kst": "2026-05-02 17:35",
+    "startUtc": "2026-05-02T08:35:00.000Z"
+   },
+   {
+    "t": "Free Practice 2",
+    "kind": "practice",
+    "local": "2026-05-02 12:00",
+    "kst": "2026-05-02 20:00",
+    "startUtc": "2026-05-02T11:00:00.000Z"
+   },
+   {
+    "t": "Qualifying 1",
+    "kind": "qualifying",
+    "local": "2026-05-02 16:40",
+    "kst": "2026-05-03 00:40",
+    "startUtc": "2026-05-02T15:40:00.000Z"
+   },
+   {
+    "t": "Qualifying 2",
+    "kind": "qualifying",
+    "local": "2026-05-02 17:05",
+    "kst": "2026-05-03 01:05",
+    "startUtc": "2026-05-02T16:05:00.000Z"
+   },
+   {
+    "t": "Pit Walk",
+    "kind": "other",
+    "local": "2026-05-03 09:05",
+    "kst": "2026-05-03 17:05",
+    "startUtc": "2026-05-03T08:05:00.000Z"
+   },
+   {
+    "t": "Race 1",
+    "kind": "race",
+    "local": "2026-05-03 11:15",
+    "kst": "2026-05-03 19:15",
+    "startUtc": "2026-05-03T10:15:00.000Z"
+   },
+   {
+    "t": "Race 2",
+    "kind": "race",
+    "local": "2026-05-03 15:45",
+    "kst": "2026-05-03 23:45",
+    "startUtc": "2026-05-03T14:45:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "GT World Challenge TV",
+   "YouTube Live"
+  ],
+  "sourceUrl": "https://www.gt-world-challenge-europe.com/event/247/brands-hatch",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wec-2026-2-totalenergies6hoursofspafran",
+  "series": "WEC",
+  "round": 2,
+  "name": "TotalEnergies 6 Hours of Spa-Francorchamps",
+  "nameKo": "토탈에너지스 스파-프랑코르샹 6시간",
+  "shortNameKo": "토탈에너지스 스파-프랑코르샹 6시간",
+  "circuit": "Circuit de Spa-Francorchamps",
+  "circuitKo": "스파-프랑코르샹 서킷",
+  "city": "Stavelot",
+  "cityKo": "스타블로",
+  "country": "Belgium",
+  "countryKo": "벨기에",
+  "timezone": "Europe/Brussels",
+  "weekendStart": "2026-05-07",
+  "weekendEnd": "2026-05-09",
+  "status": "completed",
+  "raceDateLocal": "2026-05-09",
+  "raceDateKst": "2026-05-09",
+  "kstTime": "21:00",
+  "raceKstIso": "2026-05-09T12:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Free Practice 1",
+    "kind": "practice",
+    "local": "2026-05-07 11:00",
+    "kst": "2026-05-07 18:00",
+    "startUtc": "2026-05-07T09:00:00.000Z"
+   },
+   {
+    "t": "Free Practice 2",
+    "kind": "practice",
+    "local": "2026-05-07 15:40",
+    "kst": "2026-05-07 22:40",
+    "startUtc": "2026-05-07T13:40:00.000Z"
+   },
+   {
+    "t": "Free Practice 3",
+    "kind": "practice",
+    "local": "2026-05-08 10:10",
+    "kst": "2026-05-08 17:10",
+    "startUtc": "2026-05-08T08:10:00.000Z"
+   },
+   {
+    "t": "Qualifying - LMGT3",
+    "kind": "qualifying",
+    "local": "2026-05-08 14:30",
+    "kst": "2026-05-08 21:30",
+    "startUtc": "2026-05-08T12:30:00.000Z"
+   },
+   {
+    "t": "Hyperpole - LMGT3",
+    "kind": "qualifying",
+    "local": "2026-05-08 14:55",
+    "kst": "2026-05-08 21:55",
+    "startUtc": "2026-05-08T12:55:00.000Z"
+   },
+   {
+    "t": "Qualifying - HYPERCAR",
+    "kind": "qualifying",
+    "local": "2026-05-08 15:20",
+    "kst": "2026-05-08 22:20",
+    "startUtc": "2026-05-08T13:20:00.000Z"
+   },
+   {
+    "t": "Hyperpole - HYPERCAR",
+    "kind": "qualifying",
+    "local": "2026-05-08 15:45",
+    "kst": "2026-05-08 22:45",
+    "startUtc": "2026-05-08T13:45:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-05-09 14:00",
+    "kst": "2026-05-09 21:00",
+    "startUtc": "2026-05-09T12:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "JTBC GOLF&SPORTS2",
+   "FIAWEC.tv"
+  ],
+  "sourceUrl": "https://www.fiawec.com/en/race/totalenergies-6-hours-of-spa-francorchamps-2026",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wrc-2026-6-rallydeportugal",
+  "series": "WRC",
+  "round": 6,
+  "name": "Rally de Portugal",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Matosinhos",
+  "circuitKo": null,
+  "city": "Matosinhos",
+  "cityKo": null,
+  "country": "Portugal",
+  "countryKo": null,
+  "timezone": "Europe/Lisbon",
+  "weekendStart": "2026-05-07",
+  "weekendEnd": "2026-05-10",
+  "status": "completed",
+  "surface": "gravel",
+  "raceDateLocal": "2026-05-10",
+  "raceDateKst": "2026-05-10",
+  "kstTime": "21:15",
+  "raceKstIso": "2026-05-10T12:15:00.000Z",
+  "sessions": [
+   {
+    "t": "Baltar [Shakedown]",
+    "kind": "practice",
+    "local": "2026-05-06 08:01",
+    "kst": "2026-05-06 16:01",
+    "startUtc": "2026-05-06T07:01:00.000Z"
+   },
+   {
+    "t": "SS1 Águeda / Sever",
+    "kind": "other",
+    "local": "2026-05-07 15:05",
+    "kst": "2026-05-07 23:05",
+    "startUtc": "2026-05-07T14:05:00.000Z"
+   },
+   {
+    "t": "SS23 Fafe 2 [Power Stage]",
+    "kind": "race",
+    "local": "2026-05-10 13:15",
+    "kst": "2026-05-10 21:15",
+    "startUtc": "2026-05-10T12:15:00.000Z"
+   },
+   {
+    "t": "Podium ceremony, Fafe",
+    "kind": "finish",
+    "local": "2026-05-10 14:15",
+    "kst": "2026-05-10 22:15",
+    "startUtc": "2026-05-10T13:15:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "WRC+"
+  ],
+  "sourceUrl": "https://en.wikipedia.org/wiki/2026_Rally_de_Portugal",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "gtwc-2026-2-adacravenol24hnrburgring",
+  "series": "GTWC",
+  "round": 2,
+  "name": "ADAC RAVENOL 24h Nürburgring",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Nürburgring (Nordschleife + Grand Prix circuit)",
+  "circuitKo": null,
+  "city": "Nürburg",
+  "cityKo": null,
+  "country": "Germany",
+  "countryKo": null,
+  "timezone": "Europe/Berlin",
+  "weekendStart": "2026-05-14",
+  "weekendEnd": "2026-05-17",
+  "status": "completed",
+  "cup": "other",
+  "note": "not an SRO GTWC round",
+  "raceDateLocal": "2026-05-16",
+  "raceDateKst": "2026-05-16",
+  "kstTime": "22:00",
+  "raceKstIso": "2026-05-16T13:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Qualifying 1",
+    "kind": "qualifying",
+    "local": "2026-05-14 13:15",
+    "kst": "2026-05-14 20:15",
+    "startUtc": "2026-05-14T11:15:00.000Z"
+   },
+   {
+    "t": "Qualifying 2",
+    "kind": "qualifying",
+    "local": "2026-05-14 20:00",
+    "kst": "2026-05-15 03:00",
+    "startUtc": "2026-05-14T18:00:00.000Z"
+   },
+   {
+    "t": "Top Qualifying 1",
+    "kind": "qualifying",
+    "local": "2026-05-15 10:15",
+    "kst": "2026-05-15 17:15",
+    "startUtc": "2026-05-15T08:15:00.000Z"
+   },
+   {
+    "t": "Top Qualifying 2",
+    "kind": "qualifying",
+    "local": "2026-05-15 11:00",
+    "kst": "2026-05-15 18:00",
+    "startUtc": "2026-05-15T09:00:00.000Z"
+   },
+   {
+    "t": "Qualifying 3",
+    "kind": "qualifying",
+    "local": "2026-05-15 12:00",
+    "kst": "2026-05-15 19:00",
+    "startUtc": "2026-05-15T10:00:00.000Z"
+   },
+   {
+    "t": "Top Qualifying 3",
+    "kind": "qualifying",
+    "local": "2026-05-15 13:35",
+    "kst": "2026-05-15 20:35",
+    "startUtc": "2026-05-15T11:35:00.000Z"
+   },
+   {
+    "t": "Warm-up",
+    "kind": "practice",
+    "local": "2026-05-16 10:00",
+    "kst": "2026-05-16 17:00",
+    "startUtc": "2026-05-16T08:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-05-16 15:00",
+    "kst": "2026-05-16 22:00",
+    "startUtc": "2026-05-16T13:00:00.000Z"
+   },
+   {
+    "t": "Race (finish)",
+    "kind": "finish",
+    "local": "2026-05-17 15:00",
+    "kst": "2026-05-17 22:00",
+    "startUtc": "2026-05-17T13:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "GT World Challenge TV",
+   "YouTube Live"
+  ],
+  "sourceUrl": "https://www.intercontinentalgtchallenge.com/event/150/adac-ravenol-24h-nuerburgring",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-5-canadiangrandprix",
+  "series": "F1",
+  "round": 5,
+  "name": "Canadian Grand Prix",
+  "nameKo": "캐나다 그랑프리",
+  "shortNameKo": "캐나다 GP",
+  "circuit": "Circuit Gilles Villeneuve",
+  "circuitKo": "질 빌뇌브 서킷",
+  "city": "Montreal",
+  "cityKo": "몬트리올",
+  "country": "Canada",
+  "countryKo": "캐나다",
+  "timezone": "America/Toronto",
+  "weekendStart": "2026-05-22",
+  "weekendEnd": "2026-05-24",
+  "status": "completed",
+  "isSprint": true,
+  "raceDateLocal": "2026-05-24",
+  "raceDateKst": "2026-05-25",
+  "kstTime": "05:00",
+  "raceKstIso": "2026-05-24T20:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-05-22 12:30",
+    "kst": "2026-05-23 01:30",
+    "startUtc": "2026-05-22T16:30:00.000Z"
+   },
+   {
+    "t": "Sprint Qualifying",
+    "kind": "qualifying",
+    "local": "2026-05-22 16:30",
+    "kst": "2026-05-23 05:30",
+    "startUtc": "2026-05-22T20:30:00.000Z"
+   },
+   {
+    "t": "Sprint",
+    "kind": "sprint",
+    "local": "2026-05-23 12:00",
+    "kst": "2026-05-24 01:00",
+    "startUtc": "2026-05-23T16:00:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-05-23 16:00",
+    "kst": "2026-05-24 05:00",
+    "startUtc": "2026-05-23T20:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-05-24 16:00",
+    "kst": "2026-05-25 05:00",
+    "startUtc": "2026-05-24T20:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/canada",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wrc-2026-7-rallyjapan",
+  "series": "WRC",
+  "round": 7,
+  "name": "Rally Japan",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Toyota",
+  "circuitKo": null,
+  "city": "Toyota",
+  "cityKo": null,
+  "country": "Japan",
+  "countryKo": null,
+  "timezone": "Asia/Tokyo",
+  "weekendStart": "2026-05-28",
+  "weekendEnd": "2026-05-31",
+  "status": "completed",
+  "surface": "tarmac",
+  "raceDateLocal": "2026-05-31",
+  "raceDateKst": "2026-05-31",
+  "kstTime": "14:15",
+  "raceKstIso": "2026-05-31T05:15:00.000Z",
+  "sessions": [
+   {
+    "t": "Kuragaike Park [Shakedown]",
+    "kind": "practice",
+    "local": "2026-05-28 08:01",
+    "kst": "2026-05-28 08:01",
+    "startUtc": "2026-05-27T23:01:00.000Z"
+   },
+   {
+    "t": "SS1 Asuke 1",
+    "kind": "other",
+    "local": "2026-05-29 08:03",
+    "kst": "2026-05-29 08:03",
+    "startUtc": "2026-05-28T23:03:00.000Z"
+   },
+   {
+    "t": "SS20 Lake Mikawako 2 [Power Stage]",
+    "kind": "race",
+    "local": "2026-05-31 14:15",
+    "kst": "2026-05-31 14:15",
+    "startUtc": "2026-05-31T05:15:00.000Z"
+   },
+   {
+    "t": "Podium ceremony, Shimoyama Health Centre",
+    "kind": "finish",
+    "local": "2026-05-31 15:15",
+    "kst": "2026-05-31 15:15",
+    "startUtc": "2026-05-31T06:15:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "WRC+"
+  ],
+  "sourceUrl": "https://en.wikipedia.org/wiki/2026_Rally_Japan",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "gtwc-2026-2-3hoursofmonza",
+  "series": "GTWC",
+  "round": 2,
+  "name": "3 Hours of Monza",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Autodromo Nazionale Monza",
+  "circuitKo": null,
+  "city": "Monza",
+  "cityKo": null,
+  "country": "Italy",
+  "countryKo": null,
+  "timezone": "Europe/Rome",
+  "weekendStart": "2026-05-28",
+  "weekendEnd": "2026-05-31",
+  "status": "completed",
+  "cup": "Endurance Cup",
+  "raceDateLocal": "2026-05-31",
+  "raceDateKst": "2026-05-31",
+  "kstTime": "22:30",
+  "raceKstIso": "2026-05-31T13:30:00.000Z",
+  "sessions": [
+   {
+    "t": "Bronze Test",
+    "kind": "other",
+    "local": "2026-05-28 15:45",
+    "kst": "2026-05-28 22:45",
+    "startUtc": "2026-05-28T13:45:00.000Z"
+   },
+   {
+    "t": "Official Paid Test Session 1",
+    "kind": "other",
+    "local": "2026-05-29 16:50",
+    "kst": "2026-05-29 23:50",
+    "startUtc": "2026-05-29T14:50:00.000Z"
+   },
+   {
+    "t": "Free Practice 1",
+    "kind": "practice",
+    "local": "2026-05-30 09:00",
+    "kst": "2026-05-30 16:00",
+    "startUtc": "2026-05-30T07:00:00.000Z"
+   },
+   {
+    "t": "Free Practice 2",
+    "kind": "practice",
+    "local": "2026-05-30 14:25",
+    "kst": "2026-05-30 21:25",
+    "startUtc": "2026-05-30T12:25:00.000Z"
+   },
+   {
+    "t": "Qualifying 1",
+    "kind": "qualifying",
+    "local": "2026-05-31 09:50",
+    "kst": "2026-05-31 16:50",
+    "startUtc": "2026-05-31T07:50:00.000Z"
+   },
+   {
+    "t": "Qualifying 2",
+    "kind": "qualifying",
+    "local": "2026-05-31 10:00",
+    "kst": "2026-05-31 17:00",
+    "startUtc": "2026-05-31T08:00:00.000Z"
+   },
+   {
+    "t": "Qualifying 3",
+    "kind": "qualifying",
+    "local": "2026-05-31 10:20",
+    "kst": "2026-05-31 17:20",
+    "startUtc": "2026-05-31T08:20:00.000Z"
+   },
+   {
+    "t": "Qualifying Combined",
+    "kind": "qualifying",
+    "local": "2026-05-31 10:30",
+    "kst": "2026-05-31 17:30",
+    "startUtc": "2026-05-31T08:30:00.000Z"
+   },
+   {
+    "t": "Main Race",
+    "kind": "race",
+    "local": "2026-05-31 15:30",
+    "kst": "2026-05-31 22:30",
+    "startUtc": "2026-05-31T13:30:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "GT World Challenge TV",
+   "YouTube Live"
+  ],
+  "sourceUrl": "https://www.gt-world-challenge-europe.com/event/248/monza",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "imsa-2026-5-chevroletdetroitsportscarcla",
+  "series": "IMSA",
+  "round": 5,
+  "name": "Chevrolet Detroit Sports Car Classic",
+  "nameKo": "디트로이트 GP",
+  "shortNameKo": "디트로이트 GP",
+  "circuit": "Detroit Street Circuit",
+  "circuitKo": "디트로이트 스트리트 서킷",
+  "city": "Detroit, Michigan",
+  "cityKo": "디트로이트",
+  "country": "United States",
+  "countryKo": "미국",
+  "timezone": "America/Detroit",
+  "weekendStart": "2026-05-29",
+  "weekendEnd": "2026-05-30",
+  "status": "completed",
+  "raceDateLocal": "2026-05-30",
+  "raceDateKst": "2026-05-31",
+  "kstTime": "05:10",
+  "raceKstIso": "2026-05-30T20:10:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice #1 - WeatherTech Championship (All Classes)",
+    "kind": "practice",
+    "local": "2026-05-29 08:00",
+    "kst": "2026-05-29 21:00",
+    "startUtc": "2026-05-29T12:00:00.000Z"
+   },
+   {
+    "t": "Practice #2 - WeatherTech Championship (All Classes)",
+    "kind": "practice",
+    "local": "2026-05-29 11:30",
+    "kst": "2026-05-30 00:30",
+    "startUtc": "2026-05-29T15:30:00.000Z"
+   },
+   {
+    "t": "Qualifying - WeatherTech Championship",
+    "kind": "qualifying",
+    "local": "2026-05-29 16:50",
+    "kst": "2026-05-30 05:50",
+    "startUtc": "2026-05-29T20:50:00.000Z"
+   },
+   {
+    "t": "Practice #3 - WeatherTech Championship (All Classes)",
+    "kind": "practice",
+    "local": "2026-05-30 11:10",
+    "kst": "2026-05-31 00:10",
+    "startUtc": "2026-05-30T15:10:00.000Z"
+   },
+   {
+    "t": "Race - Chevrolet Detroit Sports Car Classic - 100 Minutes",
+    "kind": "race",
+    "local": "2026-05-30 16:10",
+    "kst": "2026-05-31 05:10",
+    "startUtc": "2026-05-30T20:10:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "IMSA.tv",
+   "Peacock"
+  ],
+  "sourceUrl": "https://www.imsa.com/wp-content/uploads/sites/32/2026/05/20/2026-IMSA-Official-Schedule-and-SR-Detroit-052026.pdf",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-6-monacograndprix",
+  "series": "F1",
+  "round": 6,
+  "name": "Monaco Grand Prix",
+  "nameKo": "모나코 그랑프리",
+  "shortNameKo": "모나코 GP",
+  "circuit": "Circuit de Monaco",
+  "circuitKo": "모나코 서킷",
+  "city": "Monte Carlo",
+  "cityKo": "모나코",
+  "country": "Monaco",
+  "countryKo": "모나코",
+  "timezone": "Europe/Monaco",
+  "weekendStart": "2026-06-05",
+  "weekendEnd": "2026-06-07",
+  "status": "completed",
+  "isSprint": false,
+  "raceDateLocal": "2026-06-07",
+  "raceDateKst": "2026-06-07",
+  "kstTime": "22:00",
+  "raceKstIso": "2026-06-07T13:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-06-05 13:30",
+    "kst": "2026-06-05 20:30",
+    "startUtc": "2026-06-05T11:30:00.000Z"
+   },
+   {
+    "t": "Practice 2",
+    "kind": "practice",
+    "local": "2026-06-05 17:00",
+    "kst": "2026-06-06 00:00",
+    "startUtc": "2026-06-05T15:00:00.000Z"
+   },
+   {
+    "t": "Practice 3",
+    "kind": "practice",
+    "local": "2026-06-06 12:30",
+    "kst": "2026-06-06 19:30",
+    "startUtc": "2026-06-06T10:30:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-06-06 16:00",
+    "kst": "2026-06-06 23:00",
+    "startUtc": "2026-06-06T14:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-06-07 15:00",
+    "kst": "2026-06-07 22:00",
+    "startUtc": "2026-06-07T13:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/monaco",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wec-2026-3-24hoursoflemans",
+  "series": "WEC",
+  "round": 3,
+  "name": "24 Hours of Le Mans",
+  "nameKo": "르망 24시",
+  "shortNameKo": "르망 24시",
+  "circuit": "Circuit de la Sarthe",
+  "circuitKo": "시르퀴 드 라 사르트",
+  "city": "Le Mans",
+  "cityKo": "르망",
+  "country": "France",
+  "countryKo": "프랑스",
+  "timezone": "Europe/Paris",
+  "weekendStart": "2026-06-10",
+  "weekendEnd": "2026-06-14",
+  "status": "completed",
+  "raceDateLocal": "2026-06-13",
+  "raceDateKst": "2026-06-13",
+  "kstTime": "23:00",
+  "raceKstIso": "2026-06-13T14:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Test Day - Session 1",
+    "kind": "other",
+    "local": "2026-06-07 10:00",
+    "kst": "2026-06-07 17:00",
+    "startUtc": "2026-06-07T08:00:00.000Z"
+   },
+   {
+    "t": "Test Day - Session 2",
+    "kind": "other",
+    "local": "2026-06-07 15:30",
+    "kst": "2026-06-07 22:30",
+    "startUtc": "2026-06-07T13:30:00.000Z"
+   },
+   {
+    "t": "Free Practice 1",
+    "kind": "practice",
+    "local": "2026-06-10 14:00",
+    "kst": "2026-06-10 21:00",
+    "startUtc": "2026-06-10T12:00:00.000Z"
+   },
+   {
+    "t": "Qualifying - LMP2 & LMGT3",
+    "kind": "qualifying",
+    "local": "2026-06-10 18:45",
+    "kst": "2026-06-11 01:45",
+    "startUtc": "2026-06-10T16:45:00.000Z"
+   },
+   {
+    "t": "Qualifying - HYPERCAR",
+    "kind": "qualifying",
+    "local": "2026-06-10 19:30",
+    "kst": "2026-06-11 02:30",
+    "startUtc": "2026-06-10T17:30:00.000Z"
+   },
+   {
+    "t": "Free Practice 2",
+    "kind": "practice",
+    "local": "2026-06-10 22:00",
+    "kst": "2026-06-11 05:00",
+    "startUtc": "2026-06-10T20:00:00.000Z"
+   },
+   {
+    "t": "Free Practice 3",
+    "kind": "practice",
+    "local": "2026-06-11 14:45",
+    "kst": "2026-06-11 21:45",
+    "startUtc": "2026-06-11T12:45:00.000Z"
+   },
+   {
+    "t": "Hyperpole 1 - LMP2 & LMGT3",
+    "kind": "qualifying",
+    "local": "2026-06-11 20:00",
+    "kst": "2026-06-12 03:00",
+    "startUtc": "2026-06-11T18:00:00.000Z"
+   },
+   {
+    "t": "Hyperpole 2 - LMP2 & LMGT3",
+    "kind": "qualifying",
+    "local": "2026-06-11 20:35",
+    "kst": "2026-06-12 03:35",
+    "startUtc": "2026-06-11T18:35:00.000Z"
+   },
+   {
+    "t": "Hyperpole 1 - HYPERCAR",
+    "kind": "qualifying",
+    "local": "2026-06-11 21:05",
+    "kst": "2026-06-12 04:05",
+    "startUtc": "2026-06-11T19:05:00.000Z"
+   },
+   {
+    "t": "Hyperpole 2 - HYPERCAR",
+    "kind": "qualifying",
+    "local": "2026-06-11 21:40",
+    "kst": "2026-06-12 04:40",
+    "startUtc": "2026-06-11T19:40:00.000Z"
+   },
+   {
+    "t": "Free Practice 4",
+    "kind": "practice",
+    "local": "2026-06-11 23:00",
+    "kst": "2026-06-12 06:00",
+    "startUtc": "2026-06-11T21:00:00.000Z"
+   },
+   {
+    "t": "Warm-up",
+    "kind": "other",
+    "local": "2026-06-13 12:00",
+    "kst": "2026-06-13 19:00",
+    "startUtc": "2026-06-13T10:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-06-13 16:00",
+    "kst": "2026-06-13 23:00",
+    "startUtc": "2026-06-13T14:00:00.000Z"
+   },
+   {
+    "t": "Race finish",
+    "kind": "finish",
+    "local": null,
+    "kst": null,
+    "startUtc": null
+   }
+  ],
+  "broadcast": [
+   "JTBC GOLF&SPORTS2",
+   "FIAWEC.tv"
+  ],
+  "sourceUrl": "https://www.fiawec.com/en/race/24-hours-of-le-mans-2026",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-7-barcelonacatalunyagrandprix",
+  "series": "F1",
+  "round": 7,
+  "name": "Barcelona-Catalunya Grand Prix",
+  "nameKo": "바르셀로나-카탈루냐 그랑프리",
+  "shortNameKo": "바르셀로나-카탈루냐 GP",
+  "circuit": "Circuit de Barcelona-Catalunya",
+  "circuitKo": "바르셀로나-카탈루냐 서킷",
+  "city": "Montmeló",
+  "cityKo": "바르셀로나-카탈루냐",
+  "country": "Spain",
+  "countryKo": "스페인",
+  "timezone": "Europe/Madrid",
+  "weekendStart": "2026-06-12",
+  "weekendEnd": "2026-06-14",
+  "status": "completed",
+  "isSprint": false,
+  "raceDateLocal": "2026-06-14",
+  "raceDateKst": "2026-06-14",
+  "kstTime": "22:00",
+  "raceKstIso": "2026-06-14T13:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-06-12 13:30",
+    "kst": "2026-06-12 20:30",
+    "startUtc": "2026-06-12T11:30:00.000Z"
+   },
+   {
+    "t": "Practice 2",
+    "kind": "practice",
+    "local": "2026-06-12 17:00",
+    "kst": "2026-06-13 00:00",
+    "startUtc": "2026-06-12T15:00:00.000Z"
+   },
+   {
+    "t": "Practice 3",
+    "kind": "practice",
+    "local": "2026-06-13 12:30",
+    "kst": "2026-06-13 19:30",
+    "startUtc": "2026-06-13T10:30:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-06-13 16:00",
+    "kst": "2026-06-13 23:00",
+    "startUtc": "2026-06-13T14:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-06-14 15:00",
+    "kst": "2026-06-14 22:00",
+    "startUtc": "2026-06-14T13:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/barcelona-catalunya",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "gtwc-2026-3-crowdstrike24hoursofspa",
+  "series": "GTWC",
+  "round": 3,
+  "name": "CrowdStrike 24 Hours of Spa",
+  "nameKo": "크라우드스트라이크 스파 24시",
+  "shortNameKo": "크라우드스트라이크 스파 24시",
+  "circuit": "Circuit de Spa-Francorchamps",
+  "circuitKo": "스파-프랑코르샹 서킷",
+  "city": "Stavelot",
+  "cityKo": "스타블로",
+  "country": "Belgium",
+  "countryKo": "벨기에",
+  "timezone": "Europe/Brussels",
+  "weekendStart": "2026-06-23",
+  "weekendEnd": "2026-06-28",
+  "status": "completed",
+  "cup": "Endurance Cup",
+  "raceDateLocal": "2026-06-27",
+  "raceDateKst": "2026-06-27",
+  "kstTime": "23:30",
+  "raceKstIso": "2026-06-27T14:30:00.000Z",
+  "sessions": [
+   {
+    "t": "Official Paid Test Session 1",
+    "kind": "other",
+    "local": "2026-06-23 14:40",
+    "kst": "2026-06-23 21:40",
+    "startUtc": "2026-06-23T12:40:00.000Z"
+   },
+   {
+    "t": "Bronze Test",
+    "kind": "other",
+    "local": "2026-06-23 16:55",
+    "kst": "2026-06-23 23:55",
+    "startUtc": "2026-06-23T14:55:00.000Z"
+   },
+   {
+    "t": "Spa Parade",
+    "kind": "other",
+    "local": "2026-06-24 18:00",
+    "kst": "2026-06-25 01:00",
+    "startUtc": "2026-06-24T16:00:00.000Z"
+   },
+   {
+    "t": "Free Practice 1",
+    "kind": "practice",
+    "local": "2026-06-25 10:10",
+    "kst": "2026-06-25 17:10",
+    "startUtc": "2026-06-25T08:10:00.000Z"
+   },
+   {
+    "t": "Free Practice 2",
+    "kind": "practice",
+    "local": "2026-06-25 16:10",
+    "kst": "2026-06-25 23:10",
+    "startUtc": "2026-06-25T14:10:00.000Z"
+   },
+   {
+    "t": "Qualifying 1",
+    "kind": "qualifying",
+    "local": "2026-06-25 19:45",
+    "kst": "2026-06-26 02:45",
+    "startUtc": "2026-06-25T17:45:00.000Z"
+   },
+   {
+    "t": "Qualifying 2",
+    "kind": "qualifying",
+    "local": "2026-06-25 20:05",
+    "kst": "2026-06-26 03:05",
+    "startUtc": "2026-06-25T18:05:00.000Z"
+   },
+   {
+    "t": "Qualifying 3",
+    "kind": "qualifying",
+    "local": "2026-06-25 20:35",
+    "kst": "2026-06-26 03:35",
+    "startUtc": "2026-06-25T18:35:00.000Z"
+   },
+   {
+    "t": "Qualifying 4",
+    "kind": "qualifying",
+    "local": "2026-06-25 21:05",
+    "kst": "2026-06-26 04:05",
+    "startUtc": "2026-06-25T19:05:00.000Z"
+   },
+   {
+    "t": "Qualifying Combined",
+    "kind": "qualifying",
+    "local": "2026-06-25 22:40",
+    "kst": "2026-06-26 05:40",
+    "startUtc": "2026-06-25T20:40:00.000Z"
+   },
+   {
+    "t": "Night Practice",
+    "kind": "practice",
+    "local": "2026-06-25 22:55",
+    "kst": "2026-06-26 05:55",
+    "startUtc": "2026-06-25T20:55:00.000Z"
+   },
+   {
+    "t": "Pit Walk",
+    "kind": "other",
+    "local": "2026-06-25 23:35",
+    "kst": "2026-06-26 06:35",
+    "startUtc": "2026-06-25T21:35:00.000Z"
+   },
+   {
+    "t": "Superpole",
+    "kind": "qualifying",
+    "local": "2026-06-26 15:05",
+    "kst": "2026-06-26 22:05",
+    "startUtc": "2026-06-26T13:05:00.000Z"
+   },
+   {
+    "t": "Pit Walk",
+    "kind": "other",
+    "local": "2026-06-26 18:10",
+    "kst": "2026-06-27 01:10",
+    "startUtc": "2026-06-26T16:10:00.000Z"
+   },
+   {
+    "t": "Warm Up",
+    "kind": "practice",
+    "local": "2026-06-26 19:20",
+    "kst": "2026-06-27 02:20",
+    "startUtc": "2026-06-26T17:20:00.000Z"
+   },
+   {
+    "t": "Pit Walk",
+    "kind": "other",
+    "local": "2026-06-26 22:45",
+    "kst": "2026-06-27 05:45",
+    "startUtc": "2026-06-26T20:45:00.000Z"
+   },
+   {
+    "t": "Main Race",
+    "kind": "race",
+    "local": "2026-06-27 16:30",
+    "kst": "2026-06-27 23:30",
+    "startUtc": "2026-06-27T14:30:00.000Z"
+   },
+   {
+    "t": "Main Race (finish)",
+    "kind": "finish",
+    "local": "2026-06-28 16:30",
+    "kst": "2026-06-28 23:30",
+    "startUtc": "2026-06-28T14:30:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "GT World Challenge TV",
+   "YouTube Live"
+  ],
+  "sourceUrl": "https://www.gt-world-challenge-europe.com/event/249/crowdstrike-24-hours-of-spa",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "imsa-2026-6-sahlenssixhoursoftheglen",
+  "series": "IMSA",
+  "round": 6,
+  "name": "Sahlen's Six Hours of The Glen",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Watkins Glen International",
+  "circuitKo": null,
+  "city": "Watkins Glen, New York",
+  "cityKo": null,
+  "country": "United States",
+  "countryKo": null,
+  "timezone": "America/New_York",
+  "weekendStart": "2026-06-25",
+  "weekendEnd": "2026-06-28",
+  "status": "completed",
+  "raceDateLocal": "2026-06-28",
+  "raceDateKst": "2026-06-29",
+  "kstTime": "01:10",
+  "raceKstIso": "2026-06-28T16:10:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice #1 - WeatherTech Championship (All Classes)",
+    "kind": "practice",
+    "local": "2026-06-26 11:25",
+    "kst": "2026-06-27 00:25",
+    "startUtc": "2026-06-26T15:25:00.000Z"
+   },
+   {
+    "t": "Practice #2 - WeatherTech Championship (All Classes)",
+    "kind": "practice",
+    "local": "2026-06-27 10:05",
+    "kst": "2026-06-27 23:05",
+    "startUtc": "2026-06-27T14:05:00.000Z"
+   },
+   {
+    "t": "Qualifying - WeatherTech Championship",
+    "kind": "qualifying",
+    "local": "2026-06-27 15:40",
+    "kst": "2026-06-28 04:40",
+    "startUtc": "2026-06-27T19:40:00.000Z"
+   },
+   {
+    "t": "Race - Sahlen's Six Hours of the Glen - 6 Hours",
+    "kind": "race",
+    "local": "2026-06-28 12:10",
+    "kst": "2026-06-29 01:10",
+    "startUtc": "2026-06-28T16:10:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "IMSA.tv",
+   "Peacock"
+  ],
+  "sourceUrl": "https://www.imsa.com/wp-content/uploads/sites/32/2026/06/23/2026-IMSA-Official-Schedule-and-SR-WGI-REV-062326.pdf",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wrc-2026-8-acropolisrallygreece",
+  "series": "WRC",
+  "round": 8,
+  "name": "Acropolis Rally Greece",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Loutraki",
+  "circuitKo": null,
+  "city": "Loutraki",
+  "cityKo": null,
+  "country": "Greece",
+  "countryKo": null,
+  "timezone": "Europe/Athens",
+  "weekendStart": "2026-06-25",
+  "weekendEnd": "2026-06-28",
+  "status": "completed",
+  "surface": "gravel",
+  "raceDateLocal": "2026-06-28",
+  "raceDateKst": "2026-06-28",
+  "kstTime": "20:15",
+  "raceKstIso": "2026-06-28T11:15:00.000Z",
+  "sessions": [
+   {
+    "t": "Shakedown",
+    "kind": "practice",
+    "local": "2026-06-25 09:01",
+    "kst": "2026-06-25 15:01",
+    "startUtc": "2026-06-25T06:01:00.000Z"
+   },
+   {
+    "t": "SS1 EKO SSS",
+    "kind": "other",
+    "local": "2026-06-25 19:05",
+    "kst": "2026-06-26 01:05",
+    "startUtc": "2026-06-25T16:05:00.000Z"
+   },
+   {
+    "t": "SS17 Loutraki 2 [Power Stage]",
+    "kind": "race",
+    "local": "2026-06-28 14:15",
+    "kst": "2026-06-28 20:15",
+    "startUtc": "2026-06-28T11:15:00.000Z"
+   },
+   {
+    "t": "Podium ceremony, Loutraki",
+    "kind": "finish",
+    "local": "2026-06-28 14:35",
+    "kst": "2026-06-28 20:35",
+    "startUtc": "2026-06-28T11:35:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "WRC+"
+  ],
+  "sourceUrl": "https://en.wikipedia.org/wiki/2026_Acropolis_Rally",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-8-austriangrandprix",
+  "series": "F1",
+  "round": 8,
+  "name": "Austrian Grand Prix",
+  "nameKo": "오스트리아 그랑프리",
+  "shortNameKo": "오스트리아 GP",
+  "circuit": "Red Bull Ring",
+  "circuitKo": "레드불 링",
+  "city": "Spielberg",
+  "cityKo": "슈필베르크",
+  "country": "Austria",
+  "countryKo": "오스트리아",
+  "timezone": "Europe/Vienna",
+  "weekendStart": "2026-06-26",
+  "weekendEnd": "2026-06-28",
+  "status": "completed",
+  "isSprint": false,
+  "raceDateLocal": "2026-06-28",
+  "raceDateKst": "2026-06-28",
+  "kstTime": "22:00",
+  "raceKstIso": "2026-06-28T13:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-06-26 13:30",
+    "kst": "2026-06-26 20:30",
+    "startUtc": "2026-06-26T11:30:00.000Z"
+   },
+   {
+    "t": "Practice 2",
+    "kind": "practice",
+    "local": "2026-06-26 17:00",
+    "kst": "2026-06-27 00:00",
+    "startUtc": "2026-06-26T15:00:00.000Z"
+   },
+   {
+    "t": "Practice 3",
+    "kind": "practice",
+    "local": "2026-06-27 12:30",
+    "kst": "2026-06-27 19:30",
+    "startUtc": "2026-06-27T10:30:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-06-27 16:00",
+    "kst": "2026-06-27 23:00",
+    "startUtc": "2026-06-27T14:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-06-28 15:00",
+    "kst": "2026-06-28 22:00",
+    "startUtc": "2026-06-28T13:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/austria",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-9-britishgrandprix",
+  "series": "F1",
+  "round": 9,
+  "name": "British Grand Prix",
+  "nameKo": "영국 그랑프리",
+  "shortNameKo": "영국 GP",
+  "circuit": "Silverstone Circuit",
+  "circuitKo": "실버스톤 서킷",
+  "city": "Silverstone",
+  "cityKo": "실버스톤",
+  "country": "United Kingdom",
+  "countryKo": "영국",
+  "timezone": "Europe/London",
+  "weekendStart": "2026-07-03",
+  "weekendEnd": "2026-07-05",
+  "status": "completed",
+  "isSprint": true,
+  "raceDateLocal": "2026-07-05",
+  "raceDateKst": "2026-07-05",
+  "kstTime": "23:00",
+  "raceKstIso": "2026-07-05T14:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-07-03 12:30",
+    "kst": "2026-07-03 20:30",
+    "startUtc": "2026-07-03T11:30:00.000Z"
+   },
+   {
+    "t": "Sprint Qualifying",
+    "kind": "qualifying",
+    "local": "2026-07-03 16:30",
+    "kst": "2026-07-04 00:30",
+    "startUtc": "2026-07-03T15:30:00.000Z"
+   },
+   {
+    "t": "Sprint",
+    "kind": "sprint",
+    "local": "2026-07-04 12:00",
+    "kst": "2026-07-04 20:00",
+    "startUtc": "2026-07-04T11:00:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-07-04 16:00",
+    "kst": "2026-07-05 00:00",
+    "startUtc": "2026-07-04T15:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-07-05 15:00",
+    "kst": "2026-07-05 23:00",
+    "startUtc": "2026-07-05T14:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/great-britain",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wec-2026-4-rolex6hoursofsopaulo",
+  "series": "WEC",
+  "round": 4,
+  "name": "Rolex 6 Hours of São Paulo",
+  "nameKo": "상파울루 6시간",
+  "shortNameKo": "상파울루 6시간",
+  "circuit": "Autódromo José Carlos Pace (Interlagos)",
+  "circuitKo": "아우토드로모 조제 카를루스 파시(인터라고스)",
+  "city": "São Paulo",
+  "cityKo": "상파울루",
+  "country": "Brazil",
+  "countryKo": "브라질",
+  "timezone": "America/Sao_Paulo",
+  "weekendStart": "2026-07-10",
+  "weekendEnd": "2026-07-12",
+  "status": "completed",
+  "raceDateLocal": "2026-07-12",
+  "raceDateKst": "2026-07-12",
+  "kstTime": "23:30",
+  "raceKstIso": "2026-07-12T14:30:00.000Z",
+  "sessions": [
+   {
+    "t": "Free Practice 1",
+    "kind": "practice",
+    "local": "2026-07-10 11:00",
+    "kst": "2026-07-10 23:00",
+    "startUtc": "2026-07-10T14:00:00.000Z"
+   },
+   {
+    "t": "Free Practice 2",
+    "kind": "practice",
+    "local": "2026-07-10 15:50",
+    "kst": "2026-07-11 03:50",
+    "startUtc": "2026-07-10T18:50:00.000Z"
+   },
+   {
+    "t": "Free Practice 3",
+    "kind": "practice",
+    "local": "2026-07-11 10:10",
+    "kst": "2026-07-11 22:10",
+    "startUtc": "2026-07-11T13:10:00.000Z"
+   },
+   {
+    "t": "Qualifying - LMGT3",
+    "kind": "qualifying",
+    "local": "2026-07-11 14:30",
+    "kst": "2026-07-12 02:30",
+    "startUtc": "2026-07-11T17:30:00.000Z"
+   },
+   {
+    "t": "Hyperpole - LMGT3",
+    "kind": "qualifying",
+    "local": "2026-07-11 14:50",
+    "kst": "2026-07-12 02:50",
+    "startUtc": "2026-07-11T17:50:00.000Z"
+   },
+   {
+    "t": "Qualifying - HYPERCAR",
+    "kind": "qualifying",
+    "local": "2026-07-11 15:10",
+    "kst": "2026-07-12 03:10",
+    "startUtc": "2026-07-11T18:10:00.000Z"
+   },
+   {
+    "t": "Hyperpole - HYPERCAR",
+    "kind": "qualifying",
+    "local": "2026-07-11 15:30",
+    "kst": "2026-07-12 03:30",
+    "startUtc": "2026-07-11T18:30:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-07-12 11:30",
+    "kst": "2026-07-12 23:30",
+    "startUtc": "2026-07-12T14:30:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "JTBC GOLF&SPORTS2",
+   "FIAWEC.tv"
+  ],
+  "sourceUrl": "https://www.fiawec.com/en/race/rolex-6-hours-of-sao-paulo-2026",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "imsa-2026-7-chevroletgrandprix",
+  "series": "IMSA",
+  "round": 7,
+  "name": "Chevrolet Grand Prix",
+  "nameKo": "모스포트",
+  "shortNameKo": "모스포트",
+  "circuit": "Canadian Tire Motorsport Park",
+  "circuitKo": "캐나디안 타이어 모터스포트 파크",
+  "city": "Bowmanville, Ontario",
+  "cityKo": "바우만빌",
+  "country": "Canada",
+  "countryKo": "캐나다",
+  "timezone": "America/Toronto",
+  "weekendStart": "2026-07-10",
+  "weekendEnd": "2026-07-12",
+  "status": "completed",
+  "raceDateLocal": "2026-07-12",
+  "raceDateKst": "2026-07-13",
+  "kstTime": "03:05",
+  "raceKstIso": "2026-07-12T18:05:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice #1 - WeatherTech Championship (All Classes)",
+    "kind": "practice",
+    "local": "2026-07-10 13:55",
+    "kst": "2026-07-11 02:55",
+    "startUtc": "2026-07-10T17:55:00.000Z"
+   },
+   {
+    "t": "Practice #2 - WeatherTech Championship (All Classes)",
+    "kind": "practice",
+    "local": "2026-07-11 10:35",
+    "kst": "2026-07-11 23:35",
+    "startUtc": "2026-07-11T14:35:00.000Z"
+   },
+   {
+    "t": "Qualifying - WeatherTech Championship",
+    "kind": "qualifying",
+    "local": "2026-07-11 16:00",
+    "kst": "2026-07-12 05:00",
+    "startUtc": "2026-07-11T20:00:00.000Z"
+   },
+   {
+    "t": "Race - Chevrolet Grand Prix - 2 Hours and 40 Minutes",
+    "kind": "race",
+    "local": "2026-07-12 14:05",
+    "kst": "2026-07-13 03:05",
+    "startUtc": "2026-07-12T18:05:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "IMSA.tv",
+   "Peacock"
+  ],
+  "sourceUrl": "https://www.imsa.com/wp-content/uploads/sites/32/2026/07/02/2026-IMSA-Official-Schedule-and-SR-CTMP-070126.pdf",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wrc-2026-9-rallyestonia",
+  "series": "WRC",
+  "round": 9,
+  "name": "Rally Estonia",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Tartu",
+  "circuitKo": null,
+  "city": "Tartu",
+  "cityKo": null,
+  "country": "Estonia",
+  "countryKo": null,
+  "timezone": "Europe/Tallinn",
+  "weekendStart": "2026-07-16",
+  "weekendEnd": "2026-07-19",
+  "status": "completed",
+  "surface": "gravel",
+  "raceDateLocal": "2026-07-19",
+  "raceDateKst": "2026-07-19",
+  "kstTime": "19:15",
+  "raceKstIso": "2026-07-19T10:15:00.000Z",
+  "sessions": [
+   {
+    "t": "Kastre [Shakedown]",
+    "kind": "practice",
+    "local": "2026-07-17 09:01",
+    "kst": "2026-07-17 15:01",
+    "startUtc": "2026-07-17T06:01:00.000Z"
+   },
+   {
+    "t": "SS1 Raanitsa 1",
+    "kind": "other",
+    "local": "2026-07-17 13:03",
+    "kst": "2026-07-17 19:03",
+    "startUtc": "2026-07-17T10:03:00.000Z"
+   },
+   {
+    "t": "SS18 Kääriku 2 [Power Stage]",
+    "kind": "race",
+    "local": "2026-07-19 13:15",
+    "kst": "2026-07-19 19:15",
+    "startUtc": "2026-07-19T10:15:00.000Z"
+   },
+   {
+    "t": "Podium ceremony, Kääriku",
+    "kind": "finish",
+    "local": "2026-07-19 14:20",
+    "kst": "2026-07-19 20:20",
+    "startUtc": "2026-07-19T11:20:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "WRC+"
+  ],
+  "sourceUrl": "https://en.wikipedia.org/wiki/2026_Rally_Estonia",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "gtwc-2026-2-gtworldchallengeeuropesprint",
+  "series": "GTWC",
+  "round": 2,
+  "name": "GT World Challenge Europe Sprint Cup – Misano",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Misano World Circuit Marco Simoncelli",
+  "circuitKo": null,
+  "city": "Misano Adriatico",
+  "cityKo": null,
+  "country": "Italy",
+  "countryKo": null,
+  "timezone": "Europe/Rome",
+  "weekendStart": "2026-07-16",
+  "weekendEnd": "2026-07-19",
+  "status": "completed",
+  "cup": "Sprint Cup",
+  "raceDateLocal": "2026-07-18",
+  "raceDateKst": "2026-07-19",
+  "kstTime": "03:30",
+  "raceKstIso": "2026-07-18T18:30:00.000Z",
+  "sessions": [
+   {
+    "t": "Official test sessions",
+    "kind": "other",
+    "local": "2026-07-16 13:00",
+    "kst": "2026-07-16 20:00",
+    "startUtc": "2026-07-16T11:00:00.000Z"
+   },
+   {
+    "t": "Free Practice 1",
+    "kind": "practice",
+    "local": "2026-07-17 14:50",
+    "kst": "2026-07-17 21:50",
+    "startUtc": "2026-07-17T12:50:00.000Z"
+   },
+   {
+    "t": "Free Practice 2",
+    "kind": "practice",
+    "local": "2026-07-17 20:10",
+    "kst": "2026-07-18 03:10",
+    "startUtc": "2026-07-17T18:10:00.000Z"
+   },
+   {
+    "t": "Qualifying 1 - Group A",
+    "kind": "qualifying",
+    "local": "2026-07-18 13:05",
+    "kst": "2026-07-18 20:05",
+    "startUtc": "2026-07-18T11:05:00.000Z"
+   },
+   {
+    "t": "Qualifying 1 - Group B",
+    "kind": "qualifying",
+    "local": "2026-07-18 13:20",
+    "kst": "2026-07-18 20:20",
+    "startUtc": "2026-07-18T11:20:00.000Z"
+   },
+   {
+    "t": "Race 1",
+    "kind": "race",
+    "local": "2026-07-18 20:30",
+    "kst": "2026-07-19 03:30",
+    "startUtc": "2026-07-18T18:30:00.000Z"
+   },
+   {
+    "t": "Qualifying 2 - Group A",
+    "kind": "qualifying",
+    "local": "2026-07-19 10:05",
+    "kst": "2026-07-19 17:05",
+    "startUtc": "2026-07-19T08:05:00.000Z"
+   },
+   {
+    "t": "Qualifying 2 - Group B",
+    "kind": "qualifying",
+    "local": "2026-07-19 10:20",
+    "kst": "2026-07-19 17:20",
+    "startUtc": "2026-07-19T08:20:00.000Z"
+   },
+   {
+    "t": "Qualifying 2",
+    "kind": "qualifying",
+    "local": "2026-07-19 10:40",
+    "kst": "2026-07-19 17:40",
+    "startUtc": "2026-07-19T08:40:00.000Z"
+   },
+   {
+    "t": "Race 2",
+    "kind": "race",
+    "local": "2026-07-19 14:30",
+    "kst": "2026-07-19 21:30",
+    "startUtc": "2026-07-19T12:30:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "GT World Challenge TV",
+   "YouTube Live"
+  ],
+  "sourceUrl": "https://www.gt-world-challenge-europe.com/event/250/misano",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-10-belgiangrandprix",
+  "series": "F1",
+  "round": 10,
+  "name": "Belgian Grand Prix",
+  "nameKo": "벨기에 그랑프리",
+  "shortNameKo": "벨기에 GP",
+  "circuit": "Circuit de Spa-Francorchamps",
+  "circuitKo": "스파-프랑코르샹 서킷",
+  "city": "Stavelot",
+  "cityKo": "스파-프랑코르샹",
+  "country": "Belgium",
+  "countryKo": "벨기에",
+  "timezone": "Europe/Brussels",
+  "weekendStart": "2026-07-17",
+  "weekendEnd": "2026-07-19",
+  "status": "completed",
+  "isSprint": false,
+  "raceDateLocal": "2026-07-19",
+  "raceDateKst": "2026-07-19",
+  "kstTime": "22:00",
+  "raceKstIso": "2026-07-19T13:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-07-17 13:30",
+    "kst": "2026-07-17 20:30",
+    "startUtc": "2026-07-17T11:30:00.000Z"
+   },
+   {
+    "t": "Practice 2",
+    "kind": "practice",
+    "local": "2026-07-17 17:00",
+    "kst": "2026-07-18 00:00",
+    "startUtc": "2026-07-17T15:00:00.000Z"
+   },
+   {
+    "t": "Practice 3",
+    "kind": "practice",
+    "local": "2026-07-18 12:30",
+    "kst": "2026-07-18 19:30",
+    "startUtc": "2026-07-18T10:30:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-07-18 16:00",
+    "kst": "2026-07-18 23:00",
+    "startUtc": "2026-07-18T14:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-07-19 15:00",
+    "kst": "2026-07-19 22:00",
+    "startUtc": "2026-07-19T13:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/belgium",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-11-hungariangrandprix",
+  "series": "F1",
+  "round": 11,
+  "name": "Hungarian Grand Prix",
+  "nameKo": "헝가리 그랑프리",
+  "shortNameKo": "헝가리 GP",
+  "circuit": "Hungaroring",
+  "circuitKo": "헝가로링",
+  "city": "Mogyoród",
+  "cityKo": "부다페스트",
+  "country": "Hungary",
+  "countryKo": "헝가리",
+  "timezone": "Europe/Budapest",
+  "weekendStart": "2026-07-24",
+  "weekendEnd": "2026-07-26",
+  "status": "completed",
+  "isSprint": false,
+  "raceDateLocal": "2026-07-26",
+  "raceDateKst": "2026-07-26",
+  "kstTime": "22:00",
+  "raceKstIso": "2026-07-26T13:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-07-24 13:30",
+    "kst": "2026-07-24 20:30",
+    "startUtc": "2026-07-24T11:30:00.000Z"
+   },
+   {
+    "t": "Practice 2",
+    "kind": "practice",
+    "local": "2026-07-24 17:00",
+    "kst": "2026-07-25 00:00",
+    "startUtc": "2026-07-24T15:00:00.000Z"
+   },
+   {
+    "t": "Practice 3",
+    "kind": "practice",
+    "local": "2026-07-25 12:30",
+    "kst": "2026-07-25 19:30",
+    "startUtc": "2026-07-25T10:30:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-07-25 16:00",
+    "kst": "2026-07-25 23:00",
+    "startUtc": "2026-07-25T14:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-07-26 15:00",
+    "kst": "2026-07-26 22:00",
+    "startUtc": "2026-07-26T13:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/hungary",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "imsa-2026-8-motulsportscarendurancegrand",
+  "series": "IMSA",
+  "round": 8,
+  "name": "Motul SportsCar Endurance Grand Prix",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Road America",
+  "circuitKo": null,
+  "city": "Elkhart Lake, Wisconsin",
+  "cityKo": null,
+  "country": "United States",
+  "countryKo": null,
+  "timezone": "America/Chicago",
+  "weekendStart": "2026-07-30",
+  "weekendEnd": "2026-08-02",
+  "status": "completed",
+  "raceDateLocal": "2026-08-02",
+  "raceDateKst": "2026-08-03",
+  "kstTime": "00:40",
+  "raceKstIso": "2026-08-02T15:40:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice #1 - WeatherTech Championship (All Classes)",
+    "kind": "practice",
+    "local": "2026-07-31 11:25",
+    "kst": "2026-08-01 01:25",
+    "startUtc": "2026-07-31T16:25:00.000Z"
+   },
+   {
+    "t": "Practice #2 - WeatherTech Championship (All Classes)",
+    "kind": "practice",
+    "local": "2026-08-01 09:50",
+    "kst": "2026-08-01 23:50",
+    "startUtc": "2026-08-01T14:50:00.000Z"
+   },
+   {
+    "t": "Qualifying - WeatherTech Championship",
+    "kind": "qualifying",
+    "local": "2026-08-01 15:25",
+    "kst": "2026-08-02 05:25",
+    "startUtc": "2026-08-01T20:25:00.000Z"
+   },
+   {
+    "t": "Race - Motul SportsCar Endurance Grand Prix - 6 Hours",
+    "kind": "race",
+    "local": "2026-08-02 10:40",
+    "kst": "2026-08-03 00:40",
+    "startUtc": "2026-08-02T15:40:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "IMSA.tv",
+   "Peacock"
+  ],
+  "sourceUrl": "https://www.imsa.com/wp-content/uploads/sites/32/2026/07/22/2026-IMSA-Official-Schedule-and-SR-Road-America-072226.pdf",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wrc-2026-10-rallyfinland",
+  "series": "WRC",
+  "round": 10,
+  "name": "Rally Finland",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Jyväskylä (Paviljonki)",
+  "circuitKo": null,
+  "city": "Jyväskylä",
+  "cityKo": null,
+  "country": "Finland",
+  "countryKo": null,
+  "timezone": "Europe/Helsinki",
+  "weekendStart": "2026-07-30",
+  "weekendEnd": "2026-08-02",
+  "status": "completed",
+  "surface": "gravel",
+  "raceDateLocal": "2026-08-02",
+  "raceDateKst": "2026-08-02",
+  "kstTime": "19:15",
+  "raceKstIso": "2026-08-02T10:15:00.000Z",
+  "sessions": [
+   {
+    "t": "Ruuhimäki [Shakedown]",
+    "kind": "practice",
+    "local": "2026-07-30 09:01",
+    "kst": "2026-07-30 15:01",
+    "startUtc": "2026-07-30T06:01:00.000Z"
+   },
+   {
+    "t": "SS1 Harju 1",
+    "kind": "other",
+    "local": "2026-07-30 19:05",
+    "kst": "2026-07-31 01:05",
+    "startUtc": "2026-07-30T16:05:00.000Z"
+   },
+   {
+    "t": "SS20 Himos-Jämsä 2 [Power Stage]",
+    "kind": "race",
+    "local": "2026-08-02 13:15",
+    "kst": "2026-08-02 19:15",
+    "startUtc": "2026-08-02T10:15:00.000Z"
+   },
+   {
+    "t": "Podium ceremony, Himos",
+    "kind": "finish",
+    "local": "2026-08-02 14:15",
+    "kst": "2026-08-02 20:15",
+    "startUtc": "2026-08-02T11:15:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "WRC+"
+  ],
+  "sourceUrl": "https://en.wikipedia.org/wiki/2026_Rally_Finland",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "gtwc-2026-3-gtworldchallengeeuropesprint",
+  "series": "GTWC",
+  "round": 3,
+  "name": "GT World Challenge Europe Sprint Cup – Magny-Cours",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Circuit de Nevers Magny-Cours",
+  "circuitKo": null,
+  "city": "Magny-Cours",
+  "cityKo": null,
+  "country": "France",
+  "countryKo": null,
+  "timezone": "Europe/Paris",
+  "weekendStart": "2026-07-30",
+  "weekendEnd": "2026-08-02",
+  "status": "completed",
+  "cup": "Sprint Cup",
+  "raceDateLocal": "2026-08-01",
+  "raceDateKst": "2026-08-02",
+  "kstTime": "04:05",
+  "raceKstIso": "2026-08-01T19:05:00.000Z",
+  "sessions": [
+   {
+    "t": "Official test sessions",
+    "kind": "other",
+    "local": "2026-07-30 13:45",
+    "kst": "2026-07-30 20:45",
+    "startUtc": "2026-07-30T11:45:00.000Z"
+   },
+   {
+    "t": "Free Practice 1",
+    "kind": "practice",
+    "local": "2026-07-31 13:30",
+    "kst": "2026-07-31 20:30",
+    "startUtc": "2026-07-31T11:30:00.000Z"
+   },
+   {
+    "t": "Free Practice 2",
+    "kind": "practice",
+    "local": "2026-07-31 20:40",
+    "kst": "2026-08-01 03:40",
+    "startUtc": "2026-07-31T18:40:00.000Z"
+   },
+   {
+    "t": "Qualifying 1 - Group A",
+    "kind": "qualifying",
+    "local": "2026-08-01 14:55",
+    "kst": "2026-08-01 21:55",
+    "startUtc": "2026-08-01T12:55:00.000Z"
+   },
+   {
+    "t": "Qualifying 1 - Group B",
+    "kind": "qualifying",
+    "local": "2026-08-01 15:10",
+    "kst": "2026-08-01 22:10",
+    "startUtc": "2026-08-01T13:10:00.000Z"
+   },
+   {
+    "t": "Qualifying 1 Combined",
+    "kind": "qualifying",
+    "local": "2026-08-01 15:20",
+    "kst": "2026-08-01 22:20",
+    "startUtc": "2026-08-01T13:20:00.000Z"
+   },
+   {
+    "t": "Race 1",
+    "kind": "race",
+    "local": "2026-08-01 21:05",
+    "kst": "2026-08-02 04:05",
+    "startUtc": "2026-08-01T19:05:00.000Z"
+   },
+   {
+    "t": "Qualifying 2 - Group A",
+    "kind": "qualifying",
+    "local": "2026-08-02 10:50",
+    "kst": "2026-08-02 17:50",
+    "startUtc": "2026-08-02T08:50:00.000Z"
+   },
+   {
+    "t": "Qualifying 2 - Group B",
+    "kind": "qualifying",
+    "local": "2026-08-02 11:05",
+    "kst": "2026-08-02 18:05",
+    "startUtc": "2026-08-02T09:05:00.000Z"
+   },
+   {
+    "t": "Qualifying 2 Combined",
+    "kind": "qualifying",
+    "local": "2026-08-02 11:15",
+    "kst": "2026-08-02 18:15",
+    "startUtc": "2026-08-02T09:15:00.000Z"
+   },
+   {
+    "t": "Race 2",
+    "kind": "race",
+    "local": "2026-08-02 15:30",
+    "kst": "2026-08-02 22:30",
+    "startUtc": "2026-08-02T13:30:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "GT World Challenge TV",
+   "YouTube Live"
+  ],
+  "sourceUrl": "https://www.gt-world-challenge-europe.com/event/251/magny-cours",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-12-dutchgrandprix",
+  "series": "F1",
+  "round": 12,
+  "name": "Dutch Grand Prix",
+  "nameKo": "네덜란드 그랑프리",
+  "shortNameKo": "네덜란드 GP",
+  "circuit": "Circuit Zandvoort",
+  "circuitKo": "잔드보르트 서킷",
+  "city": "Zandvoort",
+  "cityKo": "잔드보르트",
+  "country": "Netherlands",
+  "countryKo": "네덜란드",
+  "timezone": "Europe/Amsterdam",
+  "weekendStart": "2026-08-21",
+  "weekendEnd": "2026-08-23",
+  "status": "completed",
+  "isSprint": true,
+  "raceDateLocal": "2026-08-23",
+  "raceDateKst": "2026-08-23",
+  "kstTime": "22:00",
+  "raceKstIso": "2026-08-23T13:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-08-21 12:30",
+    "kst": "2026-08-21 19:30",
+    "startUtc": "2026-08-21T10:30:00.000Z"
+   },
+   {
+    "t": "Sprint Qualifying",
+    "kind": "qualifying",
+    "local": "2026-08-21 16:30",
+    "kst": "2026-08-21 23:30",
+    "startUtc": "2026-08-21T14:30:00.000Z"
+   },
+   {
+    "t": "Sprint",
+    "kind": "sprint",
+    "local": "2026-08-22 12:00",
+    "kst": "2026-08-22 19:00",
+    "startUtc": "2026-08-22T10:00:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-08-22 16:00",
+    "kst": "2026-08-22 23:00",
+    "startUtc": "2026-08-22T14:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-08-23 15:00",
+    "kst": "2026-08-23 22:00",
+    "startUtc": "2026-08-23T13:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/netherlands",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "imsa-2026-9-michelingtchallengeatvir",
+  "series": "IMSA",
+  "round": 9,
+  "name": "Michelin GT Challenge at VIR",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "VIRginia International Raceway",
+  "circuitKo": null,
+  "city": "Alton, Virginia",
+  "cityKo": null,
+  "country": "United States",
+  "countryKo": null,
+  "timezone": "America/New_York",
+  "weekendStart": "2026-08-21",
+  "weekendEnd": "2026-08-23",
+  "status": "completed",
+  "raceDateLocal": "2026-08-23",
+  "raceDateKst": "2026-08-24",
+  "kstTime": "01:10",
+  "raceKstIso": "2026-08-23T16:10:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice #1 - WeatherTech Championship (All Classes)",
+    "kind": "practice",
+    "local": "2026-08-21 15:10",
+    "kst": "2026-08-22 04:10",
+    "startUtc": "2026-08-21T19:10:00.000Z"
+   },
+   {
+    "t": "Practice #2 - WeatherTech Championship (All Classes)",
+    "kind": "practice",
+    "local": "2026-08-22 10:30",
+    "kst": "2026-08-22 23:30",
+    "startUtc": "2026-08-22T14:30:00.000Z"
+   },
+   {
+    "t": "Qualifying - WeatherTech Championship",
+    "kind": "qualifying",
+    "local": "2026-08-22 16:50",
+    "kst": "2026-08-23 05:50",
+    "startUtc": "2026-08-22T20:50:00.000Z"
+   },
+   {
+    "t": "Race - Michelin GT Challenge at VIR - 2 Hours and 40 Minutes",
+    "kind": "race",
+    "local": "2026-08-23 12:10",
+    "kst": "2026-08-24 01:10",
+    "startUtc": "2026-08-23T16:10:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "IMSA.tv",
+   "Peacock"
+  ],
+  "sourceUrl": "https://www.imsa.com/wp-content/uploads/sites/32/2026/08/12/2026-IMSA-Official-Schedule-and-SR-VIR-081226-1.pdf",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wrc-2026-11-rallydelparaguay",
+  "series": "WRC",
+  "round": 11,
+  "name": "Rally del Paraguay",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Encarnación",
+  "circuitKo": null,
+  "city": "Encarnación",
+  "cityKo": null,
+  "country": "Paraguay",
+  "countryKo": null,
+  "timezone": "America/Asuncion",
+  "weekendStart": "2026-08-27",
+  "weekendEnd": "2026-08-30",
+  "status": "completed",
+  "surface": "gravel",
+  "raceDateLocal": "2026-08-30",
+  "raceDateKst": "2026-08-31",
+  "kstTime": "02:15",
+  "raceKstIso": "2026-08-30T17:15:00.000Z",
+  "sessions": [
+   {
+    "t": "Carmen del Parana [Shakedown]",
+    "kind": "practice",
+    "local": "2026-08-27 11:01",
+    "kst": "2026-08-27 23:01",
+    "startUtc": "2026-08-27T14:01:00.000Z"
+   },
+   {
+    "t": "SS1 Cambyretá 1",
+    "kind": "other",
+    "local": "2026-08-28 09:03",
+    "kst": "2026-08-28 21:03",
+    "startUtc": "2026-08-28T12:03:00.000Z"
+   },
+   {
+    "t": "SS22 Encarnación 2 [Power Stage]",
+    "kind": "race",
+    "local": "2026-08-30 14:15",
+    "kst": "2026-08-31 02:15",
+    "startUtc": "2026-08-30T17:15:00.000Z"
+   },
+   {
+    "t": "Podium ceremony, Molino San Jose",
+    "kind": "finish",
+    "local": "2026-08-30 14:35",
+    "kst": "2026-08-31 02:35",
+    "startUtc": "2026-08-30T17:35:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "WRC+"
+  ],
+  "sourceUrl": "https://en.wikipedia.org/wiki/2026_Rally_del_Paraguay",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "gtwc-2026-4-3hoursofnrburgring",
+  "series": "GTWC",
+  "round": 4,
+  "name": "3 Hours of Nürburgring",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Nürburgring (Grand Prix circuit)",
+  "circuitKo": null,
+  "city": "Nürburg",
+  "cityKo": null,
+  "country": "Germany",
+  "countryKo": null,
+  "timezone": "Europe/Berlin",
+  "weekendStart": "2026-08-28",
+  "weekendEnd": "2026-08-30",
+  "status": "completed",
+  "cup": "Endurance Cup",
+  "raceDateLocal": "2026-08-30",
+  "raceDateKst": "2026-08-30",
+  "kstTime": "22:00",
+  "raceKstIso": "2026-08-30T13:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Official Paid Test Session 1",
+    "kind": "other",
+    "local": "2026-08-28 11:45",
+    "kst": "2026-08-28 18:45",
+    "startUtc": "2026-08-28T09:45:00.000Z"
+   },
+   {
+    "t": "Bronze Test",
+    "kind": "other",
+    "local": "2026-08-28 16:40",
+    "kst": "2026-08-28 23:40",
+    "startUtc": "2026-08-28T14:40:00.000Z"
+   },
+   {
+    "t": "Free Practice 1",
+    "kind": "practice",
+    "local": "2026-08-29 10:50",
+    "kst": "2026-08-29 17:50",
+    "startUtc": "2026-08-29T08:50:00.000Z"
+   },
+   {
+    "t": "Free Practice 2",
+    "kind": "practice",
+    "local": "2026-08-29 16:15",
+    "kst": "2026-08-29 23:15",
+    "startUtc": "2026-08-29T14:15:00.000Z"
+   },
+   {
+    "t": "Qualifying 1",
+    "kind": "qualifying",
+    "local": "2026-08-30 09:45",
+    "kst": "2026-08-30 16:45",
+    "startUtc": "2026-08-30T07:45:00.000Z"
+   },
+   {
+    "t": "Qualifying 2",
+    "kind": "qualifying",
+    "local": "2026-08-30 10:20",
+    "kst": "2026-08-30 17:20",
+    "startUtc": "2026-08-30T08:20:00.000Z"
+   },
+   {
+    "t": "Qualifying 3",
+    "kind": "qualifying",
+    "local": "2026-08-30 10:35",
+    "kst": "2026-08-30 17:35",
+    "startUtc": "2026-08-30T08:35:00.000Z"
+   },
+   {
+    "t": "Qualifying Combined",
+    "kind": "qualifying",
+    "local": "2026-08-30 10:55",
+    "kst": "2026-08-30 17:55",
+    "startUtc": "2026-08-30T08:55:00.000Z"
+   },
+   {
+    "t": "Main Race",
+    "kind": "race",
+    "local": "2026-08-30 15:00",
+    "kst": "2026-08-30 22:00",
+    "startUtc": "2026-08-30T13:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "GT World Challenge TV",
+   "YouTube Live"
+  ],
+  "sourceUrl": "https://www.gt-world-challenge-europe.com/event/252/n%C3%BCrburgring",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-13-italiangrandprix",
+  "series": "F1",
+  "round": 13,
+  "name": "Italian Grand Prix",
+  "nameKo": "이탈리아 그랑프리",
+  "shortNameKo": "이탈리아 GP",
+  "circuit": "Autodromo Nazionale Monza",
+  "circuitKo": "아우토드로모 나치오날레 몬차",
+  "city": "Monza",
+  "cityKo": "몬차",
+  "country": "Italy",
+  "countryKo": "이탈리아",
+  "timezone": "Europe/Rome",
+  "weekendStart": "2026-09-04",
+  "weekendEnd": "2026-09-06",
+  "status": "completed",
+  "isSprint": false,
+  "raceDateLocal": "2026-09-06",
+  "raceDateKst": "2026-09-06",
+  "kstTime": "22:00",
+  "raceKstIso": "2026-09-06T13:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-09-04 12:30",
+    "kst": "2026-09-04 19:30",
+    "startUtc": "2026-09-04T10:30:00.000Z"
+   },
+   {
+    "t": "Practice 2",
+    "kind": "practice",
+    "local": "2026-09-04 16:00",
+    "kst": "2026-09-04 23:00",
+    "startUtc": "2026-09-04T14:00:00.000Z"
+   },
+   {
+    "t": "Practice 3",
+    "kind": "practice",
+    "local": "2026-09-05 12:30",
+    "kst": "2026-09-05 19:30",
+    "startUtc": "2026-09-05T10:30:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-09-05 16:00",
+    "kst": "2026-09-05 23:00",
+    "startUtc": "2026-09-05T14:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-09-06 15:00",
+    "kst": "2026-09-06 22:00",
+    "startUtc": "2026-09-06T13:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/italy",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wec-2026-5-lonestarlemans",
+  "series": "WEC",
+  "round": 5,
+  "name": "Lone Star Le Mans",
+  "nameKo": "론 스타 르망",
+  "shortNameKo": "론 스타 르망",
+  "circuit": "Circuit of the Americas",
+  "circuitKo": "서킷 오브 디 아메리카스",
+  "city": "Austin, Texas",
+  "cityKo": "오스틴",
+  "country": "United States",
+  "countryKo": "미국",
+  "timezone": "America/Chicago",
+  "weekendStart": "2026-09-04",
+  "weekendEnd": "2026-09-06",
+  "status": "completed",
+  "raceDateLocal": "2026-09-06",
+  "raceDateKst": "2026-09-07",
+  "kstTime": "03:00",
+  "raceKstIso": "2026-09-06T18:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Free Practice 1",
+    "kind": "practice",
+    "local": "2026-09-04 11:30",
+    "kst": "2026-09-05 01:30",
+    "startUtc": "2026-09-04T16:30:00.000Z"
+   },
+   {
+    "t": "Free Practice 2",
+    "kind": "practice",
+    "local": "2026-09-04 16:00",
+    "kst": "2026-09-05 06:00",
+    "startUtc": "2026-09-04T21:00:00.000Z"
+   },
+   {
+    "t": "Free Practice 3",
+    "kind": "practice",
+    "local": "2026-09-05 11:00",
+    "kst": "2026-09-06 01:00",
+    "startUtc": "2026-09-05T16:00:00.000Z"
+   },
+   {
+    "t": "Qualifying - LMGT3",
+    "kind": "qualifying",
+    "local": "2026-09-05 15:00",
+    "kst": "2026-09-06 05:00",
+    "startUtc": "2026-09-05T20:00:00.000Z"
+   },
+   {
+    "t": "Hyperpole - LMGT3",
+    "kind": "qualifying",
+    "local": "2026-09-05 15:20",
+    "kst": "2026-09-06 05:20",
+    "startUtc": "2026-09-05T20:20:00.000Z"
+   },
+   {
+    "t": "Qualifying - HYPERCAR",
+    "kind": "qualifying",
+    "local": "2026-09-05 15:40",
+    "kst": "2026-09-06 05:40",
+    "startUtc": "2026-09-05T20:40:00.000Z"
+   },
+   {
+    "t": "Hyperpole - HYPERCAR",
+    "kind": "qualifying",
+    "local": "2026-09-05 16:00",
+    "kst": "2026-09-06 06:00",
+    "startUtc": "2026-09-05T21:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-09-06 13:00",
+    "kst": "2026-09-07 03:00",
+    "startUtc": "2026-09-06T18:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "JTBC GOLF&SPORTS2",
+   "FIAWEC.tv"
+  ],
+  "sourceUrl": "https://www.fiawec.com/en/race/lone-star-le-mans-2026",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wrc-2026-12-rallychile",
+  "series": "WRC",
+  "round": 12,
+  "name": "Rally Chile",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Talcahuano",
+  "circuitKo": null,
+  "city": "Concepción",
+  "cityKo": null,
+  "country": "Chile",
+  "countryKo": null,
+  "timezone": "America/Santiago",
+  "weekendStart": "2026-09-10",
+  "weekendEnd": "2026-09-13",
+  "status": "completed",
+  "surface": "gravel",
+  "raceDateLocal": "2026-09-13",
+  "raceDateKst": "2026-09-14",
+  "kstTime": "01:15",
+  "raceKstIso": "2026-09-13T16:15:00.000Z",
+  "sessions": [
+   {
+    "t": "El Manzano [Shakedown]",
+    "kind": "practice",
+    "local": "2026-09-10 09:01",
+    "kst": "2026-09-10 21:01",
+    "startUtc": "2026-09-10T12:01:00.000Z"
+   },
+   {
+    "t": "SS1 Turquía 1",
+    "kind": "other",
+    "local": "2026-09-11 08:53",
+    "kst": "2026-09-11 20:53",
+    "startUtc": "2026-09-11T11:53:00.000Z"
+   },
+   {
+    "t": "SS16 BioBio 2 [Power Stage]",
+    "kind": "race",
+    "local": "2026-09-13 13:15",
+    "kst": "2026-09-14 01:15",
+    "startUtc": "2026-09-13T16:15:00.000Z"
+   },
+   {
+    "t": "Official finish, Talcahuano",
+    "kind": "finish",
+    "local": "2026-09-13 15:10",
+    "kst": "2026-09-14 03:10",
+    "startUtc": "2026-09-13T18:10:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "WRC+"
+  ],
+  "sourceUrl": "https://en.wikipedia.org/wiki/2026_Rally_Chile",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-14-spanishgrandprix",
+  "series": "F1",
+  "round": 14,
+  "name": "Spanish Grand Prix",
+  "nameKo": "스페인 그랑프리",
+  "shortNameKo": "스페인 GP",
+  "circuit": "Madring",
+  "circuitKo": "마드링",
+  "city": "Madrid",
+  "cityKo": "마드리드",
+  "country": "Spain",
+  "countryKo": "스페인",
+  "timezone": "Europe/Madrid",
+  "weekendStart": "2026-09-11",
+  "weekendEnd": "2026-09-13",
+  "status": "completed",
+  "isSprint": false,
+  "raceDateLocal": "2026-09-13",
+  "raceDateKst": "2026-09-13",
+  "kstTime": "22:00",
+  "raceKstIso": "2026-09-13T13:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-09-11 13:30",
+    "kst": "2026-09-11 20:30",
+    "startUtc": "2026-09-11T11:30:00.000Z"
+   },
+   {
+    "t": "Practice 2",
+    "kind": "practice",
+    "local": "2026-09-11 17:00",
+    "kst": "2026-09-12 00:00",
+    "startUtc": "2026-09-11T15:00:00.000Z"
+   },
+   {
+    "t": "Practice 3",
+    "kind": "practice",
+    "local": "2026-09-12 12:30",
+    "kst": "2026-09-12 19:30",
+    "startUtc": "2026-09-12T10:30:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-09-12 16:00",
+    "kst": "2026-09-12 23:00",
+    "startUtc": "2026-09-12T14:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-09-13 15:00",
+    "kst": "2026-09-13 22:00",
+    "startUtc": "2026-09-13T13:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/spain",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "gtwc-2026-4-gtworldchallengeeuropesprint",
+  "series": "GTWC",
+  "round": 4,
+  "name": "GT World Challenge Europe Sprint Cup – Zandvoort",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Circuit Zandvoort",
+  "circuitKo": null,
+  "city": "Zandvoort",
+  "cityKo": null,
+  "country": "Netherlands",
+  "countryKo": null,
+  "timezone": "Europe/Amsterdam",
+  "weekendStart": "2026-09-17",
+  "weekendEnd": "2026-09-20",
+  "status": "completed",
+  "cup": "Sprint Cup",
+  "raceDateLocal": "2026-09-19",
+  "raceDateKst": "2026-09-19",
+  "kstTime": "21:45",
+  "raceKstIso": "2026-09-19T12:45:00.000Z",
+  "sessions": [
+   {
+    "t": "Free Practice 1",
+    "kind": "practice",
+    "local": "2026-09-18 09:00",
+    "kst": "2026-09-18 16:00",
+    "startUtc": "2026-09-18T07:00:00.000Z"
+   },
+   {
+    "t": "Free Practice 2",
+    "kind": "practice",
+    "local": "2026-09-18 13:50",
+    "kst": "2026-09-18 20:50",
+    "startUtc": "2026-09-18T11:50:00.000Z"
+   },
+   {
+    "t": "Qualifying 1 - Group A",
+    "kind": "qualifying",
+    "local": "2026-09-19 09:50",
+    "kst": "2026-09-19 16:50",
+    "startUtc": "2026-09-19T07:50:00.000Z"
+   },
+   {
+    "t": "Qualifying 1 - Group B",
+    "kind": "qualifying",
+    "local": "2026-09-19 10:05",
+    "kst": "2026-09-19 17:05",
+    "startUtc": "2026-09-19T08:05:00.000Z"
+   },
+   {
+    "t": "Qualifying 1 Combined",
+    "kind": "qualifying",
+    "local": "2026-09-19 10:15",
+    "kst": "2026-09-19 17:15",
+    "startUtc": "2026-09-19T08:15:00.000Z"
+   },
+   {
+    "t": "Race 1",
+    "kind": "race",
+    "local": "2026-09-19 14:45",
+    "kst": "2026-09-19 21:45",
+    "startUtc": "2026-09-19T12:45:00.000Z"
+   },
+   {
+    "t": "Qualifying 2 - Group A",
+    "kind": "qualifying",
+    "local": "2026-09-20 10:35",
+    "kst": "2026-09-20 17:35",
+    "startUtc": "2026-09-20T08:35:00.000Z"
+   },
+   {
+    "t": "Qualifying 2 - Group B",
+    "kind": "qualifying",
+    "local": "2026-09-20 10:50",
+    "kst": "2026-09-20 17:50",
+    "startUtc": "2026-09-20T08:50:00.000Z"
+   },
+   {
+    "t": "Qualifying 2 Combined",
+    "kind": "qualifying",
+    "local": "2026-09-20 11:00",
+    "kst": "2026-09-20 18:00",
+    "startUtc": "2026-09-20T09:00:00.000Z"
+   },
+   {
+    "t": "Race 2",
+    "kind": "race",
+    "local": "2026-09-20 14:15",
+    "kst": "2026-09-20 21:15",
+    "startUtc": "2026-09-20T12:15:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "GT World Challenge TV",
+   "YouTube Live"
+  ],
+  "sourceUrl": "https://www.gt-world-challenge-europe.com/event/253/zandvoort",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "imsa-2026-10-tirerackcombattleonthebricks",
+  "series": "IMSA",
+  "round": 10,
+  "name": "TireRack.com Battle On The Bricks",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Indianapolis Motor Speedway",
+  "circuitKo": null,
+  "city": "Speedway (Indianapolis), Indiana",
+  "cityKo": null,
+  "country": "United States",
+  "countryKo": null,
+  "timezone": "America/Indiana/Indianapolis",
+  "weekendStart": "2026-09-18",
+  "weekendEnd": "2026-09-20",
+  "status": "scheduled",
+  "raceDateLocal": "2026-09-20",
+  "raceDateKst": "2026-09-21",
+  "kstTime": "04:10",
+  "raceKstIso": "2026-09-20T19:10:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1 - WeatherTech Championship",
+    "kind": "practice",
+    "local": "2026-09-18 15:25",
+    "kst": "2026-09-19 04:25",
+    "startUtc": "2026-09-18T19:25:00.000Z"
+   },
+   {
+    "t": "Practice 2 - WeatherTech Championship",
+    "kind": "practice",
+    "local": "2026-09-19 10:45",
+    "kst": "2026-09-19 23:45",
+    "startUtc": "2026-09-19T14:45:00.000Z"
+   },
+   {
+    "t": "WeatherTech Championship Qualifying",
+    "kind": "qualifying",
+    "local": "2026-09-19 17:05",
+    "kst": "2026-09-20 06:05",
+    "startUtc": "2026-09-19T21:05:00.000Z"
+   },
+   {
+    "t": "TireRack.com Battle on The Bricks - 2 Hours and 40 Minutes",
+    "kind": "race",
+    "local": "2026-09-20 15:10",
+    "kst": "2026-09-21 04:10",
+    "startUtc": "2026-09-20T19:10:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "IMSA.tv",
+   "Peacock"
+  ],
+  "sourceUrl": "https://www.imsa.com/events/2026-indianapolis-motor-speedway/",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-15-azerbaijangrandprix",
+  "series": "F1",
+  "round": 15,
+  "name": "Azerbaijan Grand Prix",
+  "nameKo": "아제르바이잔 그랑프리",
+  "shortNameKo": "아제르바이잔 GP",
+  "circuit": "Baku City Circuit",
+  "circuitKo": "바쿠 시티 서킷",
+  "city": "Baku",
+  "cityKo": "바쿠",
+  "country": "Azerbaijan",
+  "countryKo": "아제르바이잔",
+  "timezone": "Asia/Baku",
+  "weekendStart": "2026-09-24",
+  "weekendEnd": "2026-09-26",
+  "status": "scheduled",
+  "isSprint": false,
+  "raceDateLocal": "2026-09-26",
+  "raceDateKst": "2026-09-26",
+  "kstTime": "20:00",
+  "raceKstIso": "2026-09-26T11:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-09-24 12:30",
+    "kst": "2026-09-24 17:30",
+    "startUtc": "2026-09-24T08:30:00.000Z"
+   },
+   {
+    "t": "Practice 2",
+    "kind": "practice",
+    "local": "2026-09-24 16:00",
+    "kst": "2026-09-24 21:00",
+    "startUtc": "2026-09-24T12:00:00.000Z"
+   },
+   {
+    "t": "Practice 3",
+    "kind": "practice",
+    "local": "2026-09-25 12:30",
+    "kst": "2026-09-25 17:30",
+    "startUtc": "2026-09-25T08:30:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-09-25 16:00",
+    "kst": "2026-09-25 21:00",
+    "startUtc": "2026-09-25T12:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-09-26 15:00",
+    "kst": "2026-09-26 20:00",
+    "startUtc": "2026-09-26T11:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/azerbaijan",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wec-2026-6-6hoursoffuji",
+  "series": "WEC",
+  "round": 6,
+  "name": "6 Hours of Fuji",
+  "nameKo": "후지 6시간",
+  "shortNameKo": "후지 6시간",
+  "circuit": "Fuji Speedway",
+  "circuitKo": "후지 스피드웨이",
+  "city": "Oyama, Shizuoka",
+  "cityKo": "오야마",
+  "country": "Japan",
+  "countryKo": "일본",
+  "timezone": "Asia/Tokyo",
+  "weekendStart": "2026-09-25",
+  "weekendEnd": "2026-09-27",
+  "status": "scheduled",
+  "raceDateLocal": "2026-09-27",
+  "raceDateKst": "2026-09-27",
+  "kstTime": "11:00",
+  "raceKstIso": "2026-09-27T02:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Free Practice 1",
+    "kind": "practice",
+    "local": "2026-09-25 10:15",
+    "kst": "2026-09-25 10:15",
+    "startUtc": "2026-09-25T01:15:00.000Z"
+   },
+   {
+    "t": "Free Practice 2",
+    "kind": "practice",
+    "local": "2026-09-25 14:30",
+    "kst": "2026-09-25 14:30",
+    "startUtc": "2026-09-25T05:30:00.000Z"
+   },
+   {
+    "t": "Free Practice 3",
+    "kind": "practice",
+    "local": "2026-09-26 09:30",
+    "kst": "2026-09-26 09:30",
+    "startUtc": "2026-09-26T00:30:00.000Z"
+   },
+   {
+    "t": "Qualifying - LMGT3",
+    "kind": "qualifying",
+    "local": "2026-09-26 14:00",
+    "kst": "2026-09-26 14:00",
+    "startUtc": "2026-09-26T05:00:00.000Z"
+   },
+   {
+    "t": "Hyperpole - LMGT3",
+    "kind": "qualifying",
+    "local": "2026-09-26 14:20",
+    "kst": "2026-09-26 14:20",
+    "startUtc": "2026-09-26T05:20:00.000Z"
+   },
+   {
+    "t": "Qualifying - HYPERCAR",
+    "kind": "qualifying",
+    "local": "2026-09-26 14:40",
+    "kst": "2026-09-26 14:40",
+    "startUtc": "2026-09-26T05:40:00.000Z"
+   },
+   {
+    "t": "Hyperpole - HYPERCAR",
+    "kind": "qualifying",
+    "local": "2026-09-26 15:00",
+    "kst": "2026-09-26 15:00",
+    "startUtc": "2026-09-26T06:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-09-27 11:00",
+    "kst": "2026-09-27 11:00",
+    "startUtc": "2026-09-27T02:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "JTBC GOLF&SPORTS2",
+   "FIAWEC.tv"
+  ],
+  "sourceUrl": "https://www.fiawec.com/en/race/6-hours-of-fuji-2026",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "imsa-2026-11-motulpetitlemans",
+  "series": "IMSA",
+  "round": 11,
+  "name": "Motul Petit Le Mans",
+  "nameKo": "모토울 프티 르망",
+  "shortNameKo": "모토울 프티 르망",
+  "circuit": "Michelin Raceway Road Atlanta",
+  "circuitKo": "로드 애틀랜타",
+  "city": "Braselton, Georgia",
+  "cityKo": "브래슬턴",
+  "country": "United States",
+  "countryKo": "미국",
+  "timezone": "America/New_York",
+  "weekendStart": "2026-09-30",
+  "weekendEnd": "2026-10-03",
+  "status": "scheduled",
+  "raceDateLocal": "2026-10-03",
+  "raceDateKst": "2026-10-04",
+  "kstTime": "01:10",
+  "raceKstIso": "2026-10-03T16:10:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice #1 - WeatherTech Championship (All Classes)",
+    "kind": "practice",
+    "local": "2026-10-01 10:40",
+    "kst": "2026-10-01 23:40",
+    "startUtc": "2026-10-01T14:40:00.000Z"
+   },
+   {
+    "t": "Practice #2 - WeatherTech Championship (All Classes)",
+    "kind": "practice",
+    "local": "2026-10-01 15:20",
+    "kst": "2026-10-02 04:20",
+    "startUtc": "2026-10-01T19:20:00.000Z"
+   },
+   {
+    "t": "Practice #3 - Night Practice - WeatherTech Championship (All Classes)",
+    "kind": "practice",
+    "local": "2026-10-01 19:30",
+    "kst": "2026-10-02 08:30",
+    "startUtc": "2026-10-01T23:30:00.000Z"
+   },
+   {
+    "t": "WeatherTech Championship Qualifying",
+    "kind": "qualifying",
+    "local": "2026-10-02 14:15",
+    "kst": "2026-10-03 03:15",
+    "startUtc": "2026-10-02T18:15:00.000Z"
+   },
+   {
+    "t": "Race - 29th Annual Motul Petit Le Mans - 10 Hours",
+    "kind": "race",
+    "local": "2026-10-03 12:10",
+    "kst": "2026-10-04 01:10",
+    "startUtc": "2026-10-03T16:10:00.000Z"
+   },
+   {
+    "t": "Finish: 29th Annual Motul Petit Le Mans",
+    "kind": "finish",
+    "local": "2026-10-03 22:10",
+    "kst": "2026-10-04 11:10",
+    "startUtc": "2026-10-04T02:10:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "IMSA.tv",
+   "Peacock"
+  ],
+  "sourceUrl": "https://www.imsa.com/events/2026-michelin-raceway-road-atlanta/",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wrc-2026-13-rallyitaliasardegna",
+  "series": "WRC",
+  "round": 13,
+  "name": "Rally Italia Sardegna",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Alghero",
+  "circuitKo": null,
+  "city": "Alghero",
+  "cityKo": null,
+  "country": "Italy",
+  "countryKo": null,
+  "timezone": "Europe/Rome",
+  "weekendStart": "2026-10-01",
+  "weekendEnd": "2026-10-04",
+  "status": "scheduled",
+  "surface": "gravel",
+  "raceDateLocal": "2026-10-04",
+  "raceDateKst": "2026-10-04",
+  "kstTime": "21:15",
+  "raceKstIso": "2026-10-04T12:15:00.000Z",
+  "sessions": [
+   {
+    "t": "Monte Baranta [Shakedown]",
+    "kind": "practice",
+    "local": "2026-10-01 09:01",
+    "kst": "2026-10-01 16:01",
+    "startUtc": "2026-10-01T07:01:00.000Z"
+   },
+   {
+    "t": "SS1 Ittiri Arena Show",
+    "kind": "other",
+    "local": "2026-10-01 16:05",
+    "kst": "2026-10-01 23:05",
+    "startUtc": "2026-10-01T14:05:00.000Z"
+   },
+   {
+    "t": "SS17 Sassari – Argentiera 2 [Power Stage]",
+    "kind": "race",
+    "local": "2026-10-04 14:15",
+    "kst": "2026-10-04 21:15",
+    "startUtc": "2026-10-04T12:15:00.000Z"
+   },
+   {
+    "t": "Podium ceremony",
+    "kind": "finish",
+    "local": "2026-10-04 17:00",
+    "kst": "2026-10-05 00:00",
+    "startUtc": "2026-10-04T15:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "WRC+"
+  ],
+  "sourceUrl": "https://en.wikipedia.org/wiki/2026_Rally_Italia_Sardegna",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-16-bahraingrandprix",
+  "series": "F1",
+  "round": 16,
+  "name": "Bahrain Grand Prix",
+  "nameKo": "바레인 그랑프리",
+  "shortNameKo": "바레인 GP",
+  "circuit": "Sepang International Circuit",
+  "circuitKo": "바레인 인터내셔널 서킷",
+  "city": "Sepang",
+  "cityKo": "사키르",
+  "country": "Malaysia",
+  "countryKo": "바레인",
+  "timezone": "Asia/Kuala_Lumpur",
+  "weekendStart": "2026-10-02",
+  "weekendEnd": "2026-10-04",
+  "status": "scheduled",
+  "isSprint": false,
+  "note": "Originally scheduled as round 4 on 10-12 April 2026 at Bahrain International Circuit, Sakhir. Postponed because of the conflict in the Middle East and relocated to Sepang International Circuit, Malaysia, as round 16. The event keeps the Bahrain Grand Prix name; officially 'FORMULA 1 GULF AIR BAHRAIN GRAND PRIX IN MALAYSIA 2026'.",
+  "raceDateLocal": "2026-10-04",
+  "raceDateKst": "2026-10-04",
+  "kstTime": "16:00",
+  "raceKstIso": "2026-10-04T07:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-10-02 12:30",
+    "kst": "2026-10-02 13:30",
+    "startUtc": "2026-10-02T04:30:00.000Z"
+   },
+   {
+    "t": "Practice 2",
+    "kind": "practice",
+    "local": "2026-10-02 16:00",
+    "kst": "2026-10-02 17:00",
+    "startUtc": "2026-10-02T08:00:00.000Z"
+   },
+   {
+    "t": "Practice 3",
+    "kind": "practice",
+    "local": "2026-10-03 12:30",
+    "kst": "2026-10-03 13:30",
+    "startUtc": "2026-10-03T04:30:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-10-03 16:00",
+    "kst": "2026-10-03 17:00",
+    "startUtc": "2026-10-03T08:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-10-04 15:00",
+    "kst": "2026-10-04 16:00",
+    "startUtc": "2026-10-04T07:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/bahrain",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "gtwc-2026-5-gtworldchallengeeuropesprint",
+  "series": "GTWC",
+  "round": 5,
+  "name": "GT World Challenge Europe Sprint Cup – Barcelona",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Circuit de Barcelona-Catalunya",
+  "circuitKo": null,
+  "city": "Montmeló",
+  "cityKo": null,
+  "country": "Spain",
+  "countryKo": null,
+  "timezone": "Europe/Madrid",
+  "weekendStart": "2026-10-02",
+  "weekendEnd": "2026-10-04",
+  "status": "scheduled",
+  "cup": "Sprint Cup",
+  "raceDateLocal": "2026-10-03",
+  "raceDateKst": "2026-10-03",
+  "kstTime": "21:00",
+  "raceKstIso": "2026-10-03T12:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Paid Test Session",
+    "kind": "other",
+    "local": "2026-10-01 13:30",
+    "kst": "2026-10-01 20:30",
+    "startUtc": "2026-10-01T11:30:00.000Z"
+   },
+   {
+    "t": "Free Practice 1",
+    "kind": "practice",
+    "local": "2026-10-02 09:00",
+    "kst": "2026-10-02 16:00",
+    "startUtc": "2026-10-02T07:00:00.000Z"
+   },
+   {
+    "t": "Free Practice 2",
+    "kind": "practice",
+    "local": "2026-10-02 13:55",
+    "kst": "2026-10-02 20:55",
+    "startUtc": "2026-10-02T11:55:00.000Z"
+   },
+   {
+    "t": "Qualifying 1 (Group A)",
+    "kind": "qualifying",
+    "local": "2026-10-03 09:45",
+    "kst": "2026-10-03 16:45",
+    "startUtc": "2026-10-03T07:45:00.000Z"
+   },
+   {
+    "t": "Qualifying 1 (Group B)",
+    "kind": "qualifying",
+    "local": "2026-10-03 10:00",
+    "kst": "2026-10-03 17:00",
+    "startUtc": "2026-10-03T08:00:00.000Z"
+   },
+   {
+    "t": "Race 1",
+    "kind": "race",
+    "local": "2026-10-03 14:00",
+    "kst": "2026-10-03 21:00",
+    "startUtc": "2026-10-03T12:00:00.000Z"
+   },
+   {
+    "t": "Qualifying 2 (Group A)",
+    "kind": "qualifying",
+    "local": "2026-10-04 11:10",
+    "kst": "2026-10-04 18:10",
+    "startUtc": "2026-10-04T09:10:00.000Z"
+   },
+   {
+    "t": "Qualifying 2 (Group B)",
+    "kind": "qualifying",
+    "local": "2026-10-04 11:25",
+    "kst": "2026-10-04 18:25",
+    "startUtc": "2026-10-04T09:25:00.000Z"
+   },
+   {
+    "t": "Race 2",
+    "kind": "race",
+    "local": "2026-10-04 16:00",
+    "kst": "2026-10-04 23:00",
+    "startUtc": "2026-10-04T14:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "GT World Challenge TV",
+   "YouTube Live"
+  ],
+  "sourceUrl": "https://www.gt-world-challenge-europe.com/event/254/barcelona",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-17-singaporegrandprix",
+  "series": "F1",
+  "round": 17,
+  "name": "Singapore Grand Prix",
+  "nameKo": "싱가포르 그랑프리",
+  "shortNameKo": "싱가포르 GP",
+  "circuit": "Marina Bay Street Circuit",
+  "circuitKo": "마리나 베이 스트리트 서킷",
+  "city": "Singapore",
+  "cityKo": "싱가포르",
+  "country": "Singapore",
+  "countryKo": "싱가포르",
+  "timezone": "Asia/Singapore",
+  "weekendStart": "2026-10-09",
+  "weekendEnd": "2026-10-11",
+  "status": "scheduled",
+  "isSprint": true,
+  "raceDateLocal": "2026-10-11",
+  "raceDateKst": "2026-10-11",
+  "kstTime": "21:00",
+  "raceKstIso": "2026-10-11T12:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-10-09 16:30",
+    "kst": "2026-10-09 17:30",
+    "startUtc": "2026-10-09T08:30:00.000Z"
+   },
+   {
+    "t": "Sprint Qualifying",
+    "kind": "qualifying",
+    "local": "2026-10-09 20:30",
+    "kst": "2026-10-09 21:30",
+    "startUtc": "2026-10-09T12:30:00.000Z"
+   },
+   {
+    "t": "Sprint",
+    "kind": "sprint",
+    "local": "2026-10-10 17:00",
+    "kst": "2026-10-10 18:00",
+    "startUtc": "2026-10-10T09:00:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-10-10 21:00",
+    "kst": "2026-10-10 22:00",
+    "startUtc": "2026-10-10T13:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-10-11 20:00",
+    "kst": "2026-10-11 21:00",
+    "startUtc": "2026-10-11T12:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/singapore",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wec-2026-7-6hoursofbarcelona",
+  "series": "WEC",
+  "round": 7,
+  "name": "6 Hours of Barcelona",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Circuit de Barcelona-Catalunya",
+  "circuitKo": null,
+  "city": "Montmeló",
+  "cityKo": null,
+  "country": "Spain",
+  "countryKo": null,
+  "timezone": "Europe/Madrid",
+  "weekendStart": "2026-10-16",
+  "weekendEnd": "2026-10-18",
+  "status": "scheduled",
+  "raceDateLocal": "2026-10-18",
+  "raceDateKst": "2026-10-18",
+  "kstTime": "19:00",
+  "raceKstIso": "2026-10-18T10:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Free Practice 1",
+    "kind": "practice",
+    "local": "2026-10-16 11:30",
+    "kst": "2026-10-16 18:30",
+    "startUtc": "2026-10-16T09:30:00.000Z"
+   },
+   {
+    "t": "Free Practice 2",
+    "kind": "practice",
+    "local": "2026-10-16 16:30",
+    "kst": "2026-10-16 23:30",
+    "startUtc": "2026-10-16T14:30:00.000Z"
+   },
+   {
+    "t": "Free Practice 3",
+    "kind": "practice",
+    "local": "2026-10-17 08:50",
+    "kst": "2026-10-17 15:50",
+    "startUtc": "2026-10-17T06:50:00.000Z"
+   },
+   {
+    "t": "Qualifying - LMGT3",
+    "kind": "qualifying",
+    "local": "2026-10-17 11:50",
+    "kst": "2026-10-17 18:50",
+    "startUtc": "2026-10-17T09:50:00.000Z"
+   },
+   {
+    "t": "Hyperpole - LMGT3",
+    "kind": "qualifying",
+    "local": "2026-10-17 12:10",
+    "kst": "2026-10-17 19:10",
+    "startUtc": "2026-10-17T10:10:00.000Z"
+   },
+   {
+    "t": "Qualifying - HYPERCAR",
+    "kind": "qualifying",
+    "local": "2026-10-17 12:30",
+    "kst": "2026-10-17 19:30",
+    "startUtc": "2026-10-17T10:30:00.000Z"
+   },
+   {
+    "t": "Hyperpole - HYPERCAR",
+    "kind": "qualifying",
+    "local": "2026-10-17 12:50",
+    "kst": "2026-10-17 19:50",
+    "startUtc": "2026-10-17T10:50:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-10-18 12:00",
+    "kst": "2026-10-18 19:00",
+    "startUtc": "2026-10-18T10:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "JTBC GOLF&SPORTS2",
+   "FIAWEC.tv"
+  ],
+  "sourceUrl": "https://www.fiawec.com/en/race/6-hours-of-barcelona-2026",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "gtwc-2026-5-3hoursofportimo",
+  "series": "GTWC",
+  "round": 5,
+  "name": "3 Hours of Portimão",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Algarve International Circuit",
+  "circuitKo": null,
+  "city": "Portimão",
+  "cityKo": null,
+  "country": "Portugal",
+  "countryKo": null,
+  "timezone": "Europe/Lisbon",
+  "weekendStart": "2026-10-16",
+  "weekendEnd": "2026-10-18",
+  "status": "scheduled",
+  "cup": "Endurance Cup",
+  "raceDateLocal": "2026-10-17",
+  "raceDateKst": "2026-10-18",
+  "kstTime": "01:00",
+  "raceKstIso": "2026-10-17T16:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Official Paid Test Session 1",
+    "kind": "other",
+    "local": "2026-10-15 11:50",
+    "kst": "2026-10-15 19:50",
+    "startUtc": "2026-10-15T10:50:00.000Z"
+   },
+   {
+    "t": "Bronze Test",
+    "kind": "other",
+    "local": "2026-10-15 17:40",
+    "kst": "2026-10-16 01:40",
+    "startUtc": "2026-10-15T16:40:00.000Z"
+   },
+   {
+    "t": "Free Practice 1",
+    "kind": "practice",
+    "local": "2026-10-16 08:45",
+    "kst": "2026-10-16 16:45",
+    "startUtc": "2026-10-16T07:45:00.000Z"
+   },
+   {
+    "t": "Free Practice 2",
+    "kind": "practice",
+    "local": "2026-10-16 12:45",
+    "kst": "2026-10-16 20:45",
+    "startUtc": "2026-10-16T11:45:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-10-16 17:55",
+    "kst": "2026-10-17 01:55",
+    "startUtc": "2026-10-16T16:55:00.000Z"
+   },
+   {
+    "t": "Main Race",
+    "kind": "race",
+    "local": "2026-10-17 17:00",
+    "kst": "2026-10-18 01:00",
+    "startUtc": "2026-10-17T16:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "GT World Challenge TV",
+   "YouTube Live"
+  ],
+  "sourceUrl": "https://www.gt-world-challenge-europe.com/event/255/portimao",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wec-2026-x-qatar1812km",
+  "series": "WEC",
+  "round": null,
+  "name": "Qatar 1812 km",
+  "nameKo": "카타르 1812km",
+  "shortNameKo": "카타르 1812km",
+  "circuit": "Lusail International Circuit",
+  "circuitKo": "루사일 인터내셔널 서킷",
+  "city": "Lusail",
+  "cityKo": "루사일",
+  "country": "Qatar",
+  "countryKo": "카타르",
+  "timezone": "Asia/Qatar",
+  "weekendStart": "2026-10-22",
+  "weekendEnd": "2026-10-24",
+  "status": "cancelled",
+  "raceDateLocal": null,
+  "raceDateKst": null,
+  "kstTime": null,
+  "raceKstIso": null,
+  "sessions": [],
+  "broadcast": [
+   "JTBC GOLF&SPORTS2",
+   "FIAWEC.tv"
+  ],
+  "sourceUrl": "https://www.fiawec.com/en/news/fia-wec-and-fia-confirm-venues-for-final-two-rounds-of-2026/13698",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-18-unitedstatesgrandprix",
+  "series": "F1",
+  "round": 18,
+  "name": "United States Grand Prix",
+  "nameKo": "미국 그랑프리",
+  "shortNameKo": "미국 GP",
+  "circuit": "Circuit of the Americas",
+  "circuitKo": "서킷 오브 디 아메리카스",
+  "city": "Austin, Texas",
+  "cityKo": "오스틴",
+  "country": "United States",
+  "countryKo": "미국",
+  "timezone": "America/Chicago",
+  "weekendStart": "2026-10-23",
+  "weekendEnd": "2026-10-25",
+  "status": "scheduled",
+  "isSprint": false,
+  "raceDateLocal": "2026-10-25",
+  "raceDateKst": "2026-10-26",
+  "kstTime": "05:00",
+  "raceKstIso": "2026-10-25T20:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-10-23 12:30",
+    "kst": "2026-10-24 02:30",
+    "startUtc": "2026-10-23T17:30:00.000Z"
+   },
+   {
+    "t": "Practice 2",
+    "kind": "practice",
+    "local": "2026-10-23 16:00",
+    "kst": "2026-10-24 06:00",
+    "startUtc": "2026-10-23T21:00:00.000Z"
+   },
+   {
+    "t": "Practice 3",
+    "kind": "practice",
+    "local": "2026-10-24 12:30",
+    "kst": "2026-10-25 02:30",
+    "startUtc": "2026-10-24T17:30:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-10-24 16:00",
+    "kst": "2026-10-25 06:00",
+    "startUtc": "2026-10-24T21:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-10-25 15:00",
+    "kst": "2026-10-26 05:00",
+    "startUtc": "2026-10-25T20:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/united-states",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-19-mexicocitygrandprix",
+  "series": "F1",
+  "round": 19,
+  "name": "Mexico City Grand Prix",
+  "nameKo": "멕시코시티 그랑프리",
+  "shortNameKo": "멕시코시티 GP",
+  "circuit": "Autódromo Hermanos Rodríguez",
+  "circuitKo": "아우토드로모 에르마노스 로드리게스",
+  "city": "Mexico City",
+  "cityKo": "멕시코시티",
+  "country": "Mexico",
+  "countryKo": "멕시코",
+  "timezone": "America/Mexico_City",
+  "weekendStart": "2026-10-30",
+  "weekendEnd": "2026-11-01",
+  "status": "scheduled",
+  "isSprint": false,
+  "raceDateLocal": "2026-11-01",
+  "raceDateKst": "2026-11-02",
+  "kstTime": "05:00",
+  "raceKstIso": "2026-11-01T20:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-10-30 12:30",
+    "kst": "2026-10-31 03:30",
+    "startUtc": "2026-10-30T18:30:00.000Z"
+   },
+   {
+    "t": "Practice 2",
+    "kind": "practice",
+    "local": "2026-10-30 16:00",
+    "kst": "2026-10-31 07:00",
+    "startUtc": "2026-10-30T22:00:00.000Z"
+   },
+   {
+    "t": "Practice 3",
+    "kind": "practice",
+    "local": "2026-10-31 11:30",
+    "kst": "2026-11-01 02:30",
+    "startUtc": "2026-10-31T17:30:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-10-31 15:00",
+    "kst": "2026-11-01 06:00",
+    "startUtc": "2026-10-31T21:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-11-01 14:00",
+    "kst": "2026-11-02 05:00",
+    "startUtc": "2026-11-01T20:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/mexico",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wec-2026-x-bapcoenergies8hoursofbahrain",
+  "series": "WEC",
+  "round": null,
+  "name": "Bapco Energies 8 Hours of Bahrain",
+  "nameKo": "바레인 8시간",
+  "shortNameKo": "바레인 8시간",
+  "circuit": "Bahrain International Circuit",
+  "circuitKo": "바레인 인터내셔널 서킷",
+  "city": "Sakhir",
+  "cityKo": "사키르",
+  "country": "Bahrain",
+  "countryKo": "바레인",
+  "timezone": "Asia/Bahrain",
+  "weekendStart": "2026-11-05",
+  "weekendEnd": "2026-11-07",
+  "status": "cancelled",
+  "raceDateLocal": null,
+  "raceDateKst": null,
+  "kstTime": null,
+  "raceKstIso": null,
+  "sessions": [],
+  "broadcast": [
+   "JTBC GOLF&SPORTS2",
+   "FIAWEC.tv"
+  ],
+  "sourceUrl": "https://www.fiawec.com/en/news/fia-wec-and-fia-confirm-venues-for-final-two-rounds-of-2026/13698",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-20-sopaulograndprix",
+  "series": "F1",
+  "round": 20,
+  "name": "São Paulo Grand Prix",
+  "nameKo": "상파울루 그랑프리",
+  "shortNameKo": "상파울루 GP",
+  "circuit": "Autódromo José Carlos Pace (Interlagos)",
+  "circuitKo": "인터라고스",
+  "city": "São Paulo",
+  "cityKo": "상파울루",
+  "country": "Brazil",
+  "countryKo": "브라질",
+  "timezone": "America/Sao_Paulo",
+  "weekendStart": "2026-11-06",
+  "weekendEnd": "2026-11-08",
+  "status": "scheduled",
+  "isSprint": false,
+  "raceDateLocal": "2026-11-08",
+  "raceDateKst": "2026-11-09",
+  "kstTime": "02:00",
+  "raceKstIso": "2026-11-08T17:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-11-06 12:30",
+    "kst": "2026-11-07 00:30",
+    "startUtc": "2026-11-06T15:30:00.000Z"
+   },
+   {
+    "t": "Practice 2",
+    "kind": "practice",
+    "local": "2026-11-06 16:00",
+    "kst": "2026-11-07 04:00",
+    "startUtc": "2026-11-06T19:00:00.000Z"
+   },
+   {
+    "t": "Practice 3",
+    "kind": "practice",
+    "local": "2026-11-07 11:30",
+    "kst": "2026-11-07 23:30",
+    "startUtc": "2026-11-07T14:30:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-11-07 15:00",
+    "kst": "2026-11-08 03:00",
+    "startUtc": "2026-11-07T18:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-11-08 14:00",
+    "kst": "2026-11-09 02:00",
+    "startUtc": "2026-11-08T17:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/brazil",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wec-2026-8-6hoursofmonza",
+  "series": "WEC",
+  "round": 8,
+  "name": "6 Hours of Monza",
+  "nameKo": "이몰라 6시간",
+  "shortNameKo": "이몰라 6시간",
+  "circuit": "Autodromo Nazionale Monza",
+  "circuitKo": "오토드로모 엔초 에 디노 페라리",
+  "city": "Monza",
+  "cityKo": "이몰라",
+  "country": "Italy",
+  "countryKo": "이탈리아",
+  "timezone": "Europe/Rome",
+  "weekendStart": "2026-11-06",
+  "weekendEnd": "2026-11-08",
+  "status": "scheduled",
+  "raceDateLocal": "2026-11-08",
+  "raceDateKst": "2026-11-08",
+  "kstTime": "19:00",
+  "raceKstIso": "2026-11-08T10:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Free Practice 1",
+    "kind": "practice",
+    "local": null,
+    "kst": null,
+    "startUtc": null
+   },
+   {
+    "t": "Free Practice 2",
+    "kind": "practice",
+    "local": null,
+    "kst": null,
+    "startUtc": null
+   },
+   {
+    "t": "Free Practice 3",
+    "kind": "practice",
+    "local": null,
+    "kst": null,
+    "startUtc": null
+   },
+   {
+    "t": "Qualifying - LMGT3",
+    "kind": "qualifying",
+    "local": "2026-11-07 14:20",
+    "kst": "2026-11-07 22:20",
+    "startUtc": "2026-11-07T13:20:00.000Z"
+   },
+   {
+    "t": "Hyperpole - LMGT3",
+    "kind": "qualifying",
+    "local": "2026-11-07 14:40",
+    "kst": "2026-11-07 22:40",
+    "startUtc": "2026-11-07T13:40:00.000Z"
+   },
+   {
+    "t": "Qualifying - HYPERCAR",
+    "kind": "qualifying",
+    "local": "2026-11-07 15:00",
+    "kst": "2026-11-07 23:00",
+    "startUtc": "2026-11-07T14:00:00.000Z"
+   },
+   {
+    "t": "Hyperpole - HYPERCAR",
+    "kind": "qualifying",
+    "local": "2026-11-07 15:20",
+    "kst": "2026-11-07 23:20",
+    "startUtc": "2026-11-07T14:20:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-11-08 11:00",
+    "kst": "2026-11-08 19:00",
+    "startUtc": "2026-11-08T10:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "JTBC GOLF&SPORTS2",
+   "FIAWEC.tv"
+  ],
+  "sourceUrl": "https://www.fiawec.com/en/race/6-hours-of-monza-2026",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "wrc-2026-14-rallysaudiarabia",
+  "series": "WRC",
+  "round": 14,
+  "name": "Rally Saudi Arabia",
+  "nameKo": null,
+  "shortNameKo": null,
+  "circuit": "Jeddah",
+  "circuitKo": null,
+  "city": "Jeddah",
+  "cityKo": null,
+  "country": "Saudi Arabia",
+  "countryKo": null,
+  "timezone": "Asia/Riyadh",
+  "weekendStart": "2026-11-11",
+  "weekendEnd": "2026-11-14",
+  "status": "cancelled",
+  "surface": "gravel",
+  "raceDateLocal": null,
+  "raceDateKst": null,
+  "kstTime": null,
+  "raceKstIso": null,
+  "sessions": [],
+  "broadcast": [
+   "WRC+"
+  ],
+  "sourceUrl": "https://www.wrc.com/en/news/fia-and-wrc-promoter-confirm-final-round-of-the-2026-wrc-season",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-21-lasvegasgrandprix",
+  "series": "F1",
+  "round": 21,
+  "name": "Las Vegas Grand Prix",
+  "nameKo": "라스베이거스 그랑프리",
+  "shortNameKo": "라스베이거스 GP",
+  "circuit": "Las Vegas Strip Circuit",
+  "circuitKo": "라스베이거스 스트립 서킷",
+  "city": "Las Vegas, Nevada",
+  "cityKo": "라스베이거스",
+  "country": "United States",
+  "countryKo": "미국",
+  "timezone": "America/Los_Angeles",
+  "weekendStart": "2026-11-19",
+  "weekendEnd": "2026-11-21",
+  "status": "scheduled",
+  "isSprint": false,
+  "raceDateLocal": "2026-11-21",
+  "raceDateKst": "2026-11-22",
+  "kstTime": "13:00",
+  "raceKstIso": "2026-11-22T04:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-11-19 16:30",
+    "kst": "2026-11-20 09:30",
+    "startUtc": "2026-11-20T00:30:00.000Z"
+   },
+   {
+    "t": "Practice 2",
+    "kind": "practice",
+    "local": "2026-11-19 20:00",
+    "kst": "2026-11-20 13:00",
+    "startUtc": "2026-11-20T04:00:00.000Z"
+   },
+   {
+    "t": "Practice 3",
+    "kind": "practice",
+    "local": "2026-11-20 16:30",
+    "kst": "2026-11-21 09:30",
+    "startUtc": "2026-11-21T00:30:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-11-20 20:00",
+    "kst": "2026-11-21 13:00",
+    "startUtc": "2026-11-21T04:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-11-21 20:00",
+    "kst": "2026-11-22 13:00",
+    "startUtc": "2026-11-22T04:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/las-vegas",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-22-qatargrandprix",
+  "series": "F1",
+  "round": 22,
+  "name": "Qatar Grand Prix",
+  "nameKo": "카타르 그랑프리",
+  "shortNameKo": "카타르 GP",
+  "circuit": "Lusail International Circuit",
+  "circuitKo": "루사일 인터내셔널 서킷",
+  "city": "Lusail",
+  "cityKo": "루사일",
+  "country": "Qatar",
+  "countryKo": "카타르",
+  "timezone": "Asia/Qatar",
+  "weekendStart": "2026-11-27",
+  "weekendEnd": "2026-11-29",
+  "status": "scheduled",
+  "isSprint": false,
+  "raceDateLocal": "2026-11-29",
+  "raceDateKst": "2026-11-30",
+  "kstTime": "01:00",
+  "raceKstIso": "2026-11-29T16:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-11-27 16:30",
+    "kst": "2026-11-27 22:30",
+    "startUtc": "2026-11-27T13:30:00.000Z"
+   },
+   {
+    "t": "Practice 2",
+    "kind": "practice",
+    "local": "2026-11-27 20:00",
+    "kst": "2026-11-28 02:00",
+    "startUtc": "2026-11-27T17:00:00.000Z"
+   },
+   {
+    "t": "Practice 3",
+    "kind": "practice",
+    "local": "2026-11-28 17:30",
+    "kst": "2026-11-28 23:30",
+    "startUtc": "2026-11-28T14:30:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-11-28 21:00",
+    "kst": "2026-11-29 03:00",
+    "startUtc": "2026-11-28T18:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-11-29 19:00",
+    "kst": "2026-11-30 01:00",
+    "startUtc": "2026-11-29T16:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/qatar",
+  "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "f1-2026-23-abudhabigrandprix",
+  "series": "F1",
+  "round": 23,
+  "name": "Abu Dhabi Grand Prix",
+  "nameKo": "아부다비 그랑프리",
+  "shortNameKo": "아부다비 GP",
+  "circuit": "Yas Marina Circuit",
+  "circuitKo": "야스 마리나 서킷",
+  "city": "Abu Dhabi",
+  "cityKo": "아부다비",
+  "country": "United Arab Emirates",
+  "countryKo": "아랍에미리트",
+  "timezone": "Asia/Dubai",
+  "weekendStart": "2026-12-04",
+  "weekendEnd": "2026-12-06",
+  "status": "scheduled",
+  "isSprint": false,
+  "raceDateLocal": "2026-12-06",
+  "raceDateKst": "2026-12-06",
+  "kstTime": "22:00",
+  "raceKstIso": "2026-12-06T13:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Practice 1",
+    "kind": "practice",
+    "local": "2026-12-04 13:30",
+    "kst": "2026-12-04 18:30",
+    "startUtc": "2026-12-04T09:30:00.000Z"
+   },
+   {
+    "t": "Practice 2",
+    "kind": "practice",
+    "local": "2026-12-04 17:00",
+    "kst": "2026-12-04 22:00",
+    "startUtc": "2026-12-04T13:00:00.000Z"
+   },
+   {
+    "t": "Practice 3",
+    "kind": "practice",
+    "local": "2026-12-05 14:30",
+    "kst": "2026-12-05 19:30",
+    "startUtc": "2026-12-05T10:30:00.000Z"
+   },
+   {
+    "t": "Qualifying",
+    "kind": "qualifying",
+    "local": "2026-12-05 18:00",
+    "kst": "2026-12-05 23:00",
+    "startUtc": "2026-12-05T14:00:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-12-06 17:00",
+    "kst": "2026-12-06 22:00",
+    "startUtc": "2026-12-06T13:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   "쿠팡플레이",
+   "F1 TV Pro"
+  ],
+  "sourceUrl": "https://www.formula1.com/en/racing/2026/united-arab-emirates",
+  "verifiedAt": "2026-09-20"
+ }
+]

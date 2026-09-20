@@ -113,8 +113,8 @@ export function localDateTimeWithOffsetToUtc(dateKey, time, offset) {
 
 export const SESSION_KINDS = ['race', 'finish', 'qualifying', 'sprint', 'practice', 'other'];
 
-// 표시 라벨(t) → 세션 종류. 한글 키는 data.js / fallback-series.json, 영문 키는
-// formatOpenF1SessionName의 sessionMap에 없어 영문 그대로 들어오는 OpenF1 세션명용.
+// 표시 라벨(t) → 세션 종류. season-2026.json은 kind를 직접 갖고 있어 이 표를 거치지 않고,
+// kind가 없는 세션(OpenF1 응답 등)만 라벨로 추론한다. 한글 키는 과거 데이터 호환용.
 const SESSION_KIND_BY_LABEL = {
   '결승': 'race',
   'Race': 'race',
@@ -159,7 +159,8 @@ export function normalizeSessions(sessions = []) {
     const t = session.t || session.name || session.sessionName || '세션';
     return {
       t,
-      kind: getSessionKind(t),
+      // 데이터가 kind를 이미 갖고 있으면 그대로 쓰고, 없을 때만 라벨로 추론한다.
+      kind: SESSION_KINDS.includes(session.kind) ? session.kind : getSessionKind(t),
       kst: session.kst ?? 'TBA',
       local: session.local ?? 'TBA',
       startUtc: session.startUtc || null,
@@ -188,6 +189,25 @@ export function getVisibleSessions(race, mode = 'all') {
   return primary ? [primary] : [];
 }
 
+// 표시명: `${field}Ko`가 있으면 그것, 없으면 원문(영문). 원문은 `${field}En`에 보존한다.
+// 나중에 i18n(locale 인자)으로 정리할 자리.
+const LOCALIZED_FIELDS = ['name', 'shortName', 'circuit', 'city', 'country'];
+
+export function getLocalizedField(race, field, locale = 'ko') {
+  const ko = race?.[`${field}Ko`];
+  if (locale === 'ko' && typeof ko === 'string' && ko.trim()) return ko;
+  return race?.[field] ?? null;
+}
+
+export function localizeRace(race, locale = 'ko') {
+  const localized = { ...race };
+  for (const field of LOCALIZED_FIELDS) {
+    localized[`${field}En`] = race?.[`${field}En`] ?? race?.[field] ?? null;
+    localized[field] = getLocalizedField(race, field, locale);
+  }
+  return localized;
+}
+
 export function buildFallbackEventWindow(race) {
   const startUtc = localDateTimeToUtc(race.weekendStart, '00:00', race.timezone);
   const endUtc = localDateTimeToUtc(race.weekendEnd, '23:59', race.timezone);
@@ -206,7 +226,8 @@ export function calculateEventStatus(race, now = new Date()) {
   return 'live';
 }
 
-export function buildNormalizedRace(race, source, now = new Date()) {
+export function buildNormalizedRace(input, source, now = new Date()) {
+  const race = localizeRace(input);
   const sessions = normalizeSessions(race.sessions);
   const category = race.category || getCategoryForSeries(race.series);
   const fallbackWindow = buildFallbackEventWindow(race);
@@ -229,12 +250,13 @@ export function buildNormalizedRace(race, source, now = new Date()) {
     eventEndUtc,
     primaryStartUtc,
     source,
-    raceDateKst: race.raceDateKst || getDateKeyInKst(primaryStartUtc),
+    raceDateKst: race.raceDateKst || getDateKeyInKst(new Date(primaryStartUtc)),
     raceDateLocal: race.raceDateLocal || race.weekendEnd,
     raceKstIso: race.raceKstIso || primaryStartUtc,
   };
 
-  normalized.status = calculateEventStatus(normalized, now);
+  // 취소는 데이터가 결정한다. 그 외('scheduled' 등)는 현재 시각 기준으로 upcoming/live/completed를 계산.
+  normalized.status = race.status === 'cancelled' ? 'cancelled' : calculateEventStatus(normalized, now);
   return normalized;
 }
 
