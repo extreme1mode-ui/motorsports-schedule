@@ -5,6 +5,7 @@ import { Home } from './home.jsx';
 import { Schedule, SeriesView, Favorites, RaceDetail } from './screens.jsx';
 import { WebApp, useViewport } from './web.jsx';
 import { Onboarding } from './onboarding.jsx';
+import { Settings } from './settings.jsx';
 
 export default function Root() {
   const prefs = usePreferences();
@@ -14,7 +15,8 @@ export default function Root() {
   return <App {...prefs} />;
 }
 
-function App({ preferences }) {
+function App(prefs) {
+  const { preferences } = prefs;
   const [theme, setTheme] = useState(() => localStorage.getItem('paddock.theme') || 'dark');
   const [view, setView] = useState('home');
   const [categoryFilter, setCategoryFilter] = useState(null);
@@ -77,6 +79,7 @@ function App({ preferences }) {
         {view === 'schedule' && <Schedule theme={theme} races={raceList} onOpenRace={(race) => setOpenRaceId(race.id)} now={now} seasonYear={safeSeasonYear} />}
         {view === 'series' && <SeriesView theme={theme} races={raceList} onOpenRace={(race) => setOpenRaceId(race.id)} initialCategory={categoryFilter || 'F1'} seasonYear={safeSeasonYear} />}
         {view === 'fav' && <Favorites theme={theme} races={raceList} favorites={favorites} onOpenRace={(race) => setOpenRaceId(race.id)} toggleFav={toggleFav} />}
+        {view === 'settings' && <Settings theme={theme} onGo={onGo} {...prefs} />}
       </div>
 
       {/* Overlays and chrome are outside the scroll wrapper so they stay fixed */}

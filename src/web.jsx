@@ -3,6 +3,7 @@ import { TOKENS, Mono, SeriesTag } from './primitives.jsx';
 import { getCurrentNow, useScheduleData, filterRacesByPreferences } from './schedule/index.js';
 import { WebHome } from './web-home.jsx';
 import { WebSchedule, WebSeries, WebFavorites, RaceDrawer } from './web-screens.jsx';
+import { Settings } from './settings.jsx';
 
 export function useViewport() {
   const [w, setW] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1440);
@@ -18,7 +19,8 @@ export function useViewport() {
   return { w, tier, isWeb: w >= 900 };
 }
 
-export function WebApp({ preferences }) {
+export function WebApp(prefs) {
+  const { preferences } = prefs;
   const [theme, setTheme] = useState(() => localStorage.getItem('paddock.theme') || 'dark');
   const [view, setView] = useState('home');
   const [categoryFilter, setCategoryFilter] = useState(null);
@@ -93,6 +95,7 @@ export function WebApp({ preferences }) {
             onOpenRace={onOpenRace} initialCategory={categoryFilter || 'F1'} tier={tier} seasonYear={safeSeasonYear} />}
           {view === 'fav' && <WebFavorites theme={theme} races={raceList}
             favorites={favorites} onOpenRace={onOpenRace} toggleFav={toggleFav} tier={tier} />}
+          {view === 'settings' && <Settings theme={theme} onGo={onGo} {...prefs} />}
         </div>
       </main>
 
@@ -188,6 +191,31 @@ function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
 
       <div style={{ flex: 1 }} />
 
+      <button onClick={() => onGo('settings')} title="설정" style={{
+        display: 'flex', alignItems: 'center',
+        gap: collapsed ? 0 : 12, justifyContent: collapsed ? 'center' : 'flex-start',
+        padding: collapsed ? '12px 0' : '11px 12px', marginBottom: 10,
+        borderRadius: 12, border: 0, cursor: 'pointer',
+        background: view === 'settings'
+          ? (theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)')
+          : 'transparent',
+        color: view === 'settings' ? t.text : t.text2,
+        fontFamily: 'inherit', position: 'relative',
+        transition: 'background 0.12s',
+      }}>
+        {view === 'settings' && <span style={{
+          position: 'absolute', left: collapsed ? 6 : 0, top: 10, bottom: 10, width: 3,
+          background: t.text, borderRadius: 2,
+        }} />}
+        <SideIcon type="gear" stroke={view === 'settings' ? t.text : t.text2} />
+        {!collapsed && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.005em' }}>설정</span>
+            <Mono size={9} color={t.text3} style={{ letterSpacing: '0.14em' }}>SETTINGS</Mono>
+          </div>
+        )}
+      </button>
+
       {!collapsed ? (
         <div style={{
           padding: '12px 12px',
@@ -232,6 +260,7 @@ function SideIcon({ type, stroke }) {
   if (type === 'cal') return <svg {...common}><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>;
   if (type === 'grid') return <svg {...common}><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>;
   if (type === 'heart') return <svg {...common}><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>;
+  if (type === 'gear') return <svg {...common}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>;
   return null;
 }
 

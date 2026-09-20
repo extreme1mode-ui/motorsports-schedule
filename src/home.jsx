@@ -31,7 +31,7 @@ export function Home({ theme, now, races, myRaces, onOpenRace, onGo, favorites, 
 
   return (
     <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 110 }}>
-      <TopBar theme={theme} seasonYear={safeSeasonYear} />
+      <TopBar theme={theme} seasonYear={safeSeasonYear} onGo={onGo} />
       {next
         ? <NextRaceHero race={next} now={now} theme={theme} onOpen={() => onOpenRace(next)} favorites={favorites} toggleFav={toggleFav} />
         : <EmptyHero theme={theme} onGo={onGo} />}
@@ -91,7 +91,7 @@ export function Home({ theme, now, races, myRaces, onOpenRace, onGo, favorites, 
   );
 }
 
-function TopBar({ theme, seasonYear = 2026 }) {
+function TopBar({ theme, seasonYear = 2026, onGo }) {
   const t = TOKENS[theme];
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '64px 18px 4px' }}>
@@ -113,11 +113,19 @@ function TopBar({ theme, seasonYear = 2026 }) {
           <Mono size={9} color={t.text3} style={{ letterSpacing: '0.15em' }}>{seasonYear} · SEASON</Mono>
         </div>
       </div>
-      <div style={{ width: 36, height: 36, borderRadius: 999, background: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={t.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
-          <path d="M10 21a2 2 0 004 0"/>
-        </svg>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <button onClick={() => onGo?.('settings')} aria-label="설정" style={{ width: 36, height: 36, borderRadius: 999, border: 0, padding: 0, background: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={t.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/>
+          </svg>
+        </button>
+        <div style={{ width: 36, height: 36, borderRadius: 999, background: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={t.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M10 21a2 2 0 004 0"/>
+          </svg>
+        </div>
       </div>
     </div>
   );

@@ -1,49 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { TOKENS, Mono, SeriesTag } from './primitives.jsx';
 import { SERIES, SUPPORTED_SERIES } from './schedule/index.js';
+import { MODE_OPTIONS, COUNTRY_OPTIONS, guessCountryFromTimezone, countryValueFromId, readTheme } from './preferences-options.js';
+import { PageTitle, SeriesRow, ChoiceGroup, CountryChoices, TimezoneLabel } from './preferences-ui.jsx';
 
 const TOTAL_STEPS = 3;
-
-// 처음 접하는 사용자를 위한 한 줄 설명. 문구는 추후 직접 다듬을 것.
-const SERIES_DESCRIPTIONS = {
-  F1: '세계 최고 수준의 싱글시터 레이싱. 예선·스프린트·결승으로 한 주말이 구성됩니다.',
-  WEC: '르망 24시를 포함한 세계 내구 레이스 선수권. 한 경기가 6~24시간 이어집니다.',
-  IMSA: '데이토나 24시, 세브링 12시 등 북미에서 열리는 스포츠카 내구 레이스.',
-  WRC: '포장도로·자갈·눈길 등 일반 도로를 달리는 세계 랠리 선수권.',
-  GTWC: '양산차 기반 GT카로 겨루는 스프린트·내구 레이스 시리즈.',
-};
-
-const MODE_OPTIONS = [
-  { id: 'all', label: '전체 세션', sub: '예선·스프린트까지 전부' },
-  { id: 'race', label: '본경기만', sub: '결승만' },
-];
-
-// value가 null이면 "아직 모름"으로 저장된다 (usePreferences.country 규칙).
-const COUNTRY_OPTIONS = [
-  { id: 'KR', value: 'KR', label: '한국' },
-  { id: 'JP', value: 'JP', label: '일본' },
-  { id: 'US', value: 'US', label: '미국' },
-  { id: 'GB', value: 'GB', label: '영국' },
-  { id: 'OTHER', value: null, label: '그 외' },
-];
-
-const TIMEZONE_COUNTRY = {
-  'Asia/Seoul': 'KR',
-  'Asia/Tokyo': 'JP',
-  'Europe/London': 'GB',
-};
-
-function guessCountryFromTimezone(tz) {
-  if (!tz) return 'OTHER';
-  if (TIMEZONE_COUNTRY[tz]) return TIMEZONE_COUNTRY[tz];
-  if (tz.startsWith('America/') || tz === 'Pacific/Honolulu') return 'US';
-  return 'OTHER';
-}
-
-function readTheme() {
-  try { return localStorage.getItem('paddock.theme') || 'dark'; }
-  catch { return 'dark'; }
-}
 
 export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarded }) {
   const [theme] = useState(readTheme);
@@ -78,7 +39,7 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
   // 커밋 순서 고정: 시리즈 → 국가 → onboarded(마지막).
   const finish = () => {
     SUPPORTED_SERIES.forEach((id) => setSeriesMode(id, selected.has(id) ? (modes[id] || 'all') : 'off'));
-    setCountry(COUNTRY_OPTIONS.find((c) => c.id === countryId)?.value ?? null);
+    setCountry(countryValueFromId(countryId));
     setOnboarded(true);
   };
 
@@ -93,13 +54,7 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
     if (e.key === 'Enter' && e.target === stepRef.current) { e.preventDefault(); goNext(); }
   };
 
-  const optionBase = {
-    display: 'flex', alignItems: 'center', gap: 14, width: '100%', minHeight: 56,
-    padding: '14px 16px', borderRadius: 14, textAlign: 'left', cursor: 'pointer',
-    fontFamily: 'inherit', color: t.text, background: t.surface,
-    borderWidth: 1, borderStyle: 'solid', borderColor: t.line,
-  };
-  const optionSelected = { background: t.surface2, borderColor: t.line2 };
+  const countryLabel = COUNTRY_OPTIONS.find((c) => c.id === countryId)?.label ?? '그 외';
 
   return (
     <div style={{
@@ -131,79 +86,40 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
           aria-label={`온보딩 ${step}단계`}>
           {step === 1 && (
             <>
-              <StepTitle t={t} title="어떤 시리즈에 관심이 있나요?" sub="여러 개 고를 수 있어요. 나중에 바꿀 수 있습니다." />
+              <PageTitle theme={theme} title="어떤 시리즈에 관심이 있나요?" sub="여러 개 고를 수 있어요. 나중에 바꿀 수 있습니다." />
               <div style={{ display: 'grid', gap: 8 }} role="group" aria-label="관심 시리즈">
-                {SUPPORTED_SERIES.map((id) => {
-                  const s = SERIES[id];
-                  const on = selected.has(id);
-                  return (
-                    <button key={id} type="button" role="checkbox" aria-checked={on} onClick={() => toggleSeries(id)}
-                      style={{ ...optionBase, ...(on ? optionSelected : null), alignItems: 'flex-start' }}>
-                      <CheckDot on={on} accent={s.accent} t={t} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                          <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.005em' }}>{s.short}</span>
-                          <span style={{ fontSize: 12, color: t.text3 }}>{s.name}</span>
-                        </div>
-                        <div style={{ fontSize: 13, color: t.text2, marginTop: 4, lineHeight: 1.45 }}>{SERIES_DESCRIPTIONS[id]}</div>
-                      </div>
-                    </button>
-                  );
-                })}
+                {SUPPORTED_SERIES.map((id) => (
+                  <SeriesRow key={id} seriesId={id} theme={theme} selected={selected.has(id)} onToggle={() => toggleSeries(id)} />
+                ))}
               </div>
             </>
           )}
 
           {step === 2 && (
             <>
-              <StepTitle t={t} title="어디까지 챙겨 볼까요?" sub="시리즈별로 알림과 일정에 표시할 세션 범위예요." />
+              <PageTitle theme={theme} title="어디까지 챙겨 볼까요?" sub="시리즈별로 알림과 일정에 표시할 세션 범위예요." />
               <div style={{ display: 'grid', gap: 20 }}>
-                {selectedList.map((id) => {
-                  const mode = modes[id] || 'all';
-                  return (
-                    <div key={id}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                        <SeriesTag series={id} theme={theme} />
-                        <span style={{ fontSize: 14, fontWeight: 600, color: t.text2 }}>{SERIES[id].name}</span>
-                      </div>
-                      <div role="radiogroup" aria-label={`${SERIES[id].name} 관심 수준`}
-                        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                        {MODE_OPTIONS.map((opt) => {
-                          const on = mode === opt.id;
-                          return (
-                            <button key={opt.id} type="button" role="radio" aria-checked={on}
-                              onClick={() => setModes((prev) => ({ ...prev, [id]: opt.id }))}
-                              style={{ ...optionBase, ...(on ? optionSelected : null), flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
-                              <span style={{ fontSize: 15, fontWeight: 700, color: on ? t.text : t.text2 }}>{opt.label}</span>
-                              <span style={{ fontSize: 12, color: t.text3 }}>{opt.sub}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
+                {selectedList.map((id) => (
+                  <div key={id}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <SeriesTag series={id} theme={theme} />
+                      <span style={{ fontSize: 14, fontWeight: 600, color: t.text2 }}>{SERIES[id].name}</span>
                     </div>
-                  );
-                })}
+                    <ChoiceGroup theme={theme} options={MODE_OPTIONS} value={modes[id] || 'all'}
+                      onChange={(mode) => setModes((prev) => ({ ...prev, [id]: mode }))}
+                      label={`${SERIES[id].name} 관심 수준`} />
+                  </div>
+                ))}
               </div>
             </>
           )}
 
           {step === 3 && (
             <>
-              <StepTitle t={t}
-                title={`중계 정보를 ${COUNTRY_OPTIONS.find((c) => c.id === countryId)?.label ?? '그 외'} 기준으로 보여드릴게요`}
-                sub={<>감지된 시간대 <Mono size={12} color={t.text3}>{preferences.timezone}</Mono> 를 바탕으로 골랐어요. 다르면 바꿔주세요.</>} />
-              <div style={{ display: 'grid', gap: 8 }} role="radiogroup" aria-label="국가">
-                {COUNTRY_OPTIONS.map((c) => {
-                  const on = countryId === c.id;
-                  return (
-                    <button key={c.id} type="button" role="radio" aria-checked={on} onClick={() => setCountryId(c.id)}
-                      style={{ ...optionBase, ...(on ? optionSelected : null) }}>
-                      <CheckDot on={on} accent={t.text} t={t} />
-                      <span style={{ fontSize: 16, fontWeight: 600 }}>{c.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
+              <PageTitle theme={theme}
+                title={`중계 정보를 ${countryLabel} 기준으로 보여드릴게요`}
+                sub={<>감지된 시간대 <TimezoneLabel theme={theme} timezone={preferences.timezone} /> 를 바탕으로 골랐어요. 다르면 바꿔주세요.</>} />
+              <CountryChoices theme={theme} value={countryId} onChange={setCountryId} />
             </>
           )}
         </div>
@@ -225,32 +141,5 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
         </div>
       </div>
     </div>
-  );
-}
-
-function StepTitle({ t, title, sub }) {
-  return (
-    <div style={{ marginBottom: 20 }}>
-      <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.25, color: t.text }}>{title}</h1>
-      {sub && <p style={{ margin: '8px 0 0', fontSize: 14, color: t.text2, lineHeight: 1.5 }}>{sub}</p>}
-    </div>
-  );
-}
-
-// 선택 표시. 시리즈 색은 선택된 상태의 이 점에만 쓴다.
-function CheckDot({ on, accent, t }) {
-  return (
-    <span aria-hidden style={{
-      flex: '0 0 auto', width: 22, height: 22, borderRadius: '50%', marginTop: 1,
-      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      background: on ? accent : 'transparent', border: `1.5px solid ${on ? accent : t.line2}`,
-      transition: 'background 0.15s, border-color 0.15s',
-    }}>
-      {on && (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={t.bg} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M5 12l5 5L20 7" />
-        </svg>
-      )}
-    </span>
   );
 }
