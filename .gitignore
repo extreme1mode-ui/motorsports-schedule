@@ -25,3 +25,4 @@ dist-ssr
 
 # 로컬 테스트용 디자인 시안 (커밋하지 않음)
 public/design/
+design/
