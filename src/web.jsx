@@ -18,7 +18,9 @@ export function useViewport() {
   return { w, tier, isWeb: w >= 900 };
 }
 
-export function WebApp() {
+// prefs: usePreferences() 반환값. 다음 단계에서 사용 예정.
+// eslint-disable-next-line no-unused-vars
+export function WebApp(prefs) {
   const [theme, setTheme] = useState(() => localStorage.getItem('paddock.theme') || 'dark');
   const [view, setView] = useState('home');
   const [categoryFilter, setCategoryFilter] = useState(null);

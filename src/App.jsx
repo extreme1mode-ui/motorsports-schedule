@@ -1,17 +1,22 @@
 import { useState, useEffect } from 'react';
-import { getCurrentNow, useScheduleData } from './schedule/index.js';
+import { getCurrentNow, useScheduleData, usePreferences } from './schedule/index.js';
 import { TOKENS, Mono } from './primitives.jsx';
 import { Home } from './home.jsx';
 import { Schedule, SeriesView, Favorites, RaceDetail } from './screens.jsx';
 import { WebApp, useViewport } from './web.jsx';
+import { Onboarding } from './onboarding.jsx';
 
 export default function Root() {
+  const prefs = usePreferences();
   const { isWeb } = useViewport();
-  if (isWeb) return <WebApp />;
-  return <App />;
+  if (!prefs.preferences.onboarded) return <Onboarding {...prefs} />;
+  if (isWeb) return <WebApp {...prefs} />;
+  return <App {...prefs} />;
 }
 
-function App() {
+// prefs: usePreferences() 반환값. 다음 단계에서 사용 예정.
+// eslint-disable-next-line no-unused-vars
+function App(prefs) {
   const [theme, setTheme] = useState(() => localStorage.getItem('paddock.theme') || 'dark');
   const [view, setView] = useState('home');
   const [categoryFilter, setCategoryFilter] = useState(null);
