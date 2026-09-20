@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getCurrentNow, useScheduleData, usePreferences } from './schedule/index.js';
+import { getCurrentNow, useScheduleData, usePreferences, filterRacesByPreferences } from './schedule/index.js';
 import { TOKENS, Mono } from './primitives.jsx';
 import { Home } from './home.jsx';
 import { Schedule, SeriesView, Favorites, RaceDetail } from './screens.jsx';
@@ -14,9 +14,7 @@ export default function Root() {
   return <App {...prefs} />;
 }
 
-// prefs: usePreferences() 반환값. 다음 단계에서 사용 예정.
-// eslint-disable-next-line no-unused-vars
-function App(prefs) {
+function App({ preferences }) {
   const [theme, setTheme] = useState(() => localStorage.getItem('paddock.theme') || 'dark');
   const [view, setView] = useState('home');
   const [categoryFilter, setCategoryFilter] = useState(null);
@@ -33,6 +31,7 @@ function App(prefs) {
     ? schedule.seasonYear
     : Number((raceList.find((race) => race?.raceDateKst)?.raceDateKst || '').slice(0, 4)) || 2026;
   const openRace = raceList.find((race) => race.id === openRaceId) || null;
+  const myRaces = filterRacesByPreferences(raceList, preferences, favorites);
 
   useEffect(() => {
     const i = setInterval(() => setNow(getCurrentNow()), 1000);
@@ -74,14 +73,14 @@ function App(prefs) {
         WebkitOverflowScrolling: 'touch',
         paddingBottom: mobileBottomNavSpace,
       }}>
-        {view === 'home' && <Home theme={theme} now={now} races={raceList} onOpenRace={(race) => setOpenRaceId(race.id)} onGo={onGo} favorites={favorites} toggleFav={toggleFav} seasonYear={safeSeasonYear} />}
+        {view === 'home' && <Home theme={theme} now={now} races={raceList} myRaces={myRaces} onOpenRace={(race) => setOpenRaceId(race.id)} onGo={onGo} favorites={favorites} toggleFav={toggleFav} seasonYear={safeSeasonYear} />}
         {view === 'schedule' && <Schedule theme={theme} races={raceList} onOpenRace={(race) => setOpenRaceId(race.id)} now={now} seasonYear={safeSeasonYear} />}
         {view === 'series' && <SeriesView theme={theme} races={raceList} onOpenRace={(race) => setOpenRaceId(race.id)} initialCategory={categoryFilter || 'F1'} seasonYear={safeSeasonYear} />}
         {view === 'fav' && <Favorites theme={theme} races={raceList} favorites={favorites} onOpenRace={(race) => setOpenRaceId(race.id)} toggleFav={toggleFav} />}
       </div>
 
       {/* Overlays and chrome are outside the scroll wrapper so they stay fixed */}
-      {openRace && <RaceDetail race={openRace} theme={theme} onClose={() => setOpenRaceId(null)} favorites={favorites} toggleFav={toggleFav} />}
+      {openRace && <RaceDetail race={openRace} theme={theme} onClose={() => setOpenRaceId(null)} favorites={favorites} toggleFav={toggleFav} preferences={preferences} />}
 
       <TabBar theme={theme} view={view} onGo={setView} favCount={favorites.size} />
 

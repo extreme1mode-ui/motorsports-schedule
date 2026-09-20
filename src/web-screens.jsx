@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { TOKENS, MONTHS_KO, DAYS_KO, kstDate, fmtDate, fmtDateFull, Mono, SeriesTag, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
-import { CATEGORIES, SERIES } from './schedule/index.js';
+import { CATEGORIES, SERIES, getVisibleSessions } from './schedule/index.js';
 import { PageHeader } from './web.jsx';
 import { SectionTitle } from './web-home.jsx';
 
@@ -473,9 +473,10 @@ function FavCard({ race, theme, onOpen, toggleFav }) {
   );
 }
 
-export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier }) {
+export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, preferences }) {
   const t = TOKENS[theme];
   const s = SERIES[race.series];
+  const sessions = getVisibleSessions(race, preferences?.series?.[race.series]);
   const faved = favorites.has(race.id);
   const [notify, setNotify] = useState(false);
   const width = tier === 'ultra' ? 560 : tier === 'desktop' ? 480 : 440;
@@ -576,11 +577,11 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier })
           <section style={{ marginBottom: 24 }}>
             <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.16em', display: 'block', marginBottom: 12 }}>SESSIONS · 한국 시간 (KST)</Mono>
             <div style={{ background: t.surface, border: `1px solid ${t.line}`, borderRadius: 12, overflow: 'hidden' }}>
-              {race.sessions.map((sess, i) => (
+              {sessions.map((sess, i) => (
                 <div key={i} style={{
                   display: 'grid', gridTemplateColumns: '80px 1fr auto', gap: 10, alignItems: 'center',
                   padding: '14px 16px',
-                  borderBottom: i === race.sessions.length - 1 ? 'none' : `1px solid ${t.line}`,
+                  borderBottom: i === sessions.length - 1 ? 'none' : `1px solid ${t.line}`,
                 }}>
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',

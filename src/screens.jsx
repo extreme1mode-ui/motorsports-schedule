@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CATEGORIES, SERIES, getDateKeyInKst } from './schedule/index.js';
+import { CATEGORIES, SERIES, getDateKeyInKst, getVisibleSessions } from './schedule/index.js';
 import { TOKENS, MONTHS_KO, DAYS_KO, kstDate, fmtDate, fmtDateFull, Mono, SeriesTag, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
 
 export function Schedule({ theme, races, onOpenRace, now, seasonYear }) {
@@ -292,9 +292,10 @@ export function Favorites({ theme, races, favorites, onOpenRace, toggleFav }) {
   );
 }
 
-export function RaceDetail({ race, theme, onClose, favorites, toggleFav }) {
+export function RaceDetail({ race, theme, onClose, favorites, toggleFav, preferences }) {
   const t = TOKENS[theme];
   const s = SERIES[race.series];
+  const sessions = getVisibleSessions(race, preferences?.series?.[race.series]);
   const faved = favorites.has(race.id);
   const [notify, setNotify] = useState(false);
 
@@ -352,10 +353,10 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav }) {
       <section style={{ padding: '24px 18px 0' }}>
         <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.14em' }}>SESSIONS · 한국 시간 (KST)</Mono>
         <div style={{ marginTop: 12, background: t.surface, border: `1px solid ${t.line}`, borderRadius: 14, overflow: 'hidden' }}>
-          {race.sessions.map((sess, i) => (
+          {sessions.map((sess, i) => (
             <div key={i} style={{
               display: 'grid', gridTemplateColumns: '80px 1fr auto', gap: 10, alignItems: 'center',
-              padding: '14px 16px', borderBottom: i === race.sessions.length - 1 ? 'none' : `1px solid ${t.line}`,
+              padding: '14px 16px', borderBottom: i === sessions.length - 1 ? 'none' : `1px solid ${t.line}`,
             }}>
               <div style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',

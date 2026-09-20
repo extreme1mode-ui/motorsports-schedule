@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { TOKENS, Mono, SeriesTag } from './primitives.jsx';
-import { getCurrentNow, useScheduleData } from './schedule/index.js';
+import { getCurrentNow, useScheduleData, filterRacesByPreferences } from './schedule/index.js';
 import { WebHome } from './web-home.jsx';
 import { WebSchedule, WebSeries, WebFavorites, RaceDrawer } from './web-screens.jsx';
 
@@ -18,9 +18,7 @@ export function useViewport() {
   return { w, tier, isWeb: w >= 900 };
 }
 
-// prefs: usePreferences() 반환값. 다음 단계에서 사용 예정.
-// eslint-disable-next-line no-unused-vars
-export function WebApp(prefs) {
+export function WebApp({ preferences }) {
   const [theme, setTheme] = useState(() => localStorage.getItem('paddock.theme') || 'dark');
   const [view, setView] = useState('home');
   const [categoryFilter, setCategoryFilter] = useState(null);
@@ -38,6 +36,7 @@ export function WebApp(prefs) {
     ? schedule.seasonYear
     : Number((raceList.find((race) => race?.raceDateKst)?.raceDateKst || '').slice(0, 4)) || 2026;
   const openRace = raceList.find((race) => race.id === openRaceId) || null;
+  const myRaces = filterRacesByPreferences(raceList, preferences, favorites);
 
   useEffect(() => {
     const i = setInterval(() => setNow(getCurrentNow()), 1000);
@@ -86,7 +85,7 @@ export function WebApp(prefs) {
 
       <main style={{ padding: `${gutter + 8}px ${gutter}px ${gutter * 2}px`, maxWidth: '100%', minWidth: 0 }}>
         <div style={{ maxWidth: maxMain, margin: '0 auto' }}>
-          {view === 'home' && <WebHome theme={theme} now={now} races={raceList}
+          {view === 'home' && <WebHome theme={theme} now={now} races={raceList} myRaces={myRaces}
             onOpenRace={onOpenRace} onGo={onGo} favorites={favorites} toggleFav={toggleFav} tier={tier} />}
           {view === 'schedule' && <WebSchedule theme={theme} races={raceList}
             onOpenRace={onOpenRace} now={now} tier={tier} seasonYear={safeSeasonYear} />}
@@ -98,7 +97,7 @@ export function WebApp(prefs) {
       </main>
 
       {openRace && <RaceDrawer race={openRace} theme={theme} onClose={() => setOpenRaceId(null)}
-        favorites={favorites} toggleFav={toggleFav} tier={tier} />}
+        favorites={favorites} toggleFav={toggleFav} tier={tier} preferences={preferences} />}
 
       {tweaks && <WebTweaks theme={theme} setTheme={setTheme} />}
     </div>

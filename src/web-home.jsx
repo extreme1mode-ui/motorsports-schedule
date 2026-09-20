@@ -2,16 +2,19 @@ import { TOKENS, DAYS_KO, fmtDate, fmtDateFull, Mono, SeriesTag, StatusPill, Eve
 import { CATEGORIES, SERIES, getDateKeyInKst } from './schedule/index.js';
 import { PageHeader } from './web.jsx';
 
-export function WebHome({ theme, now, races, onOpenRace, onGo, favorites, toggleFav, tier }) {
+export function WebHome({ theme, now, races, myRaces, onOpenRace, onGo, favorites, toggleFav, tier }) {
   const t = TOKENS[theme];
+  // 관심 시리즈 기준 목록. 히어로·2주 일정 점·다가오는 경기·이번 주에 쓴다. SERIES·SEASON STATS는 전체(races) 기준.
+  const myList = Array.isArray(myRaces) ? myRaces : races;
 
   const upcoming = races.filter(r => r.status === 'upcoming');
-  const next = races.find(r => r.isNextRace) || upcoming[0];
-  const followUps = upcoming.slice(1, tier === 'ultra' ? 9 : 6);
+  const myUpcoming = myList.filter(r => r.status === 'upcoming');
+  const next = myList.find(r => r.isNextRace) || myUpcoming[0];
+  const followUps = myUpcoming.slice(1, tier === 'ultra' ? 9 : 6);
 
   const weekStart = new Date(now); weekStart.setHours(0, 0, 0, 0);
   const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 7);
-  const thisWeek = races.filter(r => {
+  const thisWeek = myList.filter(r => {
     if (r.status === 'cancelled') return false;
     const d = new Date(r.raceDateKst + 'T00:00:00+09:00');
     return d >= weekStart && d < weekEnd;
@@ -20,7 +23,7 @@ export function WebHome({ theme, now, races, onOpenRace, onGo, favorites, toggle
   const weekDays = Array.from({ length: 14 }, (_, i) => {
     const d = new Date(weekStart); d.setDate(d.getDate() + i);
     const key = getDateKeyInKst(d);
-    const dayRaces = races.filter(r => r.raceDateKst === key && r.status !== 'cancelled');
+    const dayRaces = myList.filter(r => r.raceDateKst === key && r.status !== 'cancelled');
     return { d, key, races: dayRaces };
   });
 
@@ -35,8 +38,10 @@ export function WebHome({ theme, now, races, onOpenRace, onGo, favorites, toggle
         subtitle="다가오는 모터스포츠 경기를 한눈에"
         right={<LiveBadge theme={theme} now={now} />} />
 
-      {next && <WebNextRaceHero race={next} now={now} theme={theme} tier={tier}
-        onOpen={() => onOpenRace(next)} favorites={favorites} toggleFav={toggleFav} />}
+      {next
+        ? <WebNextRaceHero race={next} now={now} theme={theme} tier={tier}
+          onOpen={() => onOpenRace(next)} favorites={favorites} toggleFav={toggleFav} />
+        : <WebEmptyHero theme={theme} tier={tier} onGo={onGo} />}
 
       <section style={{ marginTop: 32 }}>
         <SectionTitle theme={theme} kicker="NEXT 14 DAYS" title="2주 일정" />
@@ -125,6 +130,26 @@ export function WebHome({ theme, now, races, onOpenRace, onGo, favorites, toggle
         </div>
       </section>
     </div>
+  );
+}
+
+// 관심 시리즈에 다가오는 경기가 없을 때 히어로 자리를 채운다. 높이는 WebNextRaceHero와 맞춘다.
+function WebEmptyHero({ theme, tier, onGo }) {
+  const t = TOKENS[theme];
+  return (
+    <section style={{
+      minHeight: 302, display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', textAlign: 'center',
+      borderRadius: 20, padding: tier === 'ultra' ? '36px 40px' : '28px 28px',
+      background: t.surface, border: `1px dashed ${t.line2}`,
+    }}>
+      <div style={{ fontSize: 20, fontWeight: 700, color: t.text, letterSpacing: '-0.01em' }}>관심 시리즈에 예정된 경기가 없어요</div>
+      <div style={{ fontSize: 14, color: t.text2, marginTop: 8, lineHeight: 1.5 }}>전체 일정에서 다른 시리즈의 경기를 찾아볼 수 있어요.</div>
+      <button onClick={() => onGo('schedule')} style={{
+        marginTop: 20, height: 44, padding: '0 20px', borderRadius: 12, border: 0, cursor: 'pointer',
+        background: t.text, color: t.bg, fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
+      }}>전체 일정 보기</button>
+    </section>
   );
 }
 

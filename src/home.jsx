@@ -1,20 +1,22 @@
 import { CATEGORIES, SERIES, getDateKeyInKst } from './schedule/index.js';
 import { TOKENS, DAYS_KO, fmtDate, fmtDateFull, Mono, SeriesTag, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
 
-export function Home({ theme, now, races, onOpenRace, onGo, favorites, toggleFav, seasonYear }) {
+export function Home({ theme, now, races, myRaces, onOpenRace, onGo, favorites, toggleFav, seasonYear }) {
   const t = TOKENS[theme];
   const raceList = Array.isArray(races) ? races : [];
+  // 관심 시리즈 기준 목록. 히어로·이번 주·다가오는 경기·주간 점 표시에 쓴다. SERIES 섹션은 전체(raceList) 기준.
+  const myList = Array.isArray(myRaces) ? myRaces : raceList;
   const safeSeasonYear = Number.isFinite(seasonYear)
     ? seasonYear
     : Number((raceList.find((race) => race?.raceDateKst)?.raceDateKst || '').slice(0, 4)) || 2026;
 
-  const upcoming = raceList.filter(r => r.status === 'upcoming');
-  const next = raceList.find(r => r.isNextRace) || upcoming[0];
+  const upcoming = myList.filter(r => r.status === 'upcoming');
+  const next = myList.find(r => r.isNextRace) || upcoming[0];
   const followUps = upcoming.slice(1, 5);
 
   const weekStart = new Date(now); weekStart.setHours(0,0,0,0);
   const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 7);
-  const thisWeek = raceList.filter(r => {
+  const thisWeek = myList.filter(r => {
     if (r.status === 'cancelled') return false;
     const d = new Date(r.raceDateKst + 'T00:00:00+09:00');
     return d >= weekStart && d < weekEnd;
@@ -23,14 +25,16 @@ export function Home({ theme, now, races, onOpenRace, onGo, favorites, toggleFav
   const weekDays = Array.from({length:7}, (_,i) => {
     const d = new Date(weekStart); d.setDate(d.getDate() + i);
     const key = getDateKeyInKst(d);
-    const dayRaces = raceList.filter(r => r.raceDateKst === key && r.status !== 'cancelled');
+    const dayRaces = myList.filter(r => r.raceDateKst === key && r.status !== 'cancelled');
     return { d, key, races: dayRaces };
   });
 
   return (
     <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 110 }}>
       <TopBar theme={theme} seasonYear={safeSeasonYear} />
-      {next && <NextRaceHero race={next} now={now} theme={theme} onOpen={() => onOpenRace(next)} favorites={favorites} toggleFav={toggleFav} />}
+      {next
+        ? <NextRaceHero race={next} now={now} theme={theme} onOpen={() => onOpenRace(next)} favorites={favorites} toggleFav={toggleFav} />
+        : <EmptyHero theme={theme} onGo={onGo} />}
 
       <section style={{ padding: '28px 18px 0' }}>
         <SectionHeader theme={theme} label="THIS WEEK" sub="이번 주 일정" />
@@ -210,6 +214,27 @@ function NextRaceHero({ race, now, theme, onOpen, favorites, toggleFav }) {
             <path d="M9 6l6 6-6 6"/>
           </svg>
         </div>
+      </div>
+    </section>
+  );
+}
+
+// 관심 시리즈에 다가오는 경기가 없을 때 히어로 자리를 채운다. 높이는 NextRaceHero와 맞춘다.
+function EmptyHero({ theme, onGo }) {
+  const t = TOKENS[theme];
+  return (
+    <section style={{ padding: '16px 18px 0' }}>
+      <div style={{
+        minHeight: 305, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        textAlign: 'center', padding: '20px 20px 22px', borderRadius: 20,
+        background: t.surface, border: `1px dashed ${t.line2}`,
+      }}>
+        <div style={{ fontSize: 17, fontWeight: 700, color: t.text, letterSpacing: '-0.01em' }}>관심 시리즈에 예정된 경기가 없어요</div>
+        <div style={{ fontSize: 13, color: t.text2, marginTop: 6, lineHeight: 1.5 }}>전체 일정에서 다른 시리즈의 경기를 찾아볼 수 있어요.</div>
+        <button onClick={() => onGo('schedule')} style={{
+          marginTop: 18, height: 44, padding: '0 18px', borderRadius: 12, border: 0, cursor: 'pointer',
+          background: t.text, color: t.bg, fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
+        }}>전체 일정 보기</button>
       </div>
     </section>
   );
