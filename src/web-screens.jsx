@@ -4,7 +4,8 @@ import { CATEGORIES, SERIES, getVisibleSessions, getSeriesStats, getRaceStartUtc
 import { useFormat } from './use-format.js';
 import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
-import { SR_ONLY } from './a11y.js';
+import { SR_ONLY, DETAIL_SCRIM } from './a11y.js';
+import { photo, photoPos } from './home/photos.js';
 import { useRecommendationShown } from './use-analytics.js';
 
 // 정렬·그룹핑은 시작 시각(UTC)으로. 시청자 달력 파트는 사용자 시간대로.
@@ -558,18 +559,15 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
         background: t.bg, overflow: 'auto', boxShadow: '-20px 0 60px rgba(0,0,0,0.5)',
         borderLeft: `1px solid ${t.line}`,
       }}>
+        {/* 헤더 배경 = 경기 사진 (홈 .hero2와 같은 층 구성: 사진 → 시리즈 틴트 → 스크림 → 콘텐츠). 높이는 padding이 정한다. */}
         <div style={{
           padding: '24px 28px 28px',
           background: theme === 'dark' ? s.dark : s.tint,
-          position: 'relative', overflow: 'hidden',
+          position: 'relative', overflow: 'hidden', isolation: 'isolate',
         }}>
-          <svg style={{ position: 'absolute', top: 0, right: 0, opacity: 0.5, pointerEvents: 'none' }}
-            width="400" height="100%" viewBox="0 0 400 320" preserveAspectRatio="none">
-            {Array.from({ length: 10 }, (_, i) => (
-              <line key={i} x1={i * 45 - 60} y1={0} x2={i * 45 + 140} y2={320}
-                stroke={s.accent} strokeOpacity="0.2" strokeWidth="2" />
-            ))}
-          </svg>
+          <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -3, backgroundImage: `url(${photo(race, 1200)})`, backgroundSize: 'cover', backgroundPosition: photoPos(race) }} />
+          <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -2, background: s.accent, opacity: 0.16 }} />
+          <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -1, background: DETAIL_SCRIM[theme] || DETAIL_SCRIM.dark }} />
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, position: 'relative' }}>
             <button onClick={onClose} style={{

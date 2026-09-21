@@ -4,7 +4,8 @@ import { TOKENS, Mono, SeriesTag, AccessBadge, ExternalIcon, StatusPill, EventBa
 import { useFormat } from './use-format.js';
 import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
-import { SR_ONLY } from './a11y.js';
+import { SR_ONLY, DETAIL_SCRIM } from './a11y.js';
+import { photo, photoPos } from './home/photos.js';
 import { useRecommendationShown } from './use-analytics.js';
 
 // 정렬·그룹핑은 시작 시각(UTC)으로. 시간대와 무관하게 항상 옳다.
@@ -348,12 +349,11 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
 
   return (
     <div style={{ position: 'absolute', inset: 0, background: t.bg, zIndex: 80, overflow: 'auto', paddingBottom: 40 }}>
-      <div style={{ padding: '60px 18px 22px', background: theme === 'dark' ? s.dark : s.tint, position: 'relative', overflow: 'hidden' }}>
-        <svg style={{ position: 'absolute', top: 0, right: 0, opacity: 0.6, pointerEvents: 'none' }} width="260" height="280" viewBox="0 0 260 280">
-          {[0,1,2,3,4,5,6,7,8].map(i => (
-            <line key={i} x1={i*32 - 30} y1={0} x2={i*32 + 100} y2={280} stroke={s.accent} strokeOpacity="0.15" strokeWidth="2" />
-          ))}
-        </svg>
+      {/* 헤더 배경 = 경기 사진 (홈 .hero2와 같은 층 구성: 사진 → 시리즈 틴트 → 스크림 → 콘텐츠). 높이는 padding이 정한다. */}
+      <div style={{ padding: '60px 18px 22px', background: theme === 'dark' ? s.dark : s.tint, position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
+        <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -3, backgroundImage: `url(${photo(race, 800)})`, backgroundSize: 'cover', backgroundPosition: photoPos(race) }} />
+        <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -2, background: s.accent, opacity: 0.16 }} />
+        <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -1, background: DETAIL_SCRIM[theme] || DETAIL_SCRIM.dark }} />
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, position: 'relative' }}>
           <button onClick={onClose} aria-label={tr('aria.back')} style={ICON_HIT}>
