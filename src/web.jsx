@@ -92,7 +92,7 @@ export function WebApp({ theme, setTheme, ...prefs }) {
   return (
     <div style={{
       minHeight: '100vh', background: t.bg, color: t.text,
-      fontFamily: '"Pretendard", -apple-system, "Apple SD Gothic Neo", system-ui, sans-serif',
+      fontFamily: '"Pretendard Variable", "Pretendard", -apple-system, "Apple SD Gothic Neo", system-ui, sans-serif',
       display: 'grid', gridTemplateColumns: `${sidebarWidth}px 1fr`,
       position: 'relative',
     }}>

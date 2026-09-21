@@ -53,9 +53,12 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
     setOnboarded(true);
   };
 
+  // 건너뛰기도 국가는 채운다 — null이면 중계처 필터가 global만 통과시켜 국내 중계처(쿠팡플레이 등)가 사라진다.
+  // 3단계에서 쓰는 시간대 기반 추정값을 그대로 쓰고, 설정에서 언제든 바꿀 수 있다. 커밋 순서는 finish와 같다.
   const skip = () => {
     track('onboarding_skipped', { step });
     SUPPORTED_SERIES.forEach((id) => setSeriesMode(id, 'all'));
+    setCountry(countryValueFromId(countryId));
     setOnboarded(true);
   };
 

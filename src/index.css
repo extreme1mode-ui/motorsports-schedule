@@ -1,15 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap");
 @import "./styles/tokens.css";
 
-@font-face { font-family: "Pretendard"; font-style: normal; font-weight: 100; font-display: swap; src: url("/fonts/Pretendard-Thin.woff") format("woff"); }
-@font-face { font-family: "Pretendard"; font-style: normal; font-weight: 200; font-display: swap; src: url("/fonts/Pretendard-ExtraLight.woff") format("woff"); }
-@font-face { font-family: "Pretendard"; font-style: normal; font-weight: 300; font-display: swap; src: url("/fonts/Pretendard-Light.woff") format("woff"); }
-@font-face { font-family: "Pretendard"; font-style: normal; font-weight: 400; font-display: swap; src: url("/fonts/Pretendard-Regular.woff") format("woff"); }
-@font-face { font-family: "Pretendard"; font-style: normal; font-weight: 500; font-display: swap; src: url("/fonts/Pretendard-Medium.woff") format("woff"); }
-@font-face { font-family: "Pretendard"; font-style: normal; font-weight: 600; font-display: swap; src: url("/fonts/Pretendard-SemiBold.woff") format("woff"); }
-@font-face { font-family: "Pretendard"; font-style: normal; font-weight: 700; font-display: swap; src: url("/fonts/Pretendard-Bold.woff") format("woff"); }
-@font-face { font-family: "Pretendard"; font-style: normal; font-weight: 800; font-display: swap; src: url("/fonts/Pretendard-ExtraBold.woff") format("woff"); }
-@font-face { font-family: "Pretendard"; font-style: normal; font-weight: 900; font-display: swap; src: url("/fonts/Pretendard-Black.woff") format("woff"); }
+/* Pretendard는 index.html에서 공식 dynamic subset(가변, unicode-range 분할)을 <link>로 받는다. 가족명은 "Pretendard Variable". */
 
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -18,7 +10,7 @@ html, body {
   padding: 0;
   min-height: 100%;
   background: var(--bg);
-  font-family: "Pretendard", -apple-system, "Apple SD Gothic Neo", system-ui, sans-serif;
+  font-family: "Pretendard Variable", "Pretendard", -apple-system, "Apple SD Gothic Neo", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overscroll-behavior: none;
