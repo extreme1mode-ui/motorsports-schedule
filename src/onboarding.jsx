@@ -76,7 +76,7 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
             <Mono size={12} color={t.text3}>{step}/{TOTAL_STEPS}</Mono>
           </div>
           <button type="button" onClick={skip} style={{
-            background: 'none', border: 0, padding: '8px 0 8px 12px', color: t.text3,
+            background: 'none', border: 0, minHeight: 44, minWidth: 44, padding: '8px 0 8px 12px', margin: '-6px 0', color: t.text3,
             fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
           }}>건너뛰기</button>
         </div>

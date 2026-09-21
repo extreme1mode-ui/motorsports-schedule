@@ -259,8 +259,8 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
                   <SeriesBadge series={hero.series} /><span className="rnd">{roundText(hero)}</span>
                   {hero.isSprint && <span className="tagpill">스프린트 주말</span>}
                 </div>
-                <h2 className="hero2-title ko">{hero.displayName}</h2>
-                {hero.officialName && hero.officialName !== hero.displayName && <div className="hero2-official">{hero.officialName}</div>}
+                <h2 className="hero2-title ko">{hero.fullName || hero.displayName}</h2>
+                {hero.officialName && hero.officialName !== (hero.fullName || hero.displayName) && <div className="hero2-official">{hero.officialName}</div>}
                 <div className="hero2-place ko">{hero.circuit || ''}{hero.city ? ` · ${hero.city}` : ''}{hero.country ? `, ${hero.country}` : ''}</div>
               </div>
               <div className="hero2-right">

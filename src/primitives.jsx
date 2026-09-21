@@ -1,15 +1,16 @@
 import { SERIES } from './schedule/index.js';
 
+// bg/surface 계열·line·text3는 src/styles/tokens.css와 같은 값 (QA R1). 값을 바꿀 땐 두 곳을 같이.
 export const TOKENS = {
   dark: {
-    bg: '#0A0B0E', surface: '#14161B', surface2: '#1C1F26', surface3: '#242831',
-    line: 'rgba(255,255,255,0.08)', line2: 'rgba(255,255,255,0.14)',
-    text: '#F3F4F6', text2: '#B4B7C0', text3: '#7A7E8A', grid: 'rgba(255,255,255,0.04)',
+    bg: '#07080B', surface: '#0E1015', surface2: '#14171E', surface3: '#1C2029',
+    line: 'rgba(255,255,255,0.07)', line2: 'rgba(255,255,255,0.13)',
+    text: '#F3F4F6', text2: '#B4B7C0', text3: '#7C818E', grid: 'rgba(255,255,255,0.04)',
   },
   light: {
-    bg: '#F2F2F5', surface: '#FFFFFF', surface2: '#F4F4F9', surface3: '#E9EBF2',
-    line: 'rgba(0,0,0,0.08)', line2: 'rgba(0,0,0,0.14)',
-    text: '#17181A', text2: '#5A5B63', text3: '#8F919D', grid: 'rgba(0,0,0,0.04)',
+    bg: '#F2F3F5', surface: '#FFFFFF', surface2: '#F7F8FA', surface3: '#EBEDF1',
+    line: 'rgba(16,18,24,0.09)', line2: 'rgba(16,18,24,0.16)',
+    text: '#17181A', text2: '#5A5B63', text3: '#6A6E78', grid: 'rgba(0,0,0,0.04)',
   },
 };
 

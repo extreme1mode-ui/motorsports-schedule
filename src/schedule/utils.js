@@ -189,6 +189,14 @@ export function formatSessionLabelKo(label, kind) {
       if (/Warm[- ]?up/i.test(t)) return '워밍업';
       return `연습${num(/Practice\s*#?(\d+)/i)}${/Night/i.test(t) ? ' (야간)' : ''}`;
     default:
+      // kind 'other': 테스트·이벤트성 세션. WRC 'SS1 〈스테이지명〉'은 고유명이라 그대로 둔다.
+      if (/^SS\d+\b/i.test(t)) return t;
+      if (/Bronze Test/i.test(t)) return '브론즈 테스트';
+      if (/Pit Walk/i.test(t)) return '피트 워크';
+      if (/Warm[- ]?up/i.test(t)) return '워밍업';
+      if (/Spa Parade/i.test(t)) return '스파 퍼레이드';
+      if (/Test Day/i.test(t)) return `테스트${num(/Session\s+(\d+)/i)}`;
+      if (/Test/i.test(t)) return `공식 테스트${num(/Session\s+(\d+)/i)}`;
       return t;
   }
 }

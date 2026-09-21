@@ -2,6 +2,12 @@ import { useState, useEffect } from 'react';
 import { CATEGORIES, SERIES, getDateKeyInKst, getVisibleSessions, getSeriesStats } from './schedule/index.js';
 import { TOKENS, MONTHS_KO, DAYS_KO, kstDate, fmtDate, fmtDateFull, Mono, SeriesTag, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
 
+// 터치 타깃 44px (QA R4). 버튼 상자는 투명 44px, 보이는 상자는 안쪽 span이 그린다.
+const CHIP_HIT = { minHeight: 44, minWidth: 44, padding: 0, border: 0, background: 'none', cursor: 'pointer', flex: 'none', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' };
+// 알약이 44px보다 좁은 짧은 라벨(F1)은 버튼이 넓어진 만큼 좌우 음수 마진으로 칩 간격(6px)을 유지한다.
+const chipHit = (pillWidth) => (pillWidth < 44 ? { ...CHIP_HIT, margin: `0 ${(pillWidth - 44) / 2}px` } : CHIP_HIT);
+const ICON_HIT = { width: 44, height: 44, margin: -4, padding: 0, border: 0, background: 'none', cursor: 'pointer', display: 'grid', placeItems: 'center' };
+
 export function Schedule({ theme, races, onOpenRace, now, seasonYear }) {
   const t = TOKENS[theme];
   const safeSeasonYear = Number.isFinite(seasonYear) ? seasonYear : 2026;
@@ -22,36 +28,41 @@ export function Schedule({ theme, races, onOpenRace, now, seasonYear }) {
         <div style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>일정</div>
       </div>
 
-      <div style={{ display: 'flex', gap: 6, padding: '0 18px 12px', overflowX: 'auto' }}>
+      {/* 칩 행: 버튼은 44px 히트영역, 보이는 알약(33px)은 안쪽 span. 행 높이가 변하지 않게 컨테이너를 위·아래 5.5px씩 당긴다 (QA R4). */}
+      <div style={{ display: 'flex', gap: 6, padding: '0 18px 6.5px', marginTop: -5.5, overflowX: 'auto' }}>
         {[{ id: 'ALL', short: 'ALL', accent: t.text }, ...Object.values(CATEGORIES)].map((item) => {
           const active = item.id === category;
           return (
-            <button key={item.id} onClick={() => setCategory(item.id)} style={{
-              padding: '8px 12px', borderRadius: 999,
-              border: `1px solid ${active ? (item.id === 'ALL' ? t.text : item.accent) : t.line}`,
-              background: active ? (item.id === 'ALL' ? t.text : item.accent) : 'transparent',
-              color: active ? (item.id === 'ALL' ? t.bg : '#fff') : t.text2,
-              fontSize: 12, fontWeight: 700, cursor: 'pointer', flex: 'none', fontFamily: 'inherit',
-            }}>{item.short}</button>
+            <button key={item.id} onClick={() => setCategory(item.id)} style={chipHit(item.short.length <= 2 ? 38 : 44)}>
+              <span style={{
+                display: 'inline-block', padding: '8px 12px', borderRadius: 999,
+                border: `1px solid ${active ? (item.id === 'ALL' ? t.text : item.accent) : t.line}`,
+                background: active ? (item.id === 'ALL' ? t.text : item.accent) : 'transparent',
+                color: active ? (item.id === 'ALL' ? t.bg : '#fff') : t.text2,
+                fontSize: 12, fontWeight: 700, lineHeight: 'normal',
+              }}>{item.short}</span>
+            </button>
           );
         })}
       </div>
 
-      <div style={{ display: 'flex', gap: 6, padding: '0 18px 10px', overflowX: 'auto' }}>
+      <div style={{ display: 'flex', gap: 6, padding: '0 18px 4.5px', marginTop: -5.5, overflowX: 'auto' }}>
         {Array.from({length:12}, (_, i) => i).map(m => {
           const count = (byMonth[m] || []).length;
           const active = m === month;
           return (
-            <button key={m} onClick={() => setMonth(m)} style={{
-              padding: '8px 12px', borderRadius: 999, border: `1px solid ${active ? t.text : t.line}`,
-              background: active ? t.text : 'transparent', color: active ? t.bg : t.text2,
-              fontSize: 12, fontWeight: 600, cursor: 'pointer', flex: 'none',
-              fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6,
-            }}>
-              {MONTHS_KO[m]}
-              <Mono size={10} color={active ? (theme === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)') : t.text3}>
-                {String(count).padStart(2,'0')}
-              </Mono>
+            <button key={m} onClick={() => setMonth(m)} style={CHIP_HIT}>
+              <span style={{
+                padding: '8px 12px', borderRadius: 999, border: `1px solid ${active ? t.text : t.line}`,
+                background: active ? t.text : 'transparent', color: active ? t.bg : t.text2,
+                fontSize: 12, fontWeight: 600, lineHeight: 'normal',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                {MONTHS_KO[m]}
+                <Mono size={10} color={active ? (theme === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)') : t.text3}>
+                  {String(count).padStart(2,'0')}
+                </Mono>
+              </span>
             </button>
           );
         })}
@@ -180,17 +191,18 @@ export function SeriesView({ theme, races, onOpenRace, initialCategory, seasonYe
         <div style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>카테고리별</div>
       </div>
 
-      <div style={{ display: 'flex', gap: 6, padding: '0 18px 14px', overflowX: 'auto' }}>
+      <div style={{ display: 'flex', gap: 6, padding: '0 18px 8.5px', marginTop: -5.5, overflowX: 'auto' }}>
         {Object.values(CATEGORIES).map(ss => (
-          <button key={ss.id} onClick={() => setSel(ss.id)} style={{
-            padding: '8px 14px', borderRadius: 999,
-            border: `1px solid ${sel === ss.id ? ss.accent : t.line}`,
-            background: sel === ss.id ? ss.accent : 'transparent',
-            color: sel === ss.id ? '#fff' : t.text2,
-            fontSize: 12, fontWeight: 700, cursor: 'pointer', flex: 'none',
-            fontFamily: 'inherit', letterSpacing: '-0.005em',
-          }}>
-            {ss.short}
+          <button key={ss.id} onClick={() => setSel(ss.id)} style={chipHit(ss.short.length <= 2 ? 42 : 44)}>
+            <span style={{
+              display: 'inline-block', padding: '8px 14px', borderRadius: 999,
+              border: `1px solid ${sel === ss.id ? ss.accent : t.line}`,
+              background: sel === ss.id ? ss.accent : 'transparent',
+              color: sel === ss.id ? '#fff' : t.text2,
+              fontSize: 12, fontWeight: 700, letterSpacing: '-0.005em', lineHeight: 'normal',
+            }}>
+              {ss.short}
+            </span>
           </button>
         ))}
       </div>
@@ -310,7 +322,7 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
   const [notify, setNotify] = useState(false);
 
   return (
-    <div style={{ position: 'absolute', inset: 0, background: t.bg, zIndex: 80, display: 'flex', flexDirection: 'column', overflow: 'auto', paddingBottom: 40 }}>
+    <div style={{ position: 'absolute', inset: 0, background: t.bg, zIndex: 80, overflow: 'auto', paddingBottom: 40 }}>
       <div style={{ padding: '60px 18px 22px', background: theme === 'dark' ? s.dark : s.tint, position: 'relative', overflow: 'hidden' }}>
         <svg style={{ position: 'absolute', top: 0, right: 0, opacity: 0.6, pointerEvents: 'none' }} width="260" height="280" viewBox="0 0 260 280">
           {[0,1,2,3,4,5,6,7,8].map(i => (
@@ -319,15 +331,19 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
         </svg>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, position: 'relative' }}>
-          <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 999, background: theme === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)', border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={theme === 'dark' ? '#fff' : '#111'} strokeWidth="2.4" strokeLinecap="round">
-              <path d="M15 18l-6-6 6-6"/>
-            </svg>
+          <button onClick={onClose} aria-label="뒤로" style={ICON_HIT}>
+            <span style={{ width: 36, height: 36, borderRadius: 999, background: theme === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)', display: 'grid', placeItems: 'center' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={theme === 'dark' ? '#fff' : '#111'} strokeWidth="2.4" strokeLinecap="round">
+                <path d="M15 18l-6-6 6-6"/>
+              </svg>
+            </span>
           </button>
-          <button onClick={() => toggleFav(race.id)} style={{ width: 36, height: 36, borderRadius: 999, background: theme === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)', border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill={faved ? s.accent : 'none'} stroke={faved ? s.accent : (theme === 'dark' ? '#fff' : '#111')} strokeWidth="2">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-            </svg>
+          <button onClick={() => toggleFav(race.id)} aria-label="저장" style={ICON_HIT}>
+            <span style={{ width: 36, height: 36, borderRadius: 999, background: theme === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)', display: 'grid', placeItems: 'center' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill={faved ? s.accent : 'none'} stroke={faved ? s.accent : (theme === 'dark' ? '#fff' : '#111')} strokeWidth="2">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+            </span>
           </button>
         </div>
 
@@ -416,8 +432,10 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
             <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>시작 30분 전 알림</div>
             <div style={{ fontSize: 11, color: t.text3, marginTop: 2 }}>결승 세션 전에 푸시 알림</div>
           </div>
-          <button onClick={() => setNotify(!notify)} style={{ width: 46, height: 28, borderRadius: 999, border: 0, cursor: 'pointer', background: notify ? s.accent : (theme === 'dark' ? '#3A3D45' : '#D8DAE3'), position: 'relative', transition: 'background 0.15s' }}>
-            <div style={{ position: 'absolute', top: 2, left: notify ? 20 : 2, width: 24, height: 24, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transition: 'left 0.15s' }} />
+          <button onClick={() => setNotify(!notify)} role="switch" aria-checked={notify} aria-label="시작 30분 전 알림" style={{ width: 46, height: 44, margin: '-8px 0', padding: 0, border: 0, background: 'none', cursor: 'pointer', display: 'grid', placeItems: 'center', flex: 'none' }}>
+            <span style={{ display: 'block', width: 46, height: 28, borderRadius: 999, background: notify ? s.accent : (theme === 'dark' ? '#3A3D45' : '#D8DAE3'), position: 'relative', transition: 'background 0.15s' }}>
+              <span style={{ position: 'absolute', top: 2, left: notify ? 20 : 2, width: 24, height: 24, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transition: 'left 0.15s' }} />
+            </span>
           </button>
         </div>
       </section>

@@ -64,7 +64,7 @@
 .home .rowitem .nm{font-size:13px;font-weight:600;letter-spacing:-.01em;min-width:0;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap}
 .home .rowitem .rd{font-family:var(--mono);font-size:9.5px;color:var(--text3);white-space:nowrap}
-@media(max-width:375px){.home .rowitem .rd{display:none}}
+@media(max-width:430px){.home .rowitem .rd{display:none}}
 .home .rowitem .side{margin-left:auto;display:flex;align-items:center;gap:8px;flex:0 0 auto}
 .home .rowitem.dim{opacity:.42}
 
@@ -84,7 +84,7 @@
 
 /* ---------- HERO v2 : 화면에서 가장 큰 것 = 가장 급한 것 ---------- */
 .home .hero2{position:relative;isolation:isolate;border-radius:18px;overflow:hidden;border:1px solid var(--line2);
-  min-height:380px;display:flex;align-items:flex-end;background:var(--surface)}  /* 프로토타입 452 → 세션 목록 제거 후 QA 목표(~380, 뷰포트 절반 이하)로 */
+  min-height:452px;display:flex;align-items:flex-end;background:var(--surface)}
 @media(min-width:900px){.home .hero2{min-height:430px}}
 .home .hero2-photo{position:absolute;inset:0;z-index:-3;background-size:cover;background-position:center 42%}
 [data-theme="dark"] .home .hero2-photo{filter:saturate(1.08) contrast(1.04) brightness(1.12)}

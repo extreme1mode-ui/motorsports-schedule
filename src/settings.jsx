@@ -18,7 +18,7 @@ export function Settings({ theme, preferences, setSeriesMode, setCountry, setTim
       <div style={{ maxWidth: 560, margin: '0 auto', padding: '20px 20px 32px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 20 }}>
           <button type="button" onClick={() => onGo('home')} aria-label="홈으로" style={{
-            width: 40, height: 40, marginLeft: -10, borderRadius: 10, border: 0, background: 'none',
+            width: 44, height: 44, marginLeft: -12, borderRadius: 10, border: 0, background: 'none',
             color: t.text2, cursor: 'pointer', display: 'grid', placeItems: 'center',
           }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">

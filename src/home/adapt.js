@@ -12,6 +12,7 @@ function firstText(...values) {
 export function adaptRace(race, mode = 'all') {
   const officialName = firstText(race.nameEn, race.name);
   const displayName = firstText(race.shortName, race.shortNameKo, race.nameKo, race.nameEn, race.name);  // shortName = shortNameKo ?? shortName ?? 접두어 뗀 영문
+  const fullName = firstText(race.nameKo, race.nameEn, race.name);                                       // 히어로 제목용 전체 이름
   const { start, end, session } = getReferenceTimes(race);
 
   return {
@@ -20,7 +21,8 @@ export function adaptRace(race, mode = 'all') {
     round: race.round ?? null,
     plannedRound: race.plannedRound ?? null,
 
-    displayName,                                   // 표시용 짧은 이름
+    displayName,                                   // 표시용 짧은 이름 (카드·행·드로어)
+    fullName,                                      // 전체 이름 (히어로 제목에만)
     officialName,                                  // 스폰서 포함 영문 공식명. 히어로 부제·상세에서만
     circuit: firstText(race.circuitKo, race.circuitEn, race.circuit),
     city: firstText(race.cityKo, race.cityEn, race.city),
