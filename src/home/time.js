@@ -1,6 +1,7 @@
 // 홈 전용 시간 판정. 다른 화면이 쓰는 calculateEventStatus / buildNormalizedRace / normalizeSessions는 건드리지 않는다.
 // 스펙: design/HOME-SPEC.md 5장(TimeStat 6상태), 6장(LIVE 판정), 10장(취소 판정).
-import { getPrimarySession, getTimeLabelInKst, getDateKeyInKst } from '../schedule/utils.js';
+import { getPrimarySession, getTimeLabelInKst } from '../schedule/utils.js';
+import { formatShortDate, formatTime, formatShortDateTime, getCountdownParts, getDayDifference } from '../schedule/format.js';
 
 export const TIME_STATES = ['live', 'soon', 'upcoming', 'tba', 'done', 'cancelled'];
 
@@ -8,7 +9,6 @@ const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 const SOON_WINDOW_MS = DAY_MS;
 const KST_OFFSET = '+09:00';
-const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
 
 function toDate(value) {
   if (!value) return null;
@@ -72,50 +72,27 @@ export function resolveTimeState(race, now = new Date()) {
   return { ...base, state: 'done' };
 }
 
-// ---------- KST 포맷터 ----------
-
-function kstParts(date) {
-  const d = toDate(date);
-  if (!d) return null;
-  const [y, m, day] = getDateKeyInKst(d).split('-');
-  const time = getTimeLabelInKst(d.toISOString());
-  // 요일: KST 날짜를 UTC 자정으로 만들어 getUTCDay()로 읽는다 (로컬 TZ 무관).
-  const weekday = DAYS_KO[new Date(Date.UTC(Number(y), Number(m) - 1, Number(day))).getUTCDay()];
-  return { y, m, day, time, weekday };
-}
+// ---------- KST 포맷터 — schedule/format.js의 얇은 래퍼 (ko / Asia/Seoul 고정) ----------
+const KO = { locale: 'ko', timeZone: 'Asia/Seoul' };
 
 // '09.26 (토)'
-export function formatKstDate(date) {
-  const p = kstParts(date);
-  return p ? `${p.m}.${p.day} (${p.weekday})` : '';
-}
+export function formatKstDate(date) { return formatShortDate(date, KO); }
 
 // '20:00'
-export function formatKstTime(date) {
-  const p = kstParts(date);
-  return p ? p.time : '';
-}
+export function formatKstTime(date) { return formatTime(date, KO); }
 
 // '09.26 (토) 20:00'  — upcoming 표기. 'KST' 접미사는 호출부가 붙인다.
-export function formatKstDateTime(date) {
-  const p = kstParts(date);
-  return p ? `${p.m}.${p.day} (${p.weekday}) ${p.time}` : '';
-}
+export function formatKstDateTime(date) { return formatShortDateTime(date, KO); }
 
-// 'HH:MM:SS' — soon 카운트다운. 음수는 00:00:00.
+// 'HH:MM:SS' — soon 카운트다운. 음수는 00:00:00. (숫자는 format.getCountdownParts, 표기만 여기서)
 export function formatCountdown(ms) {
-  const total = Math.max(0, Math.floor((ms || 0) / 1000));
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  return [h, m, s].map((v) => String(v).padStart(2, '0')).join(':');
+  const { hours, minutes, seconds } = getCountdownParts(ms);
+  return [hours, minutes, seconds].map((v) => String(v).padStart(2, '0')).join(':');
 }
 
-// 'D-3' / 'D-DAY' — KST 날짜 차이 기준.
+// 'D-3' / 'D-DAY' — KST 날짜 차이 기준. (숫자는 format.getDayDifference, 표기만 여기서)
 export function formatDday(date, now = new Date()) {
-  const d = toDate(date); const at = toDate(now);
-  if (!d || !at) return '';
-  const key = (x) => { const [y, m, dd] = getDateKeyInKst(x).split('-').map(Number); return Date.UTC(y, m - 1, dd); };
-  const days = Math.round((key(d) - key(at)) / DAY_MS);
+  const days = getDayDifference(date, now, KO);
+  if (days === null) return '';
   return days <= 0 ? 'D-DAY' : `D-${days}`;
 }

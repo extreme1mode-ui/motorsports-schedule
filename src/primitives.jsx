@@ -1,4 +1,5 @@
 import { SERIES } from './schedule/index.js';
+import { getMonthNames, getWeekdayNames, parseDateOrKey, formatMonthDay, formatDateFull } from './schedule/format.js';
 
 // bg/surface 계열·line·text3는 src/styles/tokens.css와 같은 값 (QA R1). 값을 바꿀 땐 두 곳을 같이.
 export const TOKENS = {
@@ -14,20 +15,18 @@ export const TOKENS = {
   },
 };
 
-export const MONTHS_KO = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
-export const DAYS_KO = ['일','월','화','수','목','금','토'];
+// 날짜·시간 포매팅은 schedule/format.js가 단일 지점. 아래는 기존 호출부를 위한 얇은 래퍼 (ko / Asia/Seoul 고정).
+export const MONTHS_KO = getMonthNames('ko');
+export const DAYS_KO = getWeekdayNames('ko');
 
 export function kstDate(iso) {
-  if (!iso) return null;
-  return new Date(iso.length === 10 ? iso + 'T00:00:00+09:00' : iso);
+  return parseDateOrKey(iso, 'Asia/Seoul');
 }
 export function fmtDate(iso) {
-  const d = kstDate(iso); if (!d) return '';
-  return `${d.getMonth()+1}월 ${d.getDate()}일`;
+  return formatMonthDay(kstDate(iso), { locale: 'ko', timeZone: 'Asia/Seoul' });
 }
 export function fmtDateFull(iso) {
-  const d = kstDate(iso); if (!d) return '';
-  return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} (${DAYS_KO[d.getDay()]})`;
+  return formatDateFull(kstDate(iso), { locale: 'ko', timeZone: 'Asia/Seoul' });
 }
 
 export function Mono({ children, size = 14, weight = 500, color, style }) {

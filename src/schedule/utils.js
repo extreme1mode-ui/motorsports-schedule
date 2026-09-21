@@ -1,32 +1,13 @@
 import { KST_TIMEZONE, getCategoryForSeries } from './constants.js';
+import { formatDateKey, formatTime, formatDateTimeKey, zonedDateFromKey } from './format.js';
 
 function pad(value) {
   return String(value).padStart(2, '0');
 }
 
-function toParts(date, timeZone) {
-  const dtf = new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  });
-
-  return Object.fromEntries(
-    dtf
-      .formatToParts(date)
-      .filter((part) => part.type !== 'literal')
-      .map((part) => [part.type, part.value]),
-  );
-}
-
+// 날짜·시간 포매팅은 ./format.js가 단일 지점. 아래는 기존 호출부를 위한 얇은 래퍼.
 export function getDateKeyInTimeZone(date, timeZone) {
-  const parts = toParts(date, timeZone);
-  return `${parts.year}-${parts.month}-${parts.day}`;
+  return formatDateKey(date, { timeZone });
 }
 
 export function getDateKeyInKst(date) {
@@ -34,13 +15,11 @@ export function getDateKeyInKst(date) {
 }
 
 export function getTimeLabelInTimeZone(isoString, timeZone) {
-  const parts = toParts(new Date(isoString), timeZone);
-  return `${parts.hour}:${parts.minute}`;
+  return formatTime(isoString, { timeZone });
 }
 
 export function getDateTimeLabelInTimeZone(isoString, timeZone) {
-  const parts = toParts(new Date(isoString), timeZone);
-  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
+  return formatDateTimeKey(isoString, { timeZone });
 }
 
 export function getTimeLabelInKst(isoString) {
@@ -93,20 +72,7 @@ export function localDateTimeToUtc(dateKey, time, timeZone) {
   // 'UTC+03:00' 같은 오프셋 표기(OpenF1 경로에서 IANA 시간대를 못 찾았을 때)는 Intl이 못 읽으므로 오프셋 계산으로 처리
   const offsetMatch = /^UTC([+-]\d{2}:\d{2})$/.exec(timeZone || '');
   if (offsetMatch) return localDateTimeWithOffsetToUtc(dateKey, /^\d{2}:\d{2}$/.test(time || '') ? time : '00:00', offsetMatch[1]);
-  const [year, month, day] = dateKey.split('-').map(Number);
-  const safeTime = /^\d{2}:\d{2}$/.test(time || '') ? time : '00:00';
-  const [hour, minute] = safeTime.split(':').map(Number);
-  const utcGuess = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
-  const zoneParts = toParts(utcGuess, timeZone);
-  const zoneInstant = Date.UTC(
-    Number(zoneParts.year),
-    Number(zoneParts.month) - 1,
-    Number(zoneParts.day),
-    Number(zoneParts.hour),
-    Number(zoneParts.minute),
-    Number(zoneParts.second),
-  );
-  return new Date(utcGuess.getTime() - (zoneInstant - utcGuess.getTime()));
+  return zonedDateFromKey(dateKey, time, timeZone);
 }
 
 export function localDateTimeWithOffsetToUtc(dateKey, time, offset) {
