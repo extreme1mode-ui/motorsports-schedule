@@ -141,14 +141,14 @@ function BigMonthGrid({ theme, month, races, onOpen, now, seasonYear }) {
               </Mono>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 6, flex: 1, minWidth: 0 }}>
                 {dayRaces.slice(0, 3).map((r, j) => (
-                  <div key={j} title={r.name} style={{
+                  <div key={j} title={fmt.race(r).name} style={{
                     fontSize: 10, fontWeight: 600, letterSpacing: '-0.005em',
                     padding: '3px 5px', borderRadius: 4,
                     background: SERIES[r.series].accent, color: '#fff',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     opacity: r.status === 'cancelled' ? 0.45 : 1,
                     textDecoration: r.status === 'cancelled' ? 'line-through' : 'none',
-                  }}>{r.shortName || r.name}</div>
+                  }}>{fmt.race(r).shortName}</div>
                 ))}
                 {dayRaces.length > 3 && (
                   <Mono size={9} color={isToday ? (theme === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)') : t.text3}
@@ -168,6 +168,7 @@ function BigMonthGrid({ theme, month, races, onOpen, now, seasonYear }) {
 function WebScheduleRow({ race, theme, onOpen }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
+  const L = fmt.race(race);
   const s = SERIES[race.series];
   const start = getRaceStartUtc(race);
   const p = viewerParts(fmt, race);
@@ -201,10 +202,10 @@ function WebScheduleRow({ race, theme, onOpen }) {
           fontSize: 15, fontWeight: 600, color: t.text, letterSpacing: '-0.005em',
           textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap',
           textDecoration: race.status === 'cancelled' ? 'line-through' : 'none',
-        }}>{race.shortName || race.name}</div>
+        }}>{L.shortName}</div>
         <div style={{ fontSize: 12, color: t.text3, marginTop: 2,
           textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap',
-        }}>{race.circuit}{race.country ? ` · ${race.country}` : ''}</div>
+        }}>{L.circuit}{L.country ? ` · ${L.country}` : ''}</div>
       </div>
       <div style={{ textAlign: 'right' }}>
         <Mono size={13} weight={600} color={t.text}>{start ? fmt.time(start) : 'TBA'}</Mono>
@@ -329,6 +330,7 @@ function BigStat({ label, value, dark, accent }) {
 function WebRoundRow({ race, idx, theme, onOpen }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
+  const L = fmt.race(race);
   const s = SERIES[race.series];
   const done = race.status === 'completed';
   const cancelled = race.status === 'cancelled';
@@ -376,10 +378,10 @@ function WebRoundRow({ race, idx, theme, onOpen }) {
         <div style={{
           fontSize: 15, fontWeight: 600, color: t.text, letterSpacing: '-0.005em',
           textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap',
-        }}>{race.shortName || race.name}</div>
+        }}>{L.shortName}</div>
         <div style={{ fontSize: 11, color: t.text3, marginTop: 2,
           textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap',
-        }}>{race.circuit}{race.country ? ` · ${race.country}` : ''}</div>
+        }}>{L.circuit}{L.country ? ` · ${L.country}` : ''}</div>
       </div>
       <div style={{ textAlign: 'right' }}>
         <Mono size={14} weight={600} color={t.text}>{start ? fmt.time(start) : 'TBA'}</Mono>
@@ -442,6 +444,7 @@ export function WebFavorites({ theme, races, myRaces, favorites, onOpenRace, tog
 function WebRecommendRow({ race, theme, onOpen, onSave }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
+  const L = fmt.race(race);
   const s = SERIES[race.series];
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: theme === 'dark' ? '#0E1014' : '#fff', border: `1px solid ${t.line}`, borderRadius: 12 }}>
@@ -451,8 +454,8 @@ function WebRecommendRow({ race, theme, onOpen, onSave }) {
           <SeriesTag series={race.series} theme={theme} variant="ghost" />
           <Mono size={10} color={t.text3}>{getRoundDisplay(race)}</Mono>
         </div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: t.text, letterSpacing: '-0.01em', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{race.shortName || race.name}</div>
-        <div style={{ fontSize: 12, color: t.text3, marginTop: 2 }}>{race.circuit}</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: t.text, letterSpacing: '-0.01em', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{L.shortName}</div>
+        <div style={{ fontSize: 12, color: t.text3, marginTop: 2 }}>{L.circuit}</div>
       </button>
       <div style={{ textAlign: 'right', flex: 'none' }}>
         <Mono size={11} color={t.text3} style={{ display: 'block' }}>{fmt.monthDay(getRaceStartUtc(race) || race.primaryStartUtc)}</Mono>
@@ -466,6 +469,7 @@ function WebRecommendRow({ race, theme, onOpen, onSave }) {
 function FavCard({ race, theme, onOpen, toggleFav }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
+  const L = fmt.race(race);
   const s = SERIES[race.series];
   const start = getRaceStartUtc(race);
   const p = viewerParts(fmt, race);
@@ -494,8 +498,8 @@ function FavCard({ race, theme, onOpen, toggleFav }) {
         fontSize: 18, fontWeight: 700, color: t.text, letterSpacing: '-0.01em',
         lineHeight: 1.2, marginBottom: 4,
         textDecoration: cancelled ? 'line-through' : 'none',
-      }}>{race.name}</div>
-      <div style={{ fontSize: 12, color: t.text3 }}>{race.circuit}{race.country ? ` · ${race.country}` : ''}</div>
+      }}>{L.name}</div>
+      <div style={{ fontSize: 12, color: t.text3 }}>{L.circuit}{L.country ? ` · ${L.country}` : ''}</div>
 
       <div style={{
         marginTop: 16, padding: '12px 0 0', borderTop: `1px solid ${t.line}`,
@@ -520,6 +524,7 @@ function FavCard({ race, theme, onOpen, toggleFav }) {
 export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, preferences }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
+  const L = fmt.race(race);
   const s = SERIES[race.series];
   const sessions = getVisibleSessions(race, preferences?.series?.[race.series]);
   const faved = favorites.has(race.id);
@@ -600,9 +605,9 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
             <div style={{
               fontSize: 32, fontWeight: 800, letterSpacing: '-0.025em', lineHeight: 1.05,
               color: theme === 'dark' ? '#fff' : '#111', marginBottom: 6,
-            }}>{race.name}</div>
+            }}>{L.name}</div>
             <div style={{ fontSize: 13, color: theme === 'dark' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)' }}>
-              {race.circuit}{race.city ? ` · ${race.city}` : ''} · {race.country}
+              {L.circuit}{L.city ? ` · ${L.city}` : ''} · {L.country}
             </div>
           </div>
         </div>
@@ -631,10 +636,10 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     padding: '4px 8px', borderRadius: 4,
-                    background: sess.t === '결승' ? s.accent : (theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'),
-                    color: sess.t === '결승' ? '#fff' : t.text,
+                    background: sess.kind === 'race' ? s.accent : (theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'),
+                    color: sess.kind === 'race' ? '#fff' : t.text,
                     fontSize: 11, fontWeight: 700,
-                  }}>{sess.t}</span>
+                  }}>{fmt.sessionLabel(sess)}</span>
                   <Mono size={13} color={t.text2}>{sess.startUtc ? fmt.dateTimeKey(sess.startUtc) : '시간 TBA'}</Mono>
                   <Mono size={10} color={t.text3} style={{ letterSpacing: '0.02em' }}>{sess.startUtc && sess.local && sess.local !== 'TBA' ? `현지 ${sess.local.slice(11, 16)}` : ''}</Mono>
                 </div>
@@ -656,7 +661,7 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
           <section style={{ marginBottom: 24 }}>
             <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.16em', display: 'block', marginBottom: 12 }}>중계 · BROADCAST</Mono>
             <div style={{ display: 'grid', gap: 8 }}>
-              {(race.broadcast || []).map((b, i) => (
+              {fmt.broadcast(race.broadcast).map((b, i) => (
                 <div key={i} style={{
                   padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`,
                   borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between',

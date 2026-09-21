@@ -4,7 +4,6 @@ import { getRaceKey } from './highlights.js';
 import {
   buildNormalizedRace,
   coerceIsoWithOffset,
-  formatOpenF1SessionName,
   getDateKeyInKst,
   getDateKeyWithOffset,
   getDateTimeLabelInKst,
@@ -124,7 +123,7 @@ function mapOpenF1Meeting(meeting, sessions, match = null) {
     weekendStart: getDateKeyWithOffset(meeting.date_start, offset),
     weekendEnd: getDateKeyWithOffset(meeting.date_end, offset),
     sessions: orderedSessions.map((session) => ({
-      t: formatOpenF1SessionName(session.session_name),
+      t: session.session_name,   // 원문 유지. 표시 라벨은 렌더 시점에 formatSessionLabel
       local: getDateTimeLabelWithOffset(session.date_start, offset),
       kst: getDateTimeLabelInKst(session.date_start),
       startUtc: session.date_start,

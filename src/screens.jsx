@@ -151,6 +151,7 @@ function MonthGrid({ month, races, theme, onOpen, now, seasonYear }) {
 export function ScheduleRow({ race, theme, onOpen }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
+  const L = fmt.race(race);
   const start = getRaceStartUtc(race);
   const p = viewerParts(fmt, race);
   const dow = p?.weekdayName || '';
@@ -177,9 +178,9 @@ export function ScheduleRow({ race, theme, onOpen }) {
           {race.status === 'completed' && <StatusPill status="completed" theme={theme} />}
         </div>
         <div style={{ fontSize: 14, fontWeight: 600, color: t.text, letterSpacing: '-0.005em', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', textDecoration: race.status === 'cancelled' ? 'line-through' : 'none' }}>
-          {race.shortName || race.name}
+          {L.shortName}
         </div>
-        <div style={{ fontSize: 11, color: t.text3, marginTop: 1 }}>{race.circuit} · {race.country}</div>
+        <div style={{ fontSize: 11, color: t.text3, marginTop: 1 }}>{L.circuit} · {L.country}</div>
       </div>
       <Mono size={12} color={t.text2}>{start ? fmt.time(start) : 'TBA'}</Mono>
     </div>
@@ -250,6 +251,7 @@ function Stat({ label, val, dark }) {
 function RoundRow({ race, idx, theme, onOpen }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
+  const L = fmt.race(race);
   const done = race.status === 'completed';
   const cancelled = race.status === 'cancelled';
   const start = getRaceStartUtc(race);
@@ -275,9 +277,9 @@ function RoundRow({ race, idx, theme, onOpen }) {
           <Mono size={10} color={t.text3}>{p ? `${fmt.monthDay(start || race.primaryStartUtc)} · ${p.weekdayName}` : ''}</Mono>
         </div>
         <div style={{ fontSize: 14, fontWeight: 600, color: t.text, letterSpacing: '-0.005em', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-          {race.shortName || race.name}
+          {L.shortName}
         </div>
-        <div style={{ fontSize: 11, color: t.text3, marginTop: 1 }}>{race.circuit}</div>
+        <div style={{ fontSize: 11, color: t.text3, marginTop: 1 }}>{L.circuit}</div>
       </div>
       <div style={{ textAlign: 'right' }}>
         <Mono size={13} weight={600} color={t.text}>{start ? fmt.time(start) : 'TBA'}</Mono>
@@ -329,6 +331,7 @@ export function Favorites({ theme, races, myRaces, favorites, onOpenRace, toggle
 export function RaceDetail({ race, theme, onClose, favorites, toggleFav, preferences }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
+  const L = fmt.race(race);
   const s = SERIES[race.series];
   const sessions = getVisibleSessions(race, preferences?.series?.[race.series]);
   const faved = favorites.has(race.id);
@@ -374,10 +377,10 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
             {race.status === 'completed' && <StatusPill status="completed" theme={theme} />}
           </div>
           <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1, color: theme === 'dark' ? '#fff' : '#111', marginBottom: 6 }}>
-            {race.name}
+            {L.name}
           </div>
           <div style={{ fontSize: 13, color: theme === 'dark' ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.6)' }}>
-            {race.circuit}{race.city ? ` · ${race.city}` : ''} · {race.country}
+            {L.circuit}{L.city ? ` · ${L.city}` : ''} · {L.country}
           </div>
         </div>
       </div>
@@ -400,10 +403,10 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
               <div style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 padding: '4px 8px', borderRadius: 4,
-                background: sess.t === '결승' ? s.accent : (theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'),
-                color: sess.t === '결승' ? '#fff' : t.text,
+                background: sess.kind === 'race' ? s.accent : (theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'),
+                color: sess.kind === 'race' ? '#fff' : t.text,
                 fontSize: 11, fontWeight: 700, letterSpacing: '-0.005em',
-              }}>{sess.t}</div>
+              }}>{fmt.sessionLabel(sess)}</div>
               <Mono size={13} color={t.text2}>{sess.startUtc ? fmt.dateTimeKey(sess.startUtc) : '시간 TBA'}</Mono>
               <Mono size={10} color={t.text3} style={{ letterSpacing: '0.02em' }}>{sess.startUtc && sess.local && sess.local !== 'TBA' ? `현지 ${sess.local.slice(11, 16)}` : ''}</Mono>
             </div>
@@ -425,7 +428,7 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
       <section style={{ padding: '20px 18px 0' }}>
         <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.14em' }}>중계 · BROADCAST</Mono>
         <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
-          {(race.broadcast || []).map((b, i) => (
+          {fmt.broadcast(race.broadcast).map((b, i) => (
             <div key={i} style={{ padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 28, height: 28, borderRadius: 6, background: s.accent, display: 'grid', placeItems: 'center', color: '#fff' }}>
@@ -466,6 +469,7 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
 function RecommendRow({ race, theme, onOpen, onSave }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
+  const L = fmt.race(race);
   const s = SERIES[race.series];
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`, borderRadius: 12 }}>
@@ -475,7 +479,7 @@ function RecommendRow({ race, theme, onOpen, onSave }) {
           <SeriesTag series={race.series} theme={theme} variant="ghost" />
           <Mono size={10} color={t.text3}>{getRoundDisplay(race)}</Mono>
         </div>
-        <div style={{ fontSize: 14, fontWeight: 600, color: t.text, letterSpacing: '-0.005em', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{race.shortName || race.name}</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: t.text, letterSpacing: '-0.005em', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{L.shortName}</div>
         <div style={{ fontSize: 11, color: t.text3, marginTop: 1 }}>{fmt.monthDay(getRaceStartUtc(race) || race.primaryStartUtc)} · {getRaceStartUtc(race) ? fmt.time(getRaceStartUtc(race)) : 'TBA'}</div>
       </button>
       <button onClick={onSave} style={{ flex: 'none', minHeight: 44, padding: '0 12px', borderRadius: 10, border: `1px solid ${t.line2}`, background: 'transparent', color: t.text, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>저장하기</button>

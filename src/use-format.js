@@ -1,6 +1,7 @@
-// useFormat(): 사용자 시간대·언어 기준 포매터 묶음 (FormatProvider 값에서 파생).
+// useFormat(): 사용자 시간대·언어·국가 기준 포매터 묶음 (FormatProvider 값에서 파생).
 import { useContext, useMemo } from 'react';
 import { FormatContext } from './format-context.jsx';
+import { getRaceLabels, formatSessionLabel, getVisibleBroadcast } from './schedule/utils.js';
 import {
   getParts, formatDateKey, formatDateTimeKey, formatTime, formatShortDate, formatShortDateTime,
   formatMonthDay, formatDateFull, getDayDifference, getMonthNames, getWeekdayNames, getTimeZoneLabel,
@@ -9,11 +10,15 @@ import {
 
 // 시청자 기준(사용자 시간대) 포매터 묶음. 이벤트 고유 날짜(plain*)는 시간대 변환 없이 그대로.
 export function useFormat() {
-  const { locale, timeZone } = useContext(FormatContext);
+  const { locale, timeZone, country } = useContext(FormatContext);
   return useMemo(() => {
     const o = { locale, timeZone };
     return {
-      locale, timeZone,
+      locale, timeZone, country,
+      // 언어별 표시명 / 세션 라벨 / 국가별 중계처 — 전부 렌더 시점에
+      race: (r) => getRaceLabels(r, locale),                              // { name, fullName, shortName, circuit, city, country }
+      sessionLabel: (s) => formatSessionLabel(s?.tEn ?? s?.t, s?.kind, locale),
+      broadcast: (list) => getVisibleBroadcast(list, country),         // [{ name, region }]
       zoneLabel: getTimeZoneLabel(timeZone, locale),
       monthNames: getMonthNames(locale),
       weekdayNames: getWeekdayNames(locale),
@@ -32,5 +37,5 @@ export function useFormat() {
       plainShortDate: (key) => formatPlainShortDate(key, o),
       plainMonthDay: (key) => formatPlainMonthDayNumeric(key, o),
     };
-  }, [locale, timeZone]);
+  }, [locale, timeZone, country]);
 }

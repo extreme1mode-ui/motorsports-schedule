@@ -1,7 +1,6 @@
 // useScheduleData()의 race → 홈이 쓰는 형태. 스펙: design/HOME-SPEC.md 10장.
-// 주의: buildNormalizedRace가 localizeRace를 거치므로 race.name/circuit/city/country는 이미 한글(있을 때)이고
-// 영문 원문은 nameEn/circuitEn/cityEn/countryEn에 있다. 그래서 officialName은 nameEn에서 읽는다.
-import { getVisibleSessions } from '../schedule/utils.js';
+// 정규화된 race는 원문(영문) 필드와 *Ko 필드를 그대로 들고 있다. 표시명은 여기서 locale로 고른다(로드 시점에 굳히지 않는다).
+import { getVisibleSessions, getRaceLabels } from '../schedule/utils.js';
 import { getReferenceTimes, isCancelled } from './time.js';
 
 function firstText(...values) {
@@ -9,10 +8,11 @@ function firstText(...values) {
   return null;
 }
 
-export function adaptRace(race, mode = 'all') {
+export function adaptRace(race, mode = 'all', locale = 'ko') {
+  const labels = getRaceLabels(race, locale);   // ko: shortNameKo → nameKo → 영문 / en: shortName → 영문 → nameKo
   const officialName = firstText(race.nameEn, race.name);
-  const displayName = firstText(race.shortName, race.shortNameKo, race.nameKo, race.nameEn, race.name);  // shortName = shortNameKo ?? shortName ?? 접두어 뗀 영문
-  const fullName = firstText(race.nameKo, race.nameEn, race.name);                                       // 히어로 제목용 전체 이름
+  const displayName = labels.shortName;         // 표시용 짧은 이름 (카드·행·드로어)
+  const fullName = labels.fullName;             // 히어로 제목용 전체 이름
   const { start, end, session } = getReferenceTimes(race);
 
   return {
@@ -24,9 +24,9 @@ export function adaptRace(race, mode = 'all') {
     displayName,                                   // 표시용 짧은 이름 (카드·행·드로어)
     fullName,                                      // 전체 이름 (히어로 제목에만)
     officialName,                                  // 스폰서 포함 영문 공식명. 히어로 부제·상세에서만
-    circuit: firstText(race.circuitKo, race.circuitEn, race.circuit),
-    city: firstText(race.cityKo, race.cityEn, race.city),
-    country: firstText(race.countryKo, race.countryEn, race.country),
+    circuit: labels.circuit,
+    city: labels.city,
+    country: labels.country,
 
     // 사진 매칭 키용 — 한글·영문 둘 다 보존. photos.js가 합쳐 쓴다.
     name: officialName,
@@ -51,7 +51,7 @@ export function adaptRace(race, mode = 'all') {
     allSessions: Array.isArray(race.sessions) ? race.sessions : [],
     mode,
 
-    broadcast: Array.isArray(race.broadcast) ? race.broadcast.map((b) => (typeof b === 'string' ? b : b.name)).filter(Boolean) : [],  // 홈은 이름만 쓴다
+    broadcast: Array.isArray(race.broadcast) ? race.broadcast.filter((b) => b && b.name) : [],   // { name, region } 그대로. 국가 필터는 화면(useFormat().broadcast)에서
     label: race.cup ?? null,                       // GTWC의 Sprint/Endurance Cup
     isSprint: Boolean(race.isSprint),
     cancelled: isCancelled(race),
@@ -64,6 +64,6 @@ export function adaptRace(race, mode = 'all') {
 }
 
 // preferences.series[series]를 mode로 넘긴다. preferences가 없으면 'all'.
-export function adaptRaces(races = [], preferences = null) {
-  return races.map((race) => adaptRace(race, preferences?.series?.[race.series] ?? 'all'));
+export function adaptRaces(races = [], preferences = null, locale = 'ko') {
+  return races.map((race) => adaptRace(race, preferences?.series?.[race.series] ?? 'all', locale));
 }

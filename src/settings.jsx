@@ -1,11 +1,18 @@
 import { TOKENS } from './primitives.jsx';
 import { SUPPORTED_SERIES, detectTimezone } from './schedule/index.js';
 import { MODE_OPTIONS_WITH_OFF, countryIdFromValue, countryValueFromId } from './preferences-options.js';
+import { useT } from './i18n/index.js';
+
+const LOCALE_OPTIONS = [
+  { id: 'ko', label: '한국어' },
+  { id: 'en', label: 'English' },
+];
 import { PageTitle, SectionTitle, SeriesRow, ChoiceGroup, CountryChoices, TimezoneLabel } from './preferences-ui.jsx';
 
 // 온보딩에서 정한 값을 다시 바꾸는 화면. 변경은 즉시 저장된다(별도 저장 버튼 없음).
-export function Settings({ theme, preferences, setSeriesMode, setCountry, setTimezone, setOnboarded, onGo }) {
+export function Settings({ theme, preferences, setSeriesMode, setCountry, setTimezone, setLocale, setOnboarded, onGo }) {
   const t = TOKENS[theme];
+  const tr = useT();
 
   const secondaryButton = {
     height: 44, padding: '0 16px', borderRadius: 12, cursor: 'pointer',
@@ -25,7 +32,7 @@ export function Settings({ theme, preferences, setSeriesMode, setCountry, setTim
               <path d="M15 6l-6 6 6 6" />
             </svg>
           </button>
-          <PageTitle theme={theme} title="설정" />
+          <PageTitle theme={theme} title={tr('settings.title')} />
         </div>
 
         <section style={{ marginBottom: 32 }}>
@@ -47,6 +54,12 @@ export function Settings({ theme, preferences, setSeriesMode, setCountry, setTim
           <SectionTitle theme={theme} title="국가" sub="중계 정보를 이 국가 기준으로 보여드려요." />
           <CountryChoices theme={theme} value={countryIdFromValue(preferences.country)}
             onChange={(id) => setCountry(countryValueFromId(id))} />
+        </section>
+
+        <section style={{ marginBottom: 32 }}>
+          <SectionTitle theme={theme} title="언어" sub="경기명과 화면 문구에 적용돼요." />
+          <ChoiceGroup theme={theme} options={LOCALE_OPTIONS} value={preferences.locale || 'ko'} showSub={false}
+            onChange={(id) => setLocale(id)} label="언어" />
         </section>
 
         <section style={{ marginBottom: 32 }}>

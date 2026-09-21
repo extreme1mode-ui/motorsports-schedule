@@ -8,6 +8,7 @@ import { getRaceWeekKey, groupRacesByWeekend } from './weeks.js';
 import { photo, photoPos, photoCredit } from './photos.js';
 import { SERIES_DESCRIPTIONS } from '../preferences-options.js';
 import { useFormat } from '../use-format.js';
+import { useT } from '../i18n/index.js';
 import { zonedDateFromKey } from '../schedule/format.js';
 
 const ORDER = ['F1', 'WEC', 'IMSA', 'GTWC', 'WRC'];
@@ -145,7 +146,7 @@ function Card2({ ev, ts, onOpen, small }) {
       {!small && (
         <span className="side">
           <TimeStat ts={ts} />
-          <span style={{ fontSize: 10.5, color: 'var(--text3)' }}>{ev.broadcast[0] || ''}</span>
+          <span style={{ fontSize: 10.5, color: 'var(--text3)' }}>{fmt.broadcast(ev.broadcast)[0]?.name || ''}</span>
         </span>
       )}
     </button>
@@ -174,11 +175,12 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
   const toggleAlert = (id) => setAlerts((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
 
   const fmt = useFormat();
+  const t = useT();
   const at = useMemo(() => (now instanceof Date ? now : new Date(now)), [now]);
 
   // 관심 경기(myRaces)와 전체(races)를 홈 형태로. 시간 상태는 한 번만 계산해 id로 찾는다.
-  const mine = useMemo(() => adaptRaces(myRaces || [], preferences), [myRaces, preferences]);
-  const all = useMemo(() => adaptRaces(races || [], preferences), [races, preferences]);
+  const mine = useMemo(() => adaptRaces(myRaces || [], preferences, fmt.locale), [myRaces, preferences, fmt.locale]);
+  const all = useMemo(() => adaptRaces(races || [], preferences, fmt.locale), [races, preferences, fmt.locale]);
   const stateOf = useMemo(() => {
     const map = new Map();
     for (const ev of all) map.set(ev.id, resolveTimeState(ev.race, at, { timeZone: fmt.timeZone }));
@@ -234,8 +236,8 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
     <div className="home">
       <div className="pagehead">
         <div>
-          <h1 className="ko">내 레이싱 위켄드</h1>
-          <div className="sub ko">{watching}개 시리즈를 보고 있습니다</div>
+          <h1 className="ko">{t('home.title')}</h1>
+          <div className="sub ko">{t('home.watching', { count: watching })}</div>
         </div>
         <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
           <span className="clock m">{fmt.zoneLabel} <Clock /></span>
@@ -250,7 +252,7 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
         const hts = ts(hero);
         const reason = heroReason(hero, hts, kind, at, fmt);
         const clock = heroClock(hero, hts, kind, fmt);
-        const chans = hero.broadcast;
+        const chans = fmt.broadcast(hero.broadcast).map((b) => b.name);
         const urgent = kind === 'live' || kind === 'soon';
         const faved = favorites?.has(hero.id);
         const alertOn = alerts.has(hero.id);
@@ -308,7 +310,7 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
 
       {later.length > 0 && (
         <>
-          <div className="sechead"><h2 className="ko">이후 일정</h2><button type="button" className="lnk" onClick={() => onGo('schedule')}>전체 일정 →</button></div>
+          <div className="sechead"><h2 className="ko">이후 일정</h2><button type="button" className="lnk" onClick={() => onGo('schedule')}>{t('schedule.viewAll')}</button></div>
           <div className="rows">
             {later.map((ev) => <Row key={ev.id} ev={ev} ts={ts(ev)} dim={interest(ev) === 0} onOpen={onOpenRace} />)}
           </div>

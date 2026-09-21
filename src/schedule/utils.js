@@ -123,14 +123,14 @@ export function getSessionKind(label) {
   return 'other';
 }
 
-// 세션 표시 라벨을 kind 기준으로 한글화한다. 원문은 tEn에 남긴다.
-// 이미 한글이면(OpenF1 경로의 formatOpenF1SessionName 결과 등) 그대로 둔다. kind 'other'는 원문 유지.
+// 세션 표시 라벨. 데이터의 원문(tEn)은 영문이라 'en'은 그대로 돌려주고, 'ko'는 kind 기준으로 한글화한다.
+// 렌더 시점에 호출한다(로드 시점에 굳히지 않는다). 이미 한글이면 그대로. kind 'other'는 원문 유지.
 const HANGUL = /[가-힣]/;
 const SESSION_CLASS = /-\s*((?:HYPERCAR|LMGT3|LMP2|LMP3|GTP|GTD)(?:\s*&\s*(?:HYPERCAR|LMGT3|LMP2|LMP3|GTP|GTD))*)/i;
 
-export function formatSessionLabelKo(label, kind) {
+export function formatSessionLabel(label, kind, locale = 'ko') {
   const t = typeof label === 'string' ? label.trim() : '';
-  if (!t || HANGUL.test(t)) return t;
+  if (!t || locale !== 'ko' || HANGUL.test(t)) return t;
   const num = (re) => { const m = t.match(re); return m ? ` ${m[1]}` : ''; };
   const cls = (() => { const m = t.match(SESSION_CLASS); return m ? ` · ${m[1].replace(/\s*&\s*/g, ' & ').toUpperCase()}` : ''; })();
   const group = (() => { const m = t.match(/Group\s+([A-Z])/i); return m ? ` ${m[1].toUpperCase()}조` : ''; })();
@@ -194,12 +194,12 @@ export function normalizeBroadcast(list = []) {
 
 export function normalizeSessions(sessions = []) {
   return sessions.map((session) => {
-    const tEn = session.t || session.name || session.sessionName || '세션';
+    // 이미 정규화된 세션(tEn만 있음)이 다시 들어와도 같은 결과가 나오게 tEn을 먼저 본다 (loadScheduleData가 병합 후 재정규화한다)
+    const tEn = session.tEn || session.t || session.name || session.sessionName || '세션';
     // 데이터가 kind를 이미 갖고 있으면 그대로 쓰고, 없을 때만 라벨로 추론한다.
     const kind = SESSION_KINDS.includes(session.kind) ? session.kind : getSessionKind(tEn);
     return {
-      t: formatSessionLabelKo(tEn, kind),
-      tEn,
+      tEn,   // 표시 라벨은 렌더 시점에 formatSessionLabel(tEn, kind, locale)로
       kind,
       kst: session.kst ?? 'TBA',
       local: session.local ?? 'TBA',
@@ -235,25 +235,37 @@ export function getVisibleSessions(race, mode = 'all') {
   return primary ? [primary] : [];
 }
 
-// 표시명: `${field}Ko`가 있으면 그것, 없으면 원문(영문). 원문은 `${field}En`에 보존한다.
-// 나중에 i18n(locale 인자)으로 정리할 자리.
-const LOCALIZED_FIELDS = ['name', 'shortName', 'circuit', 'city', 'country'];
+// 표시명은 렌더 시점에 locale로 고른다. 정규화된 race는 원문 필드(name/circuit/city/country = 영문)와 *Ko를 그대로 들고 있다.
+const text = (v) => (typeof v === 'string' && v.trim() ? v : null);
 
 export function getLocalizedField(race, field, locale = 'ko') {
-  const ko = race?.[`${field}Ko`];
-  if (locale === 'ko' && typeof ko === 'string' && ko.trim()) return ko;
-  return race?.[field] ?? null;
+  const ko = text(race?.[`${field}Ko`]);
+  const en = text(race?.[`${field}En`]) ?? text(race?.[field]);
+  return (locale === 'ko' ? (ko ?? en) : (en ?? ko)) ?? null;
 }
 
-export function localizeRace(race, locale = 'ko') {
-  const localized = { ...race };
-  for (const field of LOCALIZED_FIELDS) {
-    localized[`${field}En`] = race?.[`${field}En`] ?? race?.[field] ?? null;
-    localized[field] = getLocalizedField(race, field, locale);
-  }
-  // 리스트용 짧은 이름: shortNameKo ?? shortName ?? (시리즈 접두어를 뗀 영문명)
-  localized.shortName = localized.shortName || stripSeriesPrefix(localized.nameEn ?? localized.name, race?.series);
-  return localized;
+// { name, fullName, shortName, circuit, city, country } — ko: *Ko → 영문, en: 영문 → *Ko
+export function getRaceLabels(race, locale = 'ko') {
+  const nameKo = text(race?.nameKo); const nameEn = text(race?.nameEn) ?? text(race?.name);
+  const shortKo = text(race?.shortNameKo);
+  const shortEn = text(race?.shortName) ?? stripSeriesPrefix(nameEn, race?.series);   // OpenF1의 'X GP' 또는 시리즈 접두어 뗀 영문
+  const fullName = (locale === 'ko' ? (nameKo ?? nameEn) : (nameEn ?? nameKo)) ?? null;
+  const shortName = (locale === 'ko' ? (shortKo ?? nameKo ?? shortEn ?? nameEn) : (shortEn ?? nameEn ?? shortKo ?? nameKo)) ?? null;
+  return {
+    name: fullName,
+    fullName,
+    shortName,
+    circuit: getLocalizedField(race, 'circuit', locale),
+    city: getLocalizedField(race, 'city', locale),
+    country: getLocalizedField(race, 'country', locale),
+  };
+}
+
+// 중계처 노출: region이 'global'이거나 사용자 국가와 같은 것. 비면(방어) 전체를 그대로 보여준다.
+export function getVisibleBroadcast(list = [], country = null) {
+  if (!Array.isArray(list)) return [];
+  const visible = list.filter((b) => b && (b.region === 'global' || (country && b.region === country)));
+  return visible.length ? visible : list;
 }
 
 export function buildFallbackEventWindow(race) {
@@ -274,8 +286,7 @@ export function calculateEventStatus(race, now = new Date()) {
   return 'live';
 }
 
-export function buildNormalizedRace(input, source, now = new Date()) {
-  const race = localizeRace(input);
+export function buildNormalizedRace(race, source, now = new Date()) {
   const sessions = normalizeSessions(race.sessions);
   const category = race.category || getCategoryForSeries(race.series);
   const fallbackWindow = buildFallbackEventWindow(race);

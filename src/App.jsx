@@ -18,15 +18,16 @@ export default function Root() {
     localStorage.setItem('paddock.theme', theme);
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+  useEffect(() => { document.documentElement.lang = prefs.preferences.locale || 'ko'; }, [prefs.preferences.locale]);
 
-  // 언어는 이번 단계에서 'ko' 고정. 시간대는 preferences.timezone을 그대로 흘려보낸다.
+  // 언어·시간대·국가는 preferences에서. 바꾸면 컨텍스트가 갱신돼 즉시 반영된다.
   const screen = !prefs.preferences.onboarded
     ? <Onboarding {...prefs} />
     : isWeb
       ? <WebApp theme={theme} setTheme={setTheme} {...prefs} />
       : <App theme={theme} setTheme={setTheme} {...prefs} />;
   return (
-    <FormatProvider locale="ko" timeZone={prefs.preferences.timezone}>
+    <FormatProvider locale={prefs.preferences.locale} timeZone={prefs.preferences.timezone} country={prefs.preferences.country}>
       {screen}
     </FormatProvider>
   );
