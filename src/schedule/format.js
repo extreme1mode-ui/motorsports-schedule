@@ -63,6 +63,7 @@ export function getParts(value, { locale = DEFAULT_LOCALE, timeZone = DEFAULT_TI
     year: p.year, month: p.month, day: p.day, hour: p.hour, minute: p.minute, second: p.second, weekday,
     weekdayName: dtf(locale, { weekday: 'short', timeZone }).format(d),
     monthName: dtf(locale, { month: 'long', timeZone }).format(d),
+    monthShort: dtf(locale, { month: 'short', timeZone }).format(d),
   };
 }
 
@@ -79,10 +80,13 @@ export function formatMonthDay(value, { locale = DEFAULT_LOCALE, timeZone = DEFA
 }
 // '2026.09.26 (토)'
 export function formatDateFull(value, opts) { const p = getParts(value, opts); return p ? `${p.year}.${p.month}.${p.day} (${p.weekdayName})` : ''; }
-// '09.26 (토)'
-export function formatShortDate(value, opts) { const p = getParts(value, opts); return p ? `${p.month}.${p.day} (${p.weekdayName})` : ''; }
-// '09.26 (토) 20:00'
-export function formatShortDateTime(value, opts) { const p = getParts(value, opts); return p ? `${p.month}.${p.day} (${p.weekdayName}) ${p.hour}:${p.minute}` : ''; }
+// 짧은 월·일: ko '09.26' / 그 외 'Sep 26'. 숫자 월.일 표기는 한국식이라 영어에서는 월 이름을 쓴다.
+function monthDayOf(p, locale) { return locale === 'ko' ? `${p.month}.${p.day}` : `${p.monthShort} ${Number(p.day)}`; }
+function shortDateOf(p, locale) { return `${monthDayOf(p, locale)} (${p.weekdayName})`; }
+export function formatMonthDayShort(value, opts = {}) { const p = getParts(value, opts); return p ? monthDayOf(p, opts.locale ?? DEFAULT_LOCALE) : ''; }
+export function formatShortDate(value, opts = {}) { const p = getParts(value, opts); return p ? shortDateOf(p, opts.locale ?? DEFAULT_LOCALE) : ''; }
+// '09.26 (토) 20:00' / 'Sep 26 (Sat) 20:00'
+export function formatShortDateTime(value, opts = {}) { const p = getParts(value, opts); return p ? `${shortDateOf(p, opts.locale ?? DEFAULT_LOCALE)} ${p.hour}:${p.minute}` : ''; }
 
 // ---------- 숫자만 돌려주는 계산 (단위 표기는 호출부) ----------
 // 카운트다운: { hours, minutes, seconds }. 음수는 0.
@@ -106,10 +110,10 @@ export function getPlainDateParts(dateKey, { locale = DEFAULT_LOCALE } = {}) {
 }
 // '2026.06.13 (토)'
 export function formatPlainDateFull(dateKey, opts) { const p = getPlainDateParts(dateKey, opts); return p ? `${p.year}.${p.month}.${p.day} (${p.weekdayName})` : ''; }
-// '06.13 (토)'
-export function formatPlainShortDate(dateKey, opts) { const p = getPlainDateParts(dateKey, opts); return p ? `${p.month}.${p.day} (${p.weekdayName})` : ''; }
-// '06.13'
-export function formatPlainMonthDayNumeric(dateKey, opts) { const p = getPlainDateParts(dateKey, opts); return p ? `${p.month}.${p.day}` : ''; }
+// '06.13 (토)' / 'Jun 13 (Sat)'
+export function formatPlainShortDate(dateKey, opts = {}) { const p = getPlainDateParts(dateKey, opts); return p ? shortDateOf(p, opts.locale ?? DEFAULT_LOCALE) : ''; }
+// '06.13' / 'Jun 13'
+export function formatPlainMonthDayNumeric(dateKey, opts = {}) { const p = getPlainDateParts(dateKey, opts); return p ? monthDayOf(p, opts.locale ?? DEFAULT_LOCALE) : ''; }
 
 // ---------- 시간대 이름 ----------
 // Intl의 shortGeneric('대한민국 시간', 'PT' …)을 쓰고, 'GMT+9' 같은 오프셋 표기로 떨어지면 IANA 마지막 구간('Asia/Seoul' → 'Seoul')으로.

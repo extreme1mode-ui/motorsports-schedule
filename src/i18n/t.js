@@ -16,5 +16,10 @@ export function t(locale, key, vars = {}) {
     }
     if (locale !== 'en' && !warned.has(`${locale}:${key}`)) { warned.add(`${locale}:${key}`); console.warn(`[i18n] '${locale}'에 없는 키라 영문 기본값 사용: "${key}"`); }
   }
-  return template.replace(/\{(\w+)\}/g, (m, name) => (vars[name] !== undefined ? String(vars[name]) : m));
+  // {n} 치환. {n|race|races}는 Number(vars.n) === 1이면 앞, 아니면 뒤 (영어 단·복수용. ko는 안 씀).
+  return template.replace(/\{(\w+)(?:\|([^|}]*)\|([^|}]*))?\}/g, (m, name, one, many) => {
+    const v = vars[name];
+    if (one !== undefined) return v === undefined ? m : (Number(v) === 1 ? one : many);
+    return v !== undefined ? String(v) : m;
+  });
 }

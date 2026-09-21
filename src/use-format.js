@@ -3,7 +3,7 @@ import { useContext, useMemo } from 'react';
 import { FormatContext } from './format-context.jsx';
 import { getRaceLabels, formatSessionLabel, getVisibleBroadcast } from './schedule/utils.js';
 import {
-  getParts, formatDateKey, formatDateTimeKey, formatTime, formatShortDate, formatShortDateTime,
+  getParts, formatDateKey, formatDateTimeKey, formatTime, formatShortDate, formatShortDateTime, formatMonthDayShort,
   formatMonthDay, formatDateFull, getDayDifference, getMonthNames, getWeekdayNames, getTimeZoneLabel,
   formatPlainDateFull, formatPlainShortDate, formatPlainMonthDayNumeric, getPlainDateParts,
 } from './schedule/format.js';
@@ -26,8 +26,9 @@ export function useFormat() {
       dateKey: (v) => formatDateKey(v, o),                 // 'YYYY-MM-DD' (사용자 시간대의 날짜)
       time: (v) => formatTime(v, o),                       // '20:00'
       dateTimeKey: (v) => formatDateTimeKey(v, o),         // '2026-09-26 20:00'
-      shortDate: (v) => formatShortDate(v, o),             // '09.26 (토)'
-      shortDateTime: (v) => formatShortDateTime(v, o),     // '09.26 (토) 20:00'
+      monthDayShort: (v) => formatMonthDayShort(v, o),     // '09.26' / en 'Sep 26'
+      shortDate: (v) => formatShortDate(v, o),             // '09.26 (토)' / en 'Sep 26 (Sat)'
+      shortDateTime: (v) => formatShortDateTime(v, o),     // '09.26 (토) 20:00' / en 'Sep 26 (Sat) 20:00'
       monthDay: (v) => formatMonthDay(v, o),               // '9월 26일'
       dateFull: (v) => formatDateFull(v, o),               // '2026.09.26 (토)'
       dayDiff: (v, now) => getDayDifference(v, now, o),    // 정수 (미래 양수)
@@ -35,7 +36,7 @@ export function useFormat() {
       plainParts: (key) => getPlainDateParts(key, o),
       plainDateFull: (key) => formatPlainDateFull(key, o),       // 서킷 현지 날짜키 그대로
       plainShortDate: (key) => formatPlainShortDate(key, o),
-      plainMonthDay: (key) => formatPlainMonthDayNumeric(key, o),
+      plainMonthDay: (key) => formatPlainMonthDayNumeric(key, o),   // '06.13' / en 'Jun 13'
     };
   }, [locale, timeZone, country]);
 }

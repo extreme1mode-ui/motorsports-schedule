@@ -37,8 +37,10 @@ function roundText(ev) {
 }
 
 // 시청자 시간대 기준 '09.26' / '토' — format.getParts에서 직접 (문자열 슬라이싱 금지)
-const md = (fmt, date) => { const p = fmt.parts(date); return p ? `${p.month}.${p.day}` : ''; };
+const md = (fmt, date) => fmt.monthDayShort(date);                 // '09.26' / en 'Sep 26'
 const dow = (fmt, date) => fmt.parts(date)?.weekdayName || '';
+// 리스트 행 요일: ko '토' / en '(Sat)' — 영어는 'Oct 3 (Sat)' 꼴
+const dowInList = (fmt, date) => { const w = dow(fmt, date); return fmt.locale === 'ko' ? w : `(${w})`; };
 
 function heroReason(ev, ts, kind, now, fmt, t) {
   if (kind === 'live') return { text: t('home.reason.live'), urgent: true };
@@ -158,7 +160,7 @@ function Row({ ev, ts, dim, onOpen }) {
   const d = dateOf(ev);
   return (
     <button type="button" className={`rowitem${dim ? ' dim' : ''}`} onClick={() => onOpen(ev.race)}>
-      <span className="dt">{md(fmt, d)} <em>{dow(fmt, d)}</em></span>
+      <span className="dt">{md(fmt, d)} <em>{dowInList(fmt, d)}</em></span>
       <span className="ind" style={{ background: `var(${SERIES_VAR[ev.series]})` }} />
       <span className="nm ko">{ev.displayName}</span>
       <span className="side"><span className="rd">{ev.series} {roundText(ev)}</span><TimeStat ts={ts} dateless /></span>

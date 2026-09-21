@@ -1,11 +1,28 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Paddock · 2026 모터스포츠</title>
-    <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+    <!-- 제목·lang은 언어 중립 기본값. 앱이 뜨면 사용자 locale에 맞춰 App.jsx(Root)에서 바꾼다. -->
+    <title>Paddock — Motorsport Schedule</title>
+    <meta name="description" content="2026 Formula 1, WEC, IMSA, WRC and GT World Challenge schedule in your time zone — session times, countdowns and where to watch." />
+    <meta name="theme-color" content="#07080B" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Paddock" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- 공유 미리보기. og:image는 이미지 준비 후 추가. og:url은 실제 배포 주소로 바꿀 것. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Paddock" />
+    <meta property="og:title" content="Paddock — Motorsport Schedule" />
+    <meta property="og:description" content="2026 Formula 1, WEC, IMSA, WRC and GT World Challenge schedule in your time zone — session times, countdowns and where to watch." />
+    <meta property="og:url" content="https://motorsports-schedule.vercel.app/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Paddock — Motorsport Schedule" />
+    <meta name="twitter:description" content="2026 Formula 1, WEC, IMSA, WRC and GT World Challenge schedule in your time zone — session times, countdowns and where to watch." />
   </head>
   <body>
     <div id="root"></div>

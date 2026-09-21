@@ -8,7 +8,7 @@ import { Onboarding } from './onboarding.jsx';
 import { Settings } from './settings.jsx';
 import { readTheme } from './preferences-options.js';
 import { FormatProvider } from './format-context.jsx';
-import { useT } from './i18n/index.js';
+import { t, useT } from './i18n/index.js';
 
 export default function Root() {
   const prefs = usePreferences();
@@ -19,7 +19,12 @@ export default function Root() {
     localStorage.setItem('paddock.theme', theme);
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
-  useEffect(() => { document.documentElement.lang = prefs.preferences.locale || 'ko'; }, [prefs.preferences.locale]);
+  // index.html의 lang/title은 언어 중립 기본값(en). 앱이 뜨면 사용자 locale로 바꾼다.
+  useEffect(() => {
+    const locale = prefs.preferences.locale || 'ko';
+    document.documentElement.lang = locale;
+    document.title = t(locale, 'app.title');
+  }, [prefs.preferences.locale]);
 
   // 언어·시간대·국가는 preferences에서. 바꾸면 컨텍스트가 갱신돼 즉시 반영된다.
   const screen = !prefs.preferences.onboarded
