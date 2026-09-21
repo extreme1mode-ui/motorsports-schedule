@@ -1,14 +1,13 @@
 // 홈 전용 시간 판정. 다른 화면이 쓰는 calculateEventStatus / buildNormalizedRace / normalizeSessions는 건드리지 않는다.
 // 스펙: design/HOME-SPEC.md 5장(TimeStat 6상태), 6장(LIVE 판정), 10장(취소 판정).
-import { getPrimarySession, getTimeLabelInKst } from '../schedule/utils.js';
-import { formatShortDate, formatTime, formatShortDateTime, getCountdownParts, getDayDifference } from '../schedule/format.js';
+import { getPrimarySession, localDateTimeToUtc } from '../schedule/utils.js';
+import { getParts, getCountdownParts, getDayDifference, DEFAULT_TIME_ZONE } from '../schedule/format.js';
 
 export const TIME_STATES = ['live', 'soon', 'upcoming', 'tba', 'done', 'cancelled'];
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 const SOON_WINDOW_MS = DAY_MS;
-const KST_OFFSET = '+09:00';
 
 function toDate(value) {
   if (!value) return null;
@@ -22,27 +21,25 @@ export function isCancelled(race) {
   return Boolean(race?.cancellationNote) || race?.status === 'cancelled';
 }
 
-// 판정 기준 시각. 대표 세션의 startUtc/endUtc, 없으면 raceKstIso로 폴백.
-// buildNormalizedRace는 시각이 없는 경기에도 raceKstIso(주말 시작 00:00)를 채우므로,
-// 폴백은 kstTime이 실제 HH:MM일 때만 "확정"으로 인정한다.
+// 판정 기준 시각. 대표 세션의 startUtc/endUtc. 없으면 "시각 미정"(raceKstIso 폴백은 쓰지 않는다 — buildNormalizedRace가 채운 값이라 확정 시각이 아니다).
 export function getReferenceTimes(race) {
   const primary = getPrimarySession(race);
-  const start = toDate(primary?.startUtc) || (/^\d{2}:\d{2}$/.test(race?.kstTime || '') ? toDate(race?.raceKstIso) : null);
-  const end = toDate(primary?.endUtc);
-  return { start, end, session: primary };
+  return { start: toDate(primary?.startUtc), end: toDate(primary?.endUtc), session: primary };
 }
 
-// 주말 구간 끝 (weekendEnd는 KST 날짜키로 취급, 그날 23:59:59 KST).
-export function getWeekendEndKst(race) {
-  return race?.weekendEnd ? toDate(`${race.weekendEnd}T23:59:59${KST_OFFSET}`) : null;
+// 주말 구간. weekendStart/weekendEnd는 **서킷 현지 날짜**라 race.timezone으로 해석한다 (시청자 시간대와 무관).
+export function getWeekendRange(race) {
+  const tz = race?.timezone || DEFAULT_TIME_ZONE;
+  const start = race?.weekendStart ? toDate(localDateTimeToUtc(race.weekendStart, '00:00', tz)) : null;
+  const end = race?.weekendEnd ? toDate(localDateTimeToUtc(race.weekendEnd, '23:59', tz)) : null;
+  return { start, end };
 }
+export function getWeekendEnd(race) { return getWeekendRange(race).end; }
 
-// KST 00:00~05:59 시작이면 심야.
-export function isNightKst(date) {
-  const d = toDate(date);
-  if (!d) return false;
-  const hour = Number(getTimeLabelInKst(d.toISOString()).slice(0, 2));
-  return hour >= 0 && hour < 6;
+// 시청자 시간대에서 00:00~05:59 시작이면 심야.
+export function isNight(date, timeZone = DEFAULT_TIME_ZONE) {
+  const p = getParts(date, { timeZone });
+  return !!p && Number(p.hour) < 6;
 }
 
 /**
@@ -54,11 +51,11 @@ export function isNightKst(date) {
  *   done       시작을 지났거나 주말 구간이 끝남
  *   cancelled  취소
  */
-export function resolveTimeState(race, now = new Date()) {
+export function resolveTimeState(race, now = new Date(), { timeZone = DEFAULT_TIME_ZONE } = {}) {
   const at = toDate(now) || new Date();
   const { start, end, session } = getReferenceTimes(race);
-  const weekendEnd = getWeekendEndKst(race);
-  const base = { start, end, session, weekendEnd, isNight: start ? isNightKst(start) : false, msUntilStart: start ? start.getTime() - at.getTime() : null };
+  const { start: weekendStart, end: weekendEnd } = getWeekendRange(race);
+  const base = { start, end, session, weekendStart, weekendEnd, isNight: start ? isNight(start, timeZone) : false, msUntilStart: start ? start.getTime() - at.getTime() : null };
 
   if (isCancelled(race)) return { ...base, state: 'cancelled' };
 
@@ -72,27 +69,16 @@ export function resolveTimeState(race, now = new Date()) {
   return { ...base, state: 'done' };
 }
 
-// ---------- KST 포맷터 — schedule/format.js의 얇은 래퍼 (ko / Asia/Seoul 고정) ----------
-const KO = { locale: 'ko', timeZone: 'Asia/Seoul' };
-
-// '09.26 (토)'
-export function formatKstDate(date) { return formatShortDate(date, KO); }
-
-// '20:00'
-export function formatKstTime(date) { return formatTime(date, KO); }
-
-// '09.26 (토) 20:00'  — upcoming 표기. 'KST' 접미사는 호출부가 붙인다.
-export function formatKstDateTime(date) { return formatShortDateTime(date, KO); }
-
+// ---------- 표기 ----------
 // 'HH:MM:SS' — soon 카운트다운. 음수는 00:00:00. (숫자는 format.getCountdownParts, 표기만 여기서)
 export function formatCountdown(ms) {
   const { hours, minutes, seconds } = getCountdownParts(ms);
   return [hours, minutes, seconds].map((v) => String(v).padStart(2, '0')).join(':');
 }
 
-// 'D-3' / 'D-DAY' — KST 날짜 차이 기준. (숫자는 format.getDayDifference, 표기만 여기서)
-export function formatDday(date, now = new Date()) {
-  const days = getDayDifference(date, now, KO);
+// 'D-3' / 'D-DAY' — 시청자 시간대의 날짜 차이 기준.
+export function formatDday(date, now = new Date(), timeZone = DEFAULT_TIME_ZONE) {
+  const days = getDayDifference(date, now, { timeZone });
   if (days === null) return '';
   return days <= 0 ? 'D-DAY' : `D-${days}`;
 }

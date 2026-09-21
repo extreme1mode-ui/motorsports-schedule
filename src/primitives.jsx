@@ -1,5 +1,4 @@
 import { SERIES } from './schedule/index.js';
-import { getMonthNames, getWeekdayNames, parseDateOrKey, formatMonthDay, formatDateFull } from './schedule/format.js';
 
 // bg/surface 계열·line·text3는 src/styles/tokens.css와 같은 값 (QA R1). 값을 바꿀 땐 두 곳을 같이.
 export const TOKENS = {
@@ -15,19 +14,7 @@ export const TOKENS = {
   },
 };
 
-// 날짜·시간 포매팅은 schedule/format.js가 단일 지점. 아래는 기존 호출부를 위한 얇은 래퍼 (ko / Asia/Seoul 고정).
-export const MONTHS_KO = getMonthNames('ko');
-export const DAYS_KO = getWeekdayNames('ko');
-
-export function kstDate(iso) {
-  return parseDateOrKey(iso, 'Asia/Seoul');
-}
-export function fmtDate(iso) {
-  return formatMonthDay(kstDate(iso), { locale: 'ko', timeZone: 'Asia/Seoul' });
-}
-export function fmtDateFull(iso) {
-  return formatDateFull(kstDate(iso), { locale: 'ko', timeZone: 'Asia/Seoul' });
-}
+// 날짜·시간 표기는 useFormat()(사용자 시간대) 또는 schedule/format.js를 쓴다. KST 고정 래퍼는 제거됨.
 
 export function Mono({ children, size = 14, weight = 500, color, style }) {
   return (

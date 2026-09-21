@@ -38,10 +38,10 @@ export function adaptRace(race, mode = 'all') {
     cityEn: firstText(race.cityEn, race.city),
     countryEn: firstText(race.countryEn, race.country),
 
-    weekendStart: race.weekendStart ?? null,       // KST 날짜키로 취급
+    weekendStart: race.weekendStart ?? null,       // 서킷 현지 날짜키 (시간대 변환 금지)
     weekendEnd: race.weekendEnd ?? null,
     raceDateKst: race.raceDateKst ?? null,
-    raceKstIso: start ? race.raceKstIso : null,    // 시각 미확정이면 null (buildNormalizedRace의 폴백값은 버린다)
+    raceKstIso: start ? race.raceKstIso : null,    // 데이터 필드 그대로. 판정·정렬에는 startUtc를 쓴다
     kstTime: /^\d{2}:\d{2}$/.test(race.kstTime || '') ? race.kstTime : null,
     startUtc: start ? start.toISOString() : null,  // 대표 세션 시작 — LIVE 판정 기준
     endUtc: end ? end.toISOString() : null,        // 대표 세션 종료 — 없으면 LIVE 불가

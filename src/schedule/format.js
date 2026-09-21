@@ -97,3 +97,27 @@ export function getDayDifference(value, now = new Date(), { timeZone = DEFAULT_T
   const key = (p) => Date.UTC(+p.year, +p.month - 1, +p.day);
   return Math.round((key(a) - key(b)) / DAY_MS);
 }
+
+// ---------- 이벤트 고유 날짜(서킷 현지 날짜키) — 시간대 변환 없이 표시 ----------
+// weekendStart/weekendEnd 같은 'YYYY-MM-DD'는 "그 날짜"라는 사실이므로 보는 사람의 시간대와 무관하게 그대로 보여준다.
+export function getPlainDateParts(dateKey, { locale = DEFAULT_LOCALE } = {}) {
+  const d = zonedDateFromKey(dateKey, '12:00', 'UTC');
+  return d ? getParts(d, { locale, timeZone: 'UTC' }) : null;
+}
+// '2026.06.13 (토)'
+export function formatPlainDateFull(dateKey, opts) { const p = getPlainDateParts(dateKey, opts); return p ? `${p.year}.${p.month}.${p.day} (${p.weekdayName})` : ''; }
+// '06.13 (토)'
+export function formatPlainShortDate(dateKey, opts) { const p = getPlainDateParts(dateKey, opts); return p ? `${p.month}.${p.day} (${p.weekdayName})` : ''; }
+// '06.13'
+export function formatPlainMonthDayNumeric(dateKey, opts) { const p = getPlainDateParts(dateKey, opts); return p ? `${p.month}.${p.day}` : ''; }
+
+// ---------- 시간대 이름 ----------
+// Intl의 shortGeneric('대한민국 시간', 'PT' …)을 쓰고, 'GMT+9' 같은 오프셋 표기로 떨어지면 IANA 마지막 구간('Asia/Seoul' → 'Seoul')으로.
+export function getTimeZoneLabel(timeZone = DEFAULT_TIME_ZONE, locale = DEFAULT_LOCALE) {
+  let name;
+  try {
+    name = dtf(locale, { timeZone, timeZoneName: 'shortGeneric' }).formatToParts(new Date()).find((p) => p.type === 'timeZoneName')?.value || '';
+  } catch { name = ''; }
+  if (!name || /GMT|UTC/i.test(name)) name = String(timeZone).split('/').pop().replace(/_/g, ' ');
+  return name;
+}

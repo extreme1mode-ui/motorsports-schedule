@@ -4,6 +4,7 @@ import { getCurrentNow, useScheduleData, filterRacesByPreferences } from './sche
 import { Home } from './home/Home.jsx';
 import { WebSchedule, WebSeries, WebFavorites, RaceDrawer } from './web-screens.jsx';
 import { Settings } from './settings.jsx';
+import { useFormat } from './use-format.js';
 
 export function useViewport() {
   const [w, setW] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1440);
@@ -108,6 +109,7 @@ export function WebApp({ theme, setTheme, ...prefs }) {
 
 function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
   const t = TOKENS[theme];
+  const fmt = useFormat();
   const items = [
     { id: 'home',     label: '홈',       sub: 'HOME',     icon: 'home' },
     { id: 'schedule', label: '일정',     sub: 'SCHEDULE', icon: 'cal' },
@@ -223,7 +225,7 @@ function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22D77E', boxShadow: '0 0 8px #22D77E' }} />
-            <Mono size={9} color={t.text3} style={{ letterSpacing: '0.14em' }}>LIVE TIMING · KST</Mono>
+            <Mono size={9} color={t.text3} style={{ letterSpacing: '0.14em' }}>LIVE TIMING · {fmt.zoneLabel}</Mono>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
             {['dark', 'light'].map(m => (

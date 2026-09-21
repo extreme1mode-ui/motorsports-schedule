@@ -209,6 +209,12 @@ export function normalizeSessions(sessions = []) {
   });
 }
 
+// 경기 시작 시각(UTC ISO). 대표 세션의 startUtc만 신뢰한다 — 없으면 "시각 미정".
+// (raceKstIso / kstTime은 데이터 필드로만 두고 판정·정렬에는 쓰지 않는다.)
+export function getRaceStartUtc(race) {
+  return getPrimarySession(race)?.startUtc || null;
+}
+
 // 대표 세션: race → sprint → 첫 세션 순.
 export function getPrimarySession(race) {
   const sessions = Array.isArray(race?.sessions) ? race.sessions : [];

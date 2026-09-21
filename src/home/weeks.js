@@ -1,4 +1,5 @@
-// 레이싱 위켄드 묶기: weekendEnd가 속한 주(월요일 시작)로 그룹화한다. 날짜키는 KST 'YYYY-MM-DD'로 취급.
+// 레이싱 위켄드 묶기: weekendEnd가 속한 주(월요일 시작)로 그룹화한다.
+// weekendEnd는 서킷 현지 날짜 'YYYY-MM-DD'(이벤트 고유 정보)라 시간대 변환 없이 달력 산술만 한다.
 // 스펙: design/HOME-SPEC.md 4장.
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -30,9 +31,9 @@ export function getWeekRange(dateKey) {
   return { start, end: toDateKey(parseDateKey(start) + 6 * DAY_MS) };
 }
 
-// 경기가 속한 레이싱 위켄드 키 = weekendEnd가 속한 주의 월요일. weekendEnd가 없으면 raceDateKst로 폴백.
+// 경기가 속한 레이싱 위켄드 키 = weekendEnd가 속한 주의 월요일.
 export function getRaceWeekKey(race) {
-  return getWeekStartKey(race?.weekendEnd) || getWeekStartKey(race?.raceDateKst) || null;
+  return getWeekStartKey(race?.weekendEnd) || null;
 }
 
 // races → [{ weekKey, start, end, races }] (주 오름차순, 그룹 안 순서는 입력 순서 유지).

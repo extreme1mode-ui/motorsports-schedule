@@ -1,21 +1,29 @@
 import { useState, useEffect } from 'react';
-import { TOKENS, MONTHS_KO, DAYS_KO, kstDate, fmtDate, fmtDateFull, Mono, SeriesTag, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
-import { CATEGORIES, SERIES, getVisibleSessions, getSeriesStats } from './schedule/index.js';
+import { TOKENS, Mono, SeriesTag, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
+import { CATEGORIES, SERIES, getVisibleSessions, getSeriesStats, getRaceStartUtc } from './schedule/index.js';
+import { useFormat } from './use-format.js';
+
+// 정렬·그룹핑은 시작 시각(UTC)으로. 시청자 달력 파트는 사용자 시간대로.
+const startMs = (r) => { const iso = getRaceStartUtc(r) || r.primaryStartUtc; return iso ? new Date(iso).getTime() : Number.MAX_SAFE_INTEGER; };
+const byStart = (a, b) => startMs(a) - startMs(b);
+const viewerParts = (fmt, r) => fmt.parts(getRaceStartUtc(r) || r.primaryStartUtc);
 import { PageHeader } from './web.jsx';
 import { SectionTitle } from './web.jsx';
 
 export function WebSchedule({ theme, races, onOpenRace, now, tier, seasonYear }) {
   const t = TOKENS[theme];
+  const fmt = useFormat();
   const safeSeasonYear = Number.isFinite(seasonYear) ? seasonYear : 2026;
-  const [month, setMonth] = useState(now.getMonth());
+  const [month, setMonth] = useState(() => Number(fmt.parts(now)?.month || 1) - 1);
   const [filterCategory, setFilterCategory] = useState('ALL');
 
   const filtered = filterCategory === 'ALL' ? races : races.filter(r => r.category === filterCategory);
-  const monthRaces = filtered.filter(r => parseInt(r.raceDateKst.slice(5, 7)) - 1 === month);
-  const sortedMonth = [...monthRaces].sort((a, b) => a.raceDateKst.localeCompare(b.raceDateKst));
+  const monthOf = (r) => Number(viewerParts(fmt, r)?.month || 1) - 1;
+  const monthRaces = filtered.filter(r => monthOf(r) === month);
+  const sortedMonth = [...monthRaces].sort(byStart);
 
   const monthCounts = Array.from({ length: 12 }, (_, m) =>
-    filtered.filter(r => parseInt(r.raceDateKst.slice(5, 7)) - 1 === m).length
+    filtered.filter(r => monthOf(r) === m).length
   );
 
   return (
@@ -23,7 +31,7 @@ export function WebSchedule({ theme, races, onOpenRace, now, tier, seasonYear })
       <PageHeader theme={theme}
         kicker={`CALENDAR · ${safeSeasonYear}`}
         title="일정"
-        subtitle={`${MONTHS_KO[month]} · ${sortedMonth.length}개 경기${filterCategory !== 'ALL' ? ` · ${CATEGORIES[filterCategory].short}` : ''}`}
+        subtitle={`${fmt.monthNames[month]} · ${sortedMonth.length}개 경기${filterCategory !== 'ALL' ? ` · ${CATEGORIES[filterCategory].short}` : ''}`}
         right={<CategoryFilterBar theme={theme} value={filterCategory} onChange={setFilterCategory} />} />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 6, marginBottom: 28 }}>
@@ -39,7 +47,7 @@ export function WebSchedule({ theme, races, onOpenRace, now, tier, seasonYear })
               cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
               transition: 'background 0.12s',
             }}>
-              <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '-0.005em' }}>{MONTHS_KO[m]}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '-0.005em' }}>{fmt.monthNames[m]}</div>
               <Mono size={9}
                 color={active ? (theme === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)') : t.text3}
                 style={{ letterSpacing: '0.14em', display: 'block', marginTop: 4 }}>
@@ -58,7 +66,7 @@ export function WebSchedule({ theme, races, onOpenRace, now, tier, seasonYear })
         <BigMonthGrid theme={theme} month={month} races={monthRaces} onOpen={onOpenRace} now={now} seasonYear={safeSeasonYear} />
 
         <div>
-          <SectionTitle theme={theme} kicker={`${MONTHS_KO[month].toUpperCase()} ROUNDS`} title="경기 일정" />
+          <SectionTitle theme={theme} kicker={`${fmt.monthNames[month].toUpperCase()} ROUNDS`} title="경기 일정" />
           <div style={{ display: 'grid', gap: 8 }}>
             {sortedMonth.length === 0 && (
               <div style={{
@@ -76,14 +84,15 @@ export function WebSchedule({ theme, races, onOpenRace, now, tier, seasonYear })
 
 function BigMonthGrid({ theme, month, races, onOpen, now, seasonYear }) {
   const t = TOKENS[theme];
+  const fmt = useFormat();
   const year = seasonYear;
-  const first = new Date(year, month, 1);
-  const firstDow = first.getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  // 달력 모양은 시간대와 무관한 달력 산술 (UTC로 계산해 로컬 TZ 영향 제거)
+  const firstDow = new Date(Date.UTC(year, month, 1)).getUTCDay();
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
 
   const byDay = {};
   for (const r of races) {
-    const d = parseInt(r.raceDateKst.slice(8, 10));
+    const d = Number(viewerParts(fmt, r)?.day || 0);
     (byDay[d] = byDay[d] || []).push(r);
   }
 
@@ -100,7 +109,7 @@ function BigMonthGrid({ theme, month, races, onOpen, now, seasonYear }) {
       border: `1px solid ${t.line}`, borderRadius: 16, padding: 14,
     }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', marginBottom: 8 }}>
-        {DAYS_KO.map((d, i) => (
+        {fmt.weekdayNames.map((d, i) => (
           <Mono key={d} size={10}
             color={i === 0 ? '#FF6B7A' : i === 6 ? '#6BA3FF' : t.text3}
             style={{ textAlign: 'center', letterSpacing: '0.12em', padding: '8px 0' }}>
@@ -158,9 +167,11 @@ function BigMonthGrid({ theme, month, races, onOpen, now, seasonYear }) {
 
 function WebScheduleRow({ race, theme, onOpen }) {
   const t = TOKENS[theme];
+  const fmt = useFormat();
   const s = SERIES[race.series];
-  const d = kstDate(race.raceDateKst);
-  const dow = DAYS_KO[d.getDay()];
+  const start = getRaceStartUtc(race);
+  const p = viewerParts(fmt, race);
+  const dow = p?.weekdayName || '';
   return (
     <div onClick={onOpen} style={{
       display: 'grid', gridTemplateColumns: '52px 1fr auto', gap: 14, alignItems: 'center',
@@ -172,7 +183,7 @@ function WebScheduleRow({ race, theme, onOpen }) {
     onMouseLeave={e => { e.currentTarget.style.borderColor = t.line; }}>
       <div style={{ textAlign: 'center', borderRight: `1px solid ${t.line}`, paddingRight: 12 }}>
         <Mono size={20} weight={700} color={t.text} style={{ display: 'block', lineHeight: 1 }}>
-          {String(d.getDate()).padStart(2, '0')}
+          {p?.day || '--'}
         </Mono>
         <Mono size={10} color={t.text3} style={{ display: 'block', marginTop: 4, letterSpacing: '0.1em' }}>{dow}</Mono>
       </div>
@@ -196,8 +207,7 @@ function WebScheduleRow({ race, theme, onOpen }) {
         }}>{race.circuit}{race.country ? ` · ${race.country}` : ''}</div>
       </div>
       <div style={{ textAlign: 'right' }}>
-        <Mono size={13} weight={600} color={t.text}>{race.kstTime || 'TBA'}</Mono>
-        <Mono size={9} color={t.text3} style={{ display: 'block', marginTop: 2, letterSpacing: '0.1em' }}>KST</Mono>
+        <Mono size={13} weight={600} color={t.text}>{start ? fmt.time(start) : 'TBA'}</Mono>
       </div>
     </div>
   );
@@ -234,7 +244,7 @@ export function WebSeries({ theme, races, onOpenRace, initialCategory, tier, sea
   const [sel, setSel] = useState(initialCategory || 'F1');
   useEffect(() => { if (initialCategory) setSel(initialCategory); }, [initialCategory]);
   const s = CATEGORIES[sel];
-  const list = races.filter(r => r.category === sel).sort((a, b) => a.raceDateKst.localeCompare(b.raceDateKst));
+  const list = races.filter(r => r.category === sel).sort(byStart);
   const { rounds: roundCount, done, cancelled, upcoming } = getSeriesStats(list);
 
   return (
@@ -318,10 +328,12 @@ function BigStat({ label, value, dark, accent }) {
 
 function WebRoundRow({ race, idx, theme, onOpen }) {
   const t = TOKENS[theme];
+  const fmt = useFormat();
   const s = SERIES[race.series];
   const done = race.status === 'completed';
   const cancelled = race.status === 'cancelled';
-  const d = kstDate(race.raceDateKst);
+  const start = getRaceStartUtc(race);
+  const p = viewerParts(fmt, race);
 
   return (
     <div onClick={onOpen} style={{
@@ -359,7 +371,7 @@ function WebRoundRow({ race, idx, theme, onOpen }) {
               color: t.text2, fontFamily: '"JetBrains Mono", ui-monospace',
             }}>SPRINT</span>
           )}
-          <Mono size={10} color={t.text3}>{fmtDate(race.raceDateKst)} · {DAYS_KO[d.getDay()]}</Mono>
+          <Mono size={10} color={t.text3}>{p ? `${fmt.monthDay(start || race.primaryStartUtc)} · ${p.weekdayName}` : ''}</Mono>
         </div>
         <div style={{
           fontSize: 15, fontWeight: 600, color: t.text, letterSpacing: '-0.005em',
@@ -370,8 +382,7 @@ function WebRoundRow({ race, idx, theme, onOpen }) {
         }}>{race.circuit}{race.country ? ` · ${race.country}` : ''}</div>
       </div>
       <div style={{ textAlign: 'right' }}>
-        <Mono size={14} weight={600} color={t.text}>{race.kstTime || 'TBA'}</Mono>
-        <Mono size={9} color={t.text3} style={{ display: 'block', marginTop: 2, letterSpacing: '0.1em' }}>KST</Mono>
+        <Mono size={14} weight={600} color={t.text}>{start ? fmt.time(start) : 'TBA'}</Mono>
       </div>
     </div>
   );
@@ -379,7 +390,7 @@ function WebRoundRow({ race, idx, theme, onOpen }) {
 
 export function WebFavorites({ theme, races, myRaces, favorites, onOpenRace, toggleFav, tier }) {
   const t = TOKENS[theme];
-  const favList = races.filter(r => favorites.has(r.id)).sort((a, b) => a.raceDateKst.localeCompare(b.raceDateKst));
+  const favList = races.filter(r => favorites.has(r.id)).sort(byStart);
   // 빈 상태 추천: 다가오는 관심 경기 3개 (프로토타입 저장 화면과 같은 규칙)
   const recs = (Array.isArray(myRaces) ? myRaces : races).filter(r => r.status === 'upcoming' || r.status === 'live').slice(0, 3);
   const cols = tier === 'ultra' ? 3 : 2;
@@ -430,6 +441,7 @@ export function WebFavorites({ theme, races, myRaces, favorites, onOpenRace, tog
 // 즐겨찾기 빈 상태 추천 행: 열기 + 바로 저장
 function WebRecommendRow({ race, theme, onOpen, onSave }) {
   const t = TOKENS[theme];
+  const fmt = useFormat();
   const s = SERIES[race.series];
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: theme === 'dark' ? '#0E1014' : '#fff', border: `1px solid ${t.line}`, borderRadius: 12 }}>
@@ -443,8 +455,8 @@ function WebRecommendRow({ race, theme, onOpen, onSave }) {
         <div style={{ fontSize: 12, color: t.text3, marginTop: 2 }}>{race.circuit}</div>
       </button>
       <div style={{ textAlign: 'right', flex: 'none' }}>
-        <Mono size={11} color={t.text3} style={{ display: 'block' }}>{fmtDate(race.raceDateKst)}</Mono>
-        <Mono size={13} weight={600} color={t.text} style={{ display: 'block', marginTop: 2 }}>{race.kstTime || 'TBA'}</Mono>
+        <Mono size={11} color={t.text3} style={{ display: 'block' }}>{fmt.monthDay(getRaceStartUtc(race) || race.primaryStartUtc)}</Mono>
+        <Mono size={13} weight={600} color={t.text} style={{ display: 'block', marginTop: 2 }}>{getRaceStartUtc(race) ? fmt.time(getRaceStartUtc(race)) : 'TBA'}</Mono>
       </div>
       <button onClick={onSave} style={{ flex: 'none', minHeight: 44, padding: '0 14px', borderRadius: 10, border: `1px solid ${t.line2}`, background: 'transparent', color: t.text, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>저장하기</button>
     </div>
@@ -453,8 +465,10 @@ function WebRecommendRow({ race, theme, onOpen, onSave }) {
 
 function FavCard({ race, theme, onOpen, toggleFav }) {
   const t = TOKENS[theme];
+  const fmt = useFormat();
   const s = SERIES[race.series];
-  const d = kstDate(race.raceDateKst);
+  const start = getRaceStartUtc(race);
+  const p = viewerParts(fmt, race);
   const cancelled = race.status === 'cancelled';
 
   return (
@@ -490,14 +504,13 @@ function FavCard({ race, theme, onOpen, toggleFav }) {
         <div>
           <Mono size={9} color={t.text3} style={{ letterSpacing: '0.14em', display: 'block' }}>RACE DAY</Mono>
           <Mono size={18} weight={700} color={t.text} style={{ display: 'block', marginTop: 4 }}>
-            {String(d.getMonth() + 1).padStart(2, '0')}.{String(d.getDate()).padStart(2, '0')}
+            {p ? `${p.month}.${p.day}` : '--.--'}
           </Mono>
-          <Mono size={10} color={t.text3} style={{ display: 'block', marginTop: 2 }}>{DAYS_KO[d.getDay()]}</Mono>
+          <Mono size={10} color={t.text3} style={{ display: 'block', marginTop: 2 }}>{p?.weekdayName || ''}</Mono>
         </div>
         <div style={{ textAlign: 'right' }}>
           <Mono size={9} color={t.text3} style={{ letterSpacing: '0.14em', display: 'block' }}>LIGHTS OUT</Mono>
-          <Mono size={18} weight={700} color={t.text} style={{ display: 'block', marginTop: 4 }}>{race.kstTime || 'TBA'}</Mono>
-          <Mono size={10} color={t.text3} style={{ display: 'block', marginTop: 2, letterSpacing: '0.1em' }}>KST</Mono>
+          <Mono size={18} weight={700} color={t.text} style={{ display: 'block', marginTop: 4 }}>{start ? fmt.time(start) : 'TBA'}</Mono>
         </div>
       </div>
     </div>
@@ -506,6 +519,7 @@ function FavCard({ race, theme, onOpen, toggleFav }) {
 
 export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, preferences }) {
   const t = TOKENS[theme];
+  const fmt = useFormat();
   const s = SERIES[race.series];
   const sessions = getVisibleSessions(race, preferences?.series?.[race.series]);
   const faved = favorites.has(race.id);
@@ -606,7 +620,7 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
           )}
 
           <section style={{ marginBottom: 24 }}>
-            <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.16em', display: 'block', marginBottom: 12 }}>SESSIONS · 한국 시간 (KST)</Mono>
+            <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.16em', display: 'block', marginBottom: 12 }}>SESSIONS · 내 시간 ({fmt.zoneLabel}) · 현지</Mono>
             <div style={{ background: t.surface, border: `1px solid ${t.line}`, borderRadius: 12, overflow: 'hidden' }}>
               {sessions.map((sess, i) => (
                 <div key={i} style={{
@@ -621,8 +635,8 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
                     color: sess.t === '결승' ? '#fff' : t.text,
                     fontSize: 11, fontWeight: 700,
                   }}>{sess.t}</span>
-                  <Mono size={13} color={t.text2}>{sess.kst && sess.kst !== 'TBA' ? sess.kst : '시간 TBA'}</Mono>
-                  <Mono size={10} color={t.text3} style={{ letterSpacing: '0.1em' }}>KST</Mono>
+                  <Mono size={13} color={t.text2}>{sess.startUtc ? fmt.dateTimeKey(sess.startUtc) : '시간 TBA'}</Mono>
+                  <Mono size={10} color={t.text3} style={{ letterSpacing: '0.02em' }}>{sess.startUtc && sess.local && sess.local !== 'TBA' ? `현지 ${sess.local.slice(11, 16)}` : ''}</Mono>
                 </div>
               ))}
             </div>
@@ -631,8 +645,8 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
           <section style={{ marginBottom: 24 }}>
             <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.16em', display: 'block', marginBottom: 12 }}>WEEKEND</Mono>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <DrawerCell theme={theme} label="시작" value={fmtDateFull(race.weekendStart)} />
-              <DrawerCell theme={theme} label="종료" value={fmtDateFull(race.weekendEnd)} />
+              <DrawerCell theme={theme} label="시작" value={fmt.plainDateFull(race.weekendStart)} />
+              <DrawerCell theme={theme} label="종료" value={fmt.plainDateFull(race.weekendEnd)} />
               <DrawerCell theme={theme} label="현지 시각" value={race.localTime || 'TBA'} />
               <DrawerCell theme={theme} label="TIMEZONE" value={race.timezone || 'TBA'} />
               {race.durationLabel && <DrawerCell theme={theme} label="DURATION" value={race.durationLabel} />}

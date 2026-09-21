@@ -7,6 +7,7 @@ import { WebApp, useViewport } from './web.jsx';
 import { Onboarding } from './onboarding.jsx';
 import { Settings } from './settings.jsx';
 import { readTheme } from './preferences-options.js';
+import { FormatProvider } from './format-context.jsx';
 
 export default function Root() {
   const prefs = usePreferences();
@@ -18,9 +19,17 @@ export default function Root() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  if (!prefs.preferences.onboarded) return <Onboarding {...prefs} />;
-  if (isWeb) return <WebApp theme={theme} setTheme={setTheme} {...prefs} />;
-  return <App theme={theme} setTheme={setTheme} {...prefs} />;
+  // 언어는 이번 단계에서 'ko' 고정. 시간대는 preferences.timezone을 그대로 흘려보낸다.
+  const screen = !prefs.preferences.onboarded
+    ? <Onboarding {...prefs} />
+    : isWeb
+      ? <WebApp theme={theme} setTheme={setTheme} {...prefs} />
+      : <App theme={theme} setTheme={setTheme} {...prefs} />;
+  return (
+    <FormatProvider locale="ko" timeZone={prefs.preferences.timezone}>
+      {screen}
+    </FormatProvider>
+  );
 }
 
 function App({ theme, setTheme, ...prefs }) {

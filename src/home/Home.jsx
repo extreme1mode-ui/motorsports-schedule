@@ -3,24 +3,24 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './home.css';
 import { adaptRaces } from './adapt.js';
-import { resolveTimeState, isNightKst, formatKstDate, formatKstTime, formatCountdown } from './time.js';
+import { resolveTimeState, formatCountdown } from './time.js';
 import { getRaceWeekKey, groupRacesByWeekend } from './weeks.js';
 import { photo, photoPos, photoCredit } from './photos.js';
 import { SERIES_DESCRIPTIONS } from '../preferences-options.js';
-import { getDateKeyInKst } from '../schedule/index.js';
+import { useFormat } from '../use-format.js';
+import { zonedDateFromKey } from '../schedule/format.js';
 
 const ORDER = ['F1', 'WEC', 'IMSA', 'GTWC', 'WRC'];
 const SERIES_KO = { F1: '포뮬러 1', WEC: '세계 내구 선수권', IMSA: 'IMSA 스포츠카', WRC: '세계 랠리 선수권', GTWC: 'GT 월드 챌린지' };
 const SERIES_VAR = { F1: '--f1', WEC: '--wec', IMSA: '--imsa', WRC: '--wrc', GTWC: '--gtwc' };
-const DAY_MS = 86400000;
 const ALERTS_KEY = 'paddock.alerts';
 
 // ---------- 작은 순수 헬퍼 ----------
 const modeOf = (preferences, series) => preferences?.series?.[series] || 'off';
 const interestOf = (preferences, series) => ({ all: 2, race: 1 }[modeOf(preferences, series)] || 0);
 const isAlive = (state) => state !== 'done' && state !== 'cancelled';
-const fromKey = (key, time = '12:00') => (key ? new Date(`${key}T${time}:00+09:00`) : null);
-const dateOf = (ev) => (ev.startUtc ? new Date(ev.startUtc) : fromKey(ev.raceDateKst || ev.weekendEnd));
+// 행·카드의 기준 시각: 시작 시각(UTC). 없으면 서킷 현지 주말 마지막 날 정오(이벤트 고유 정보라 race.timezone으로).
+const dateOf = (ev) => (ev.startUtc ? new Date(ev.startUtc) : zonedDateFromKey(ev.weekendEnd, '12:00', ev.timezone || 'UTC'));
 const sameMinute = (a, b) => Math.floor(new Date(a).getTime() / 60000) === Math.floor(new Date(b).getTime() / 60000);
 
 function josa(word, withBatchim, noBatchim) {
@@ -36,27 +36,30 @@ function roundText(ev) {
   return r ? `R${String(r).padStart(2, '0')}` : 'EVENT';
 }
 
-function dow(date) { return formatKstDate(date).slice(-2, -1); }        // '09.26 (토)' → '토'
-function md(date) { return formatKstDate(date).slice(0, 5); }           // '09.26'
+// 시청자 시간대 기준 '09.26' / '토' — format.getParts에서 직접 (문자열 슬라이싱 금지)
+const md = (fmt, date) => { const p = fmt.parts(date); return p ? `${p.month}.${p.day}` : ''; };
+const dow = (fmt, date) => fmt.parts(date)?.weekdayName || '';
 
-function heroReason(ev, ts, kind, now) {
+function heroReason(ev, ts, kind, now, fmt) {
   if (kind === 'live') return { text: '지금 진행 중', urgent: true };
   if (kind === 'soon') {
     const ms = ts.start - now; const h = Math.floor(ms / 3600000); const m = Math.max(1, Math.round((ms % 3600000) / 60000));
-    return { text: `${isNightKst(ts.start) ? '오늘 밤' : '오늘'} · ${h >= 1 ? `${h}시간 뒤 시작` : `${m}분 뒤 시작`}`, urgent: true };
+    return { text: `${fmt.isNight(ts.start) ? '오늘 밤' : '오늘'} · ${h >= 1 ? `${h}시간 뒤 시작` : `${m}분 뒤 시작`}`, urgent: true };
   }
   if (kind === 'today') return { text: '오늘 진행 · 시작 시각 미정', urgent: false };
-  const ref = ts.start ? getDateKeyInKst(ts.start) : ev.weekendEnd;
-  const d = Math.max(0, Math.round((fromKey(ref) - fromKey(getDateKeyInKst(now))) / DAY_MS));
+  // D-day: 시작 시각이 있으면 시청자 시간대의 날짜 차이, 없으면 서킷 현지 주말 마지막 날 기준
+  const ref = ts.start || zonedDateFromKey(ev.weekendEnd, '12:00', ev.timezone || 'UTC');
+  const d = Math.max(0, fmt.dayDiff(ref, now) ?? 0);
   return { text: `다음 레이싱 위켄드 · D-${d}`, urgent: false };
 }
 
-function heroClock(ev, ts, kind) {
+function heroClock(ev, ts, kind, fmt) {
   const st = ts.start;
   if (kind === 'live') return { big: 'LIVE', urgent: true, sub: '진행 중' };
-  if (kind === 'soon') return { big: null, countdown: st, urgent: true, sub: `${formatKstDate(st)} ${formatKstTime(st)} KST${isNightKst(st) ? ' · 심야' : ''}` };
-  if (kind === 'today' || !st) return { big: `${md(fromKey(ev.weekendStart))} – ${md(fromKey(ev.weekendEnd))}`, urgent: false, sub: '시작 시각 미정 · 확정되면 알려드립니다' };
-  return { big: md(st), urgent: false, sub: `${dow(st)}요일 ${formatKstTime(st)} KST${isNightKst(st) ? ' · 심야' : ''}` };
+  if (kind === 'soon') return { big: null, countdown: st, urgent: true, sub: `${fmt.shortDateTime(st)}${fmt.isNight(st) ? ' · 심야' : ''}` };
+  // 주말 기간은 이벤트 고유 정보 — 서킷 현지 날짜 그대로
+  if (kind === 'today' || !st) return { big: `${fmt.plainMonthDay(ev.weekendStart)} – ${fmt.plainMonthDay(ev.weekendEnd)}`, urgent: false, sub: '시작 시각 미정 · 확정되면 알려드립니다' };
+  return { big: md(fmt, st), urgent: false, sub: `${dow(fmt, st)}요일 ${fmt.time(st)}${fmt.isNight(st) ? ' · 심야' : ''}` };
 }
 
 function readAlerts() {
@@ -64,14 +67,15 @@ function readAlerts() {
 }
 
 // ---------- 1초 단위로 자기 DOM만 갱신하는 조각 (홈 전체 리렌더 없음) ----------
-function KstClock() {
+function Clock() {
+  const fmt = useFormat();
   const ref = useRef(null);
   useEffect(() => {
-    const tick = () => { if (ref.current) ref.current.textContent = formatKstTime(new Date()); };
+    const tick = () => { if (ref.current) ref.current.textContent = fmt.time(new Date()); };
     tick();
     const i = setInterval(tick, 1000);
     return () => clearInterval(i);
-  }, []);
+  }, [fmt]);
   return <b ref={ref} />;
 }
 
@@ -110,6 +114,7 @@ function SeriesBadge({ series }) {
 }
 
 function TimeStat({ ts, dateless }) {
+  const fmt = useFormat();
   const { state, start } = ts;
   if (state === 'cancelled') return <span className="time time--cancelled">취소</span>;
   if (state === 'live') return <span className="time time--live">LIVE</span>;
@@ -117,13 +122,14 @@ function TimeStat({ ts, dateless }) {
   if (state === 'done') return <span className="time time--done">종료</span>;
   return (
     <span className={`time${state === 'soon' ? ' time--soon' : ''}`}>
-      {isNightKst(start) && <span className="nightmark">심야</span>}
-      {dateless ? '' : `${formatKstDate(start)} `}{formatKstTime(start)}<span className="z">KST</span>
+      {fmt.isNight(start) && <span className="nightmark">심야</span>}
+      {dateless ? '' : `${fmt.shortDate(start)} `}{fmt.time(start)}
     </span>
   );
 }
 
 function Card2({ ev, ts, onOpen, small }) {
+  const fmt = useFormat();
   return (
     <button type="button" className="card2" style={small ? undefined : { marginTop: 0 }} onClick={() => onOpen(ev.race)}>
       <span className="ind" style={{ background: `var(${SERIES_VAR[ev.series]})` }} />
@@ -132,7 +138,7 @@ function Card2({ ev, ts, onOpen, small }) {
         <span className="ttl ko" style={{ display: 'block', fontSize: small ? 14 : undefined }}>{ev.displayName}</span>
         <span className="sub ko" style={{ display: 'block' }}>
           {small
-            ? `${ev.city || ''} · ${formatKstDate(fromKey(ev.weekendStart))} — ${formatKstDate(fromKey(ev.weekendEnd))}`
+            ? `${ev.city || ''} · ${fmt.plainShortDate(ev.weekendStart)} — ${fmt.plainShortDate(ev.weekendEnd)}`
             : ev.circuit || ''}
         </span>
       </span>
@@ -147,10 +153,11 @@ function Card2({ ev, ts, onOpen, small }) {
 }
 
 function Row({ ev, ts, dim, onOpen }) {
+  const fmt = useFormat();
   const d = dateOf(ev);
   return (
     <button type="button" className={`rowitem${dim ? ' dim' : ''}`} onClick={() => onOpen(ev.race)}>
-      <span className="dt">{md(d)} <em>{dow(d)}</em></span>
+      <span className="dt">{md(fmt, d)} <em>{dow(fmt, d)}</em></span>
       <span className="ind" style={{ background: `var(${SERIES_VAR[ev.series]})` }} />
       <span className="nm ko">{ev.displayName}</span>
       <span className="side"><span className="rd">{ev.series} {roundText(ev)}</span><TimeStat ts={ts} dateless /></span>
@@ -166,25 +173,25 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
   useEffect(() => { try { localStorage.setItem(ALERTS_KEY, JSON.stringify([...alerts])); } catch { /* ignore */ } }, [alerts]);
   const toggleAlert = (id) => setAlerts((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
 
+  const fmt = useFormat();
   const at = useMemo(() => (now instanceof Date ? now : new Date(now)), [now]);
-  const todayKey = getDateKeyInKst(at);
 
   // 관심 경기(myRaces)와 전체(races)를 홈 형태로. 시간 상태는 한 번만 계산해 id로 찾는다.
   const mine = useMemo(() => adaptRaces(myRaces || [], preferences), [myRaces, preferences]);
   const all = useMemo(() => adaptRaces(races || [], preferences), [races, preferences]);
   const stateOf = useMemo(() => {
     const map = new Map();
-    for (const ev of all) map.set(ev.id, resolveTimeState(ev.race, at));
+    for (const ev of all) map.set(ev.id, resolveTimeState(ev.race, at, { timeZone: fmt.timeZone }));
     return map;
-  }, [all, at]);
-  const ts = (ev) => stateOf.get(ev.id) || resolveTimeState(ev.race, at);
+  }, [all, at, fmt.timeZone]);
+  const ts = (ev) => stateOf.get(ev.id) || resolveTimeState(ev.race, at, { timeZone: fmt.timeZone });
   const interest = (ev) => interestOf(preferences, ev.series);
 
   // --- 히어로 한 자리. 무엇이 들어갈지는 긴급도가 정한다 (스펙 4장). ---
   let hero = null; let kind = null; let heroWeek = null;
   const live = mine.filter((ev) => ts(ev).state === 'live');
   const soon = mine.filter((ev) => ts(ev).state === 'soon').sort((a, b) => ts(a).start - ts(b).start);
-  const todayTba = mine.filter((ev) => ts(ev).state === 'tba' && ev.weekendStart <= todayKey && todayKey <= ev.weekendEnd);
+  const todayTba = mine.filter((ev) => { const s = ts(ev); return s.state === 'tba' && s.weekendStart && s.weekendEnd && s.weekendStart <= at && at <= s.weekendEnd; });
   if (live.length) { hero = live[0]; kind = 'live'; }
   else if (soon.length) { hero = soon[0]; kind = 'soon'; }
   else if (todayTba.length) { hero = todayTba[0]; kind = 'today'; }
@@ -231,7 +238,7 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
           <div className="sub ko">{watching}개 시리즈를 보고 있습니다</div>
         </div>
         <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-          <span className="clock m">KST <KstClock /></span>
+          <span className="clock m">{fmt.zoneLabel} <Clock /></span>
           <div className="mobtools">
             <button type="button" className="iconbtn" aria-label="설정" onClick={() => onGo('settings')}><Icon name="sliders" /></button>
             <button type="button" className="iconbtn" aria-label="테마 전환" onClick={() => setTheme?.(theme === 'dark' ? 'light' : 'dark')}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /></button>
@@ -241,8 +248,8 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
 
       {hero ? (() => {
         const hts = ts(hero);
-        const reason = heroReason(hero, hts, kind, at);
-        const clock = heroClock(hero, hts, kind);
+        const reason = heroReason(hero, hts, kind, at, fmt);
+        const clock = heroClock(hero, hts, kind, fmt);
         const chans = hero.broadcast;
         const urgent = kind === 'live' || kind === 'soon';
         const faved = favorites?.has(hero.id);
