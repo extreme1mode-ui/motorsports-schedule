@@ -1,5 +1,6 @@
 import seasonRaces from './season-2026.json' with { type: 'json' };
 import { SUPPORTED_SERIES } from './constants.js';
+import { getRaceKey } from './highlights.js';
 import {
   buildNormalizedRace,
   coerceIsoWithOffset,
@@ -58,18 +59,34 @@ const normalizeMeetingName = (name) => String(name || '').toLowerCase().replace(
 function matchStaticF1(meetings, staticF1) {
   const matches = new Map();
   const claimed = new Set();
+  const claim = (meeting, race, full) => { claimed.add(race.id); matches.set(meeting.meeting_key, { race, full }); };
+  const localRaceDay = (meeting) => getDateKeyWithOffset(meeting.date_end, meeting.gmt_offset?.slice(0, 6) || '+00:00');
+
+  // 1차: `${series}:${raceDateLocal}` 정확 일치 (큐레이션 데이터와 같은 키 — highlights.getRaceKey)
   for (const meeting of meetings) {
+    const key = `F1:${localRaceDay(meeting)}`;
+    const exact = staticF1.find((race) => !claimed.has(race.id) && getRaceKey(race) === key);
+    if (exact) claim(meeting, exact, true);
+  }
+  // 2차: 주말 날짜 구간 겹침 (경기일이 하루 어긋난 경우의 안전망)
+  for (const meeting of meetings) {
+    if (matches.has(meeting.meeting_key)) continue;
     const offset = meeting.gmt_offset?.slice(0, 6) || '+00:00';
     const start = getDateKeyWithOffset(meeting.date_start, offset);
     const end = getDateKeyWithOffset(meeting.date_end, offset);
     const byDate = staticF1.find((race) => !claimed.has(race.id) && race.weekendStart && race.weekendEnd && race.weekendStart <= end && start <= race.weekendEnd);
-    if (byDate) { claimed.add(byDate.id); matches.set(meeting.meeting_key, { race: byDate, full: true }); }
+    if (byDate) claim(meeting, byDate, true);
   }
+  // 3차: 이름이 유일하게 맞으면 정체성 필드만 (취소된 4월 바레인처럼 옮겨진 대회의 옛 일정)
   for (const meeting of meetings) {
     if (matches.has(meeting.meeting_key)) continue;
     const key = normalizeMeetingName(meeting.meeting_name);
     const byName = staticF1.filter((race) => normalizeMeetingName(race.name) === key);
     if (byName.length === 1) matches.set(meeting.meeting_key, { race: byName[0], full: false });
+  }
+  const unmatched = meetings.filter((meeting) => !meeting.is_cancelled && !matches.get(meeting.meeting_key)?.full);
+  if (unmatched.length) {
+    console.warn(`[schedule] OpenF1 F1 경기 ${unmatched.length}건이 season-2026.json과 매칭되지 않아 한글 표시명 없이 표시됩니다: ${unmatched.map((m) => `${m.meeting_name} (${localRaceDay(m)})`).join(', ')}`);
   }
   return matches;
 }
