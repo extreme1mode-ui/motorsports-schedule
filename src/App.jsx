@@ -1,23 +1,30 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getCurrentNow, useScheduleData, usePreferences, filterRacesByPreferences } from './schedule/index.js';
 import { TOKENS, Mono } from './primitives.jsx';
-import { Home } from './home.jsx';
+import { Home } from './home/Home.jsx';
 import { Schedule, SeriesView, Favorites, RaceDetail } from './screens.jsx';
 import { WebApp, useViewport } from './web.jsx';
 import { Onboarding } from './onboarding.jsx';
 import { Settings } from './settings.jsx';
+import { readTheme } from './preferences-options.js';
 
 export default function Root() {
   const prefs = usePreferences();
   const { isWeb } = useViewport();
+  // 테마는 여기서만 관리한다. 저장 키 paddock.theme, 초기값 readTheme()는 기존 그대로.
+  const [theme, setTheme] = useState(readTheme);
+  useEffect(() => {
+    localStorage.setItem('paddock.theme', theme);
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
   if (!prefs.preferences.onboarded) return <Onboarding {...prefs} />;
-  if (isWeb) return <WebApp {...prefs} />;
-  return <App {...prefs} />;
+  if (isWeb) return <WebApp theme={theme} setTheme={setTheme} {...prefs} />;
+  return <App theme={theme} setTheme={setTheme} {...prefs} />;
 }
 
-function App(prefs) {
+function App({ theme, setTheme, ...prefs }) {
   const { preferences } = prefs;
-  const [theme, setTheme] = useState(() => localStorage.getItem('paddock.theme') || 'dark');
   const [view, setView] = useState('home');
   const [categoryFilter, setCategoryFilter] = useState(null);
   const [openRaceId, setOpenRaceId] = useState(null);
@@ -28,33 +35,33 @@ function App(prefs) {
   const [now, setNow] = useState(() => getCurrentNow());
   const [tweaks, setTweaks] = useState(false);
   const schedule = useScheduleData(now);
-  const raceList = Array.isArray(schedule.races) ? schedule.races : [];
+  const raceList = useMemo(() => (Array.isArray(schedule.races) ? schedule.races : []), [schedule.races]);
   const safeSeasonYear = Number.isFinite(schedule.seasonYear)
     ? schedule.seasonYear
     : Number((raceList.find((race) => race?.raceDateKst)?.raceDateKst || '').slice(0, 4)) || 2026;
   const openRace = raceList.find((race) => race.id === openRaceId) || null;
-  const myRaces = filterRacesByPreferences(raceList, preferences, favorites);
+  const myRaces = useMemo(() => filterRacesByPreferences(raceList, preferences, favorites), [raceList, preferences, favorites]);
 
   useEffect(() => {
     const i = setInterval(() => setNow(getCurrentNow()), 1000);
     return () => clearInterval(i);
   }, []);
 
-  useEffect(() => { localStorage.setItem('paddock.theme', theme); }, [theme]);
   useEffect(() => { localStorage.setItem('paddock.fav', JSON.stringify([...favorites])); }, [favorites]);
 
-  const toggleFav = (id) => {
+  // Home은 memo로 감싸져 있어 콜백 참조가 안정적이어야 한다 (1초 setNow에 통째로 리렌더되지 않게).
+  const toggleFav = useCallback((id) => {
     setFavorites(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
-  };
-
-  const onGo = (v, arg) => {
+  }, []);
+  const onOpenRace = useCallback((race) => setOpenRaceId(race.id), []);
+  const onGo = useCallback((v, arg) => {
     if (v === 'series') { setCategoryFilter(arg); setView('series'); }
     else setView(v);
-  };
+  }, []);
 
   const t = TOKENS[theme];
   const mobileBottomNavSpace = 'calc(92px + env(safe-area-inset-bottom, 0px))';
@@ -75,10 +82,10 @@ function App(prefs) {
         WebkitOverflowScrolling: 'touch',
         paddingBottom: mobileBottomNavSpace,
       }}>
-        {view === 'home' && <Home theme={theme} now={now} races={raceList} myRaces={myRaces} onOpenRace={(race) => setOpenRaceId(race.id)} onGo={onGo} favorites={favorites} toggleFav={toggleFav} seasonYear={safeSeasonYear} />}
+        {view === 'home' && <Home theme={theme} setTheme={setTheme} now={now} races={raceList} myRaces={myRaces} preferences={preferences} favorites={favorites} toggleFav={toggleFav} onOpenRace={onOpenRace} onGo={onGo} setSeriesMode={prefs.setSeriesMode} />}
         {view === 'schedule' && <Schedule theme={theme} races={raceList} onOpenRace={(race) => setOpenRaceId(race.id)} now={now} seasonYear={safeSeasonYear} />}
         {view === 'series' && <SeriesView theme={theme} races={raceList} onOpenRace={(race) => setOpenRaceId(race.id)} initialCategory={categoryFilter || 'F1'} seasonYear={safeSeasonYear} />}
-        {view === 'fav' && <Favorites theme={theme} races={raceList} favorites={favorites} onOpenRace={(race) => setOpenRaceId(race.id)} toggleFav={toggleFav} />}
+        {view === 'fav' && <Favorites theme={theme} races={raceList} myRaces={myRaces} favorites={favorites} onOpenRace={(race) => setOpenRaceId(race.id)} toggleFav={toggleFav} />}
         {view === 'settings' && <Settings theme={theme} onGo={onGo} {...prefs} />}
       </div>
 

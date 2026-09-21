@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { TOKENS, MONTHS_KO, DAYS_KO, kstDate, fmtDate, fmtDateFull, Mono, SeriesTag, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
-import { CATEGORIES, SERIES, getVisibleSessions } from './schedule/index.js';
+import { CATEGORIES, SERIES, getVisibleSessions, getSeriesStats } from './schedule/index.js';
 import { PageHeader } from './web.jsx';
-import { SectionTitle } from './web-home.jsx';
+import { SectionTitle } from './web.jsx';
 
 export function WebSchedule({ theme, races, onOpenRace, now, tier, seasonYear }) {
   const t = TOKENS[theme];
@@ -99,7 +99,7 @@ function BigMonthGrid({ theme, month, races, onOpen, now, seasonYear }) {
       background: theme === 'dark' ? '#0E1014' : '#fff',
       border: `1px solid ${t.line}`, borderRadius: 16, padding: 14,
     }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', marginBottom: 8 }}>
         {DAYS_KO.map((d, i) => (
           <Mono key={d} size={10}
             color={i === 0 ? '#FF6B7A' : i === 6 ? '#6BA3FF' : t.text3}
@@ -109,7 +109,7 @@ function BigMonthGrid({ theme, month, races, onOpen, now, seasonYear }) {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 6 }}>
         {cells.map((d, i) => {
           if (!d) return <div key={i} style={{ minHeight: 96 }} />;
           const dayRaces = byDay[d] || [];
@@ -118,7 +118,7 @@ function BigMonthGrid({ theme, month, races, onOpen, now, seasonYear }) {
           const isSun = i % 7 === 0; const isSat = i % 7 === 6;
           return (
             <div key={i} onClick={() => dayRaces[0] && onOpen(dayRaces[0])} style={{
-              minHeight: 96, borderRadius: 10, padding: 8,
+              minHeight: 96, minWidth: 0, borderRadius: 10, padding: 8,
               background: isToday ? (theme === 'dark' ? '#fff' : '#111') : 'transparent',
               border: `1px solid ${isToday ? 'transparent' : t.line}`,
               cursor: dayRaces.length ? 'pointer' : 'default',
@@ -130,7 +130,7 @@ function BigMonthGrid({ theme, month, races, onOpen, now, seasonYear }) {
                 style={{ display: 'block' }}>
                 {d}
               </Mono>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 6, flex: 1 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 6, flex: 1, minWidth: 0 }}>
                 {dayRaces.slice(0, 3).map((r, j) => (
                   <div key={j} title={r.name} style={{
                     fontSize: 10, fontWeight: 600, letterSpacing: '-0.005em',
@@ -190,7 +190,7 @@ function WebScheduleRow({ race, theme, onOpen }) {
           fontSize: 15, fontWeight: 600, color: t.text, letterSpacing: '-0.005em',
           textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap',
           textDecoration: race.status === 'cancelled' ? 'line-through' : 'none',
-        }}>{race.name}</div>
+        }}>{race.shortName || race.name}</div>
         <div style={{ fontSize: 12, color: t.text3, marginTop: 2,
           textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap',
         }}>{race.circuit}{race.country ? ` · ${race.country}` : ''}</div>
@@ -235,10 +235,7 @@ export function WebSeries({ theme, races, onOpenRace, initialCategory, tier, sea
   useEffect(() => { if (initialCategory) setSel(initialCategory); }, [initialCategory]);
   const s = CATEGORIES[sel];
   const list = races.filter(r => r.category === sel).sort((a, b) => a.raceDateKst.localeCompare(b.raceDateKst));
-  const roundCount = list.filter(r => r.includeInRoundCount !== false).length;
-  const done = list.filter(r => r.status === 'completed' && r.includeInRoundCount !== false).length;
-  const cancelled = list.filter(r => r.status === 'cancelled').length;
-  const upcoming = list.filter(r => r.status === 'upcoming' && r.includeInRoundCount !== false).length;
+  const { rounds: roundCount, done, cancelled, upcoming } = getSeriesStats(list);
 
   return (
     <div>
@@ -267,7 +264,7 @@ export function WebSeries({ theme, races, onOpenRace, initialCategory, tier, sea
         borderRadius: 20, marginBottom: 28, position: 'relative', overflow: 'hidden',
       }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: s.accent }} />
-        <svg style={{ position: 'absolute', top: 0, right: -40, opacity: 0.45, pointerEvents: 'none' }}
+        <svg style={{ position: 'absolute', top: 0, right: 0, opacity: 0.45, pointerEvents: 'none' }}
           width="500" height="100%" viewBox="0 0 500 240" preserveAspectRatio="none">
           {Array.from({ length: 12 }, (_, i) => (
             <line key={i} x1={i * 50 - 80} y1={0} x2={i * 50 + 160} y2={240}
@@ -367,7 +364,7 @@ function WebRoundRow({ race, idx, theme, onOpen }) {
         <div style={{
           fontSize: 15, fontWeight: 600, color: t.text, letterSpacing: '-0.005em',
           textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap',
-        }}>{race.name}</div>
+        }}>{race.shortName || race.name}</div>
         <div style={{ fontSize: 11, color: t.text3, marginTop: 2,
           textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap',
         }}>{race.circuit}{race.country ? ` · ${race.country}` : ''}</div>
@@ -380,9 +377,11 @@ function WebRoundRow({ race, idx, theme, onOpen }) {
   );
 }
 
-export function WebFavorites({ theme, races, favorites, onOpenRace, toggleFav, tier }) {
+export function WebFavorites({ theme, races, myRaces, favorites, onOpenRace, toggleFav, tier }) {
   const t = TOKENS[theme];
   const favList = races.filter(r => favorites.has(r.id)).sort((a, b) => a.raceDateKst.localeCompare(b.raceDateKst));
+  // 빈 상태 추천: 다가오는 관심 경기 3개 (프로토타입 저장 화면과 같은 규칙)
+  const recs = (Array.isArray(myRaces) ? myRaces : races).filter(r => r.status === 'upcoming' || r.status === 'live').slice(0, 3);
   const cols = tier === 'ultra' ? 3 : 2;
 
   return (
@@ -405,10 +404,18 @@ export function WebFavorites({ theme, races, favorites, onOpenRace, toggleFav, t
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
             </svg>
           </div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: t.text, marginBottom: 8 }}>아직 즐겨찾기한 경기가 없어요</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: t.text, marginBottom: 8 }}>아직 저장한 경기가 없어요</div>
           <div style={{ fontSize: 13, color: t.text3, lineHeight: 1.6, maxWidth: 360, margin: '0 auto' }}>
-            홈이나 일정에서 ♥를 눌러 관심 경기를 저장하세요.<br/>알림과 캘린더 연동도 함께 받아볼 수 있어요.
+            놓치고 싶지 않은 경기를 담아두면 시작 전에 알려드립니다.
           </div>
+          {recs.length > 0 && (
+            <div style={{ marginTop: 32, textAlign: 'left', maxWidth: 720, marginLeft: 'auto', marginRight: 'auto' }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: t.text, marginBottom: 12 }}>이건 어떠세요</div>
+              <div style={{ display: 'grid', gap: 10 }}>
+                {recs.map(r => <WebRecommendRow key={r.id} race={r} theme={theme} onOpen={() => onOpenRace(r)} onSave={() => toggleFav(r.id)} />)}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 12 }}>
@@ -416,6 +423,30 @@ export function WebFavorites({ theme, races, favorites, onOpenRace, toggleFav, t
             onOpen={() => onOpenRace(r)} toggleFav={toggleFav} />)}
         </div>
       )}
+    </div>
+  );
+}
+
+// 즐겨찾기 빈 상태 추천 행: 열기 + 바로 저장
+function WebRecommendRow({ race, theme, onOpen, onSave }) {
+  const t = TOKENS[theme];
+  const s = SERIES[race.series];
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: theme === 'dark' ? '#0E1014' : '#fff', border: `1px solid ${t.line}`, borderRadius: 12 }}>
+      <div style={{ width: 4, height: 44, background: s.accent, borderRadius: 3, flex: 'none' }} />
+      <button onClick={onOpen} style={{ flex: 1, minWidth: 0, background: 'none', border: 0, padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <SeriesTag series={race.series} theme={theme} variant="ghost" />
+          <Mono size={10} color={t.text3}>{getRoundDisplay(race)}</Mono>
+        </div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: t.text, letterSpacing: '-0.01em', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{race.shortName || race.name}</div>
+        <div style={{ fontSize: 12, color: t.text3, marginTop: 2 }}>{race.circuit}</div>
+      </button>
+      <div style={{ textAlign: 'right', flex: 'none' }}>
+        <Mono size={11} color={t.text3} style={{ display: 'block' }}>{fmtDate(race.raceDateKst)}</Mono>
+        <Mono size={13} weight={600} color={t.text} style={{ display: 'block', marginTop: 2 }}>{race.kstTime || 'TBA'}</Mono>
+      </div>
+      <button onClick={onSave} style={{ flex: 'none', minHeight: 44, padding: '0 14px', borderRadius: 10, border: `1px solid ${t.line2}`, background: 'transparent', color: t.text, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>저장하기</button>
     </div>
   );
 }
@@ -503,7 +534,7 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
           background: theme === 'dark' ? s.dark : s.tint,
           position: 'relative', overflow: 'hidden',
         }}>
-          <svg style={{ position: 'absolute', top: 0, right: -30, opacity: 0.5, pointerEvents: 'none' }}
+          <svg style={{ position: 'absolute', top: 0, right: 0, opacity: 0.5, pointerEvents: 'none' }}
             width="400" height="100%" viewBox="0 0 400 320" preserveAspectRatio="none">
             {Array.from({ length: 10 }, (_, i) => (
               <line key={i} x1={i * 45 - 60} y1={0} x2={i * 45 + 140} y2={320}

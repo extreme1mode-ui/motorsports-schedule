@@ -45,19 +45,54 @@ function selectPrimarySession(sessions) {
     || sessions[0];
 }
 
-function mapOpenF1Meeting(meeting, sessions) {
+// OpenF1 meeting ↔ season-2026.json의 F1 레코드 매칭. 키는 **주말 날짜 구간 겹침(현지 날짜)**.
+//  - round: OpenF1 응답에 없고, 정적 라운드도 재편됨(바레인 4→16) → 불안정
+//  - name : 'Barcelona Grand Prix' ≠ 'Barcelona-Catalunya Grand Prix', 'Bahrain Grand Prix'가 2건(4월 취소분·10월 세팡) → 모호
+//  - date : F1은 같은 주에 두 대회가 없고, 연기된 바레인도 정적 데이터가 10월로 반영돼 있어 1:1 → 채택
+// 1차: 날짜 겹침으로 정적 레코드를 '점유'(전체 필드 차용). 2차: 남은 meeting은 이름이 유일하게 맞을 때만
+// 이벤트 정체성 필드(nameKo/shortNameKo/countryKo)만 빌린다 — 취소된 4월 바레인이 10월 세팡의 round·시간대를 물려받지 않게.
+const STATIC_KO_FIELDS = ['nameKo', 'shortNameKo', 'circuitKo', 'cityKo', 'countryKo'];
+const STATIC_IDENTITY_FIELDS = ['nameKo', 'shortNameKo', 'countryKo'];
+const normalizeMeetingName = (name) => String(name || '').toLowerCase().replace(/grand prix/g, '').replace(/[^a-z0-9]/g, '');
+
+function matchStaticF1(meetings, staticF1) {
+  const matches = new Map();
+  const claimed = new Set();
+  for (const meeting of meetings) {
+    const offset = meeting.gmt_offset?.slice(0, 6) || '+00:00';
+    const start = getDateKeyWithOffset(meeting.date_start, offset);
+    const end = getDateKeyWithOffset(meeting.date_end, offset);
+    const byDate = staticF1.find((race) => !claimed.has(race.id) && race.weekendStart && race.weekendEnd && race.weekendStart <= end && start <= race.weekendEnd);
+    if (byDate) { claimed.add(byDate.id); matches.set(meeting.meeting_key, { race: byDate, full: true }); }
+  }
+  for (const meeting of meetings) {
+    if (matches.has(meeting.meeting_key)) continue;
+    const key = normalizeMeetingName(meeting.meeting_name);
+    const byName = staticF1.filter((race) => normalizeMeetingName(race.name) === key);
+    if (byName.length === 1) matches.set(meeting.meeting_key, { race: byName[0], full: false });
+  }
+  return matches;
+}
+
+function mapOpenF1Meeting(meeting, sessions, match = null) {
   const orderedSessions = [...sessions].sort((left, right) => new Date(left.date_start) - new Date(right.date_start));
   const primary = selectPrimarySession(orderedSessions);
   const offset = meeting.gmt_offset?.slice(0, 6) || '+00:00';
-  const timezone = offsetToDisplayName(offset);
+  const staticRace = match?.race ?? null;
+  const koFields = match ? (match.full ? STATIC_KO_FIELDS : STATIC_IDENTITY_FIELDS) : [];
+  // IANA 시간대는 날짜로 매칭된 정적 레코드에서. 없으면 'UTC+HH:MM' 표기(utils.localDateTimeToUtc가 처리).
+  const timezone = (match?.full && staticRace?.timezone) || offsetToDisplayName(offset);
   const primaryIso = coerceIsoWithOffset(primary?.date_start || meeting.date_end || meeting.date_start);
   const primaryDate = primaryIso ? new Date(primaryIso) : null;
 
   return {
     id: `f1-${meeting.meeting_key}`,
     series: 'F1',
-    round: null,
+    round: match?.full ? (staticRace.round ?? null) : null,
     name: meeting.meeting_name,
+    // 정적 데이터의 한글 표시명 보존 (없으면 null → 영문 폴백)
+    ...Object.fromEntries(koFields.map((field) => [field, staticRace?.[field] ?? null])),
+    status: meeting.is_cancelled ? 'cancelled' : 'scheduled',
     shortName: meeting.meeting_name?.replace(/ Grand Prix/i, ' GP') || meeting.meeting_name,
     eventName: meeting.meeting_name,
     circuit: orderedSessions[0]?.circuit_short_name || meeting.location,
@@ -106,9 +141,13 @@ async function fetchOpenF1Schedule(year) {
     return next;
   }, new Map());
 
-  return meetings
-    .filter(isGrandPrixMeeting)
-    .map((meeting) => mapOpenF1Meeting(meeting, sessionsByMeeting.get(meeting.meeting_key) || []));
+  const grandPrix = meetings.filter(isGrandPrixMeeting);
+  const matches = matchStaticF1(grandPrix, getStaticFallbackRaces().filter((race) => race.series === 'F1'));
+  return grandPrix
+    // 취소된 meeting이 이름으로만 매칭됐다면(= 같은 이름의 정적 레코드를 다른 날짜의 meeting이 이미 점유) 옮겨진 대회의
+    // 옛 일정이다. 정적 데이터는 이를 한 라운드로 취급하므로 여기서도 뺀다 (예: 4월 바레인 → 10월 세팡).
+    .filter((meeting) => !(meeting.is_cancelled && matches.get(meeting.meeting_key) && !matches.get(meeting.meeting_key).full))
+    .map((meeting) => mapOpenF1Meeting(meeting, sessionsByMeeting.get(meeting.meeting_key) || [], matches.get(meeting.meeting_key) || null));
 }
 
 export async function loadScheduleData(year, now = new Date()) {

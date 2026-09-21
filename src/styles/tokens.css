@@ -1,0 +1,38 @@
+/* 홈(새 화면) 전용 CSS 변수 토큰. design/paddock-home.html의 토큰 블록을 그대로 복사한 것 — 값을 손보지 말 것.
+   기존 화면은 primitives.jsx의 TOKENS 인라인 스타일을 계속 쓴다. */
+
+:root,[data-theme="dark"]{
+  --bg:#07080B; --surface:#0E1015; --surface2:#14171E; --surface3:#1C2029;
+  --line:rgba(255,255,255,.07); --line2:rgba(255,255,255,.13);
+  --text:#F4F5F7; --text2:#A5A9B4; --text3:#7C818E;  /* QA 9: text3 #6B6F7B → 대비 4.5+ */
+  --brand:#F2F4F7; --onbrand:#0B0C10;
+  --signal:#FFD400; --signal-ink:#FFD400;
+  --signal-line:rgba(255,212,0,.28); --signal-wash:rgba(255,212,0,.07);
+  --f1:#E10600; --wec:#2E7DFF; --imsa:#14D19B; --wrc:#FF8A00; --gtwc:#A77BFF;
+  --scrim:rgba(0,0,0,.6);
+  --heroscrim:linear-gradient(100deg,rgba(14,16,21,.94) 0%,rgba(14,16,21,.70) 48%,rgba(14,16,21,.14) 100%);
+  --heroscrim-m:linear-gradient(180deg,rgba(14,16,21,.14) 0%,rgba(14,16,21,.66) 46%,rgba(14,16,21,.96) 80%);
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+[data-theme="light"]{
+  --bg:#F2F3F5; --surface:#FFFFFF; --surface2:#F7F8FA; --surface3:#EBEDF1;
+  --line:rgba(16,18,24,.09); --line2:rgba(16,18,24,.16);
+  --text:#14161C; --text2:#565B67; --text3:#6A6E78;  /* QA 9: text3 #878C99 → 대비 4.5+ */
+  --brand:#14161C; --onbrand:#FFFFFF;
+  --signal:#FFD400; --signal-ink:#8C6800;  /* QA 10: #916C00 → 페이지 배경 위에서도 4.5+ */
+  --signal-line:rgba(145,108,0,.30); --signal-wash:rgba(255,212,0,.14);
+  --f1:#C10500; --wec:#1C5FD1; --imsa:#00926A; --wrc:#C06400; --gtwc:#6F45CC;
+  --scrim:rgba(20,22,28,.35);
+  --heroscrim:linear-gradient(100deg,rgba(255,255,255,.95) 0%,rgba(255,255,255,.78) 48%,rgba(255,255,255,.26) 100%);
+  --heroscrim-m:linear-gradient(180deg,rgba(255,255,255,.18) 0%,rgba(255,255,255,.74) 46%,rgba(255,255,255,.98) 80%);
+}
+
+/* ---------- HERO v2 : 화면에서 가장 큰 것 = 가장 급한 것 ---------- */
+:root,[data-theme="dark"]{
+  --h2scrim:linear-gradient(180deg,rgba(14,16,21,.18) 0%,rgba(14,16,21,.72) 48%,rgba(14,16,21,.97) 92%);
+  --h2scrim-x:linear-gradient(95deg,rgba(14,16,21,.72) 0%,rgba(14,16,21,.30) 46%,rgba(14,16,21,0) 78%);
+}
+[data-theme="light"]{
+  --h2scrim:linear-gradient(180deg,rgba(255,255,255,.18) 0%,rgba(255,255,255,.72) 50%,rgba(255,255,255,.97) 92%);
+  --h2scrim-x:linear-gradient(95deg,rgba(255,255,255,.78) 0%,rgba(255,255,255,.34) 48%,rgba(255,255,255,0) 80%);
+}

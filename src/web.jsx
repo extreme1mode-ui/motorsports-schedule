@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { TOKENS, Mono, SeriesTag } from './primitives.jsx';
 import { getCurrentNow, useScheduleData, filterRacesByPreferences } from './schedule/index.js';
-import { WebHome } from './web-home.jsx';
+import { Home } from './home/Home.jsx';
 import { WebSchedule, WebSeries, WebFavorites, RaceDrawer } from './web-screens.jsx';
 import { Settings } from './settings.jsx';
 
@@ -19,9 +19,8 @@ export function useViewport() {
   return { w, tier, isWeb: w >= 900 };
 }
 
-export function WebApp(prefs) {
+export function WebApp({ theme, setTheme, ...prefs }) {
   const { preferences } = prefs;
-  const [theme, setTheme] = useState(() => localStorage.getItem('paddock.theme') || 'dark');
   const [view, setView] = useState('home');
   const [categoryFilter, setCategoryFilter] = useState(null);
   const [openRaceId, setOpenRaceId] = useState(null);
@@ -33,18 +32,17 @@ export function WebApp(prefs) {
   const [tweaks, setTweaks] = useState(false);
   const { tier } = useViewport();
   const schedule = useScheduleData(now);
-  const raceList = Array.isArray(schedule.races) ? schedule.races : [];
+  const raceList = useMemo(() => (Array.isArray(schedule.races) ? schedule.races : []), [schedule.races]);
   const safeSeasonYear = Number.isFinite(schedule.seasonYear)
     ? schedule.seasonYear
     : Number((raceList.find((race) => race?.raceDateKst)?.raceDateKst || '').slice(0, 4)) || 2026;
   const openRace = raceList.find((race) => race.id === openRaceId) || null;
-  const myRaces = filterRacesByPreferences(raceList, preferences, favorites);
+  const myRaces = useMemo(() => filterRacesByPreferences(raceList, preferences, favorites), [raceList, preferences, favorites]);
 
   useEffect(() => {
     const i = setInterval(() => setNow(getCurrentNow()), 1000);
     return () => clearInterval(i);
   }, []);
-  useEffect(() => { localStorage.setItem('paddock.theme', theme); }, [theme]);
   useEffect(() => { localStorage.setItem('paddock.fav', JSON.stringify([...favorites])); }, [favorites]);
 
   useEffect(() => {
@@ -57,18 +55,19 @@ export function WebApp(prefs) {
     return () => window.removeEventListener('message', handler);
   }, []);
 
-  const toggleFav = (id) => {
+  // Home은 memo로 감싸져 있어 콜백 참조가 안정적이어야 한다 (1초 setNow에 통째로 리렌더되지 않게).
+  const toggleFav = useCallback((id) => {
     setFavorites(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
-  };
-  const onOpenRace = (r) => setOpenRaceId(r.id);
-  const onGo = (v, arg) => {
+  }, []);
+  const onOpenRace = useCallback((r) => setOpenRaceId(r.id), []);
+  const onGo = useCallback((v, arg) => {
     if (v === 'series') { setCategoryFilter(arg); setView('series'); }
     else setView(v);
-  };
+  }, []);
 
   const t = TOKENS[theme];
   const sidebarWidth = tier === 'tablet' ? 76 : 240;
@@ -87,13 +86,13 @@ export function WebApp(prefs) {
 
       <main style={{ padding: `${gutter + 8}px ${gutter}px ${gutter * 2}px`, maxWidth: '100%', minWidth: 0 }}>
         <div style={{ maxWidth: maxMain, margin: '0 auto' }}>
-          {view === 'home' && <WebHome theme={theme} now={now} races={raceList} myRaces={myRaces}
-            onOpenRace={onOpenRace} onGo={onGo} favorites={favorites} toggleFav={toggleFav} tier={tier} />}
+          {view === 'home' && <Home theme={theme} setTheme={setTheme} now={now} races={raceList} myRaces={myRaces}
+            preferences={preferences} favorites={favorites} toggleFav={toggleFav} onOpenRace={onOpenRace} onGo={onGo} setSeriesMode={prefs.setSeriesMode} />}
           {view === 'schedule' && <WebSchedule theme={theme} races={raceList}
             onOpenRace={onOpenRace} now={now} tier={tier} seasonYear={safeSeasonYear} />}
           {view === 'series' && <WebSeries theme={theme} races={raceList}
             onOpenRace={onOpenRace} initialCategory={categoryFilter || 'F1'} tier={tier} seasonYear={safeSeasonYear} />}
-          {view === 'fav' && <WebFavorites theme={theme} races={raceList}
+          {view === 'fav' && <WebFavorites theme={theme} races={raceList} myRaces={myRaces}
             favorites={favorites} onOpenRace={onOpenRace} toggleFav={toggleFav} tier={tier} />}
           {view === 'settings' && <Settings theme={theme} onGo={onGo} {...prefs} />}
         </div>
@@ -262,6 +261,17 @@ function SideIcon({ type, stroke }) {
   if (type === 'heart') return <svg {...common}><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>;
   if (type === 'gear') return <svg {...common}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>;
   return null;
+}
+
+// web-home.jsx에서 그대로 옮김 (web-screens.jsx가 쓴다).
+export function SectionTitle({ theme, kicker, title, inline }) {
+  const t = TOKENS[theme];
+  return (
+    <div style={{ display: inline ? 'flex' : 'block', alignItems: 'baseline', gap: 12, marginBottom: inline ? 0 : 14 }}>
+      <Mono size={11} weight={700} color={t.text3} style={{ letterSpacing: '0.18em', display: 'block' }}>{kicker}</Mono>
+      <div style={{ fontSize: 18, fontWeight: 700, color: t.text, letterSpacing: '-0.01em', marginTop: 4 }}>{title}</div>
+    </div>
+  );
 }
 
 export function PageHeader({ theme, kicker, title, subtitle, right }) {

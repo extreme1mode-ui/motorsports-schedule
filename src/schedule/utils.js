@@ -90,6 +90,9 @@ export function getDateTimeLabelWithOffset(isoString, offset) {
 }
 
 export function localDateTimeToUtc(dateKey, time, timeZone) {
+  // 'UTC+03:00' 같은 오프셋 표기(OpenF1 경로에서 IANA 시간대를 못 찾았을 때)는 Intl이 못 읽으므로 오프셋 계산으로 처리
+  const offsetMatch = /^UTC([+-]\d{2}:\d{2})$/.exec(timeZone || '');
+  if (offsetMatch) return localDateTimeWithOffsetToUtc(dateKey, /^\d{2}:\d{2}$/.test(time || '') ? time : '00:00', offsetMatch[1]);
   const [year, month, day] = dateKey.split('-').map(Number);
   const safeTime = /^\d{2}:\d{2}$/.test(time || '') ? time : '00:00';
   const [hour, minute] = safeTime.split(':').map(Number);
@@ -154,13 +157,66 @@ export function getSessionKind(label) {
   return 'other';
 }
 
+// 세션 표시 라벨을 kind 기준으로 한글화한다. 원문은 tEn에 남긴다.
+// 이미 한글이면(OpenF1 경로의 formatOpenF1SessionName 결과 등) 그대로 둔다. kind 'other'는 원문 유지.
+const HANGUL = /[가-힣]/;
+const SESSION_CLASS = /-\s*((?:HYPERCAR|LMGT3|LMP2|LMP3|GTP|GTD)(?:\s*&\s*(?:HYPERCAR|LMGT3|LMP2|LMP3|GTP|GTD))*)/i;
+
+export function formatSessionLabelKo(label, kind) {
+  const t = typeof label === 'string' ? label.trim() : '';
+  if (!t || HANGUL.test(t)) return t;
+  const num = (re) => { const m = t.match(re); return m ? ` ${m[1]}` : ''; };
+  const cls = (() => { const m = t.match(SESSION_CLASS); return m ? ` · ${m[1].replace(/\s*&\s*/g, ' & ').toUpperCase()}` : ''; })();
+  const group = (() => { const m = t.match(/Group\s+([A-Z])/i); return m ? ` ${m[1].toUpperCase()}조` : ''; })();
+  const combined = /Combined/i.test(t) ? ' 통합' : '';
+
+  switch (kind) {
+    case 'race':
+      if (/Power Stage/i.test(t)) return '파워 스테이지';
+      return `결승${num(/^Race\s+(\d+)$/i)}`;
+    case 'finish':
+      return /Podium/i.test(t) ? '포디움' : '체커기';
+    case 'sprint':
+      return '스프린트';
+    case 'qualifying':
+      if (/Sprint Qualifying|Sprint Shootout/i.test(t)) return '스프린트 예선';
+      if (/Superpole/i.test(t)) return '슈퍼폴';
+      if (/Hyperpole/i.test(t)) return `하이퍼폴${num(/Hyperpole\s+(\d+)/i)}${cls}`;
+      if (/Top Qualifying/i.test(t)) return `탑 퀄리${num(/Top Qualifying\s+(\d+)/i)}`;
+      return `예선${num(/Qualifying\s+(\d+)/i)}${group}${combined}${cls}`;
+    case 'practice':
+      if (/Shakedown/i.test(t)) return '셰이크다운';
+      if (/Warm[- ]?up/i.test(t)) return '워밍업';
+      return `연습${num(/Practice\s*#?(\d+)/i)}${/Night/i.test(t) ? ' (야간)' : ''}`;
+    default:
+      return t;
+  }
+}
+
+// 리스트 표시명: 영문만 있을 때 시리즈 공통 접두어를 뗀다. 목록은 season-2026.json에서 실측한 것만
+// (GTWC 11경기 중 5경기가 같은 37자 접두어 — 잘리면 여섯 줄이 똑같이 보인다). 다른 시리즈엔 공통 접두어가 없다.
+const SERIES_NAME_PREFIXES = {
+  GTWC: [/^GT World Challenge Europe Sprint Cup\s*[–-]\s*/i],
+};
+
+export function stripSeriesPrefix(name, series) {
+  if (typeof name !== 'string') return name ?? null;
+  for (const re of SERIES_NAME_PREFIXES[series] || []) {
+    const stripped = name.replace(re, '');
+    if (stripped && stripped !== name) return stripped.trim();
+  }
+  return name;
+}
+
 export function normalizeSessions(sessions = []) {
   return sessions.map((session) => {
-    const t = session.t || session.name || session.sessionName || '세션';
+    const tEn = session.t || session.name || session.sessionName || '세션';
+    // 데이터가 kind를 이미 갖고 있으면 그대로 쓰고, 없을 때만 라벨로 추론한다.
+    const kind = SESSION_KINDS.includes(session.kind) ? session.kind : getSessionKind(tEn);
     return {
-      t,
-      // 데이터가 kind를 이미 갖고 있으면 그대로 쓰고, 없을 때만 라벨로 추론한다.
-      kind: SESSION_KINDS.includes(session.kind) ? session.kind : getSessionKind(t),
+      t: formatSessionLabelKo(tEn, kind),
+      tEn,
+      kind,
       kst: session.kst ?? 'TBA',
       local: session.local ?? 'TBA',
       startUtc: session.startUtc || null,
@@ -205,6 +261,8 @@ export function localizeRace(race, locale = 'ko') {
     localized[`${field}En`] = race?.[`${field}En`] ?? race?.[field] ?? null;
     localized[field] = getLocalizedField(race, field, locale);
   }
+  // 리스트용 짧은 이름: shortNameKo ?? shortName ?? (시리즈 접두어를 뗀 영문명)
+  localized.shortName = localized.shortName || stripSeriesPrefix(localized.nameEn ?? localized.name, race?.series);
   return localized;
 }
 
@@ -258,6 +316,18 @@ export function buildNormalizedRace(input, source, now = new Date()) {
   // 취소는 데이터가 결정한다. 그 외('scheduled' 등)는 현재 시각 기준으로 upcoming/live/completed를 계산.
   normalized.status = race.status === 'cancelled' ? 'cancelled' : calculateEventStatus(normalized, now);
   return normalized;
+}
+
+// 시리즈/카테고리 헤더 집계. 모바일·데스크톱이 각자 세던 것을 하나로. includeInRoundCount === false는 제외.
+// rounds는 데이터에 있는 경기 수(취소 포함) — F1 2026은 24.
+export function getSeriesStats(races = []) {
+  const counted = races.filter((race) => race.includeInRoundCount !== false);
+  return {
+    rounds: counted.length,
+    done: counted.filter((race) => race.status === 'completed').length,
+    upcoming: counted.filter((race) => race.status === 'upcoming' || race.status === 'live').length,
+    cancelled: counted.filter((race) => race.status === 'cancelled').length,
+  };
 }
 
 export function sortRacesByPrimaryDate(races) {

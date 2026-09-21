@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CATEGORIES, SERIES, getDateKeyInKst, getVisibleSessions } from './schedule/index.js';
+import { CATEGORIES, SERIES, getDateKeyInKst, getVisibleSessions, getSeriesStats } from './schedule/index.js';
 import { TOKENS, MONTHS_KO, DAYS_KO, kstDate, fmtDate, fmtDateFull, Mono, SeriesTag, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
 
 export function Schedule({ theme, races, onOpenRace, now, seasonYear }) {
@@ -155,7 +155,7 @@ export function ScheduleRow({ race, theme, onOpen }) {
           {race.status === 'completed' && <StatusPill status="completed" theme={theme} />}
         </div>
         <div style={{ fontSize: 14, fontWeight: 600, color: t.text, letterSpacing: '-0.005em', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', textDecoration: race.status === 'cancelled' ? 'line-through' : 'none' }}>
-          {race.name}
+          {race.shortName || race.name}
         </div>
         <div style={{ fontSize: 11, color: t.text3, marginTop: 1 }}>{race.circuit} · {race.country}</div>
       </div>
@@ -171,8 +171,7 @@ export function SeriesView({ theme, races, onOpenRace, initialCategory, seasonYe
   useEffect(() => { if (initialCategory) setSel(initialCategory); }, [initialCategory]);
   const s = CATEGORIES[sel];
   const list = races.filter(r => r.category === sel).sort((a,b) => a.raceDateKst.localeCompare(b.raceDateKst));
-  const roundCount = list.filter(r => r.includeInRoundCount !== false && r.status !== 'cancelled').length;
-  const finishedCount = list.filter(r => r.includeInRoundCount !== false && r.status === 'completed').length;
+  const stats = getSeriesStats(list);
 
   return (
     <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 110 }}>
@@ -202,9 +201,10 @@ export function SeriesView({ theme, races, onOpenRace, initialCategory, seasonYe
           {s.name}
         </div>
         <div style={{ display: 'flex', gap: 18, marginTop: 12 }}>
-          <Stat label="ROUNDS" val={String(roundCount).padStart(2,'0')} dark={theme === 'dark'} />
-          <Stat label="FINISHED" val={String(finishedCount).padStart(2,'0')} dark={theme === 'dark'} />
-          <Stat label="NEXT UP" val={list.find(r => r.isNextRace || r.status === 'upcoming') ? 'NEXT' : '—'} dark={theme === 'dark'} />
+          <Stat label="ROUNDS" val={String(stats.rounds).padStart(2,'0')} dark={theme === 'dark'} />
+          <Stat label="DONE" val={String(stats.done).padStart(2,'0')} dark={theme === 'dark'} />
+          <Stat label="UPCOMING" val={String(stats.upcoming).padStart(2,'0')} dark={theme === 'dark'} />
+          {stats.cancelled > 0 && <Stat label="CANCELLED" val={String(stats.cancelled).padStart(2,'0')} dark={theme === 'dark'} />}
         </div>
       </div>
 
@@ -250,7 +250,7 @@ function RoundRow({ race, idx, theme, onOpen }) {
           <Mono size={10} color={t.text3}>{fmtDate(race.raceDateKst)} · {DAYS_KO[d.getDay()]}</Mono>
         </div>
         <div style={{ fontSize: 14, fontWeight: 600, color: t.text, letterSpacing: '-0.005em', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-          {race.name}
+          {race.shortName || race.name}
         </div>
         <div style={{ fontSize: 11, color: t.text3, marginTop: 1 }}>{race.circuit}</div>
       </div>
@@ -262,9 +262,11 @@ function RoundRow({ race, idx, theme, onOpen }) {
   );
 }
 
-export function Favorites({ theme, races, favorites, onOpenRace, toggleFav }) {
+export function Favorites({ theme, races, myRaces, favorites, onOpenRace, toggleFav }) {
   const t = TOKENS[theme];
   const favList = races.filter(r => favorites.has(r.id)).sort((a,b) => a.raceDateKst.localeCompare(b.raceDateKst));
+  // 빈 상태 추천: 다가오는 관심 경기 3개 (프로토타입 저장 화면과 같은 규칙)
+  const recs = (Array.isArray(myRaces) ? myRaces : races).filter(r => r.status === 'upcoming' || r.status === 'live').slice(0, 3);
   return (
     <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 110 }}>
       <div style={{ padding: '64px 18px 20px' }}>
@@ -278,10 +280,18 @@ export function Favorites({ theme, races, favorites, onOpenRace, toggleFav }) {
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
             </svg>
           </div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: t.text, marginBottom: 6 }}>아직 즐겨찾기한 경기가 없어요</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: t.text, marginBottom: 6 }}>아직 저장한 경기가 없어요</div>
           <div style={{ fontSize: 13, color: t.text3, lineHeight: 1.5 }}>
-            홈이나 일정에서 ♥를 눌러 관심 경기를 저장하세요.
+            놓치고 싶지 않은 경기를 담아두면 시작 전에 알려드립니다.
           </div>
+          {recs.length > 0 && (
+            <div style={{ marginTop: 28, textAlign: 'left' }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 10 }}>이건 어떠세요</div>
+              <div style={{ display: 'grid', gap: 8 }}>
+                {recs.map(r => <RecommendRow key={r.id} race={r} theme={theme} onOpen={() => onOpenRace(r)} onSave={() => toggleFav(r.id)} />)}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div style={{ padding: '0 18px', display: 'grid', gap: 8 }}>
@@ -302,7 +312,7 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
   return (
     <div style={{ position: 'absolute', inset: 0, background: t.bg, zIndex: 80, display: 'flex', flexDirection: 'column', overflow: 'auto', paddingBottom: 40 }}>
       <div style={{ padding: '60px 18px 22px', background: theme === 'dark' ? s.dark : s.tint, position: 'relative', overflow: 'hidden' }}>
-        <svg style={{ position: 'absolute', top: 0, right: -40, opacity: 0.6 }} width="260" height="280" viewBox="0 0 260 280">
+        <svg style={{ position: 'absolute', top: 0, right: 0, opacity: 0.6, pointerEvents: 'none' }} width="260" height="280" viewBox="0 0 260 280">
           {[0,1,2,3,4,5,6,7,8].map(i => (
             <line key={i} x1={i*32 - 30} y1={0} x2={i*32 + 100} y2={280} stroke={s.accent} strokeOpacity="0.15" strokeWidth="2" />
           ))}
@@ -417,6 +427,26 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
           티켓 · 공식 사이트 열기
         </button>
       </section>
+    </div>
+  );
+}
+
+// 즐겨찾기 빈 상태 추천 행: 열기 + 바로 저장
+function RecommendRow({ race, theme, onOpen, onSave }) {
+  const t = TOKENS[theme];
+  const s = SERIES[race.series];
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`, borderRadius: 12 }}>
+      <div style={{ width: 3, height: 40, background: s.accent, borderRadius: 2, flex: 'none' }} />
+      <button onClick={onOpen} style={{ flex: 1, minWidth: 0, background: 'none', border: 0, padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+          <SeriesTag series={race.series} theme={theme} variant="ghost" />
+          <Mono size={10} color={t.text3}>{getRoundDisplay(race)}</Mono>
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: t.text, letterSpacing: '-0.005em', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{race.shortName || race.name}</div>
+        <div style={{ fontSize: 11, color: t.text3, marginTop: 1 }}>{fmtDate(race.raceDateKst)} · {race.kstTime || 'TBA'}</div>
+      </button>
+      <button onClick={onSave} style={{ flex: 'none', minHeight: 44, padding: '0 12px', borderRadius: 10, border: `1px solid ${t.line2}`, background: 'transparent', color: t.text, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>저장하기</button>
     </div>
   );
 }
