@@ -136,3 +136,25 @@ export function StatusPill({ status, theme = 'dark' }) {
   );
   return null;
 }
+
+// 중계처 무료/유료 배지. 색은 TOKENS만 — 무료는 반전(text/bg)으로 눈에 띄게, 유료는 외곽선만.
+export function AccessBadge({ access, theme, label }) {
+  if (!access) return null;
+  const t = TOKENS[theme];
+  const free = access === 'free';
+  return (
+    <span style={{
+      flex: 'none', fontSize: 10, fontWeight: 700, lineHeight: 1.4, padding: '1px 6px', borderRadius: 999, letterSpacing: '0.02em',
+      background: free ? t.text : 'transparent', color: free ? t.bg : t.text3, border: `1px solid ${free ? t.text : t.line2}`,
+    }}>{label}</span>
+  );
+}
+
+// 외부로 나가는 링크 표시(↗). 텍스트 대체는 호출부의 숨김 텍스트로.
+export function ExternalIcon({ color, size = 11 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: 'none' }}>
+      <path d="M7 17L17 7M9 7h8v8" />
+    </svg>
+  );
+}

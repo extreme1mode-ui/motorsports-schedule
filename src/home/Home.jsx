@@ -294,7 +294,10 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
                 <div className="hero2-when ko">{clock.sub}</div>
                 <div className="hero2-act">
                   {urgent && chans.length
-                    ? <button type="button" className="cta" onClick={() => { track('broadcast_clicked', { name: bcast[0].name, region: bcast[0].region }); onOpenRace(hero.race); }}>{t('home.watchOn', { channel: chans[0] })}</button>
+                    ? (bcast[0].url
+                      // "○○로 보기"는 중계처 랜딩으로 바로 나간다 (새 탭). 클릭 계측은 onClick, 이동은 브라우저 기본 동작.
+                      ? <a className="cta" href={bcast[0].url} target="_blank" rel="noopener noreferrer" onClick={() => track('broadcast_clicked', { name: bcast[0].name, region: bcast[0].region, access: bcast[0].access, series: hero.series, source: 'home' })}>{t('home.watchOn', { channel: chans[0] })}</a>
+                      : <button type="button" className="cta" onClick={() => onOpenRace(hero.race)}>{t('home.watchOn', { channel: chans[0] })}</button>)
                     : <button type="button" className="cta" onClick={() => toggleAlert(hero.id)}>{alertOn ? t('home.alertOn') : t('home.alertSet')}</button>}
                   <button type="button" className={`heart${faved ? ' on' : ''}`} aria-label={t('aria.save')} onClick={() => toggleFav?.(hero.id)}>
                     {faved

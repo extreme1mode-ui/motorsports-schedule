@@ -30,10 +30,15 @@ function cleanValue(value) {
   return undefined;
 }
 
+// 식별 정보로 쓰이는 키와 이메일 꼴의 값은 호출부 실수여도 나가지 않게 여기서 한 번 더 거른다.
+const PII_KEYS = /^(email|e-mail|phone|tel|address|ip|user_?id|first_?name|last_?name|full_?name|username|nickname)$/i;
+const looksLikeEmail = (v) => typeof v === 'string' && /@/.test(v);
+
 function sanitize(props) {
   const out = {};
   if (!props || typeof props !== 'object') return out;
   for (const [k, v] of Object.entries(props)) {
+    if (PII_KEYS.test(k) || looksLikeEmail(v)) continue;
     const c = cleanValue(v);
     if (c !== undefined) out[k] = c;
   }

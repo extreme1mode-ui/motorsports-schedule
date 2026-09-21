@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { CATEGORIES, SERIES, getVisibleSessions, getSeriesStats, getRaceStartUtc } from './schedule/index.js';
-import { TOKENS, Mono, SeriesTag, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
+import { TOKENS, Mono, SeriesTag, AccessBadge, ExternalIcon, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
 import { useFormat } from './use-format.js';
 import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
+import { SR_ONLY } from './a11y.js';
 import { useRecommendationShown } from './use-analytics.js';
 
 // 정렬·그룹핑은 시작 시각(UTC)으로. 시간대와 무관하게 항상 옳다.
@@ -437,17 +438,26 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
         <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.14em' }}>{tr('detail.broadcast')}</Mono>
         <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
           {fmt.broadcast(race.broadcast).map((b, i) => (
-            <div key={i} onClick={() => track('broadcast_clicked', { name: b.name, region: b.region })} style={{ padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 6, background: s.accent, display: 'grid', placeItems: 'center', color: '#fff' }}>
+            // 실제 링크(<a>): 가운데 클릭·Cmd 클릭·새 탭이 되고 스크린리더가 링크로 읽는다. 시각은 기존 div와 동일.
+            <a key={i} href={b.url ?? undefined} target="_blank" rel="noopener noreferrer"
+              onClick={() => track('broadcast_clicked', { name: b.name, region: b.region, access: b.access, series: race.series, source: 'detail' })}
+              style={{ padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                <div style={{ flex: 'none', width: 28, height: 28, borderRadius: 6, background: s.accent, display: 'grid', placeItems: 'center', color: '#fff' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>{b.name}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>{b.name}</div>
+                  <AccessBadge access={b.access} theme={theme} label={b.access ? tr(`detail.access.${b.access}`) : ''} />
+                  <ExternalIcon color={t.text3} />
+                  <span style={SR_ONLY}>{tr('aria.external')}</span>
+                </div>
               </div>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={t.text3} strokeWidth="2"><path d="M9 6l6 6-6 6"/></svg>
-            </div>
+            </a>
           ))}
         </div>
+        <div style={{ marginTop: 8, fontSize: 11, color: t.text3 }}>{tr('detail.broadcastNote')}</div>
       </section>
 
       <section style={{ padding: '20px 18px 0' }}>

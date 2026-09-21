@@ -15,7 +15,8 @@ import {
   sortRacesByPrimaryDate,
 } from './utils.js';
 
-const F1_BROADCAST = [{ name: '쿠팡플레이', region: 'KR' }, { name: 'F1 TV Pro', region: 'global' }];
+// OpenF1 경로의 중계처: 날짜로 매칭된 정적 레코드의 값. 매칭이 없으면 정적 F1 데이터의 첫 중계처 목록(전 라운드 동일).
+const F1_BROADCAST = seasonRaces.find((race) => race.series === 'F1' && Array.isArray(race.broadcast) && race.broadcast.length)?.broadcast ?? [];
 const OPEN_F1_MEETINGS_URL = 'https://api.openf1.org/v1/meetings';
 const OPEN_F1_SESSIONS_URL = 'https://api.openf1.org/v1/sessions';
 
@@ -129,7 +130,7 @@ function mapOpenF1Meeting(meeting, sessions, match = null) {
       startUtc: session.date_start,
       endUtc: session.date_end,
     })),
-    broadcast: F1_BROADCAST,
+    broadcast: (match?.full && Array.isArray(staticRace?.broadcast) && staticRace.broadcast.length) ? staticRace.broadcast : F1_BROADCAST,
     timezone,
     isSprint: orderedSessions.some((session) => session.session_type === 'Sprint'),
     eventStartUtc: coerceIsoWithOffset(meeting.date_start),

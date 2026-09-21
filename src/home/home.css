@@ -33,6 +33,7 @@
 .home .cta{position:relative;isolation:isolate;display:block;width:100%;background:none;color:var(--onbrand);border:0;
   min-height:44px;padding:12px;font-size:12.5px;font-weight:800}
 .home .cta::before{content:"";position:absolute;inset:2.5px 0;z-index:-1;background:var(--brand);border-radius:10px}
+.home a.cta{text-decoration:none;text-align:center;box-sizing:border-box}
 .home .cta.ghost{color:var(--text2)}
 .home .cta.ghost::before{background:none;border:1px solid var(--line2)}
 .home .linkbtn{background:none;border:0;color:var(--text2);font-size:12px;font-weight:700;min-height:44px;min-width:44px;padding:10px 8px;

@@ -184,12 +184,21 @@ export function stripSeriesPrefix(name, series) {
 
 // 중계처: { name, region } 배열로 정규화. 옛 문자열 항목은 region 'global'로 취급. 지역 필터링은 아직 하지 않는다.
 export const BROADCAST_REGIONS = ['global', 'KR', 'US'];
+export const BROADCAST_ACCESS = ['free', 'paid'];
+
+// { name, region, url, access, excludeRegions } — url/access/excludeRegions는 데이터 값을 그대로 둔다 (코드에서 URL을 만들지 않는다).
 export function normalizeBroadcast(list = []) {
   if (!Array.isArray(list)) return [];
   return list
     .map((item) => (typeof item === 'string' ? { name: item, region: 'global' } : item))
     .filter((item) => item && typeof item.name === 'string' && item.name.trim())
-    .map((item) => ({ name: item.name, region: BROADCAST_REGIONS.includes(item.region) ? item.region : 'global' }));
+    .map((item) => ({
+      name: item.name,
+      region: BROADCAST_REGIONS.includes(item.region) ? item.region : 'global',
+      url: typeof item.url === 'string' && item.url ? item.url : null,
+      access: BROADCAST_ACCESS.includes(item.access) ? item.access : null,
+      excludeRegions: Array.isArray(item.excludeRegions) ? item.excludeRegions.filter((r) => typeof r === 'string') : [],
+    }));
 }
 
 export function normalizeSessions(sessions = []) {
@@ -262,10 +271,14 @@ export function getRaceLabels(race, locale = 'ko') {
 }
 
 // 중계처 노출: region이 'global'이거나 사용자 국가와 같은 것. 비면(방어) 전체를 그대로 보여준다.
+// 노출 = (global 또는 내 국가) 이고 excludeRegions에 내 국가가 없음. 무료를 위로, 같은 등급 안에서는 데이터 순서 유지(안정 정렬).
 export function getVisibleBroadcast(list = [], country = null) {
   if (!Array.isArray(list)) return [];
-  const visible = list.filter((b) => b && (b.region === 'global' || (country && b.region === country)));
-  return visible.length ? visible : list;
+  const notExcluded = (b) => !(b.excludeRegions ?? []).includes(country);
+  let visible = list.filter((b) => b && (b.region === 'global' || (country && b.region === country)) && notExcluded(b));
+  if (!visible.length) visible = list.filter((b) => b && notExcluded(b));   // 데이터에 구멍이 있을 때의 안전망
+  const rank = (b) => (b.access === 'free' ? 0 : 1);
+  return visible.map((b, i) => [b, i]).sort((a, z) => (rank(a[0]) - rank(z[0])) || (a[1] - z[1])).map(([b]) => b);
 }
 
 export function buildFallbackEventWindow(race) {
