@@ -1,6 +1,7 @@
 import { TOKENS, Mono } from './primitives.jsx';
 import { SERIES } from './schedule/index.js';
-import { SERIES_DESCRIPTIONS, COUNTRY_OPTIONS, optionStyles } from './preferences-options.js';
+import { SERIES_DESCRIPTION_KEYS, COUNTRY_OPTIONS, optionStyles } from './preferences-options.js';
+import { useT } from './i18n/index.js';
 
 export function PageTitle({ theme, title, sub }) {
   const t = TOKENS[theme];
@@ -44,6 +45,7 @@ export function CheckDot({ on, accent, theme }) {
 // 시리즈 한 행: 점 + 약칭/풀네임 + 설명. onToggle이 있으면 체크박스 버튼, 없으면 정적 행(children으로 컨트롤을 붙인다).
 export function SeriesRow({ seriesId, theme, selected, onToggle, children }) {
   const t = TOKENS[theme];
+  const tr = useT();
   const s = SERIES[seriesId];
   const { base, selected: sel } = optionStyles(t);
   const body = (
@@ -55,7 +57,7 @@ export function SeriesRow({ seriesId, theme, selected, onToggle, children }) {
             <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.005em' }}>{s.short}</span>
             <span style={{ fontSize: 12, color: t.text3 }}>{s.name}</span>
           </div>
-          <div style={{ fontSize: 13, color: t.text2, marginTop: 4, lineHeight: 1.45 }}>{SERIES_DESCRIPTIONS[seriesId]}</div>
+          <div style={{ fontSize: 13, color: t.text2, marginTop: 4, lineHeight: 1.45 }}>{tr(SERIES_DESCRIPTION_KEYS[seriesId])}</div>
         </div>
       </div>
       {children && <div style={{ marginTop: 12 }}>{children}</div>}
@@ -71,6 +73,7 @@ export function SeriesRow({ seriesId, theme, selected, onToggle, children }) {
 // 라디오 그룹. 옵션은 { id, label, sub? }.
 export function ChoiceGroup({ theme, options, value, onChange, label, columns = options.length, showSub = true }) {
   const t = TOKENS[theme];
+  const tr = useT();
   const { base, selected: sel } = optionStyles(t);
   return (
     <div role="radiogroup" aria-label={label} style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: 8 }}>
@@ -79,8 +82,8 @@ export function ChoiceGroup({ theme, options, value, onChange, label, columns = 
         return (
           <button key={opt.id} type="button" role="radio" aria-checked={on} onClick={() => onChange(opt.id)}
             style={{ ...base, ...(on ? sel : null), flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: 2, padding: '10px 14px' }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: on ? t.text : t.text2 }}>{opt.label}</span>
-            {showSub && opt.sub && <span style={{ fontSize: 12, color: t.text3 }}>{opt.sub}</span>}
+            <span style={{ fontSize: 15, fontWeight: 700, color: on ? t.text : t.text2 }}>{opt.raw ? opt.label : tr(opt.label)}</span>
+            {showSub && opt.sub && <span style={{ fontSize: 12, color: t.text3 }}>{tr(opt.sub)}</span>}
           </button>
         );
       })}
@@ -91,16 +94,17 @@ export function ChoiceGroup({ theme, options, value, onChange, label, columns = 
 // 국가 선택 목록. value/onChange는 COUNTRY_OPTIONS의 id 기준.
 export function CountryChoices({ theme, value, onChange }) {
   const t = TOKENS[theme];
+  const tr = useT();
   const { base, selected: sel } = optionStyles(t);
   return (
-    <div style={{ display: 'grid', gap: 8 }} role="radiogroup" aria-label="국가">
+    <div style={{ display: 'grid', gap: 8 }} role="radiogroup" aria-label={tr('aria.country')}>
       {COUNTRY_OPTIONS.map((c) => {
         const on = value === c.id;
         return (
           <button key={c.id} type="button" role="radio" aria-checked={on} onClick={() => onChange(c.id)}
             style={{ ...base, ...(on ? sel : null) }}>
             <CheckDot on={on} accent={t.text} theme={theme} />
-            <span style={{ fontSize: 16, fontWeight: 600 }}>{c.label}</span>
+            <span style={{ fontSize: 16, fontWeight: 600 }}>{tr(c.label)}</span>
           </button>
         );
       })}

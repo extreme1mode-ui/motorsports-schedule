@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { TOKENS, Mono, SeriesTag, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
 import { CATEGORIES, SERIES, getVisibleSessions, getSeriesStats, getRaceStartUtc } from './schedule/index.js';
 import { useFormat } from './use-format.js';
+import { useT } from './i18n/index.js';
 
 // 정렬·그룹핑은 시작 시각(UTC)으로. 시청자 달력 파트는 사용자 시간대로.
 const startMs = (r) => { const iso = getRaceStartUtc(r) || r.primaryStartUtc; return iso ? new Date(iso).getTime() : Number.MAX_SAFE_INTEGER; };
@@ -13,6 +14,7 @@ import { SectionTitle } from './web.jsx';
 export function WebSchedule({ theme, races, onOpenRace, now, tier, seasonYear }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
+  const tr = useT();
   const safeSeasonYear = Number.isFinite(seasonYear) ? seasonYear : 2026;
   const [month, setMonth] = useState(() => Number(fmt.parts(now)?.month || 1) - 1);
   const [filterCategory, setFilterCategory] = useState('ALL');
@@ -30,8 +32,8 @@ export function WebSchedule({ theme, races, onOpenRace, now, tier, seasonYear })
     <div>
       <PageHeader theme={theme}
         kicker={`CALENDAR · ${safeSeasonYear}`}
-        title="일정"
-        subtitle={`${fmt.monthNames[month]} · ${sortedMonth.length}개 경기${filterCategory !== 'ALL' ? ` · ${CATEGORIES[filterCategory].short}` : ''}`}
+        title={tr('schedule.title')}
+        subtitle={`${tr('schedule.monthCount', { month: fmt.monthNames[month], n: sortedMonth.length })}${filterCategory !== 'ALL' ? ` · ${CATEGORIES[filterCategory].short}` : ''}`}
         right={<CategoryFilterBar theme={theme} value={filterCategory} onChange={setFilterCategory} />} />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 6, marginBottom: 28 }}>
@@ -51,7 +53,7 @@ export function WebSchedule({ theme, races, onOpenRace, now, tier, seasonYear })
               <Mono size={9}
                 color={active ? (theme === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)') : t.text3}
                 style={{ letterSpacing: '0.14em', display: 'block', marginTop: 4 }}>
-                {String(cnt).padStart(2, '0')} 경기
+                {tr('schedule.chipCount', { n: String(cnt).padStart(2, '0') })}
               </Mono>
             </button>
           );
@@ -66,13 +68,13 @@ export function WebSchedule({ theme, races, onOpenRace, now, tier, seasonYear })
         <BigMonthGrid theme={theme} month={month} races={monthRaces} onOpen={onOpenRace} now={now} seasonYear={safeSeasonYear} />
 
         <div>
-          <SectionTitle theme={theme} kicker={`${fmt.monthNames[month].toUpperCase()} ROUNDS`} title="경기 일정" />
+          <SectionTitle theme={theme} kicker={`${fmt.monthNames[month].toUpperCase()} ROUNDS`} title={tr('schedule.roundsTitle')} />
           <div style={{ display: 'grid', gap: 8 }}>
             {sortedMonth.length === 0 && (
               <div style={{
                 padding: 24, borderRadius: 12, border: `1px dashed ${t.line2}`,
                 color: t.text3, fontSize: 13, textAlign: 'center',
-              }}>이 달에는 경기가 없습니다.</div>
+              }}>{tr('schedule.emptyMonth')}</div>
             )}
             {sortedMonth.map(r => <WebScheduleRow key={r.id} race={r} theme={theme} onOpen={() => onOpenRace(r)} />)}
           </div>
@@ -245,6 +247,7 @@ export function WebSeries({ theme, races, onOpenRace, initialCategory, tier, sea
   const [sel, setSel] = useState(initialCategory || 'F1');
   useEffect(() => { if (initialCategory) setSel(initialCategory); }, [initialCategory]);
   const s = CATEGORIES[sel];
+  const tr = useT();
   const list = races.filter(r => r.category === sel).sort(byStart);
   const { rounds: roundCount, done, cancelled, upcoming } = getSeriesStats(list);
 
@@ -252,8 +255,8 @@ export function WebSeries({ theme, races, onOpenRace, initialCategory, tier, sea
     <div>
       <PageHeader theme={theme}
         kicker={`BY CATEGORY · ${safeSeasonYear}`}
-        title="카테고리별"
-        subtitle={`${Object.keys(CATEGORIES).length}개 카테고리 · 라운드별 상세 일정`}
+        title={tr('series.title')}
+        subtitle={tr('series.subtitle', { n: Object.keys(CATEGORIES).length })}
         right={
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             {Object.values(CATEGORIES).map(ss => (
@@ -303,7 +306,7 @@ export function WebSeries({ theme, races, onOpenRace, initialCategory, tier, sea
         </div>
       </section>
 
-      <SectionTitle theme={theme} kicker="ROUND LIST" title="라운드 일정" />
+      <SectionTitle theme={theme} kicker="ROUND LIST" title={tr('series.roundList')} />
       <div style={{
         display: 'grid',
         gridTemplateColumns: tier === 'tablet' ? '1fr' : '1fr 1fr',
@@ -392,6 +395,7 @@ function WebRoundRow({ race, idx, theme, onOpen }) {
 
 export function WebFavorites({ theme, races, myRaces, favorites, onOpenRace, toggleFav, tier }) {
   const t = TOKENS[theme];
+  const tr = useT();
   const favList = races.filter(r => favorites.has(r.id)).sort(byStart);
   // 빈 상태 추천: 다가오는 관심 경기 3개 (프로토타입 저장 화면과 같은 규칙)
   const recs = (Array.isArray(myRaces) ? myRaces : races).filter(r => r.status === 'upcoming' || r.status === 'live').slice(0, 3);
@@ -401,8 +405,8 @@ export function WebFavorites({ theme, races, myRaces, favorites, onOpenRace, tog
     <div>
       <PageHeader theme={theme}
         kicker="PINNED RACES"
-        title="즐겨찾기"
-        subtitle={`${favList.length}개의 즐겨찾기한 경기${favList.length > 0 ? ' · 시간 임박 순' : ''}`} />
+        title={tr('fav.title')}
+        subtitle={`${tr('fav.subtitle', { n: favList.length })}${favList.length > 0 ? tr('fav.sortNote') : ''}`} />
 
       {favList.length === 0 ? (
         <div style={{
@@ -417,13 +421,13 @@ export function WebFavorites({ theme, races, myRaces, favorites, onOpenRace, tog
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
             </svg>
           </div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: t.text, marginBottom: 8 }}>아직 저장한 경기가 없어요</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: t.text, marginBottom: 8 }}>{tr('fav.emptyTitle')}</div>
           <div style={{ fontSize: 13, color: t.text3, lineHeight: 1.6, maxWidth: 360, margin: '0 auto' }}>
-            놓치고 싶지 않은 경기를 담아두면 시작 전에 알려드립니다.
+            {tr('fav.emptyBody')}
           </div>
           {recs.length > 0 && (
             <div style={{ marginTop: 32, textAlign: 'left', maxWidth: 720, marginLeft: 'auto', marginRight: 'auto' }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: t.text, marginBottom: 12 }}>이건 어떠세요</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: t.text, marginBottom: 12 }}>{tr('fav.suggest')}</div>
               <div style={{ display: 'grid', gap: 10 }}>
                 {recs.map(r => <WebRecommendRow key={r.id} race={r} theme={theme} onOpen={() => onOpenRace(r)} onSave={() => toggleFav(r.id)} />)}
               </div>
@@ -444,6 +448,7 @@ export function WebFavorites({ theme, races, myRaces, favorites, onOpenRace, tog
 function WebRecommendRow({ race, theme, onOpen, onSave }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
+  const tr = useT();
   const L = fmt.race(race);
   const s = SERIES[race.series];
   return (
@@ -461,7 +466,7 @@ function WebRecommendRow({ race, theme, onOpen, onSave }) {
         <Mono size={11} color={t.text3} style={{ display: 'block' }}>{fmt.monthDay(getRaceStartUtc(race) || race.primaryStartUtc)}</Mono>
         <Mono size={13} weight={600} color={t.text} style={{ display: 'block', marginTop: 2 }}>{getRaceStartUtc(race) ? fmt.time(getRaceStartUtc(race)) : 'TBA'}</Mono>
       </div>
-      <button onClick={onSave} style={{ flex: 'none', minHeight: 44, padding: '0 14px', borderRadius: 10, border: `1px solid ${t.line2}`, background: 'transparent', color: t.text, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>저장하기</button>
+      <button onClick={onSave} style={{ flex: 'none', minHeight: 44, padding: '0 14px', borderRadius: 10, border: `1px solid ${t.line2}`, background: 'transparent', color: t.text, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{tr('fav.save')}</button>
     </div>
   );
 }
@@ -524,6 +529,7 @@ function FavCard({ race, theme, onOpen, toggleFav }) {
 export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, preferences }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
+  const tr = useT();
   const L = fmt.race(race);
   const s = SERIES[race.series];
   const sessions = getVisibleSessions(race, preferences?.series?.[race.series]);
@@ -625,7 +631,7 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
           )}
 
           <section style={{ marginBottom: 24 }}>
-            <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.16em', display: 'block', marginBottom: 12 }}>SESSIONS · 내 시간 ({fmt.zoneLabel}) · 현지</Mono>
+            <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.16em', display: 'block', marginBottom: 12 }}>{tr('detail.sessions', { zone: fmt.zoneLabel })}</Mono>
             <div style={{ background: t.surface, border: `1px solid ${t.line}`, borderRadius: 12, overflow: 'hidden' }}>
               {sessions.map((sess, i) => (
                 <div key={i} style={{
@@ -640,8 +646,8 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
                     color: sess.kind === 'race' ? '#fff' : t.text,
                     fontSize: 11, fontWeight: 700,
                   }}>{fmt.sessionLabel(sess)}</span>
-                  <Mono size={13} color={t.text2}>{sess.startUtc ? fmt.dateTimeKey(sess.startUtc) : '시간 TBA'}</Mono>
-                  <Mono size={10} color={t.text3} style={{ letterSpacing: '0.02em' }}>{sess.startUtc && sess.local && sess.local !== 'TBA' ? `현지 ${sess.local.slice(11, 16)}` : ''}</Mono>
+                  <Mono size={13} color={t.text2}>{sess.startUtc ? fmt.dateTimeKey(sess.startUtc) : tr('detail.timeTba')}</Mono>
+                  <Mono size={10} color={t.text3} style={{ letterSpacing: '0.02em' }}>{sess.startUtc && sess.local && sess.local !== 'TBA' ? tr('detail.local', { time: sess.local.slice(11, 16) }) : ''}</Mono>
                 </div>
               ))}
             </div>
@@ -650,16 +656,16 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
           <section style={{ marginBottom: 24 }}>
             <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.16em', display: 'block', marginBottom: 12 }}>WEEKEND</Mono>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <DrawerCell theme={theme} label="시작" value={fmt.plainDateFull(race.weekendStart)} />
-              <DrawerCell theme={theme} label="종료" value={fmt.plainDateFull(race.weekendEnd)} />
-              <DrawerCell theme={theme} label="현지 시각" value={race.localTime || 'TBA'} />
+              <DrawerCell theme={theme} label={tr('detail.start')} value={fmt.plainDateFull(race.weekendStart)} />
+              <DrawerCell theme={theme} label={tr('detail.end')} value={fmt.plainDateFull(race.weekendEnd)} />
+              <DrawerCell theme={theme} label={tr('detail.localTime')} value={race.localTime || 'TBA'} />
               <DrawerCell theme={theme} label="TIMEZONE" value={race.timezone || 'TBA'} />
               {race.durationLabel && <DrawerCell theme={theme} label="DURATION" value={race.durationLabel} />}
             </div>
           </section>
 
           <section style={{ marginBottom: 24 }}>
-            <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.16em', display: 'block', marginBottom: 12 }}>중계 · BROADCAST</Mono>
+            <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.16em', display: 'block', marginBottom: 12 }}>{tr('detail.broadcast')}</Mono>
             <div style={{ display: 'grid', gap: 8 }}>
               {fmt.broadcast(race.broadcast).map((b, i) => (
                 <div key={i} style={{
@@ -688,8 +694,8 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
               borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>시작 30분 전 알림</div>
-                <div style={{ fontSize: 11, color: t.text3, marginTop: 2 }}>결승 세션 전에 푸시 알림</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>{tr('detail.alertTitle')}</div>
+                <div style={{ fontSize: 11, color: t.text3, marginTop: 2 }}>{tr('detail.alertSub')}</div>
               </div>
               <button onClick={() => setNotify(!notify)} style={{
                 width: 46, height: 28, borderRadius: 999, border: 0, cursor: 'pointer',
@@ -711,7 +717,7 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
             letterSpacing: '-0.005em', cursor: 'pointer', fontFamily: 'inherit',
             boxShadow: `0 10px 24px ${s.accent}33`,
           }}>
-            티켓 · 공식 사이트 열기
+            {tr('detail.tickets')}
           </button>
         </div>
       </aside>

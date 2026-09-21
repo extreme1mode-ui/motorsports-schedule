@@ -1,6 +1,7 @@
 // 관심 시리즈 밖에서 "한번 볼 만한" 경기를 고른다. 절대 임계값은 두지 않는다 — 남은 경기를 점수로 정렬해 상위 limit개.
 import { getPrestige, getHighlights } from './highlights.js';
 import { getPrimarySession } from './utils.js';
+import { t } from '../i18n/t.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -12,11 +13,12 @@ const SCORE = {
   offSeries: 20,
 };
 
+// reasons 문구는 i18n 키 (rec.*). locale은 getRecommendations의 5번째 인자.
 const REASON = {
-  prestige3: '모터스포츠 최고 권위 대회',
-  prestige2: '시즌 주요 대회',
-  withinTwoWeeks: '2주 안에 열려요',
-  offSeries: '아직 보지 않는 시리즈예요',
+  prestige3: 'rec.prestige3',
+  prestige2: 'rec.prestige2',
+  withinTwoWeeks: 'rec.withinTwoWeeks',
+  offSeries: 'rec.offSeries',
 };
 
 // 경기 시각. 대표 세션 시작 → raceKstIso → 주말 끝(KST) 순.
@@ -26,7 +28,7 @@ function raceTime(race) {
   return Number.isNaN(t) ? null : t;
 }
 
-export function scoreRace(race, preferences, now = new Date()) {
+export function scoreRace(race, preferences, now = new Date(), locale = 'ko') {
   const at = now instanceof Date ? now.getTime() : new Date(now).getTime();
   const time = raceTime(race);
   const days = time === null ? null : (time - at) / DAY_MS;
@@ -40,23 +42,23 @@ export function scoreRace(race, preferences, now = new Date()) {
 
   const prestige = getPrestige(race);
   score += SCORE.prestige[prestige] ?? SCORE.prestige[1];
-  if (prestige === 3) reasons.push(REASON.prestige3);
-  else if (prestige === 2) reasons.push(REASON.prestige2);
+  if (prestige === 3) reasons.push(t(locale, REASON.prestige3));
+  else if (prestige === 2) reasons.push(t(locale, REASON.prestige2));
 
-  if (days !== null && days <= 14) { score += SCORE.withinTwoWeeks; reasons.push(REASON.withinTwoWeeks); }
+  if (days !== null && days <= 14) { score += SCORE.withinTwoWeeks; reasons.push(t(locale, REASON.withinTwoWeeks)); }
   else if (days !== null && days <= 28) { score += SCORE.withinFourWeeks; }
 
-  if (mode === 'off') { score += SCORE.offSeries; reasons.push(REASON.offSeries); }
+  if (mode === 'off') { score += SCORE.offSeries; reasons.push(t(locale, REASON.offSeries)); }
 
   return { score, reasons: reasons.slice(0, 2), time };
 }
 
-export function getRecommendations(races = [], preferences = null, now = new Date(), limit = 3) {
+export function getRecommendations(races = [], preferences = null, now = new Date(), limit = 3, locale = 'ko') {
   const at = now instanceof Date ? now.getTime() : new Date(now).getTime();
   const candidates = [];
   for (const race of races) {
     if (!race || race.status === 'cancelled') continue;
-    const { score, reasons, time } = scoreRace(race, preferences, at);
+    const { score, reasons, time } = scoreRace(race, preferences, at, locale);
     if (time === null || time < at) continue;                   // 이미 끝난 경기 제외
     candidates.push({ race, score, reasons, time });
   }

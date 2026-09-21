@@ -3,9 +3,10 @@ import { SUPPORTED_SERIES, detectTimezone } from './schedule/index.js';
 import { MODE_OPTIONS_WITH_OFF, countryIdFromValue, countryValueFromId } from './preferences-options.js';
 import { useT } from './i18n/index.js';
 
+// 언어 이름은 번역하지 않는다(각 언어의 자기 표기). raw: true → ChoiceGroup이 t()를 거치지 않음
 const LOCALE_OPTIONS = [
-  { id: 'ko', label: '한국어' },
-  { id: 'en', label: 'English' },
+  { id: 'ko', label: '한국어', raw: true },
+  { id: 'en', label: 'English', raw: true },
 ];
 import { PageTitle, SectionTitle, SeriesRow, ChoiceGroup, CountryChoices, TimezoneLabel } from './preferences-ui.jsx';
 
@@ -24,7 +25,7 @@ export function Settings({ theme, preferences, setSeriesMode, setCountry, setTim
     <div style={{ background: t.bg, color: t.text, minHeight: '100%' }}>
       <div style={{ maxWidth: 560, margin: '0 auto', padding: '20px 20px 32px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 20 }}>
-          <button type="button" onClick={() => onGo('home')} aria-label="홈으로" style={{
+          <button type="button" onClick={() => onGo('home')} aria-label={tr('aria.home')} style={{
             width: 44, height: 44, marginLeft: -12, borderRadius: 10, border: 0, background: 'none',
             color: t.text2, cursor: 'pointer', display: 'grid', placeItems: 'center',
           }}>
@@ -36,14 +37,14 @@ export function Settings({ theme, preferences, setSeriesMode, setCountry, setTim
         </div>
 
         <section style={{ marginBottom: 32 }}>
-          <SectionTitle theme={theme} title="관심 시리즈" sub="시리즈별로 어디까지 볼지 정해요. 바꾸면 홈에 바로 반영돼요." />
+          <SectionTitle theme={theme} title={tr('settings.series.title')} sub={tr('settings.series.sub')} />
           <div style={{ display: 'grid', gap: 8 }}>
             {SUPPORTED_SERIES.map((id) => {
               const mode = preferences.series[id] || 'all';
               return (
                 <SeriesRow key={id} seriesId={id} theme={theme} selected={mode !== 'off'}>
                   <ChoiceGroup theme={theme} options={MODE_OPTIONS_WITH_OFF} value={mode} showSub={false}
-                    onChange={(next) => setSeriesMode(id, next)} label={`${id} 관심 수준`} />
+                    onChange={(next) => setSeriesMode(id, next)} label={tr('ob.levelAria', { series: id })} />
                 </SeriesRow>
               );
             })}
@@ -51,32 +52,32 @@ export function Settings({ theme, preferences, setSeriesMode, setCountry, setTim
         </section>
 
         <section style={{ marginBottom: 32 }}>
-          <SectionTitle theme={theme} title="국가" sub="중계 정보를 이 국가 기준으로 보여드려요." />
+          <SectionTitle theme={theme} title={tr('settings.country.title')} sub={tr('settings.country.sub')} />
           <CountryChoices theme={theme} value={countryIdFromValue(preferences.country)}
             onChange={(id) => setCountry(countryValueFromId(id))} />
         </section>
 
         <section style={{ marginBottom: 32 }}>
-          <SectionTitle theme={theme} title="언어" sub="경기명과 화면 문구에 적용돼요." />
+          <SectionTitle theme={theme} title={tr('settings.language.title')} sub={tr('settings.language.sub')} />
           <ChoiceGroup theme={theme} options={LOCALE_OPTIONS} value={preferences.locale || 'ko'} showSub={false}
-            onChange={(id) => setLocale(id)} label="언어" />
+            onChange={(id) => setLocale(id)} label={tr('settings.language.title')} />
         </section>
 
         <section style={{ marginBottom: 32 }}>
-          <SectionTitle theme={theme} title="시간대" sub="브라우저에서 자동으로 감지한 값이에요." />
+          <SectionTitle theme={theme} title={tr('settings.timezone.title')} sub={tr('settings.timezone.sub')} />
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 56,
             padding: '12px 16px', borderRadius: 14, background: t.surface, border: `1px solid ${t.line}`,
           }}>
             <TimezoneLabel theme={theme} timezone={preferences.timezone} />
-            <button type="button" onClick={() => setTimezone(detectTimezone())} style={secondaryButton}>다시 감지</button>
+            <button type="button" onClick={() => setTimezone(detectTimezone())} style={secondaryButton}>{tr('settings.timezone.redetect')}</button>
           </div>
         </section>
 
         <section>
-          <SectionTitle theme={theme} title="온보딩 다시 보기" sub="처음 설정 과정을 다시 진행해요. 완료하면 지금 설정을 덮어써요." />
+          <SectionTitle theme={theme} title={tr('settings.onboarding.title')} sub={tr('settings.onboarding.sub')} />
           <button type="button" onClick={() => setOnboarded(false)} style={{ ...secondaryButton, width: '100%', height: 52, borderRadius: 14 }}>
-            온보딩 다시 보기
+            {tr('settings.onboarding.cta')}
           </button>
         </section>
       </div>

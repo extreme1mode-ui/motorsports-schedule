@@ -3,12 +3,14 @@ import { TOKENS, Mono, SeriesTag } from './primitives.jsx';
 import { SERIES, SUPPORTED_SERIES } from './schedule/index.js';
 import { MODE_OPTIONS, COUNTRY_OPTIONS, guessCountryFromTimezone, countryValueFromId, readTheme } from './preferences-options.js';
 import { PageTitle, SeriesRow, ChoiceGroup, CountryChoices, TimezoneLabel } from './preferences-ui.jsx';
+import { useT } from './i18n/index.js';
 
 const TOTAL_STEPS = 3;
 
 export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarded }) {
   const [theme] = useState(readTheme);
   const t = TOKENS[theme];
+  const tr = useT();
   const [step, setStep] = useState(1);
   const [selected, setSelected] = useState(() => new Set());
   const [modes, setModes] = useState({});
@@ -54,7 +56,7 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
     if (e.key === 'Enter' && e.target === stepRef.current) { e.preventDefault(); goNext(); }
   };
 
-  const countryLabel = COUNTRY_OPTIONS.find((c) => c.id === countryId)?.label ?? '그 외';
+  const countryLabel = tr(COUNTRY_OPTIONS.find((c) => c.id === countryId)?.label ?? 'country.OTHER');
 
   return (
     <div style={{
@@ -78,16 +80,16 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
           <button type="button" onClick={skip} style={{
             background: 'none', border: 0, minHeight: 44, minWidth: 44, padding: '8px 0 8px 12px', margin: '-6px 0', color: t.text3,
             fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-          }}>건너뛰기</button>
+          }}>{tr('ob.skip')}</button>
         </div>
 
         {/* 스텝 본문 */}
         <div ref={stepRef} tabIndex={-1} onKeyDown={onKeyDown} style={{ outline: 'none', flex: 1 }}
-          aria-label={`온보딩 ${step}단계`}>
+          aria-label={tr('ob.stepAria', { step })}>
           {step === 1 && (
             <>
-              <PageTitle theme={theme} title="어떤 시리즈에 관심이 있나요?" sub="여러 개 고를 수 있어요. 나중에 바꿀 수 있습니다." />
-              <div style={{ display: 'grid', gap: 8 }} role="group" aria-label="관심 시리즈">
+              <PageTitle theme={theme} title={tr('ob.s1.title')} sub={tr('ob.s1.sub')} />
+              <div style={{ display: 'grid', gap: 8 }} role="group" aria-label={tr('ob.s1.aria')}>
                 {SUPPORTED_SERIES.map((id) => (
                   <SeriesRow key={id} seriesId={id} theme={theme} selected={selected.has(id)} onToggle={() => toggleSeries(id)} />
                 ))}
@@ -97,7 +99,7 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
 
           {step === 2 && (
             <>
-              <PageTitle theme={theme} title="어디까지 챙겨 볼까요?" sub="시리즈별로 알림과 일정에 표시할 세션 범위예요." />
+              <PageTitle theme={theme} title={tr('ob.s2.title')} sub={tr('ob.s2.sub')} />
               <div style={{ display: 'grid', gap: 20 }}>
                 {selectedList.map((id) => (
                   <div key={id}>
@@ -107,7 +109,7 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
                     </div>
                     <ChoiceGroup theme={theme} options={MODE_OPTIONS} value={modes[id] || 'all'}
                       onChange={(mode) => setModes((prev) => ({ ...prev, [id]: mode }))}
-                      label={`${SERIES[id].name} 관심 수준`} />
+                      label={tr('ob.levelAria', { series: SERIES[id].name })} />
                   </div>
                 ))}
               </div>
@@ -117,8 +119,8 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
           {step === 3 && (
             <>
               <PageTitle theme={theme}
-                title={`중계 정보를 ${countryLabel} 기준으로 보여드릴게요`}
-                sub={<>감지된 시간대 <TimezoneLabel theme={theme} timezone={preferences.timezone} /> 를 바탕으로 골랐어요. 다르면 바꿔주세요.</>} />
+                title={tr('ob.s3.title', { country: countryLabel })}
+                sub={<>{tr('ob.s3.subBefore')}<TimezoneLabel theme={theme} timezone={preferences.timezone} />{tr('ob.s3.subAfter')}</>} />
               <CountryChoices theme={theme} value={countryId} onChange={setCountryId} />
             </>
           )}
@@ -131,13 +133,13 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
               flex: '0 0 auto', minWidth: 88, height: 52, borderRadius: 14, cursor: 'pointer',
               background: 'transparent', border: `1px solid ${t.line2}`, color: t.text2,
               fontSize: 15, fontWeight: 600, fontFamily: 'inherit',
-            }}>이전</button>
+            }}>{tr('ob.back')}</button>
           )}
           <button type="button" onClick={goNext} disabled={!canNext} style={{
             flex: 1, height: 52, borderRadius: 14, border: 0, cursor: canNext ? 'pointer' : 'default',
             background: t.text, color: t.bg, opacity: canNext ? 1 : 0.35,
             fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
-          }}>{step < TOTAL_STEPS ? '다음' : '시작하기'}</button>
+          }}>{step < TOTAL_STEPS ? tr('ob.next') : tr('ob.start')}</button>
         </div>
       </div>
     </div>

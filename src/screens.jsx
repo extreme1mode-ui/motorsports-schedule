@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { CATEGORIES, SERIES, getVisibleSessions, getSeriesStats, getRaceStartUtc } from './schedule/index.js';
 import { TOKENS, Mono, SeriesTag, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
 import { useFormat } from './use-format.js';
+import { useT } from './i18n/index.js';
 
 // 정렬·그룹핑은 시작 시각(UTC)으로. 시간대와 무관하게 항상 옳다.
 const startMs = (r) => { const iso = getRaceStartUtc(r) || r.primaryStartUtc; return iso ? new Date(iso).getTime() : Number.MAX_SAFE_INTEGER; };
@@ -18,6 +19,7 @@ const ICON_HIT = { width: 44, height: 44, margin: -4, padding: 0, border: 0, bac
 export function Schedule({ theme, races, onOpenRace, now, seasonYear }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
+  const tr = useT();
   const safeSeasonYear = Number.isFinite(seasonYear) ? seasonYear : 2026;
   const [month, setMonth] = useState(() => Math.max(Number(fmt.parts(now)?.month || 1) - 1, 0));
   const [category, setCategory] = useState('ALL');
@@ -33,7 +35,7 @@ export function Schedule({ theme, races, onOpenRace, now, seasonYear }) {
     <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 110 }}>
       <div style={{ padding: '64px 18px 12px' }}>
         <Mono size={10} color={t.text3} style={{ letterSpacing: '0.14em' }}>{safeSeasonYear} SEASON</Mono>
-        <div style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>일정</div>
+        <div style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>{tr('schedule.title')}</div>
       </div>
 
       {/* 칩 행: 버튼은 44px 히트영역, 보이는 알약(33px)은 안쪽 span. 행 높이가 변하지 않게 컨테이너를 위·아래 5.5px씩 당긴다 (QA R4). */}
@@ -193,6 +195,7 @@ export function SeriesView({ theme, races, onOpenRace, initialCategory, seasonYe
   const [sel, setSel] = useState(initialCategory || 'F1');
   useEffect(() => { if (initialCategory) setSel(initialCategory); }, [initialCategory]);
   const s = CATEGORIES[sel];
+  const tr = useT();
   const list = races.filter(r => r.category === sel).sort(byStart);
   const stats = getSeriesStats(list);
 
@@ -200,7 +203,7 @@ export function SeriesView({ theme, races, onOpenRace, initialCategory, seasonYe
     <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 110 }}>
       <div style={{ padding: '64px 18px 12px' }}>
         <Mono size={10} color={t.text3} style={{ letterSpacing: '0.14em' }}>BY CATEGORY · {safeSeasonYear}</Mono>
-        <div style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>카테고리별</div>
+        <div style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>{tr('series.title')}</div>
       </div>
 
       <div style={{ display: 'flex', gap: 6, padding: '0 18px 8.5px', marginTop: -5.5, overflowX: 'auto' }}>
@@ -290,6 +293,7 @@ function RoundRow({ race, idx, theme, onOpen }) {
 
 export function Favorites({ theme, races, myRaces, favorites, onOpenRace, toggleFav }) {
   const t = TOKENS[theme];
+  const tr = useT();
   const favList = races.filter(r => favorites.has(r.id)).sort(byStart);
   // 빈 상태 추천: 다가오는 관심 경기 3개 (프로토타입 저장 화면과 같은 규칙)
   const recs = (Array.isArray(myRaces) ? myRaces : races).filter(r => r.status === 'upcoming' || r.status === 'live').slice(0, 3);
@@ -297,7 +301,7 @@ export function Favorites({ theme, races, myRaces, favorites, onOpenRace, toggle
     <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 110 }}>
       <div style={{ padding: '64px 18px 20px' }}>
         <Mono size={10} color={t.text3} style={{ letterSpacing: '0.14em' }}>PINNED</Mono>
-        <div style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>즐겨찾기</div>
+        <div style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>{tr('fav.title')}</div>
       </div>
       {favList.length === 0 ? (
         <div style={{ padding: '40px 40px', textAlign: 'center' }}>
@@ -306,13 +310,13 @@ export function Favorites({ theme, races, myRaces, favorites, onOpenRace, toggle
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
             </svg>
           </div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: t.text, marginBottom: 6 }}>아직 저장한 경기가 없어요</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: t.text, marginBottom: 6 }}>{tr('fav.emptyTitle')}</div>
           <div style={{ fontSize: 13, color: t.text3, lineHeight: 1.5 }}>
-            놓치고 싶지 않은 경기를 담아두면 시작 전에 알려드립니다.
+            {tr('fav.emptyBody')}
           </div>
           {recs.length > 0 && (
             <div style={{ marginTop: 28, textAlign: 'left' }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 10 }}>이건 어떠세요</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 10 }}>{tr('fav.suggest')}</div>
               <div style={{ display: 'grid', gap: 8 }}>
                 {recs.map(r => <RecommendRow key={r.id} race={r} theme={theme} onOpen={() => onOpenRace(r)} onSave={() => toggleFav(r.id)} />)}
               </div>
@@ -331,6 +335,7 @@ export function Favorites({ theme, races, myRaces, favorites, onOpenRace, toggle
 export function RaceDetail({ race, theme, onClose, favorites, toggleFav, preferences }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
+  const tr = useT();
   const L = fmt.race(race);
   const s = SERIES[race.series];
   const sessions = getVisibleSessions(race, preferences?.series?.[race.series]);
@@ -347,14 +352,14 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
         </svg>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, position: 'relative' }}>
-          <button onClick={onClose} aria-label="뒤로" style={ICON_HIT}>
+          <button onClick={onClose} aria-label={tr('aria.back')} style={ICON_HIT}>
             <span style={{ width: 36, height: 36, borderRadius: 999, background: theme === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)', display: 'grid', placeItems: 'center' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={theme === 'dark' ? '#fff' : '#111'} strokeWidth="2.4" strokeLinecap="round">
                 <path d="M15 18l-6-6 6-6"/>
               </svg>
             </span>
           </button>
-          <button onClick={() => toggleFav(race.id)} aria-label="저장" style={ICON_HIT}>
+          <button onClick={() => toggleFav(race.id)} aria-label={tr('aria.save')} style={ICON_HIT}>
             <span style={{ width: 36, height: 36, borderRadius: 999, background: theme === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)', display: 'grid', placeItems: 'center' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill={faved ? s.accent : 'none'} stroke={faved ? s.accent : (theme === 'dark' ? '#fff' : '#111')} strokeWidth="2">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
@@ -393,7 +398,7 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
       )}
 
       <section style={{ padding: '24px 18px 0' }}>
-        <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.14em' }}>SESSIONS · 내 시간 ({fmt.zoneLabel}) · 현지</Mono>
+        <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.14em' }}>{tr('detail.sessions', { zone: fmt.zoneLabel })}</Mono>
         <div style={{ marginTop: 12, background: t.surface, border: `1px solid ${t.line}`, borderRadius: 14, overflow: 'hidden' }}>
           {sessions.map((sess, i) => (
             <div key={i} style={{
@@ -407,8 +412,8 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
                 color: sess.kind === 'race' ? '#fff' : t.text,
                 fontSize: 11, fontWeight: 700, letterSpacing: '-0.005em',
               }}>{fmt.sessionLabel(sess)}</div>
-              <Mono size={13} color={t.text2}>{sess.startUtc ? fmt.dateTimeKey(sess.startUtc) : '시간 TBA'}</Mono>
-              <Mono size={10} color={t.text3} style={{ letterSpacing: '0.02em' }}>{sess.startUtc && sess.local && sess.local !== 'TBA' ? `현지 ${sess.local.slice(11, 16)}` : ''}</Mono>
+              <Mono size={13} color={t.text2}>{sess.startUtc ? fmt.dateTimeKey(sess.startUtc) : tr('detail.timeTba')}</Mono>
+              <Mono size={10} color={t.text3} style={{ letterSpacing: '0.02em' }}>{sess.startUtc && sess.local && sess.local !== 'TBA' ? tr('detail.local', { time: sess.local.slice(11, 16) }) : ''}</Mono>
             </div>
           ))}
         </div>
@@ -417,16 +422,16 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
       <section style={{ padding: '20px 18px 0' }}>
         <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.14em' }}>WEEKEND</Mono>
         <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <InfoCell label="시작" value={fmt.plainDateFull(race.weekendStart)} theme={theme} />
-          <InfoCell label="종료" value={fmt.plainDateFull(race.weekendEnd)} theme={theme} />
-          <InfoCell label="현지 시각" value={race.localTime || 'TBA'} theme={theme} />
+          <InfoCell label={tr('detail.start')} value={fmt.plainDateFull(race.weekendStart)} theme={theme} />
+          <InfoCell label={tr('detail.end')} value={fmt.plainDateFull(race.weekendEnd)} theme={theme} />
+          <InfoCell label={tr('detail.localTime')} value={race.localTime || 'TBA'} theme={theme} />
           <InfoCell label="TIMEZONE" value={race.timezone || 'TBA'} theme={theme} />
           {race.durationLabel && <InfoCell label="DURATION" value={race.durationLabel} theme={theme} />}
         </div>
       </section>
 
       <section style={{ padding: '20px 18px 0' }}>
-        <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.14em' }}>중계 · BROADCAST</Mono>
+        <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.14em' }}>{tr('detail.broadcast')}</Mono>
         <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
           {fmt.broadcast(race.broadcast).map((b, i) => (
             <div key={i} style={{ padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
@@ -445,10 +450,10 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
       <section style={{ padding: '20px 18px 0' }}>
         <div style={{ padding: '14px 16px', background: t.surface, border: `1px solid ${t.line}`, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>시작 30분 전 알림</div>
-            <div style={{ fontSize: 11, color: t.text3, marginTop: 2 }}>결승 세션 전에 푸시 알림</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>{tr('detail.alertTitle')}</div>
+            <div style={{ fontSize: 11, color: t.text3, marginTop: 2 }}>{tr('detail.alertSub')}</div>
           </div>
-          <button onClick={() => setNotify(!notify)} role="switch" aria-checked={notify} aria-label="시작 30분 전 알림" style={{ width: 46, height: 44, margin: '-8px 0', padding: 0, border: 0, background: 'none', cursor: 'pointer', display: 'grid', placeItems: 'center', flex: 'none' }}>
+          <button onClick={() => setNotify(!notify)} role="switch" aria-checked={notify} aria-label={tr('detail.alertTitle')} style={{ width: 46, height: 44, margin: '-8px 0', padding: 0, border: 0, background: 'none', cursor: 'pointer', display: 'grid', placeItems: 'center', flex: 'none' }}>
             <span style={{ display: 'block', width: 46, height: 28, borderRadius: 999, background: notify ? s.accent : (theme === 'dark' ? '#3A3D45' : '#D8DAE3'), position: 'relative', transition: 'background 0.15s' }}>
               <span style={{ position: 'absolute', top: 2, left: notify ? 20 : 2, width: 24, height: 24, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transition: 'left 0.15s' }} />
             </span>
@@ -458,7 +463,7 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
 
       <section style={{ padding: '24px 18px 0' }}>
         <button style={{ width: '100%', padding: '16px', borderRadius: 14, border: 0, background: s.accent, color: '#fff', fontSize: 15, fontWeight: 700, letterSpacing: '-0.005em', cursor: 'pointer', fontFamily: 'inherit', boxShadow: `0 10px 24px ${s.accent}33` }}>
-          티켓 · 공식 사이트 열기
+          {tr('detail.tickets')}
         </button>
       </section>
     </div>
@@ -469,6 +474,7 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
 function RecommendRow({ race, theme, onOpen, onSave }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
+  const tr = useT();
   const L = fmt.race(race);
   const s = SERIES[race.series];
   return (
@@ -482,7 +488,7 @@ function RecommendRow({ race, theme, onOpen, onSave }) {
         <div style={{ fontSize: 14, fontWeight: 600, color: t.text, letterSpacing: '-0.005em', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{L.shortName}</div>
         <div style={{ fontSize: 11, color: t.text3, marginTop: 1 }}>{fmt.monthDay(getRaceStartUtc(race) || race.primaryStartUtc)} · {getRaceStartUtc(race) ? fmt.time(getRaceStartUtc(race)) : 'TBA'}</div>
       </button>
-      <button onClick={onSave} style={{ flex: 'none', minHeight: 44, padding: '0 12px', borderRadius: 10, border: `1px solid ${t.line2}`, background: 'transparent', color: t.text, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>저장하기</button>
+      <button onClick={onSave} style={{ flex: 'none', minHeight: 44, padding: '0 12px', borderRadius: 10, border: `1px solid ${t.line2}`, background: 'transparent', color: t.text, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{tr('fav.save')}</button>
     </div>
   );
 }

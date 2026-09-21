@@ -8,6 +8,7 @@ import { Onboarding } from './onboarding.jsx';
 import { Settings } from './settings.jsx';
 import { readTheme } from './preferences-options.js';
 import { FormatProvider } from './format-context.jsx';
+import { useT } from './i18n/index.js';
 
 export default function Root() {
   const prefs = usePreferences();
@@ -111,11 +112,12 @@ function App({ theme, setTheme, ...prefs }) {
 
 function TabBar({ theme, view, onGo, favCount }) {
   const t = TOKENS[theme];
+  const tr = useT();
   const tabs = [
-    { id: 'home', label: '홈', icon: 'home' },
-    { id: 'schedule', label: '일정', icon: 'cal' },
-    { id: 'series', label: '시리즈', icon: 'grid' },
-    { id: 'fav', label: '즐겨찾기', icon: 'heart' },
+    { id: 'home', label: tr('nav.home'), icon: 'home' },
+    { id: 'schedule', label: tr('nav.schedule'), icon: 'cal' },
+    { id: 'series', label: tr('nav.series'), icon: 'grid' },
+    { id: 'fav', label: tr('nav.fav'), icon: 'heart' },
   ];
   return (
     <div style={{
@@ -190,6 +192,7 @@ function TabIcon({ type }) {
 
 function TweaksPanel({ theme, setTheme, onClose }) {
   const t = TOKENS[theme];
+  const tr = useT();
   return (
     <div style={{
       position: 'absolute', right: 12, bottom: 100, zIndex: 90,
@@ -200,7 +203,7 @@ function TweaksPanel({ theme, setTheme, onClose }) {
     }}>
       <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.14em' }}>TWEAKS</Mono>
       <div style={{ marginTop: 10 }}>
-        <div style={{ fontSize: 12, color: t.text2, marginBottom: 6 }}>테마</div>
+        <div style={{ fontSize: 12, color: t.text2, marginBottom: 6 }}>{tr('theme.label')}</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
           {['dark', 'light'].map(m => (
             <button key={m} onClick={() => setTheme(m)} style={{
@@ -209,7 +212,7 @@ function TweaksPanel({ theme, setTheme, onClose }) {
               background: theme === m ? t.text : 'transparent',
               color: theme === m ? t.bg : t.text2,
               fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-            }}>{m === 'dark' ? '다크' : '라이트'}</button>
+            }}>{m === 'dark' ? tr('theme.dark') : tr('theme.light')}</button>
           ))}
         </div>
       </div>

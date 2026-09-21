@@ -5,6 +5,7 @@ import { Home } from './home/Home.jsx';
 import { WebSchedule, WebSeries, WebFavorites, RaceDrawer } from './web-screens.jsx';
 import { Settings } from './settings.jsx';
 import { useFormat } from './use-format.js';
+import { useT } from './i18n/index.js';
 
 export function useViewport() {
   const [w, setW] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1440);
@@ -110,11 +111,12 @@ export function WebApp({ theme, setTheme, ...prefs }) {
 function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
+  const tr = useT();
   const items = [
-    { id: 'home',     label: '홈',       sub: 'HOME',     icon: 'home' },
-    { id: 'schedule', label: '일정',     sub: 'SCHEDULE', icon: 'cal' },
-    { id: 'series',   label: '시리즈',   sub: 'SERIES',   icon: 'grid' },
-    { id: 'fav',      label: '즐겨찾기', sub: 'PINNED',   icon: 'heart' },
+    { id: 'home',     label: tr('nav.home'),     sub: 'HOME',     icon: 'home' },
+    { id: 'schedule', label: tr('nav.schedule'), sub: 'SCHEDULE', icon: 'cal' },
+    { id: 'series',   label: tr('nav.series'),   sub: 'SERIES',   icon: 'grid' },
+    { id: 'fav',      label: tr('nav.fav'),      sub: 'PINNED',   icon: 'heart' },
   ];
 
   return (
@@ -192,7 +194,7 @@ function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
 
       <div style={{ flex: 1 }} />
 
-      <button onClick={() => onGo('settings')} title="설정" style={{
+      <button onClick={() => onGo('settings')} title={tr('nav.settings')} style={{
         display: 'flex', alignItems: 'center',
         gap: collapsed ? 0 : 12, justifyContent: collapsed ? 'center' : 'flex-start',
         padding: collapsed ? '12px 0' : '11px 12px', marginBottom: 10,
@@ -211,7 +213,7 @@ function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
         <SideIcon type="gear" stroke={view === 'settings' ? t.text : t.text2} />
         {!collapsed && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.005em' }}>설정</span>
+            <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.005em' }}>{tr('nav.settings')}</span>
             <Mono size={9} color={t.text3} style={{ letterSpacing: '0.14em' }}>SETTINGS</Mono>
           </div>
         )}
@@ -235,7 +237,7 @@ function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
                 background: theme === m ? t.text : 'transparent',
                 color: theme === m ? t.bg : t.text2,
                 cursor: 'pointer', fontFamily: 'inherit',
-              }}>{m === 'dark' ? '다크' : '라이트'}</button>
+              }}>{m === 'dark' ? tr('theme.dark') : tr('theme.light')}</button>
             ))}
           </div>
         </div>
@@ -297,6 +299,7 @@ export function PageHeader({ theme, kicker, title, subtitle, right }) {
 
 function WebTweaks({ theme, setTheme }) {
   const t = TOKENS[theme];
+  const tr = useT();
   return (
     <div style={{
       position: 'fixed', left: 24, bottom: 24, zIndex: 90,
@@ -307,7 +310,7 @@ function WebTweaks({ theme, setTheme }) {
     }}>
       <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.14em' }}>TWEAKS</Mono>
       <div style={{ marginTop: 10 }}>
-        <div style={{ fontSize: 12, color: t.text2, marginBottom: 6 }}>테마</div>
+        <div style={{ fontSize: 12, color: t.text2, marginBottom: 6 }}>{tr('theme.label')}</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
           {['dark', 'light'].map(m => (
             <button key={m} onClick={() => setTheme(m)} style={{
@@ -316,7 +319,7 @@ function WebTweaks({ theme, setTheme }) {
               background: theme === m ? t.text : 'transparent',
               color: theme === m ? t.bg : t.text2,
               fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-            }}>{m === 'dark' ? '다크' : '라이트'}</button>
+            }}>{m === 'dark' ? tr('theme.dark') : tr('theme.light')}</button>
           ))}
         </div>
       </div>

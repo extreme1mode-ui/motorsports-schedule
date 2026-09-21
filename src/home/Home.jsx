@@ -6,13 +6,12 @@ import { adaptRaces } from './adapt.js';
 import { resolveTimeState, formatCountdown } from './time.js';
 import { getRaceWeekKey, groupRacesByWeekend } from './weeks.js';
 import { photo, photoPos, photoCredit } from './photos.js';
-import { SERIES_DESCRIPTIONS } from '../preferences-options.js';
+import { SERIES_DESCRIPTION_KEYS } from '../preferences-options.js';
 import { useFormat } from '../use-format.js';
 import { useT } from '../i18n/index.js';
 import { zonedDateFromKey } from '../schedule/format.js';
 
 const ORDER = ['F1', 'WEC', 'IMSA', 'GTWC', 'WRC'];
-const SERIES_KO = { F1: '포뮬러 1', WEC: '세계 내구 선수권', IMSA: 'IMSA 스포츠카', WRC: '세계 랠리 선수권', GTWC: 'GT 월드 챌린지' };
 const SERIES_VAR = { F1: '--f1', WEC: '--wec', IMSA: '--imsa', WRC: '--wrc', GTWC: '--gtwc' };
 const ALERTS_KEY = 'paddock.alerts';
 
@@ -41,26 +40,26 @@ function roundText(ev) {
 const md = (fmt, date) => { const p = fmt.parts(date); return p ? `${p.month}.${p.day}` : ''; };
 const dow = (fmt, date) => fmt.parts(date)?.weekdayName || '';
 
-function heroReason(ev, ts, kind, now, fmt) {
-  if (kind === 'live') return { text: '지금 진행 중', urgent: true };
+function heroReason(ev, ts, kind, now, fmt, t) {
+  if (kind === 'live') return { text: t('home.reason.live'), urgent: true };
   if (kind === 'soon') {
     const ms = ts.start - now; const h = Math.floor(ms / 3600000); const m = Math.max(1, Math.round((ms % 3600000) / 60000));
-    return { text: `${fmt.isNight(ts.start) ? '오늘 밤' : '오늘'} · ${h >= 1 ? `${h}시간 뒤 시작` : `${m}분 뒤 시작`}`, urgent: true };
+    return { text: `${fmt.isNight(ts.start) ? t('home.tonight') : t('home.today')} · ${h >= 1 ? t('home.startsInHours', { h }) : t('home.startsInMinutes', { m })}`, urgent: true };
   }
-  if (kind === 'today') return { text: '오늘 진행 · 시작 시각 미정', urgent: false };
+  if (kind === 'today') return { text: t('home.reason.today'), urgent: false };
   // D-day: 시작 시각이 있으면 시청자 시간대의 날짜 차이, 없으면 서킷 현지 주말 마지막 날 기준
   const ref = ts.start || zonedDateFromKey(ev.weekendEnd, '12:00', ev.timezone || 'UTC');
   const d = Math.max(0, fmt.dayDiff(ref, now) ?? 0);
-  return { text: `다음 레이싱 위켄드 · D-${d}`, urgent: false };
+  return { text: t('home.reason.weekend', { d }), urgent: false };
 }
 
-function heroClock(ev, ts, kind, fmt) {
+function heroClock(ev, ts, kind, fmt, t) {
   const st = ts.start;
-  if (kind === 'live') return { big: 'LIVE', urgent: true, sub: '진행 중' };
-  if (kind === 'soon') return { big: null, countdown: st, urgent: true, sub: `${fmt.shortDateTime(st)}${fmt.isNight(st) ? ' · 심야' : ''}` };
+  if (kind === 'live') return { big: 'LIVE', urgent: true, sub: t('home.clock.live') };
+  if (kind === 'soon') return { big: null, countdown: st, urgent: true, sub: `${fmt.shortDateTime(st)}${fmt.isNight(st) ? ` · ${t('home.night')}` : ''}` };
   // 주말 기간은 이벤트 고유 정보 — 서킷 현지 날짜 그대로
-  if (kind === 'today' || !st) return { big: `${fmt.plainMonthDay(ev.weekendStart)} – ${fmt.plainMonthDay(ev.weekendEnd)}`, urgent: false, sub: '시작 시각 미정 · 확정되면 알려드립니다' };
-  return { big: md(fmt, st), urgent: false, sub: `${dow(fmt, st)}요일 ${fmt.time(st)}${fmt.isNight(st) ? ' · 심야' : ''}` };
+  if (kind === 'today' || !st) return { big: `${fmt.plainMonthDay(ev.weekendStart)} – ${fmt.plainMonthDay(ev.weekendEnd)}`, urgent: false, sub: t('home.clock.tba') };
+  return { big: md(fmt, st), urgent: false, sub: `${t('home.weekdayTime', { weekday: dow(fmt, st), time: fmt.time(st) })}${fmt.isNight(st) ? ` · ${t('home.night')}` : ''}` };
 }
 
 function readAlerts() {
@@ -116,14 +115,15 @@ function SeriesBadge({ series }) {
 
 function TimeStat({ ts, dateless }) {
   const fmt = useFormat();
+  const t = useT();
   const { state, start } = ts;
-  if (state === 'cancelled') return <span className="time time--cancelled">취소</span>;
+  if (state === 'cancelled') return <span className="time time--cancelled">{t('time.cancelled')}</span>;
   if (state === 'live') return <span className="time time--live">LIVE</span>;
-  if (state === 'tba') return <span className="time time--tba">시간 미정</span>;
-  if (state === 'done') return <span className="time time--done">종료</span>;
+  if (state === 'tba') return <span className="time time--tba">{t('time.tba')}</span>;
+  if (state === 'done') return <span className="time time--done">{t('time.done')}</span>;
   return (
     <span className={`time${state === 'soon' ? ' time--soon' : ''}`}>
-      {fmt.isNight(start) && <span className="nightmark">심야</span>}
+      {fmt.isNight(start) && <span className="nightmark">{t('home.night')}</span>}
       {dateless ? '' : `${fmt.shortDate(start)} `}{fmt.time(start)}
     </span>
   );
@@ -242,16 +242,16 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
         <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
           <span className="clock m">{fmt.zoneLabel} <Clock /></span>
           <div className="mobtools">
-            <button type="button" className="iconbtn" aria-label="설정" onClick={() => onGo('settings')}><Icon name="sliders" /></button>
-            <button type="button" className="iconbtn" aria-label="테마 전환" onClick={() => setTheme?.(theme === 'dark' ? 'light' : 'dark')}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /></button>
+            <button type="button" className="iconbtn" aria-label={t('nav.settings')} onClick={() => onGo('settings')}><Icon name="sliders" /></button>
+            <button type="button" className="iconbtn" aria-label={t('theme.toggle')} onClick={() => setTheme?.(theme === 'dark' ? 'light' : 'dark')}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /></button>
           </div>
         </div>
       </div>
 
       {hero ? (() => {
         const hts = ts(hero);
-        const reason = heroReason(hero, hts, kind, at, fmt);
-        const clock = heroClock(hero, hts, kind, fmt);
+        const reason = heroReason(hero, hts, kind, at, fmt, t);
+        const clock = heroClock(hero, hts, kind, fmt, t);
         const chans = fmt.broadcast(hero.broadcast).map((b) => b.name);
         const urgent = kind === 'live' || kind === 'soon';
         const faved = favorites?.has(hero.id);
@@ -266,7 +266,7 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
                 <span className={`hero2-reason${reason.urgent ? '' : ' calm'}`}>{reason.urgent && <i />}{reason.text}</span>
                 <div className="hero2-meta">
                   <SeriesBadge series={hero.series} /><span className="rnd">{roundText(hero)}</span>
-                  {hero.isSprint && <span className="tagpill">스프린트 주말</span>}
+                  {hero.isSprint && <span className="tagpill">{t('home.sprintWeekend')}</span>}
                 </div>
                 <h2 className="hero2-title ko">{hero.fullName || hero.displayName}</h2>
                 {hero.officialName && hero.officialName !== (hero.fullName || hero.displayName) && <div className="hero2-official">{hero.officialName}</div>}
@@ -279,14 +279,14 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
                 <div className="hero2-when ko">{clock.sub}</div>
                 <div className="hero2-act">
                   {urgent && chans.length
-                    ? <button type="button" className="cta" onClick={() => onOpenRace(hero.race)}>{chans[0]}에서 보기</button>
-                    : <button type="button" className="cta" onClick={() => toggleAlert(hero.id)}>{alertOn ? '알림 켜짐' : '시작 전에 알림 받기'}</button>}
-                  <button type="button" className={`heart${faved ? ' on' : ''}`} aria-label="저장" onClick={() => toggleFav?.(hero.id)}>
+                    ? <button type="button" className="cta" onClick={() => onOpenRace(hero.race)}>{t('home.watchOn', { channel: chans[0] })}</button>
+                    : <button type="button" className="cta" onClick={() => toggleAlert(hero.id)}>{alertOn ? t('home.alertOn') : t('home.alertSet')}</button>}
+                  <button type="button" className={`heart${faved ? ' on' : ''}`} aria-label={t('aria.save')} onClick={() => toggleFav?.(hero.id)}>
                     {faved
                       ? <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
                       : <Icon name="heart" size={16} />}
                   </button>
-                  <button type="button" className="linkbtn" onClick={() => onOpenRace(hero.race)}>상세</button>
+                  <button type="button" className="linkbtn" onClick={() => onOpenRace(hero.race)}>{t('home.detail')}</button>
                 </div>
                 {chans.length > 0 && <div className="hero2-chans">{chans.join(' · ')}</div>}
               </div>
@@ -295,22 +295,22 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
         );
       })() : (
         <div className="empty">
-          <h3 className="ko">관심 시리즈에 예정된 경기가 없습니다</h3>
-          <p className="ko">전체 일정에서 다른 시리즈의 경기를 찾아볼 수 있습니다.</p>
-          <button type="button" className="cta ghost" style={{ maxWidth: 220, margin: '14px auto 0' }} onClick={() => onGo('schedule')}>전체 일정 보기</button>
+          <h3 className="ko">{t('home.empty.title')}</h3>
+          <p className="ko">{t('home.empty.body')}</p>
+          <button type="button" className="cta ghost" style={{ maxWidth: 220, margin: '14px auto 0' }} onClick={() => onGo('schedule')}>{t('home.empty.cta')}</button>
         </div>
       )}
 
       {mates.length > 0 && (
         <>
-          <div className="sechead"><h2 className="ko">같은 주말</h2><span className="meta">{mates.length}경기</span></div>
+          <div className="sechead"><h2 className="ko">{t('home.sameWeekend')}</h2><span className="meta">{t('home.raceCount', { n: mates.length })}</span></div>
           {mates.map((ev) => <Card2 key={ev.id} ev={ev} ts={ts(ev)} onOpen={onOpenRace} />)}
         </>
       )}
 
       {later.length > 0 && (
         <>
-          <div className="sechead"><h2 className="ko">이후 일정</h2><button type="button" className="lnk" onClick={() => onGo('schedule')}>{t('schedule.viewAll')}</button></div>
+          <div className="sechead"><h2 className="ko">{t('home.upNext')}</h2><button type="button" className="lnk" onClick={() => onGo('schedule')}>{t('schedule.viewAll')}</button></div>
           <div className="rows">
             {later.map((ev) => <Row key={ev.id} ev={ev} ts={ts(ev)} dim={interest(ev) === 0} onOpen={onOpenRace} />)}
           </div>
@@ -319,12 +319,12 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
 
       {disc && (
         <>
-          <div className="sechead"><h2 className="ko">새로 볼만한 것</h2></div>
+          <div className="sechead"><h2 className="ko">{t('home.discover')}</h2></div>
           <div className="panel">
-            <h3 className="ko">{SERIES_KO[discSeries]}{josa(SERIES_KO[discSeries], '은', '는')} 아직 안 보고 계시네요</h3>
-            <p className="ko">{SERIES_DESCRIPTIONS[discSeries]} 관심 설정이 꺼져 있어 일정에서 빠져 있습니다. 가장 가까운 경기를 가져왔습니다.</p>
+            <h3 className="ko">{t('home.discover.title', { name: t(`series.${discSeries}.name`), josa: josa(t(`series.${discSeries}.name`), '은', '는') })}</h3>
+            <p className="ko">{t('home.discover.body', { desc: t(SERIES_DESCRIPTION_KEYS[discSeries]) })}</p>
             <Card2 ev={disc} ts={ts(disc)} onOpen={onOpenRace} small />
-            <button type="button" className="cta ghost" style={{ marginTop: 11 }} onClick={() => setSeriesMode?.(discSeries, 'race')}>{discSeries} 관심 시리즈에 추가</button>
+            <button type="button" className="cta ghost" style={{ marginTop: 11 }} onClick={() => setSeriesMode?.(discSeries, 'race')}>{t('home.discover.add', { series: discSeries })}</button>
           </div>
         </>
       )}
