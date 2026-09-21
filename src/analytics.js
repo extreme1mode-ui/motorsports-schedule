@@ -45,11 +45,60 @@ function sanitize(props) {
   return out;
 }
 
-// 실제 전송. 도구가 정해지면 이 함수만 바꾼다.
-//   PostHog 예) posthog.capture(event, props)
-//   GA4 예)     gtag('event', event, props)
+// ---------- 전송: PostHog (EU 리전) ----------
+// 도구를 바꾸려면 이 블록(send)만 교체한다. sanitize/doNotTrack/track은 도구와 무관.
+const POSTHOG_HOST = 'https://eu.i.posthog.com';   // EU 프로젝트. 빠뜨리면 SDK 기본값(US)으로 가서 이벤트가 조용히 사라진다.
+// 세션 리플레이: 켜려면 이 한 줄만 true로. (PostHog 프로젝트 설정의 Session replay도 켜져 있어야 한다.)
+const SESSION_REPLAY_ENABLED = false;
+const QUEUE_LIMIT = 200;   // SDK 로드 전 이벤트 보관 상한. 로드가 영영 실패하는 환경에서 무한히 쌓이지 않게.
+
+let client = null;       // 로드 완료된 posthog 인스턴스
+let loading = null;      // 진행 중인 import() promise
+let failed = false;      // 로드 실패 → 이후 이벤트는 조용히 버린다
+const queue = [];        // 로드 전 이벤트 [event, props] — 도착 순서 유지
+
+function flushQueue() {
+  while (client && queue.length) {
+    const [event, props] = queue.shift();
+    client.capture(event, props);
+  }
+}
+
+// posthog-js(gzip ~60KB)는 첫 이벤트 시점에 동적 import. 첫 페인트를 막지 않는다.
+function loadClient() {
+  if (client || loading || failed) return;
+  loading = import('posthog-js')
+    .then(({ default: posthog }) => {
+      posthog.init(KEY, {
+        api_host: POSTHOG_HOST,
+        autocapture: false,                 // 클릭·입력 자동 수집 안 함. 이벤트는 설계해서 심었다.
+        capture_pageview: false,            // 라우팅 없는 SPA — app_opened가 그 역할.
+        capture_pageleave: false,           // 같은 이유로 $pageleave도 끔.
+        person_profiles: 'identified_only', // 익명 방문자 프로필 생성 안 함.
+        respect_dnt: true,                  // track()의 DNT 검사와 이중으로.
+        disable_session_recording: !SESSION_REPLAY_ENABLED,
+        disable_surveys: true,
+        disable_web_experiments: true,
+        advanced_disable_flags: true,       // 기능 플래그를 안 쓰므로 init 시 /flags 요청 생략.
+      });
+      // IP 기반 위치 추적 끄기. posthog-js 1.4xx에는 config 옵션이 없고(옛 `ip` 옵션은 @deprecated·무효),
+      // 이벤트 속성 $geoip_disable=true가 서버의 GeoIP 변환을 건너뛰게 한다. register()로 모든 이벤트에 붙인다.
+      // $ip 자체는 서버가 요청에서 채우므로 클라이언트에서 못 지운다 → 프로젝트 설정 "Discard client IP data"를 켜야 한다.
+      posthog.register({ $geoip_disable: true });
+      client = posthog;
+      flushQueue();
+    })
+    .catch(() => {
+      // 로드 실패(오프라인, 차단기 등)는 앱과 무관. 큐를 비우고 이후 이벤트는 버린다.
+      failed = true; loading = null; queue.length = 0;
+    });
+}
+
 function send(event, props) {
-  void event; void props; void KEY;
+  if (failed) return;
+  if (client) { client.capture(event, props); return; }
+  if (queue.length < QUEUE_LIMIT) queue.push([event, props]);
+  loadClient();
 }
 
 export function track(event, props = {}) {
