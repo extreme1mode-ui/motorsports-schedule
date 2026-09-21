@@ -65,8 +65,14 @@
    }
   ],
   "broadcast": [
-   "IMSA.tv",
-   "Peacock"
+   {
+    "name": "IMSA.tv",
+    "region": "global"
+   },
+   {
+    "name": "Peacock",
+    "region": "US"
+   }
   ],
   "sourceUrl": "https://www.imsa.com/wp-content/uploads/sites/32/2026/01/23/2026-IMSA-Official-Schedule-and-SR-Daytona-24H-REV-012326-1.pdf",
   "verifiedAt": "2026-09-20"
@@ -124,7 +130,10 @@
    }
   ],
   "broadcast": [
-   "WRC+"
+   {
+    "name": "WRC+",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://en.wikipedia.org/wiki/2026_Monte_Carlo_Rally",
   "verifiedAt": "2026-09-20"
@@ -182,7 +191,10 @@
    }
   ],
   "broadcast": [
-   "WRC+"
+   {
+    "name": "WRC+",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://en.wikipedia.org/wiki/2026_Rally_Sweden",
   "verifiedAt": "2026-09-20"
@@ -247,8 +259,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/australia",
   "verifiedAt": "2026-09-20"
@@ -306,7 +324,10 @@
    }
   ],
   "broadcast": [
-   "WRC+"
+   {
+    "name": "WRC+",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://en.wikipedia.org/wiki/2026_Safari_Rally",
   "verifiedAt": "2026-09-20"
@@ -371,8 +392,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/china",
   "verifiedAt": "2026-09-20"
@@ -443,8 +470,14 @@
    }
   ],
   "broadcast": [
-   "IMSA.tv",
-   "Peacock"
+   {
+    "name": "IMSA.tv",
+    "region": "global"
+   },
+   {
+    "name": "Peacock",
+    "region": "US"
+   }
   ],
   "sourceUrl": "https://www.imsa.com/wp-content/uploads/sites/32/2026/03/11/2026-IMSA-Official-Schedule-and-SR-Sebring-12H-031126.pdf",
   "verifiedAt": "2026-09-20"
@@ -509,8 +542,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/japan",
   "verifiedAt": "2026-09-20"
@@ -568,7 +607,10 @@
    }
   ],
   "broadcast": [
-   "WRC+"
+   {
+    "name": "WRC+",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://en.wikipedia.org/wiki/2026_Croatia_Rally",
   "verifiedAt": "2026-09-20"
@@ -647,8 +689,14 @@
    }
   ],
   "broadcast": [
-   "GT World Challenge TV",
-   "YouTube Live"
+   {
+    "name": "GT World Challenge TV",
+    "region": "global"
+   },
+   {
+    "name": "YouTube Live",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.gt-world-challenge-europe.com/event/246/circuit-paul-ricard",
   "verifiedAt": "2026-09-20"
@@ -677,8 +725,14 @@
   "raceKstIso": null,
   "sessions": [],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.skysports.com/f1/news/12433/13519453/f1-confirms-cancellation-of-bahrain-and-saudi-arabian-grands-prix-due-to-war-in-middle-east-as-2026-calendar-reduced-to-22-races",
   "verifiedAt": "2026-09-20"
@@ -763,8 +817,14 @@
    }
   ],
   "broadcast": [
-   "JTBC GOLF&SPORTS2",
-   "FIAWEC.tv"
+   {
+    "name": "JTBC GOLF&SPORTS2",
+    "region": "KR"
+   },
+   {
+    "name": "FIAWEC.tv",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.fiawec.com/en/race/6-hours-of-imola-2026",
   "verifiedAt": "2026-09-20"
@@ -821,8 +881,14 @@
    }
   ],
   "broadcast": [
-   "IMSA.tv",
-   "Peacock"
+   {
+    "name": "IMSA.tv",
+    "region": "global"
+   },
+   {
+    "name": "Peacock",
+    "region": "US"
+   }
   ],
   "sourceUrl": "https://www.imsa.com/wp-content/uploads/sites/32/2026/04/08/2026-IMSA-Official-Schedule-and-SR-Long-Beach-040826.pdf",
   "verifiedAt": "2026-09-20"
@@ -880,7 +946,10 @@
    }
   ],
   "broadcast": [
-   "WRC+"
+   {
+    "name": "WRC+",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://en.wikipedia.org/wiki/2026_Rally_Islas_Canarias",
   "verifiedAt": "2026-09-20"
@@ -945,8 +1014,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/miami",
   "verifiedAt": "2026-09-20"
@@ -1003,8 +1078,14 @@
    }
   ],
   "broadcast": [
-   "IMSA.tv",
-   "Peacock"
+   {
+    "name": "IMSA.tv",
+    "region": "global"
+   },
+   {
+    "name": "Peacock",
+    "region": "US"
+   }
   ],
   "sourceUrl": "https://www.imsa.com/wp-content/uploads/sites/32/2026/04/22/2026-IMSA-Official-Schedule-and-SR-WRLS-042226.pdf",
   "verifiedAt": "2026-09-20"
@@ -1083,8 +1164,14 @@
    }
   ],
   "broadcast": [
-   "GT World Challenge TV",
-   "YouTube Live"
+   {
+    "name": "GT World Challenge TV",
+    "region": "global"
+   },
+   {
+    "name": "YouTube Live",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.gt-world-challenge-europe.com/event/247/brands-hatch",
   "verifiedAt": "2026-09-20"
@@ -1169,8 +1256,14 @@
    }
   ],
   "broadcast": [
-   "JTBC GOLF&SPORTS2",
-   "FIAWEC.tv"
+   {
+    "name": "JTBC GOLF&SPORTS2",
+    "region": "KR"
+   },
+   {
+    "name": "FIAWEC.tv",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.fiawec.com/en/race/totalenergies-6-hours-of-spa-francorchamps-2026",
   "verifiedAt": "2026-09-20"
@@ -1228,7 +1321,10 @@
    }
   ],
   "broadcast": [
-   "WRC+"
+   {
+    "name": "WRC+",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://en.wikipedia.org/wiki/2026_Rally_de_Portugal",
   "verifiedAt": "2026-09-20"
@@ -1322,8 +1418,14 @@
    }
   ],
   "broadcast": [
-   "GT World Challenge TV",
-   "YouTube Live"
+   {
+    "name": "GT World Challenge TV",
+    "region": "global"
+   },
+   {
+    "name": "YouTube Live",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.intercontinentalgtchallenge.com/event/150/adac-ravenol-24h-nuerburgring",
   "verifiedAt": "2026-09-20"
@@ -1388,8 +1490,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/canada",
   "verifiedAt": "2026-09-20"
@@ -1447,7 +1555,10 @@
    }
   ],
   "broadcast": [
-   "WRC+"
+   {
+    "name": "WRC+",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://en.wikipedia.org/wiki/2026_Rally_Japan",
   "verifiedAt": "2026-09-20"
@@ -1540,8 +1651,14 @@
    }
   ],
   "broadcast": [
-   "GT World Challenge TV",
-   "YouTube Live"
+   {
+    "name": "GT World Challenge TV",
+    "region": "global"
+   },
+   {
+    "name": "YouTube Live",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.gt-world-challenge-europe.com/event/248/monza",
   "verifiedAt": "2026-09-20"
@@ -1605,8 +1722,14 @@
    }
   ],
   "broadcast": [
-   "IMSA.tv",
-   "Peacock"
+   {
+    "name": "IMSA.tv",
+    "region": "global"
+   },
+   {
+    "name": "Peacock",
+    "region": "US"
+   }
   ],
   "sourceUrl": "https://www.imsa.com/wp-content/uploads/sites/32/2026/05/20/2026-IMSA-Official-Schedule-and-SR-Detroit-052026.pdf",
   "verifiedAt": "2026-09-20"
@@ -1671,8 +1794,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/monaco",
   "verifiedAt": "2026-09-20"
@@ -1806,8 +1935,14 @@
    }
   ],
   "broadcast": [
-   "JTBC GOLF&SPORTS2",
-   "FIAWEC.tv"
+   {
+    "name": "JTBC GOLF&SPORTS2",
+    "region": "KR"
+   },
+   {
+    "name": "FIAWEC.tv",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.fiawec.com/en/race/24-hours-of-le-mans-2026",
   "verifiedAt": "2026-09-20"
@@ -1872,8 +2007,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/barcelona-catalunya",
   "verifiedAt": "2026-09-20"
@@ -2029,8 +2170,14 @@
    }
   ],
   "broadcast": [
-   "GT World Challenge TV",
-   "YouTube Live"
+   {
+    "name": "GT World Challenge TV",
+    "region": "global"
+   },
+   {
+    "name": "YouTube Live",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.gt-world-challenge-europe.com/event/249/crowdstrike-24-hours-of-spa",
   "verifiedAt": "2026-09-20"
@@ -2087,8 +2234,14 @@
    }
   ],
   "broadcast": [
-   "IMSA.tv",
-   "Peacock"
+   {
+    "name": "IMSA.tv",
+    "region": "global"
+   },
+   {
+    "name": "Peacock",
+    "region": "US"
+   }
   ],
   "sourceUrl": "https://www.imsa.com/wp-content/uploads/sites/32/2026/06/23/2026-IMSA-Official-Schedule-and-SR-WGI-REV-062326.pdf",
   "verifiedAt": "2026-09-20"
@@ -2146,7 +2299,10 @@
    }
   ],
   "broadcast": [
-   "WRC+"
+   {
+    "name": "WRC+",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://en.wikipedia.org/wiki/2026_Acropolis_Rally",
   "verifiedAt": "2026-09-20"
@@ -2211,8 +2367,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/austria",
   "verifiedAt": "2026-09-20"
@@ -2277,8 +2439,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/great-britain",
   "verifiedAt": "2026-09-20"
@@ -2363,8 +2531,14 @@
    }
   ],
   "broadcast": [
-   "JTBC GOLF&SPORTS2",
-   "FIAWEC.tv"
+   {
+    "name": "JTBC GOLF&SPORTS2",
+    "region": "KR"
+   },
+   {
+    "name": "FIAWEC.tv",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.fiawec.com/en/race/rolex-6-hours-of-sao-paulo-2026",
   "verifiedAt": "2026-09-20"
@@ -2421,8 +2595,14 @@
    }
   ],
   "broadcast": [
-   "IMSA.tv",
-   "Peacock"
+   {
+    "name": "IMSA.tv",
+    "region": "global"
+   },
+   {
+    "name": "Peacock",
+    "region": "US"
+   }
   ],
   "sourceUrl": "https://www.imsa.com/wp-content/uploads/sites/32/2026/07/02/2026-IMSA-Official-Schedule-and-SR-CTMP-070126.pdf",
   "verifiedAt": "2026-09-20"
@@ -2480,7 +2660,10 @@
    }
   ],
   "broadcast": [
-   "WRC+"
+   {
+    "name": "WRC+",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://en.wikipedia.org/wiki/2026_Rally_Estonia",
   "verifiedAt": "2026-09-20"
@@ -2580,8 +2763,14 @@
    }
   ],
   "broadcast": [
-   "GT World Challenge TV",
-   "YouTube Live"
+   {
+    "name": "GT World Challenge TV",
+    "region": "global"
+   },
+   {
+    "name": "YouTube Live",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.gt-world-challenge-europe.com/event/250/misano",
   "verifiedAt": "2026-09-20"
@@ -2646,8 +2835,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/belgium",
   "verifiedAt": "2026-09-20"
@@ -2712,8 +2907,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/hungary",
   "verifiedAt": "2026-09-20"
@@ -2770,8 +2971,14 @@
    }
   ],
   "broadcast": [
-   "IMSA.tv",
-   "Peacock"
+   {
+    "name": "IMSA.tv",
+    "region": "global"
+   },
+   {
+    "name": "Peacock",
+    "region": "US"
+   }
   ],
   "sourceUrl": "https://www.imsa.com/wp-content/uploads/sites/32/2026/07/22/2026-IMSA-Official-Schedule-and-SR-Road-America-072226.pdf",
   "verifiedAt": "2026-09-20"
@@ -2829,7 +3036,10 @@
    }
   ],
   "broadcast": [
-   "WRC+"
+   {
+    "name": "WRC+",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://en.wikipedia.org/wiki/2026_Rally_Finland",
   "verifiedAt": "2026-09-20"
@@ -2936,8 +3146,14 @@
    }
   ],
   "broadcast": [
-   "GT World Challenge TV",
-   "YouTube Live"
+   {
+    "name": "GT World Challenge TV",
+    "region": "global"
+   },
+   {
+    "name": "YouTube Live",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.gt-world-challenge-europe.com/event/251/magny-cours",
   "verifiedAt": "2026-09-20"
@@ -3002,8 +3218,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/netherlands",
   "verifiedAt": "2026-09-20"
@@ -3060,8 +3282,14 @@
    }
   ],
   "broadcast": [
-   "IMSA.tv",
-   "Peacock"
+   {
+    "name": "IMSA.tv",
+    "region": "global"
+   },
+   {
+    "name": "Peacock",
+    "region": "US"
+   }
   ],
   "sourceUrl": "https://www.imsa.com/wp-content/uploads/sites/32/2026/08/12/2026-IMSA-Official-Schedule-and-SR-VIR-081226-1.pdf",
   "verifiedAt": "2026-09-20"
@@ -3119,7 +3347,10 @@
    }
   ],
   "broadcast": [
-   "WRC+"
+   {
+    "name": "WRC+",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://en.wikipedia.org/wiki/2026_Rally_del_Paraguay",
   "verifiedAt": "2026-09-20"
@@ -3212,8 +3443,14 @@
    }
   ],
   "broadcast": [
-   "GT World Challenge TV",
-   "YouTube Live"
+   {
+    "name": "GT World Challenge TV",
+    "region": "global"
+   },
+   {
+    "name": "YouTube Live",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.gt-world-challenge-europe.com/event/252/n%C3%BCrburgring",
   "verifiedAt": "2026-09-20"
@@ -3278,8 +3515,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/italy",
   "verifiedAt": "2026-09-20"
@@ -3364,8 +3607,14 @@
    }
   ],
   "broadcast": [
-   "JTBC GOLF&SPORTS2",
-   "FIAWEC.tv"
+   {
+    "name": "JTBC GOLF&SPORTS2",
+    "region": "KR"
+   },
+   {
+    "name": "FIAWEC.tv",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.fiawec.com/en/race/lone-star-le-mans-2026",
   "verifiedAt": "2026-09-20"
@@ -3423,7 +3672,10 @@
    }
   ],
   "broadcast": [
-   "WRC+"
+   {
+    "name": "WRC+",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://en.wikipedia.org/wiki/2026_Rally_Chile",
   "verifiedAt": "2026-09-20"
@@ -3488,8 +3740,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/spain",
   "verifiedAt": "2026-09-20"
@@ -3589,8 +3847,14 @@
    }
   ],
   "broadcast": [
-   "GT World Challenge TV",
-   "YouTube Live"
+   {
+    "name": "GT World Challenge TV",
+    "region": "global"
+   },
+   {
+    "name": "YouTube Live",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.gt-world-challenge-europe.com/event/253/zandvoort",
   "verifiedAt": "2026-09-20"
@@ -3647,8 +3911,14 @@
    }
   ],
   "broadcast": [
-   "IMSA.tv",
-   "Peacock"
+   {
+    "name": "IMSA.tv",
+    "region": "global"
+   },
+   {
+    "name": "Peacock",
+    "region": "US"
+   }
   ],
   "sourceUrl": "https://www.imsa.com/events/2026-indianapolis-motor-speedway/",
   "verifiedAt": "2026-09-20"
@@ -3713,8 +3983,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/azerbaijan",
   "verifiedAt": "2026-09-20"
@@ -3799,8 +4075,14 @@
    }
   ],
   "broadcast": [
-   "JTBC GOLF&SPORTS2",
-   "FIAWEC.tv"
+   {
+    "name": "JTBC GOLF&SPORTS2",
+    "region": "KR"
+   },
+   {
+    "name": "FIAWEC.tv",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.fiawec.com/en/race/6-hours-of-fuji-2026",
   "verifiedAt": "2026-09-20"
@@ -3871,8 +4153,14 @@
    }
   ],
   "broadcast": [
-   "IMSA.tv",
-   "Peacock"
+   {
+    "name": "IMSA.tv",
+    "region": "global"
+   },
+   {
+    "name": "Peacock",
+    "region": "US"
+   }
   ],
   "sourceUrl": "https://www.imsa.com/events/2026-michelin-raceway-road-atlanta/",
   "verifiedAt": "2026-09-20"
@@ -3930,7 +4218,10 @@
    }
   ],
   "broadcast": [
-   "WRC+"
+   {
+    "name": "WRC+",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://en.wikipedia.org/wiki/2026_Rally_Italia_Sardegna",
   "verifiedAt": "2026-09-20"
@@ -3996,8 +4287,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/bahrain",
   "verifiedAt": "2026-09-20"
@@ -4090,8 +4387,14 @@
    }
   ],
   "broadcast": [
-   "GT World Challenge TV",
-   "YouTube Live"
+   {
+    "name": "GT World Challenge TV",
+    "region": "global"
+   },
+   {
+    "name": "YouTube Live",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.gt-world-challenge-europe.com/event/254/barcelona",
   "verifiedAt": "2026-09-20"
@@ -4156,8 +4459,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/singapore",
   "verifiedAt": "2026-09-20"
@@ -4242,8 +4551,14 @@
    }
   ],
   "broadcast": [
-   "JTBC GOLF&SPORTS2",
-   "FIAWEC.tv"
+   {
+    "name": "JTBC GOLF&SPORTS2",
+    "region": "KR"
+   },
+   {
+    "name": "FIAWEC.tv",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.fiawec.com/en/race/6-hours-of-barcelona-2026",
   "verifiedAt": "2026-09-20"
@@ -4315,8 +4630,14 @@
    }
   ],
   "broadcast": [
-   "GT World Challenge TV",
-   "YouTube Live"
+   {
+    "name": "GT World Challenge TV",
+    "region": "global"
+   },
+   {
+    "name": "YouTube Live",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.gt-world-challenge-europe.com/event/255/portimao",
   "verifiedAt": "2026-09-20"
@@ -4344,8 +4665,14 @@
   "raceKstIso": null,
   "sessions": [],
   "broadcast": [
-   "JTBC GOLF&SPORTS2",
-   "FIAWEC.tv"
+   {
+    "name": "JTBC GOLF&SPORTS2",
+    "region": "KR"
+   },
+   {
+    "name": "FIAWEC.tv",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.fiawec.com/en/news/fia-wec-and-fia-confirm-venues-for-final-two-rounds-of-2026/13698",
   "verifiedAt": "2026-09-20"
@@ -4410,8 +4737,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/united-states",
   "verifiedAt": "2026-09-20"
@@ -4476,8 +4809,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/mexico",
   "verifiedAt": "2026-09-20"
@@ -4505,8 +4844,14 @@
   "raceKstIso": null,
   "sessions": [],
   "broadcast": [
-   "JTBC GOLF&SPORTS2",
-   "FIAWEC.tv"
+   {
+    "name": "JTBC GOLF&SPORTS2",
+    "region": "KR"
+   },
+   {
+    "name": "FIAWEC.tv",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.fiawec.com/en/news/fia-wec-and-fia-confirm-venues-for-final-two-rounds-of-2026/13698",
   "verifiedAt": "2026-09-20"
@@ -4571,8 +4916,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/brazil",
   "verifiedAt": "2026-09-20"
@@ -4657,8 +5008,14 @@
    }
   ],
   "broadcast": [
-   "JTBC GOLF&SPORTS2",
-   "FIAWEC.tv"
+   {
+    "name": "JTBC GOLF&SPORTS2",
+    "region": "KR"
+   },
+   {
+    "name": "FIAWEC.tv",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.fiawec.com/en/race/6-hours-of-monza-2026",
   "verifiedAt": "2026-09-20"
@@ -4687,7 +5044,10 @@
   "raceKstIso": null,
   "sessions": [],
   "broadcast": [
-   "WRC+"
+   {
+    "name": "WRC+",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.wrc.com/en/news/fia-and-wrc-promoter-confirm-final-round-of-the-2026-wrc-season",
   "verifiedAt": "2026-09-20"
@@ -4752,8 +5112,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/las-vegas",
   "verifiedAt": "2026-09-20"
@@ -4818,8 +5184,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/qatar",
   "verifiedAt": "2026-09-20"
@@ -4884,8 +5256,14 @@
    }
   ],
   "broadcast": [
-   "쿠팡플레이",
-   "F1 TV Pro"
+   {
+    "name": "쿠팡플레이",
+    "region": "KR"
+   },
+   {
+    "name": "F1 TV Pro",
+    "region": "global"
+   }
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/united-arab-emirates",
   "verifiedAt": "2026-09-20"

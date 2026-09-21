@@ -16,7 +16,7 @@ import {
   sortRacesByPrimaryDate,
 } from './utils.js';
 
-const F1_BROADCAST = ['쿠팡플레이', 'F1 TV Pro'];
+const F1_BROADCAST = [{ name: '쿠팡플레이', region: 'KR' }, { name: 'F1 TV Pro', region: 'global' }];
 const OPEN_F1_MEETINGS_URL = 'https://api.openf1.org/v1/meetings';
 const OPEN_F1_SESSIONS_URL = 'https://api.openf1.org/v1/sessions';
 

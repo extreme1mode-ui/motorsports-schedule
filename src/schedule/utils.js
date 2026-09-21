@@ -216,6 +216,16 @@ export function stripSeriesPrefix(name, series) {
   return name;
 }
 
+// 중계처: { name, region } 배열로 정규화. 옛 문자열 항목은 region 'global'로 취급. 지역 필터링은 아직 하지 않는다.
+export const BROADCAST_REGIONS = ['global', 'KR', 'US'];
+export function normalizeBroadcast(list = []) {
+  if (!Array.isArray(list)) return [];
+  return list
+    .map((item) => (typeof item === 'string' ? { name: item, region: 'global' } : item))
+    .filter((item) => item && typeof item.name === 'string' && item.name.trim())
+    .map((item) => ({ name: item.name, region: BROADCAST_REGIONS.includes(item.region) ? item.region : 'global' }));
+}
+
 export function normalizeSessions(sessions = []) {
   return sessions.map((session) => {
     const tEn = session.t || session.name || session.sessionName || '세션';
@@ -312,6 +322,7 @@ export function buildNormalizedRace(input, source, now = new Date()) {
     localTime,
     kstTime,
     sessions,
+    broadcast: normalizeBroadcast(race.broadcast),
     eventStartUtc,
     eventEndUtc,
     primaryStartUtc,

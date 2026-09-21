@@ -51,7 +51,7 @@ export function adaptRace(race, mode = 'all') {
     allSessions: Array.isArray(race.sessions) ? race.sessions : [],
     mode,
 
-    broadcast: Array.isArray(race.broadcast) ? race.broadcast : [],
+    broadcast: Array.isArray(race.broadcast) ? race.broadcast.map((b) => (typeof b === 'string' ? b : b.name)).filter(Boolean) : [],  // 홈은 이름만 쓴다
     label: race.cup ?? null,                       // GTWC의 Sprint/Endurance Cup
     isSprint: Boolean(race.isSprint),
     cancelled: isCancelled(race),

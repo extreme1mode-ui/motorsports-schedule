@@ -418,7 +418,7 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
                 <div style={{ width: 28, height: 28, borderRadius: 6, background: s.accent, display: 'grid', placeItems: 'center', color: '#fff' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>{b}</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>{b.name}</div>
               </div>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={t.text3} strokeWidth="2"><path d="M9 6l6 6-6 6"/></svg>
             </div>
