@@ -36,21 +36,22 @@ export function scoreRace(race, preferences, now = new Date(), locale = 'ko') {
 
   let score = 0;
   const reasons = [];
+  const kinds = [];   // 계측용 이유 종류(열거형). reasons(표시 문구)와 같은 순서.
 
   const highlights = getHighlights(race);
-  if (highlights.length) { score += SCORE.highlight; reasons.push(highlights[0].note); }   // 가장 구체적인 이유를 항상 앞에
+  if (highlights.length) { score += SCORE.highlight; reasons.push(highlights[0].note); kinds.push('highlight'); }   // 가장 구체적인 이유를 항상 앞에
 
   const prestige = getPrestige(race);
   score += SCORE.prestige[prestige] ?? SCORE.prestige[1];
-  if (prestige === 3) reasons.push(t(locale, REASON.prestige3));
-  else if (prestige === 2) reasons.push(t(locale, REASON.prestige2));
+  if (prestige === 3) { reasons.push(t(locale, REASON.prestige3)); kinds.push('prestige3'); }
+  else if (prestige === 2) { reasons.push(t(locale, REASON.prestige2)); kinds.push('prestige2'); }
 
-  if (days !== null && days <= 14) { score += SCORE.withinTwoWeeks; reasons.push(t(locale, REASON.withinTwoWeeks)); }
+  if (days !== null && days <= 14) { score += SCORE.withinTwoWeeks; reasons.push(t(locale, REASON.withinTwoWeeks)); kinds.push('withinTwoWeeks'); }
   else if (days !== null && days <= 28) { score += SCORE.withinFourWeeks; }
 
-  if (mode === 'off') { score += SCORE.offSeries; reasons.push(t(locale, REASON.offSeries)); }
+  if (mode === 'off') { score += SCORE.offSeries; reasons.push(t(locale, REASON.offSeries)); kinds.push('offSeries'); }
 
-  return { score, reasons: reasons.slice(0, 2), time };
+  return { score, reasons: reasons.slice(0, 2), kinds, time };
 }
 
 export function getRecommendations(races = [], preferences = null, now = new Date(), limit = 3, locale = 'ko') {

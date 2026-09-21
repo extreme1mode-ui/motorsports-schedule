@@ -3,6 +3,8 @@ import { CATEGORIES, SERIES, getVisibleSessions, getSeriesStats, getRaceStartUtc
 import { TOKENS, Mono, SeriesTag, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
 import { useFormat } from './use-format.js';
 import { useT } from './i18n/index.js';
+import { track } from './analytics.js';
+import { useRecommendationShown } from './use-analytics.js';
 
 // 정렬·그룹핑은 시작 시각(UTC)으로. 시간대와 무관하게 항상 옳다.
 const startMs = (r) => { const iso = getRaceStartUtc(r) || r.primaryStartUtc; return iso ? new Date(iso).getTime() : Number.MAX_SAFE_INTEGER; };
@@ -61,7 +63,7 @@ export function Schedule({ theme, races, onOpenRace, now, seasonYear }) {
           const count = (byMonth[m] || []).length;
           const active = m === month;
           return (
-            <button key={m} onClick={() => setMonth(m)} style={CHIP_HIT}>
+            <button key={m} onClick={() => { if (m !== month) track('schedule_month_changed', { direction: m > month ? 'next' : 'prev' }); setMonth(m); }} style={CHIP_HIT}>
               <span style={{
                 padding: '8px 12px', borderRadius: 999, border: `1px solid ${active ? t.text : t.line}`,
                 background: active ? t.text : 'transparent', color: active ? t.bg : t.text2,
@@ -208,7 +210,7 @@ export function SeriesView({ theme, races, onOpenRace, initialCategory, seasonYe
 
       <div style={{ display: 'flex', gap: 6, padding: '0 18px 8.5px', marginTop: -5.5, overflowX: 'auto' }}>
         {Object.values(CATEGORIES).map(ss => (
-          <button key={ss.id} onClick={() => setSel(ss.id)} style={chipHit(ss.short.length <= 2 ? 42 : 44)}>
+          <button key={ss.id} onClick={() => { if (ss.id !== sel) track('series_tab_changed', { category: ss.id }); setSel(ss.id); }} style={chipHit(ss.short.length <= 2 ? 42 : 44)}>
             <span style={{
               display: 'inline-block', padding: '8px 14px', borderRadius: 999,
               border: `1px solid ${sel === ss.id ? ss.accent : t.line}`,
@@ -297,6 +299,7 @@ export function Favorites({ theme, races, myRaces, favorites, onOpenRace, toggle
   const favList = races.filter(r => favorites.has(r.id)).sort(byStart);
   // 빈 상태 추천: 다가오는 관심 경기 3개 (프로토타입 저장 화면과 같은 규칙)
   const recs = (Array.isArray(myRaces) ? myRaces : races).filter(r => r.status === 'upcoming' || r.status === 'live').slice(0, 3);
+  useRecommendationShown(favList.length === 0 ? recs : []);
   return (
     <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 110 }}>
       <div style={{ padding: '64px 18px 20px' }}>
@@ -318,7 +321,7 @@ export function Favorites({ theme, races, myRaces, favorites, onOpenRace, toggle
             <div style={{ marginTop: 28, textAlign: 'left' }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 10 }}>{tr('fav.suggest')}</div>
               <div style={{ display: 'grid', gap: 8 }}>
-                {recs.map(r => <RecommendRow key={r.id} race={r} theme={theme} onOpen={() => onOpenRace(r)} onSave={() => toggleFav(r.id)} />)}
+                {recs.map((r, i) => <RecommendRow key={r.id} race={r} theme={theme} onOpen={() => { track('recommendation_clicked', { series: r.series, position: i }); onOpenRace(r, 'recommendation'); }} onSave={() => toggleFav(r.id)} />)}
               </div>
             </div>
           )}
@@ -434,7 +437,7 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
         <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.14em' }}>{tr('detail.broadcast')}</Mono>
         <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
           {fmt.broadcast(race.broadcast).map((b, i) => (
-            <div key={i} style={{ padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+            <div key={i} onClick={() => track('broadcast_clicked', { name: b.name, region: b.region })} style={{ padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 28, height: 28, borderRadius: 6, background: s.accent, display: 'grid', placeItems: 'center', color: '#fff' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>

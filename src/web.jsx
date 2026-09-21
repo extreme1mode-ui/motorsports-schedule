@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { TOKENS, Mono, SeriesTag } from './primitives.jsx';
 import { getCurrentNow, useScheduleData, filterRacesByPreferences } from './schedule/index.js';
 import { Home } from './home/Home.jsx';
@@ -6,6 +6,7 @@ import { WebSchedule, WebSeries, WebFavorites, RaceDrawer } from './web-screens.
 import { Settings } from './settings.jsx';
 import { useFormat } from './use-format.js';
 import { useT } from './i18n/index.js';
+import { track } from './analytics.js';
 
 export function useViewport() {
   const [w, setW] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1440);
@@ -57,15 +58,27 @@ export function WebApp({ theme, setTheme, ...prefs }) {
     return () => window.removeEventListener('message', handler);
   }, []);
 
+  // 계측용 최신값 미러 — 콜백은 참조가 고정돼 있어 state를 직접 못 읽는다.
+  const favRef = useRef(favorites);
+  const racesRef = useRef(raceList);
+  useEffect(() => { favRef.current = favorites; racesRef.current = raceList; }, [favorites, raceList]);
+
   // Home은 memo로 감싸져 있어 콜백 참조가 안정적이어야 한다 (1초 setNow에 통째로 리렌더되지 않게).
   const toggleFav = useCallback((id) => {
+    const series = racesRef.current.find((r) => r.id === id)?.series;
+    track(favRef.current.has(id) ? 'race_unsaved' : 'race_saved', { series });
     setFavorites(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   }, []);
-  const onOpenRace = useCallback((r) => setOpenRaceId(r.id), []);
+  // source: 어느 화면에서 열었는지. 화면별 래퍼가 기본값을 주고, 추천 카드는 'recommendation'을 직접 넘긴다.
+  const openFrom = useCallback((race, source) => { track('race_opened', { series: race.series, source }); setOpenRaceId(race.id); }, []);
+  const onOpenRace = useCallback((race, source = 'home') => openFrom(race, source), [openFrom]);
+  const openFromSchedule = useCallback((race) => openFrom(race, 'schedule'), [openFrom]);
+  const openFromSeries = useCallback((race) => openFrom(race, 'series'), [openFrom]);
+  const openFromSaved = useCallback((race, source = 'saved') => openFrom(race, source), [openFrom]);
   const onGo = useCallback((v, arg) => {
     if (v === 'series') { setCategoryFilter(arg); setView('series'); }
     else setView(v);
@@ -91,11 +104,11 @@ export function WebApp({ theme, setTheme, ...prefs }) {
           {view === 'home' && <Home theme={theme} setTheme={setTheme} now={now} races={raceList} myRaces={myRaces}
             preferences={preferences} favorites={favorites} toggleFav={toggleFav} onOpenRace={onOpenRace} onGo={onGo} setSeriesMode={prefs.setSeriesMode} />}
           {view === 'schedule' && <WebSchedule theme={theme} races={raceList}
-            onOpenRace={onOpenRace} now={now} tier={tier} seasonYear={safeSeasonYear} />}
+            onOpenRace={openFromSchedule} now={now} tier={tier} seasonYear={safeSeasonYear} />}
           {view === 'series' && <WebSeries theme={theme} races={raceList}
-            onOpenRace={onOpenRace} initialCategory={categoryFilter || 'F1'} tier={tier} seasonYear={safeSeasonYear} />}
+            onOpenRace={openFromSeries} initialCategory={categoryFilter || 'F1'} tier={tier} seasonYear={safeSeasonYear} />}
           {view === 'fav' && <WebFavorites theme={theme} races={raceList} myRaces={myRaces}
-            favorites={favorites} onOpenRace={onOpenRace} toggleFav={toggleFav} tier={tier} />}
+            favorites={favorites} onOpenRace={openFromSaved} toggleFav={toggleFav} tier={tier} />}
           {view === 'settings' && <Settings theme={theme} onGo={onGo} {...prefs} />}
         </div>
       </main>

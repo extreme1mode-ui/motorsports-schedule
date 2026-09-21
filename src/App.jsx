@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { getCurrentNow, useScheduleData, usePreferences, filterRacesByPreferences } from './schedule/index.js';
 import { TOKENS, Mono } from './primitives.jsx';
 import { Home } from './home/Home.jsx';
@@ -9,6 +9,7 @@ import { Settings } from './settings.jsx';
 import { readTheme } from './preferences-options.js';
 import { FormatProvider } from './format-context.jsx';
 import { t, useT } from './i18n/index.js';
+import { track, getDaysSinceFirstVisit } from './analytics.js';
 
 export default function Root() {
   const prefs = usePreferences();
@@ -25,6 +26,15 @@ export default function Root() {
     document.documentElement.lang = locale;
     document.title = t(locale, 'app.title');
   }, [prefs.preferences.locale]);
+
+  // 방문 빈도·재방문율: 앱이 뜰 때 1회 (StrictMode의 이중 effect는 ref로 막는다).
+  const openedRef = useRef(false);
+  useEffect(() => {
+    if (openedRef.current) return;
+    openedRef.current = true;
+    const { locale, timezone, onboarded } = prefs.preferences;
+    track('app_opened', { locale, timezone, onboarded, days_since_first: getDaysSinceFirstVisit() });
+  }, [prefs.preferences]);
 
   // 언어·시간대·국가는 preferences에서. 바꾸면 컨텍스트가 갱신돼 즉시 반영된다.
   const screen = !prefs.preferences.onboarded
@@ -65,15 +75,27 @@ function App({ theme, setTheme, ...prefs }) {
 
   useEffect(() => { localStorage.setItem('paddock.fav', JSON.stringify([...favorites])); }, [favorites]);
 
+  // 계측용 최신값 미러 — 콜백은 참조가 고정돼 있어 state를 직접 못 읽는다.
+  const favRef = useRef(favorites);
+  const racesRef = useRef(raceList);
+  useEffect(() => { favRef.current = favorites; racesRef.current = raceList; }, [favorites, raceList]);
+
   // Home은 memo로 감싸져 있어 콜백 참조가 안정적이어야 한다 (1초 setNow에 통째로 리렌더되지 않게).
   const toggleFav = useCallback((id) => {
+    const series = racesRef.current.find((r) => r.id === id)?.series;
+    track(favRef.current.has(id) ? 'race_unsaved' : 'race_saved', { series });
     setFavorites(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   }, []);
-  const onOpenRace = useCallback((race) => setOpenRaceId(race.id), []);
+  // source: 어느 화면에서 열었는지. 화면별 래퍼가 기본값을 주고, 추천 카드는 'recommendation'을 직접 넘긴다.
+  const openFrom = useCallback((race, source) => { track('race_opened', { series: race.series, source }); setOpenRaceId(race.id); }, []);
+  const onOpenRace = useCallback((race, source = 'home') => openFrom(race, source), [openFrom]);
+  const openFromSchedule = useCallback((race) => openFrom(race, 'schedule'), [openFrom]);
+  const openFromSeries = useCallback((race) => openFrom(race, 'series'), [openFrom]);
+  const openFromSaved = useCallback((race, source = 'saved') => openFrom(race, source), [openFrom]);
   const onGo = useCallback((v, arg) => {
     if (v === 'series') { setCategoryFilter(arg); setView('series'); }
     else setView(v);
@@ -99,9 +121,9 @@ function App({ theme, setTheme, ...prefs }) {
         paddingBottom: mobileBottomNavSpace,
       }}>
         {view === 'home' && <Home theme={theme} setTheme={setTheme} now={now} races={raceList} myRaces={myRaces} preferences={preferences} favorites={favorites} toggleFav={toggleFav} onOpenRace={onOpenRace} onGo={onGo} setSeriesMode={prefs.setSeriesMode} />}
-        {view === 'schedule' && <Schedule theme={theme} races={raceList} onOpenRace={(race) => setOpenRaceId(race.id)} now={now} seasonYear={safeSeasonYear} />}
-        {view === 'series' && <SeriesView theme={theme} races={raceList} onOpenRace={(race) => setOpenRaceId(race.id)} initialCategory={categoryFilter || 'F1'} seasonYear={safeSeasonYear} />}
-        {view === 'fav' && <Favorites theme={theme} races={raceList} myRaces={myRaces} favorites={favorites} onOpenRace={(race) => setOpenRaceId(race.id)} toggleFav={toggleFav} />}
+        {view === 'schedule' && <Schedule theme={theme} races={raceList} onOpenRace={openFromSchedule} now={now} seasonYear={safeSeasonYear} />}
+        {view === 'series' && <SeriesView theme={theme} races={raceList} onOpenRace={openFromSeries} initialCategory={categoryFilter || 'F1'} seasonYear={safeSeasonYear} />}
+        {view === 'fav' && <Favorites theme={theme} races={raceList} myRaces={myRaces} favorites={favorites} onOpenRace={openFromSaved} toggleFav={toggleFav} />}
         {view === 'settings' && <Settings theme={theme} onGo={onGo} {...prefs} />}
       </div>
 

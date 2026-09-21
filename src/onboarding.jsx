@@ -4,6 +4,7 @@ import { SERIES, SUPPORTED_SERIES } from './schedule/index.js';
 import { MODE_OPTIONS, COUNTRY_OPTIONS, guessCountryFromTimezone, countryValueFromId, readTheme } from './preferences-options.js';
 import { PageTitle, SeriesRow, ChoiceGroup, CountryChoices, TimezoneLabel } from './preferences-ui.jsx';
 import { useT } from './i18n/index.js';
+import { track } from './analytics.js';
 
 const TOTAL_STEPS = 3;
 
@@ -20,6 +21,10 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
   // 스텝이 바뀌면 포커스를 스텝 컨테이너로 옮겨 탭 순서를 처음부터 시작한다.
   useEffect(() => { stepRef.current?.focus(); }, [step]);
 
+  // 계측: 온보딩 진입 1회 (StrictMode 이중 effect 방지).
+  const startedRef = useRef(false);
+  useEffect(() => { if (!startedRef.current) { startedRef.current = true; track('onboarding_started'); } }, []);
+
   const selectedList = SUPPORTED_SERIES.filter((id) => selected.has(id));
   const canNext = step !== 1 || selected.size > 0;
 
@@ -33,6 +38,7 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
 
   const goNext = () => {
     if (!canNext) return;
+    track('onboarding_step_completed', { step });
     if (step < TOTAL_STEPS) setStep(step + 1);
     else finish();
   };
@@ -40,12 +46,15 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
 
   // 커밋 순서 고정: 시리즈 → 국가 → onboarded(마지막).
   const finish = () => {
+    const chosen = SUPPORTED_SERIES.filter((id) => selected.has(id)).map((id) => modes[id] || 'all');
+    track('onboarding_completed', { series_on: chosen.length, series_all: chosen.filter((m) => m === 'all').length, series_race: chosen.filter((m) => m === 'race').length });
     SUPPORTED_SERIES.forEach((id) => setSeriesMode(id, selected.has(id) ? (modes[id] || 'all') : 'off'));
     setCountry(countryValueFromId(countryId));
     setOnboarded(true);
   };
 
   const skip = () => {
+    track('onboarding_skipped', { step });
     SUPPORTED_SERIES.forEach((id) => setSeriesMode(id, 'all'));
     setOnboarded(true);
   };

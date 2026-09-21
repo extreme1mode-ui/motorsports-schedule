@@ -2,6 +2,7 @@ import { TOKENS } from './primitives.jsx';
 import { SUPPORTED_SERIES, detectTimezone } from './schedule/index.js';
 import { MODE_OPTIONS_WITH_OFF, countryIdFromValue, countryValueFromId } from './preferences-options.js';
 import { useT } from './i18n/index.js';
+import { track } from './analytics.js';
 
 // 언어 이름은 번역하지 않는다(각 언어의 자기 표기). raw: true → ChoiceGroup이 t()를 거치지 않음
 const LOCALE_OPTIONS = [
@@ -44,7 +45,7 @@ export function Settings({ theme, preferences, setSeriesMode, setCountry, setTim
               return (
                 <SeriesRow key={id} seriesId={id} theme={theme} selected={mode !== 'off'}>
                   <ChoiceGroup theme={theme} options={MODE_OPTIONS_WITH_OFF} value={mode} showSub={false}
-                    onChange={(next) => setSeriesMode(id, next)} label={tr('ob.levelAria', { series: id })} />
+                    onChange={(next) => { if (next !== mode) track('series_mode_changed', { series: id, from: mode, to: next }); setSeriesMode(id, next); }} label={tr('ob.levelAria', { series: id })} />
                 </SeriesRow>
               );
             })}
@@ -60,7 +61,7 @@ export function Settings({ theme, preferences, setSeriesMode, setCountry, setTim
         <section style={{ marginBottom: 32 }}>
           <SectionTitle theme={theme} title={tr('settings.language.title')} sub={tr('settings.language.sub')} />
           <ChoiceGroup theme={theme} options={LOCALE_OPTIONS} value={preferences.locale || 'ko'} showSub={false}
-            onChange={(id) => setLocale(id)} label={tr('settings.language.title')} />
+            onChange={(id) => { if (id !== preferences.locale) track('locale_changed', { to: id }); setLocale(id); }} label={tr('settings.language.title')} />
         </section>
 
         <section style={{ marginBottom: 32 }}>
@@ -70,7 +71,7 @@ export function Settings({ theme, preferences, setSeriesMode, setCountry, setTim
             padding: '12px 16px', borderRadius: 14, background: t.surface, border: `1px solid ${t.line}`,
           }}>
             <TimezoneLabel theme={theme} timezone={preferences.timezone} />
-            <button type="button" onClick={() => setTimezone(detectTimezone())} style={secondaryButton}>{tr('settings.timezone.redetect')}</button>
+            <button type="button" onClick={() => { const tz = detectTimezone(); if (tz !== preferences.timezone) track('timezone_changed', { detected: true }); setTimezone(tz); }} style={secondaryButton}>{tr('settings.timezone.redetect')}</button>
           </div>
         </section>
 

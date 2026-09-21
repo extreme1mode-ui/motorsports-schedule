@@ -10,6 +10,8 @@ import { SERIES_DESCRIPTION_KEYS } from '../preferences-options.js';
 import { useFormat } from '../use-format.js';
 import { useT } from '../i18n/index.js';
 import { zonedDateFromKey } from '../schedule/format.js';
+import { scoreRace } from '../schedule/recommendations.js';
+import { track } from '../analytics.js';
 
 const ORDER = ['F1', 'WEC', 'IMSA', 'GTWC', 'WRC'];
 const SERIES_VAR = { F1: '--f1', WEC: '--wec', IMSA: '--imsa', WRC: '--wrc', GTWC: '--gtwc' };
@@ -234,6 +236,16 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
 
   const watching = ORDER.filter((s) => modeOf(preferences, s) !== 'off').length;
 
+  // 계측: 발견 카드 노출은 카드가 바뀔 때만 1회. 클릭은 열기 콜백에서.
+  const discId = disc?.id ?? null;
+  const shownRef = useRef(null);
+  useEffect(() => {
+    if (!disc || shownRef.current === discId) return;
+    shownRef.current = discId;
+    track('recommendation_shown', { series: disc.series, reason_kinds: scoreRace(disc.race, preferences, at).kinds });
+  }, [discId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const openDiscover = (race) => { track('recommendation_clicked', { series: race.series, position: 0 }); onOpenRace(race, 'recommendation'); };
+
   return (
     <div className="home">
       <div className="pagehead">
@@ -254,7 +266,8 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
         const hts = ts(hero);
         const reason = heroReason(hero, hts, kind, at, fmt, t);
         const clock = heroClock(hero, hts, kind, fmt, t);
-        const chans = fmt.broadcast(hero.broadcast).map((b) => b.name);
+        const bcast = fmt.broadcast(hero.broadcast);
+        const chans = bcast.map((b) => b.name);
         const urgent = kind === 'live' || kind === 'soon';
         const faved = favorites?.has(hero.id);
         const alertOn = alerts.has(hero.id);
@@ -281,7 +294,7 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
                 <div className="hero2-when ko">{clock.sub}</div>
                 <div className="hero2-act">
                   {urgent && chans.length
-                    ? <button type="button" className="cta" onClick={() => onOpenRace(hero.race)}>{t('home.watchOn', { channel: chans[0] })}</button>
+                    ? <button type="button" className="cta" onClick={() => { track('broadcast_clicked', { name: bcast[0].name, region: bcast[0].region }); onOpenRace(hero.race); }}>{t('home.watchOn', { channel: chans[0] })}</button>
                     : <button type="button" className="cta" onClick={() => toggleAlert(hero.id)}>{alertOn ? t('home.alertOn') : t('home.alertSet')}</button>}
                   <button type="button" className={`heart${faved ? ' on' : ''}`} aria-label={t('aria.save')} onClick={() => toggleFav?.(hero.id)}>
                     {faved
@@ -325,8 +338,8 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
           <div className="panel">
             <h3 className="ko">{t('home.discover.title', { name: t(`series.${discSeries}.name`), josa: josa(t(`series.${discSeries}.name`), '은', '는') })}</h3>
             <p className="ko">{t('home.discover.body', { desc: t(SERIES_DESCRIPTION_KEYS[discSeries]) })}</p>
-            <Card2 ev={disc} ts={ts(disc)} onOpen={onOpenRace} small />
-            <button type="button" className="cta ghost" style={{ marginTop: 11 }} onClick={() => setSeriesMode?.(discSeries, 'race')}>{t('home.discover.add', { series: discSeries })}</button>
+            <Card2 ev={disc} ts={ts(disc)} onOpen={openDiscover} small />
+            <button type="button" className="cta ghost" style={{ marginTop: 11 }} onClick={() => { track('series_mode_changed', { series: discSeries, from: modeOf(preferences, discSeries), to: 'race' }); setSeriesMode?.(discSeries, 'race'); }}>{t('home.discover.add', { series: discSeries })}</button>
           </div>
         </>
       )}

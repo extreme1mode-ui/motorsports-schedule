@@ -3,6 +3,8 @@ import { TOKENS, Mono, SeriesTag, StatusPill, EventBadge, getRoundDescriptor, ge
 import { CATEGORIES, SERIES, getVisibleSessions, getSeriesStats, getRaceStartUtc } from './schedule/index.js';
 import { useFormat } from './use-format.js';
 import { useT } from './i18n/index.js';
+import { track } from './analytics.js';
+import { useRecommendationShown } from './use-analytics.js';
 
 // 정렬·그룹핑은 시작 시각(UTC)으로. 시청자 달력 파트는 사용자 시간대로.
 const startMs = (r) => { const iso = getRaceStartUtc(r) || r.primaryStartUtc; return iso ? new Date(iso).getTime() : Number.MAX_SAFE_INTEGER; };
@@ -41,7 +43,7 @@ export function WebSchedule({ theme, races, onOpenRace, now, tier, seasonYear })
           const active = m === month;
           const cnt = monthCounts[m];
           return (
-            <button key={m} onClick={() => setMonth(m)} style={{
+            <button key={m} onClick={() => { if (m !== month) track('schedule_month_changed', { direction: m > month ? 'next' : 'prev' }); setMonth(m); }} style={{
               padding: '12px 8px', borderRadius: 10,
               border: `1px solid ${active ? t.text : t.line}`,
               background: active ? t.text : 'transparent',
@@ -260,7 +262,7 @@ export function WebSeries({ theme, races, onOpenRace, initialCategory, tier, sea
         right={
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             {Object.values(CATEGORIES).map(ss => (
-              <button key={ss.id} onClick={() => setSel(ss.id)} style={{
+              <button key={ss.id} onClick={() => { if (ss.id !== sel) track('series_tab_changed', { category: ss.id }); setSel(ss.id); }} style={{
                 padding: '9px 14px', borderRadius: 999, fontFamily: 'inherit',
                 border: `1px solid ${sel === ss.id ? ss.accent : t.line}`,
                 background: sel === ss.id ? ss.accent : 'transparent',
@@ -399,6 +401,7 @@ export function WebFavorites({ theme, races, myRaces, favorites, onOpenRace, tog
   const favList = races.filter(r => favorites.has(r.id)).sort(byStart);
   // 빈 상태 추천: 다가오는 관심 경기 3개 (프로토타입 저장 화면과 같은 규칙)
   const recs = (Array.isArray(myRaces) ? myRaces : races).filter(r => r.status === 'upcoming' || r.status === 'live').slice(0, 3);
+  useRecommendationShown(favList.length === 0 ? recs : []);
   const cols = tier === 'ultra' ? 3 : 2;
 
   return (
@@ -429,7 +432,7 @@ export function WebFavorites({ theme, races, myRaces, favorites, onOpenRace, tog
             <div style={{ marginTop: 32, textAlign: 'left', maxWidth: 720, marginLeft: 'auto', marginRight: 'auto' }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: t.text, marginBottom: 12 }}>{tr('fav.suggest')}</div>
               <div style={{ display: 'grid', gap: 10 }}>
-                {recs.map(r => <WebRecommendRow key={r.id} race={r} theme={theme} onOpen={() => onOpenRace(r)} onSave={() => toggleFav(r.id)} />)}
+                {recs.map((r, i) => <WebRecommendRow key={r.id} race={r} theme={theme} onOpen={() => { track('recommendation_clicked', { series: r.series, position: i }); onOpenRace(r, 'recommendation'); }} onSave={() => toggleFav(r.id)} />)}
               </div>
             </div>
           )}
@@ -668,7 +671,7 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
             <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.16em', display: 'block', marginBottom: 12 }}>{tr('detail.broadcast')}</Mono>
             <div style={{ display: 'grid', gap: 8 }}>
               {fmt.broadcast(race.broadcast).map((b, i) => (
-                <div key={i} style={{
+                <div key={i} onClick={() => track('broadcast_clicked', { name: b.name, region: b.region })} style={{
                   padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`,
                   borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   cursor: 'pointer',
