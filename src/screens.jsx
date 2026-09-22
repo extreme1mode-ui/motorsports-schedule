@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CATEGORIES, SERIES, getVisibleSessions, getSeriesStats, getRaceStartUtc } from './schedule/index.js';
 import { TOKENS, Mono, SeriesTag, AccessBadge, ExternalIcon, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
 import { useFormat } from './use-format.js';
 import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
 import { SR_ONLY, DETAIL_SCRIM } from './a11y.js';
+import { usePop } from './use-motion.js';
 import { photo, photoPos } from './home/photos.js';
 import { useRecommendationShown } from './use-analytics.js';
 
@@ -39,7 +40,7 @@ export function Schedule({ theme, races, onOpenRace, now, seasonYear }) {
     <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 110 }}>
       <div style={{ padding: '64px 18px 12px' }}>
         <Mono size={10} color={t.text3} style={{ letterSpacing: '0.14em' }}>{safeSeasonYear} SEASON</Mono>
-        <div style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>{tr('schedule.title')}</div>
+        <div role="heading" aria-level={1} data-view-title tabIndex={-1} style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>{tr('schedule.title')}</div>
       </div>
 
       {/* 칩 행: 버튼은 44px 히트영역, 보이는 알약(33px)은 안쪽 span. 행 높이가 변하지 않게 컨테이너를 위·아래 5.5px씩 당긴다 (QA R4). */}
@@ -126,7 +127,7 @@ function MonthGrid({ month, races, theme, onOpen, now, seasonYear }) {
           const isToday = dateKey === todayStr;
           const isSun = i % 7 === 0; const isSat = i % 7 === 6;
           return (
-            <div key={i} onClick={() => dayRaces.length && onOpen(dayRaces[0])} style={{
+            <div key={i} className={dayRaces.length ? 'press-chip' : undefined} onClick={() => dayRaces.length && onOpen(dayRaces[0])} style={{
               aspectRatio: '1/1.05', borderRadius: 8,
               background: isToday ? t.text : t.surface, border: `1px solid ${t.line}`,
               padding: '5px 5px 4px', display: 'flex', flexDirection: 'column',
@@ -162,7 +163,7 @@ export function ScheduleRow({ race, theme, onOpen }) {
   const p = viewerParts(fmt, race);
   const dow = p?.weekdayName || '';
   return (
-    <div onClick={onOpen} style={{
+    <div className="press-row" role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }} style={{
       display: 'grid', gridTemplateColumns: '48px 1fr auto', gap: 12, alignItems: 'center',
       padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`,
       borderRadius: 12, cursor: 'pointer', opacity: race.status === 'cancelled' ? 0.55 : 1,
@@ -207,7 +208,7 @@ export function SeriesView({ theme, races, onOpenRace, initialCategory, seasonYe
     <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 110 }}>
       <div style={{ padding: '64px 18px 12px' }}>
         <Mono size={10} color={t.text3} style={{ letterSpacing: '0.14em' }}>BY CATEGORY · {safeSeasonYear}</Mono>
-        <div style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>{tr('series.title')}</div>
+        <div role="heading" aria-level={1} data-view-title tabIndex={-1} style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>{tr('series.title')}</div>
       </div>
 
       <div style={{ display: 'flex', gap: 6, padding: '0 18px 8.5px', marginTop: -5.5, overflowX: 'auto' }}>
@@ -264,7 +265,7 @@ function RoundRow({ race, idx, theme, onOpen }) {
   const start = getRaceStartUtc(race);
   const p = viewerParts(fmt, race);
   return (
-    <div onClick={onOpen} style={{
+    <div className="press-row" role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }} style={{
       display: 'grid', gridTemplateColumns: '36px 1fr auto', gap: 12, alignItems: 'center',
       padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`,
       borderRadius: 12, cursor: 'pointer', opacity: cancelled ? 0.45 : 1,
@@ -306,7 +307,7 @@ export function Favorites({ theme, races, myRaces, favorites, onOpenRace, toggle
     <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 110 }}>
       <div style={{ padding: '64px 18px 20px' }}>
         <Mono size={10} color={t.text3} style={{ letterSpacing: '0.14em' }}>PINNED</Mono>
-        <div style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>{tr('fav.title')}</div>
+        <div role="heading" aria-level={1} data-view-title tabIndex={-1} style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>{tr('fav.title')}</div>
       </div>
       {favList.length === 0 ? (
         <div style={{ padding: '40px 40px', textAlign: 'center' }}>
@@ -337,7 +338,7 @@ export function Favorites({ theme, races, myRaces, favorites, onOpenRace, toggle
   );
 }
 
-export function RaceDetail({ race, theme, onClose, favorites, toggleFav, preferences }) {
+export function RaceDetail({ race, theme, onClose, favorites, toggleFav, preferences, closing = false, onExitEnd }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
   const tr = useT();
@@ -346,9 +347,13 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
   const sessions = getVisibleSessions(race, preferences?.series?.[race.series]);
   const faved = favorites.has(race.id);
   const [notify, setNotify] = useState(false);
+  const [favPop, onFavPopEnd] = usePop(faved);   // 저장될 때만 되튐
+  // 열리면 포커스를 시트 안 첫 요소(뒤로 버튼)로. 닫힌 뒤 원래 요소로 되돌리는 건 App이 한다.
+  const sheetRef = useRef(null);
+  useEffect(() => { sheetRef.current?.querySelector('button')?.focus({ preventScroll: true }); }, []);
 
   return (
-    <div style={{ position: 'absolute', inset: 0, background: t.bg, zIndex: 80, overflow: 'auto', paddingBottom: 40 }}>
+    <div ref={sheetRef} className={`detail-sheet${closing ? ' closing' : ''}`} onAnimationEnd={closing ? onExitEnd : undefined} style={{ position: 'absolute', inset: 0, background: t.bg, zIndex: 80, overflow: 'auto', paddingBottom: 40 }}>
       {/* 헤더 배경 = 경기 사진 (홈 .hero2와 같은 층 구성: 사진 → 시리즈 틴트 → 스크림 → 콘텐츠). 높이는 padding이 정한다. */}
       <div style={{ padding: '60px 18px 22px', background: theme === 'dark' ? s.dark : s.tint, position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
         <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -3, backgroundImage: `url(${photo(race, 800)})`, backgroundSize: 'cover', backgroundPosition: photoPos(race) }} />
@@ -356,15 +361,15 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
         <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -1, background: DETAIL_SCRIM[theme] || DETAIL_SCRIM.dark }} />
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, position: 'relative' }}>
-          <button onClick={onClose} aria-label={tr('aria.back')} style={ICON_HIT}>
+          <button onClick={onClose} aria-label={tr('aria.back')} className="press-icon" style={ICON_HIT}>
             <span style={{ width: 36, height: 36, borderRadius: 999, background: theme === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)', display: 'grid', placeItems: 'center' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={theme === 'dark' ? '#fff' : '#111'} strokeWidth="2.4" strokeLinecap="round">
                 <path d="M15 18l-6-6 6-6"/>
               </svg>
             </span>
           </button>
-          <button onClick={() => toggleFav(race.id)} aria-label={tr('aria.save')} style={ICON_HIT}>
-            <span style={{ width: 36, height: 36, borderRadius: 999, background: theme === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)', display: 'grid', placeItems: 'center' }}>
+          <button onClick={() => toggleFav(race.id)} aria-label={tr('aria.save')} className="press-icon" style={ICON_HIT}>
+            <span className={favPop} onAnimationEnd={onFavPopEnd} style={{ width: 36, height: 36, borderRadius: 999, background: theme === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)', display: 'grid', placeItems: 'center' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill={faved ? s.accent : 'none'} stroke={faved ? s.accent : (theme === 'dark' ? '#fff' : '#111')} strokeWidth="2">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
               </svg>
@@ -439,7 +444,7 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
         <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
           {fmt.broadcast(race.broadcast).map((b, i) => (
             // 실제 링크(<a>): 가운데 클릭·Cmd 클릭·새 탭이 되고 스크린리더가 링크로 읽는다. 시각은 기존 div와 동일.
-            <a key={i} href={b.url ?? undefined} target="_blank" rel="noopener noreferrer"
+            <a key={i} className="press-row" href={b.url ?? undefined} target="_blank" rel="noopener noreferrer"
               onClick={() => track('broadcast_clicked', { name: b.name, region: b.region, access: b.access, series: race.series, source: 'detail' })}
               style={{ padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
@@ -467,8 +472,9 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
             <div style={{ fontSize: 11, color: t.text3, marginTop: 2 }}>{tr('detail.alertSub')}</div>
           </div>
           <button onClick={() => setNotify(!notify)} role="switch" aria-checked={notify} aria-label={tr('detail.alertTitle')} style={{ width: 46, height: 44, margin: '-8px 0', padding: 0, border: 0, background: 'none', cursor: 'pointer', display: 'grid', placeItems: 'center', flex: 'none' }}>
-            <span style={{ display: 'block', width: 46, height: 28, borderRadius: 999, background: notify ? s.accent : (theme === 'dark' ? '#3A3D45' : '#D8DAE3'), position: 'relative', transition: 'background 0.15s' }}>
-              <span style={{ position: 'absolute', top: 2, left: notify ? 20 : 2, width: 24, height: 24, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transition: 'left 0.15s' }} />
+            <span style={{ display: 'block', width: 46, height: 28, borderRadius: 999, background: notify ? s.accent : (theme === 'dark' ? '#3A3D45' : '#D8DAE3'), position: 'relative', transition: 'background var(--dur-state) var(--ease-std)' }}>
+              {/* 노브는 left 대신 transform으로 이동 (레이아웃 재계산 없음) */}
+              <span style={{ position: 'absolute', top: 2, left: 2, width: 24, height: 24, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transform: `translateX(${notify ? 18 : 0}px)`, transition: 'transform var(--dur-state) var(--ease-std)' }} />
             </span>
           </button>
         </div>
@@ -493,7 +499,7 @@ function RecommendRow({ race, theme, onOpen, onSave }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`, borderRadius: 12 }}>
       <div style={{ width: 3, height: 40, background: s.accent, borderRadius: 2, flex: 'none' }} />
-      <button onClick={onOpen} style={{ flex: 1, minWidth: 0, background: 'none', border: 0, padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
+      <button className="press-row" onClick={onOpen} style={{ flex: 1, minWidth: 0, background: 'none', border: 0, padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
           <SeriesTag series={race.series} theme={theme} variant="ghost" />
           <Mono size={10} color={t.text3}>{getRoundDisplay(race)}</Mono>

@@ -18,9 +18,60 @@ html, body {
 
 #root { min-height: 100vh; }
 
-button { transition: transform 0.1s, background 0.15s, color 0.15s; }
-button:active { transform: scale(0.985); }
+/* ---------- 누름 피드백. 크기별로 축소율을 달리해 같은 세기로 느껴지게 (작을수록 많이). transform·opacity·paint 속성만. ---------- */
+button { transition: transform var(--dur-press) var(--ease-out), background var(--dur-press) var(--ease-out), color var(--dur-press) var(--ease-out), opacity var(--dur-press) var(--ease-out); }
+button:active { transform: scale(.96); }                       /* 기본: 알약형 CTA·칩 */
+.press-icon:active { transform: scale(.90); }                  /* 아이콘 버튼(44px 이하) */
+.press-chip { transition: transform var(--dur-press) var(--ease-out), background var(--dur-press) var(--ease-out), border-color var(--dur-press) var(--ease-out); }
+.press-chip:active { transform: scale(.96); }                  /* 칩 크기의 div (달력 날짜 칸) */
+.press-row { transition: transform var(--dur-press) var(--ease-out), background var(--dur-press) var(--ease-out), border-color var(--dur-press) var(--ease-out); }
+.press-row:active { transform: scale(.985); background: var(--surface2) !important; }   /* 리스트 행·카드(폭 200px+). 인라인 t.surface를 눌린 동안만 덮는다 */
+button:disabled:active { transform: none; }
+/* 저장 확인: 채워질 때만 1 → 1.22 → 1 (되튐). 클래스는 상태가 true로 바뀔 때만 붙였다 뗀다 (use-motion.js usePop). */
+@keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.22); } 100% { transform: scale(1); } }
+.pop { animation: pop var(--dur-state) var(--ease-pop); }
+/* 호버는 마우스가 있는 환경에서만 — 터치에서 눌린 뒤 호버 스타일이 남는 것을 막는다 */
+@media (hover: hover) {
+  button:hover { opacity: .9; }
+  .press-icon:hover { opacity: .8; }
+  .press-row:hover { background: var(--surface2) !important; }
+  .press-row:hover, .press-chip:hover { opacity: 1; }
+}
 
 /* Hide scrollbars globally */
 * { scrollbar-width: none; }
 *::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+/* ---------- 화면 전환 (View Transitions API). 지원 안 하면 이 블록은 그냥 무시된다. ---------- */
+::view-transition-old(root) { animation: vt-out var(--dur-move) var(--ease-out) both; }
+::view-transition-new(root) { animation: vt-in var(--dur-move) var(--ease-out) both; }
+@keyframes vt-out { to { opacity: 0; } }
+@keyframes vt-in { from { opacity: 0; transform: translateY(6px); } }
+/* 고정 크롬(탭바·사이드바)은 별도 그룹이라 root 크로스페이드에 안 섞인다. 활성 알약(nav-pill)은 같은 이름끼리 위치가 보간돼 탭 사이를 미끄러진다. */
+::view-transition-old(nav-chrome), ::view-transition-new(nav-chrome) { animation: none; }
+::view-transition-group(nav-pill) { animation-duration: var(--dur-move); animation-timing-function: var(--ease-out); }
+::view-transition-old(nav-pill), ::view-transition-new(nav-pill) { animation: none; mix-blend-mode: normal; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}
+
+/* 전환 후 제목으로 옮긴 프로그램 포커스는 링을 그리지 않는다. 키보드(:focus-visible)일 때만 보인다. */
+[data-view-title]:focus:not(:focus-visible) { outline: none; }
+[role="button"]:focus:not(:focus-visible) { outline: none; }
+
+/* ---------- 상세 열기/닫기 ---------- */
+/* 모바일 시트: 아래에서 16px + 페이드. 닫힘은 반대(--ease-in). 높이 전체를 옮기지 않는다. */
+.detail-sheet { animation: sheet-in var(--dur-sheet) var(--ease-out) both; }
+.detail-sheet.closing { animation: sheet-out var(--dur-sheet) var(--ease-in) both; pointer-events: none; }
+@keyframes sheet-in { from { opacity: 0; transform: translateY(16px); } }
+@keyframes sheet-out { to { opacity: 0; transform: translateY(16px); } }
+/* 데스크탑 드로어: 패널은 translateX(100%)→0, 백드롭은 opacity만 (blur는 애니메이션하지 않음). */
+.drawer-root { overflow: hidden; }
+.drawer-backdrop { animation: fade-in var(--dur-move) var(--ease-out) both; }
+.drawer-panel { animation: drawer-in var(--dur-move) var(--ease-out) both; }
+.drawer-root.closing .drawer-backdrop { animation: fade-out var(--dur-move) var(--ease-in) both; }
+.drawer-root.closing .drawer-panel { animation: drawer-out var(--dur-move) var(--ease-in) both; pointer-events: none; }
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes fade-out { to { opacity: 0; } }
+@keyframes drawer-in { from { transform: translateX(100%); } }
+@keyframes drawer-out { to { transform: translateX(100%); } }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { TOKENS, Mono, SeriesTag } from './primitives.jsx';
 import { getCurrentNow, useScheduleData, filterRacesByPreferences } from './schedule/index.js';
 import { Home } from './home/Home.jsx';
@@ -7,6 +8,8 @@ import { Settings } from './settings.jsx';
 import { useFormat } from './use-format.js';
 import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
+import { withViewTransition, useScrollMemory, useFocusViewTitle, usePresence } from './use-motion.js';
+import { storage } from './storage/index.js';
 
 export function useViewport() {
   const [w, setW] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1440);
@@ -27,10 +30,7 @@ export function WebApp({ theme, setTheme, ...prefs }) {
   const [view, setView] = useState('home');
   const [categoryFilter, setCategoryFilter] = useState(null);
   const [openRaceId, setOpenRaceId] = useState(null);
-  const [favorites, setFavorites] = useState(() => {
-    try { return new Set(JSON.parse(localStorage.getItem('paddock.fav') || '[]')); }
-    catch { return new Set(); }
-  });
+  const [favorites, setFavorites] = useState(() => storage.favorites.read());
   const [now, setNow] = useState(() => getCurrentNow());
   const [tweaks, setTweaks] = useState(false);
   const { tier } = useViewport();
@@ -46,7 +46,7 @@ export function WebApp({ theme, setTheme, ...prefs }) {
     const i = setInterval(() => setNow(getCurrentNow()), 1000);
     return () => clearInterval(i);
   }, []);
-  useEffect(() => { localStorage.setItem('paddock.fav', JSON.stringify([...favorites])); }, [favorites]);
+  useEffect(() => { storage.favorites.write(favorites); }, [favorites]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -74,15 +74,35 @@ export function WebApp({ theme, setTheme, ...prefs }) {
     });
   }, []);
   // source: 어느 화면에서 열었는지. 화면별 래퍼가 기본값을 주고, 추천 카드는 'recommendation'을 직접 넘긴다.
-  const openFrom = useCallback((race, source) => { track('race_opened', { series: race.series, source }); setOpenRaceId(race.id); }, []);
+  const openerRef = useRef(null);   // 드로어를 연 요소 — 닫힐 때 포커스를 되돌린다
+  const openFrom = useCallback((race, source) => { openerRef.current = document.activeElement; track('race_opened', { series: race.series, source }); setOpenRaceId(race.id); }, []);
   const onOpenRace = useCallback((race, source = 'home') => openFrom(race, source), [openFrom]);
   const openFromSchedule = useCallback((race) => openFrom(race, 'schedule'), [openFrom]);
   const openFromSeries = useCallback((race) => openFrom(race, 'series'), [openFrom]);
   const openFromSaved = useCallback((race, source = 'saved') => openFrom(race, source), [openFrom]);
+  // 탭 전환: 웹은 window 스크롤. 떠나기 전 scrollY 저장 → View Transition 안에서 동기 커밋 → layout effect에서 복원.
+  const saveScroll = useScrollMemory(view, null);
+  useFocusViewTitle(view);
   const onGo = useCallback((v, arg) => {
-    if (v === 'series') { setCategoryFilter(arg); setView('series'); }
-    else setView(v);
-  }, []);
+    saveScroll(view);
+    withViewTransition(() => {
+      if (v === 'series') { setCategoryFilter(arg); setView('series'); }
+      else setView(v);
+    }, flushSync);
+  }, [view, saveScroll]);
+
+  // 드로어: 닫힐 때 퇴장 애니메이션이 끝난 뒤 언마운트.
+  const drawer = usePresence(!!openRace);
+  const [lastRace, setLastRace] = useState(openRace);            // 닫히는 동안 보여줄 마지막 race (렌더 중 상태 조정)
+  if (openRace && openRace !== lastRace) setLastRace(openRace);
+  const shownRace = openRace ?? lastRace;
+  useEffect(() => {
+    if (drawer.mounted) return;
+    const el = openerRef.current;
+    if (el && el.isConnected && typeof el.focus === 'function' && el !== document.body) el.focus({ preventScroll: true });
+    else document.querySelector('[data-view-title]')?.focus({ preventScroll: true });
+    openerRef.current = null;
+  }, [drawer.mounted]);
 
   const t = TOKENS[theme];
   const sidebarWidth = tier === 'tablet' ? 76 : 240;
@@ -96,7 +116,7 @@ export function WebApp({ theme, setTheme, ...prefs }) {
       display: 'grid', gridTemplateColumns: `${sidebarWidth}px 1fr`,
       position: 'relative',
     }}>
-      <Sidebar theme={theme} view={view} onGo={setView} favCount={favorites.size}
+      <Sidebar theme={theme} view={view} onGo={onGo} favCount={favorites.size}
         collapsed={tier === 'tablet'} tier={tier} setTheme={setTheme} />
 
       <main style={{ padding: `${gutter + 8}px ${gutter}px ${gutter * 2}px`, maxWidth: '100%', minWidth: 0 }}>
@@ -113,8 +133,8 @@ export function WebApp({ theme, setTheme, ...prefs }) {
         </div>
       </main>
 
-      {openRace && <RaceDrawer race={openRace} theme={theme} onClose={() => setOpenRaceId(null)}
-        favorites={favorites} toggleFav={toggleFav} tier={tier} preferences={preferences} />}
+      {drawer.mounted && shownRace && <RaceDrawer race={shownRace} theme={theme} onClose={() => setOpenRaceId(null)}
+        favorites={favorites} toggleFav={toggleFav} tier={tier} preferences={preferences} closing={drawer.closing} onExitEnd={drawer.onExitEnd} />}
 
       {tweaks && <WebTweaks theme={theme} setTheme={setTheme} />}
     </div>
@@ -134,6 +154,7 @@ function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
 
   return (
     <aside style={{
+      viewTransitionName: 'nav-chrome',
       borderRight: `1px solid ${t.line}`,
       background: theme === 'dark' ? '#07080B' : '#FAFAFD',
       position: 'sticky', top: 0, height: '100vh',
@@ -170,6 +191,7 @@ function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
           const active = view === it.id;
           return (
             <button key={it.id} onClick={() => onGo(it.id)} title={it.label} style={{
+              viewTransitionName: active ? 'nav-pill' : undefined,
               display: 'flex', alignItems: 'center',
               gap: collapsed ? 0 : 12, justifyContent: collapsed ? 'center' : 'flex-start',
               padding: collapsed ? '12px 0' : '11px 12px',
@@ -179,7 +201,6 @@ function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
                 : 'transparent',
               color: active ? t.text : t.text2,
               fontFamily: 'inherit', position: 'relative',
-              transition: 'background 0.12s',
             }}>
               {active && <span style={{
                 position: 'absolute', left: collapsed ? 6 : 0, top: 10, bottom: 10, width: 3,
@@ -208,6 +229,7 @@ function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
       <div style={{ flex: 1 }} />
 
       <button onClick={() => onGo('settings')} title={tr('nav.settings')} style={{
+        viewTransitionName: view === 'settings' ? 'nav-pill' : undefined,
         display: 'flex', alignItems: 'center',
         gap: collapsed ? 0 : 12, justifyContent: collapsed ? 'center' : 'flex-start',
         padding: collapsed ? '12px 0' : '11px 12px', marginBottom: 10,
@@ -217,7 +239,6 @@ function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
           : 'transparent',
         color: view === 'settings' ? t.text : t.text2,
         fontFamily: 'inherit', position: 'relative',
-        transition: 'background 0.12s',
       }}>
         {view === 'settings' && <span style={{
           position: 'absolute', left: collapsed ? 6 : 0, top: 10, bottom: 10, width: 3,
@@ -300,7 +321,7 @@ export function PageHeader({ theme, kicker, title, subtitle, right }) {
     }}>
       <div>
         <Mono size={11} color={t.text3} style={{ letterSpacing: '0.18em', display: 'block', marginBottom: 8 }}>{kicker}</Mono>
-        <h1 style={{ margin: 0, fontSize: 38, fontWeight: 800, letterSpacing: '-0.025em', color: t.text, lineHeight: 1 }}>
+        <h1 data-view-title tabIndex={-1} style={{ margin: 0, fontSize: 38, fontWeight: 800, letterSpacing: '-0.025em', color: t.text, lineHeight: 1 }}>
           {title}
         </h1>
         {subtitle && <div style={{ marginTop: 8, fontSize: 14, color: t.text2 }}>{subtitle}</div>}

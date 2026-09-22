@@ -7,6 +7,8 @@
 // - 이름·이메일 같은 식별 정보는 어디서도 넣지 않는다. 속성은 열거형 문자열·숫자·불리언·문자열 배열만 통과시키고 나머지는 버린다.
 // - 어떤 경우에도 앱을 죽이지 않는다 (전체 try/catch).
 
+import { storage } from './storage/index.js';
+
 const KEY = import.meta.env.VITE_ANALYTICS_KEY;
 const DEV = Boolean(import.meta.env.DEV);
 const MAX_STRING = 64;   // 자유 텍스트 유입 방지용 상한. 열거형 값은 이보다 훨씬 짧다.
@@ -114,12 +116,11 @@ export function track(event, props = {}) {
 }
 
 // 첫 방문일(YYYY-MM-DD, 로컬 날짜만) 저장 후 경과 일수. 시각은 저장하지 않는다.
-const FIRST_VISIT_KEY = 'paddock.firstVisit';
 export function getDaysSinceFirstVisit(now = new Date()) {
   try {
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    let first = localStorage.getItem(FIRST_VISIT_KEY);
-    if (!first || !/^\d{4}-\d{2}-\d{2}$/.test(first)) { first = today; localStorage.setItem(FIRST_VISIT_KEY, today); }
+    let first = storage.firstVisit.read();
+    if (!first || !/^\d{4}-\d{2}-\d{2}$/.test(first)) { first = today; storage.firstVisit.write(today); }
     const [fy, fm, fd] = first.split('-').map(Number);
     const [ty, tm, td] = today.split('-').map(Number);
     return Math.max(0, Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86400000));

@@ -1,5 +1,7 @@
 // 온보딩과 설정 화면이 함께 쓰는 선택지·문구. (컴포넌트는 preferences-ui.jsx)
 
+import { storage } from './storage/index.js';
+
 // 문구는 전부 i18n 키다 (src/i18n/*.js). label/sub/desc는 렌더 시점에 t(key)로 푼다.
 // 시리즈 한 줄 설명 키. 문구 자체는 i18n 사전에 있다.
 export const SERIES_DESCRIPTION_KEYS = {
@@ -52,8 +54,7 @@ export function countryValueFromId(id) {
 }
 
 export function readTheme() {
-  try { return localStorage.getItem('paddock.theme') || 'dark'; }
-  catch { return 'dark'; }
+  return storage.theme.read();
 }
 
 // 온보딩·설정 공용 선택 항목 스타일. 터치 영역 최소 56px.

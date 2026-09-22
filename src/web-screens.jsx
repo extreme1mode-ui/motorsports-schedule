@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { TOKENS, Mono, SeriesTag, AccessBadge, ExternalIcon, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
 import { CATEGORIES, SERIES, getVisibleSessions, getSeriesStats, getRaceStartUtc } from './schedule/index.js';
 import { useFormat } from './use-format.js';
 import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
 import { SR_ONLY, DETAIL_SCRIM } from './a11y.js';
+import { usePop } from './use-motion.js';
 import { photo, photoPos } from './home/photos.js';
 import { useRecommendationShown } from './use-analytics.js';
 
@@ -51,7 +52,6 @@ export function WebSchedule({ theme, races, onOpenRace, now, tier, seasonYear })
               background: active ? t.text : 'transparent',
               color: active ? t.bg : (cnt > 0 ? t.text2 : t.text3),
               cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-              transition: 'background 0.12s',
             }}>
               <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '-0.005em' }}>{fmt.monthNames[m]}</div>
               <Mono size={9}
@@ -132,13 +132,12 @@ function BigMonthGrid({ theme, month, races, onOpen, now, seasonYear }) {
           const isToday = dateKey === todayStr;
           const isSun = i % 7 === 0; const isSat = i % 7 === 6;
           return (
-            <div key={i} onClick={() => dayRaces[0] && onOpen(dayRaces[0])} style={{
+            <div key={i} className={dayRaces.length ? 'press-chip' : undefined} onClick={() => dayRaces[0] && onOpen(dayRaces[0])} style={{
               minHeight: 96, minWidth: 0, borderRadius: 10, padding: 8,
               background: isToday ? (theme === 'dark' ? '#fff' : '#111') : 'transparent',
               border: `1px solid ${isToday ? 'transparent' : t.line}`,
               cursor: dayRaces.length ? 'pointer' : 'default',
               display: 'flex', flexDirection: 'column',
-              transition: 'border-color 0.12s',
             }}>
               <Mono size={13} weight={isToday ? 700 : 500}
                 color={isToday ? (theme === 'dark' ? '#111' : '#fff') : isSun ? '#FF6B7A' : isSat ? '#6BA3FF' : t.text}
@@ -180,11 +179,10 @@ function WebScheduleRow({ race, theme, onOpen }) {
   const p = viewerParts(fmt, race);
   const dow = p?.weekdayName || '';
   return (
-    <div onClick={onOpen} style={{
+    <div className="press-row" role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }} style={{
       display: 'grid', gridTemplateColumns: '52px 1fr auto', gap: 14, alignItems: 'center',
       padding: '14px 16px', background: t.surface, border: `1px solid ${t.line}`,
       borderRadius: 12, cursor: 'pointer', opacity: race.status === 'cancelled' ? 0.5 : 1,
-      transition: 'border-color 0.12s',
     }}
     onMouseEnter={e => { e.currentTarget.style.borderColor = s.accent + '40'; }}
     onMouseLeave={e => { e.currentTarget.style.borderColor = t.line; }}>
@@ -345,12 +343,11 @@ function WebRoundRow({ race, idx, theme, onOpen }) {
   const p = viewerParts(fmt, race);
 
   return (
-    <div onClick={onOpen} style={{
+    <div className="press-row" role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }} style={{
       display: 'grid', gridTemplateColumns: '54px 1fr auto', gap: 14, alignItems: 'center',
       padding: '14px 16px', background: t.surface, border: `1px solid ${t.line}`,
       borderRadius: 12, cursor: 'pointer', opacity: cancelled ? 0.45 : 1,
       position: 'relative', overflow: 'hidden',
-      transition: 'border-color 0.12s',
     }}
     onMouseEnter={e => { e.currentTarget.style.borderColor = s.accent + '44'; }}
     onMouseLeave={e => { e.currentTarget.style.borderColor = t.line; }}>
@@ -459,7 +456,7 @@ function WebRecommendRow({ race, theme, onOpen, onSave }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: theme === 'dark' ? '#0E1014' : '#fff', border: `1px solid ${t.line}`, borderRadius: 12 }}>
       <div style={{ width: 4, height: 44, background: s.accent, borderRadius: 3, flex: 'none' }} />
-      <button onClick={onOpen} style={{ flex: 1, minWidth: 0, background: 'none', border: 0, padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
+      <button className="press-row" onClick={onOpen} style={{ flex: 1, minWidth: 0, background: 'none', border: 0, padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
           <SeriesTag series={race.series} theme={theme} variant="ghost" />
           <Mono size={10} color={t.text3}>{getRoundDisplay(race)}</Mono>
@@ -486,7 +483,7 @@ function FavCard({ race, theme, onOpen, toggleFav }) {
   const cancelled = race.status === 'cancelled';
 
   return (
-    <div onClick={onOpen} style={{
+    <div className="press-row" role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }} style={{
       padding: 18, borderRadius: 14, cursor: 'pointer',
       background: t.surface, border: `1px solid ${t.line}`,
       position: 'relative', overflow: 'hidden', opacity: cancelled ? 0.5 : 1,
@@ -496,7 +493,7 @@ function FavCard({ race, theme, onOpen, toggleFav }) {
         <SeriesTag series={race.series} theme={theme} />
         {race.specialBadge && <EventBadge label={race.specialBadge} tone={race.specialBadgeTone} theme={theme} />}
         {race.isNextRace && <StatusPill status="next" theme={theme} />}
-        <button onClick={e => { e.stopPropagation(); toggleFav(race.id); }} style={{
+        <button onClick={e => { e.stopPropagation(); toggleFav(race.id); }} className="press-icon" style={{
           background: 'none', border: 0, padding: 0, cursor: 'pointer', color: s.accent,
         }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2">
@@ -531,7 +528,7 @@ function FavCard({ race, theme, onOpen, toggleFav }) {
   );
 }
 
-export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, preferences }) {
+export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, preferences, closing = false, onExitEnd }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
   const tr = useT();
@@ -539,8 +536,12 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
   const s = SERIES[race.series];
   const sessions = getVisibleSessions(race, preferences?.series?.[race.series]);
   const faved = favorites.has(race.id);
+  const [favPop, onFavPopEnd] = usePop(faved);   // 저장될 때만 되튐
   const [notify, setNotify] = useState(false);
   const width = tier === 'ultra' ? 560 : tier === 'desktop' ? 480 : 440;
+  // 열리면 포커스를 드로어 안 첫 요소(닫기 버튼)로. 닫힌 뒤 원래 요소로 되돌리는 건 WebApp이 한다.
+  const panelRef = useRef(null);
+  useEffect(() => { panelRef.current?.querySelector('button')?.focus({ preventScroll: true }); }, []);
 
   useEffect(() => {
     const k = e => { if (e.key === 'Escape') onClose(); };
@@ -549,12 +550,12 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
   }, [onClose]);
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 80, display: 'flex', justifyContent: 'flex-end' }}>
-      <div onClick={onClose} style={{
+    <div className={`drawer-root${closing ? ' closing' : ''}`} style={{ position: 'fixed', inset: 0, zIndex: 80, display: 'flex', justifyContent: 'flex-end' }}>
+      <div className="drawer-backdrop" onClick={onClose} style={{
         position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)',
         backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
       }} />
-      <aside style={{
+      <aside ref={panelRef} className="drawer-panel" onAnimationEnd={closing ? onExitEnd : undefined} style={{
         position: 'relative', width, maxWidth: '100vw', height: '100vh',
         background: t.bg, overflow: 'auto', boxShadow: '-20px 0 60px rgba(0,0,0,0.5)',
         borderLeft: `1px solid ${t.line}`,
@@ -570,7 +571,7 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
           <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -1, background: DETAIL_SCRIM[theme] || DETAIL_SCRIM.dark }} />
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, position: 'relative' }}>
-            <button onClick={onClose} style={{
+            <button onClick={onClose} className="press-icon" style={{
               width: 36, height: 36, borderRadius: 10, border: 0, cursor: 'pointer',
               background: theme === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)',
               color: theme === 'dark' ? '#fff' : '#111', display: 'grid', placeItems: 'center',
@@ -579,13 +580,13 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
                 <path d="M18 6L6 18M6 6l12 12"/>
               </svg>
             </button>
-            <button onClick={() => toggleFav(race.id)} style={{
+            <button onClick={() => toggleFav(race.id)} className="press-icon" style={{
               width: 36, height: 36, borderRadius: 10, border: 0, cursor: 'pointer',
               background: theme === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)',
               color: faved ? s.accent : (theme === 'dark' ? '#fff' : '#111'),
               display: 'grid', placeItems: 'center',
             }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill={faved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+              <svg className={favPop.trim() || undefined} onAnimationEnd={onFavPopEnd} width="14" height="14" viewBox="0 0 24 24" fill={faved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
               </svg>
             </button>
@@ -671,7 +672,7 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
             <div style={{ display: 'grid', gap: 8 }}>
               {fmt.broadcast(race.broadcast).map((b, i) => (
                 // 실제 링크(<a>): 가운데 클릭·Cmd 클릭·새 탭이 되고 스크린리더가 링크로 읽는다. 시각은 기존 div와 동일.
-                <a key={i} href={b.url ?? undefined} target="_blank" rel="noopener noreferrer"
+                <a key={i} className="press-row" href={b.url ?? undefined} target="_blank" rel="noopener noreferrer"
                   onClick={() => track('broadcast_clicked', { name: b.name, region: b.region, access: b.access, series: race.series, source: 'detail' })}
                   style={{
                     padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`,
@@ -711,12 +712,13 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
               <button onClick={() => setNotify(!notify)} style={{
                 width: 46, height: 28, borderRadius: 999, border: 0, cursor: 'pointer',
                 background: notify ? s.accent : (theme === 'dark' ? '#3A3D45' : '#D8DAE3'),
-                position: 'relative', transition: 'background 0.15s',
+                position: 'relative', transition: 'background var(--dur-state) var(--ease-std)',
               }}>
+                {/* 노브는 left 대신 transform으로 이동 (레이아웃 재계산 없음) */}
                 <div style={{
-                  position: 'absolute', top: 2, left: notify ? 20 : 2,
+                  position: 'absolute', top: 2, left: 2,
                   width: 24, height: 24, borderRadius: '50%', background: '#fff',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transition: 'left 0.15s',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transform: `translateX(${notify ? 18 : 0}px)`, transition: 'transform var(--dur-state) var(--ease-std)',
                 }} />
               </button>
             </div>

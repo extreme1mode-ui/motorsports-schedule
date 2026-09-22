@@ -12,10 +12,11 @@ import { useT } from '../i18n/index.js';
 import { zonedDateFromKey } from '../schedule/format.js';
 import { scoreRace } from '../schedule/recommendations.js';
 import { track } from '../analytics.js';
+import { usePop, useImageLoaded } from '../use-motion.js';
+import { storage } from '../storage/index.js';
 
 const ORDER = ['F1', 'WEC', 'IMSA', 'GTWC', 'WRC'];
 const SERIES_VAR = { F1: '--f1', WEC: '--wec', IMSA: '--imsa', WRC: '--wrc', GTWC: '--gtwc' };
-const ALERTS_KEY = 'paddock.alerts';
 
 // ---------- 작은 순수 헬퍼 ----------
 const modeOf = (preferences, series) => preferences?.series?.[series] || 'off';
@@ -66,8 +67,24 @@ function heroClock(ev, ts, kind, fmt, t) {
   return { big: md(fmt, st), urgent: false, sub: `${t('home.weekdayTime', { weekday: dow(fmt, st), time: fmt.time(st) })}${fmt.isNight(st) ? ` · ${t('home.night')}` : ''}` };
 }
 
-function readAlerts() {
-  try { return new Set(JSON.parse(localStorage.getItem(ALERTS_KEY) || '[]')); } catch { return new Set(); }
+// 히어로 사진: 미리 로드하고 onload 때 .loaded로 opacity 0 → 1 (home.css). 레이아웃은 .hero2 min-height가 잡고 있어 안 움직인다.
+function HeroPhoto({ url, pos }) {
+  const loaded = useImageLoaded(url);
+  return <div className={`hero2-photo${loaded ? ' loaded' : ''}`} style={{ backgroundImage: `url(${url})`, backgroundPosition: pos }} />;
+}
+
+// 저장 하트: 켜질 때만 되튐(pop). 애니메이션은 아이콘(svg)에 걸어 버튼의 :active scale과 겹치지 않게.
+function HeartButton({ on, label, onClick }) {
+  const [popClass, onAnimationEnd] = usePop(on);
+  return (
+    <button type="button" className={`heart${on ? ' on' : ''}`} aria-label={label} onClick={onClick}>
+      <span className={`heart-ic${popClass}`} onAnimationEnd={onAnimationEnd} style={{ display: 'grid', placeItems: 'center' }}>
+        {on
+          ? <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
+          : <Icon name="heart" size={16} />}
+      </span>
+    </button>
+  );
 }
 
 // ---------- 1초 단위로 자기 DOM만 갱신하는 조각 (홈 전체 리렌더 없음) ----------
@@ -172,10 +189,10 @@ function Row({ ev, ts, dim, onOpen }) {
 
 // ---------- 홈 본체 ----------
 function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites, toggleFav, onOpenRace, onGo, setSeriesMode }) {
-  const [alerts, setAlerts] = useState(readAlerts);
+  const [alerts, setAlerts] = useState(() => storage.alerts.read());
   const [, setExpiredTick] = useState(0);
   const onExpire = useCallback(() => setExpiredTick((n) => n + 1), []);
-  useEffect(() => { try { localStorage.setItem(ALERTS_KEY, JSON.stringify([...alerts])); } catch { /* ignore */ } }, [alerts]);
+  useEffect(() => { storage.alerts.write(alerts); }, [alerts]);
   const toggleAlert = (id) => setAlerts((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
 
   const fmt = useFormat();
@@ -250,7 +267,7 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
     <div className="home">
       <div className="pagehead">
         <div>
-          <h1 className="ko">{t('home.title')}</h1>
+          <h1 className="ko" data-view-title tabIndex={-1} >{t('home.title')}</h1>
           <div className="sub ko">{t('home.watching', { count: watching })}</div>
         </div>
         <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
@@ -273,7 +290,7 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
         const alertOn = alerts.has(hero.id);
         return (
           <section className="hero2">
-            <div className="hero2-photo" style={{ backgroundImage: `url(${photo(hero, 1600)})`, backgroundPosition: photoPos(hero) }} />
+            <HeroPhoto url={photo(hero, 1600)} pos={photoPos(hero)} />
             <div className="hero2-tint" style={{ background: `var(${SERIES_VAR[hero.series]})` }} />
             <span className="hero2-credit">PHOTO · {photoCredit(hero)}</span>
             <div className="hero2-wrap">
@@ -299,11 +316,7 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
                       ? <a className="cta" href={bcast[0].url} target="_blank" rel="noopener noreferrer" onClick={() => track('broadcast_clicked', { name: bcast[0].name, region: bcast[0].region, access: bcast[0].access, series: hero.series, source: 'home' })}>{t('home.watchOn', { channel: chans[0] })}</a>
                       : <button type="button" className="cta" onClick={() => onOpenRace(hero.race)}>{t('home.watchOn', { channel: chans[0] })}</button>)
                     : <button type="button" className="cta" onClick={() => toggleAlert(hero.id)}>{alertOn ? t('home.alertOn') : t('home.alertSet')}</button>}
-                  <button type="button" className={`heart${faved ? ' on' : ''}`} aria-label={t('aria.save')} onClick={() => toggleFav?.(hero.id)}>
-                    {faved
-                      ? <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
-                      : <Icon name="heart" size={16} />}
-                  </button>
+                  <HeartButton on={!!faved} label={t('aria.save')} onClick={() => toggleFav?.(hero.id)} />
                   <button type="button" className="linkbtn" onClick={() => onOpenRace(hero.race)}>{t('home.detail')}</button>
                 </div>
                 {chans.length > 0 && <div className="hero2-chans">{chans.join(' · ')}</div>}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { getCurrentNow, useScheduleData, usePreferences, filterRacesByPreferences } from './schedule/index.js';
 import { TOKENS, Mono } from './primitives.jsx';
 import { Home } from './home/Home.jsx';
@@ -10,6 +11,8 @@ import { readTheme } from './preferences-options.js';
 import { FormatProvider } from './format-context.jsx';
 import { t, useT } from './i18n/index.js';
 import { track, getDaysSinceFirstVisit } from './analytics.js';
+import { withViewTransition, useScrollMemory, useFocusViewTitle, usePresence } from './use-motion.js';
+import { storage } from './storage/index.js';
 
 export default function Root() {
   const prefs = usePreferences();
@@ -17,7 +20,7 @@ export default function Root() {
   // 테마는 여기서만 관리한다. 저장 키 paddock.theme, 초기값 readTheme()는 기존 그대로.
   const [theme, setTheme] = useState(readTheme);
   useEffect(() => {
-    localStorage.setItem('paddock.theme', theme);
+    storage.theme.write(theme);
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
   // index.html의 lang/title은 언어 중립 기본값(en). 앱이 뜨면 사용자 locale로 바꾼다.
@@ -54,10 +57,7 @@ function App({ theme, setTheme, ...prefs }) {
   const [view, setView] = useState('home');
   const [categoryFilter, setCategoryFilter] = useState(null);
   const [openRaceId, setOpenRaceId] = useState(null);
-  const [favorites, setFavorites] = useState(() => {
-    try { return new Set(JSON.parse(localStorage.getItem('paddock.fav') || '[]')); }
-    catch { return new Set(); }
-  });
+  const [favorites, setFavorites] = useState(() => storage.favorites.read());
   const [now, setNow] = useState(() => getCurrentNow());
   const [tweaks, setTweaks] = useState(false);
   const schedule = useScheduleData(now);
@@ -73,7 +73,7 @@ function App({ theme, setTheme, ...prefs }) {
     return () => clearInterval(i);
   }, []);
 
-  useEffect(() => { localStorage.setItem('paddock.fav', JSON.stringify([...favorites])); }, [favorites]);
+  useEffect(() => { storage.favorites.write(favorites); }, [favorites]);
 
   // 계측용 최신값 미러 — 콜백은 참조가 고정돼 있어 state를 직접 못 읽는다.
   const favRef = useRef(favorites);
@@ -91,15 +91,36 @@ function App({ theme, setTheme, ...prefs }) {
     });
   }, []);
   // source: 어느 화면에서 열었는지. 화면별 래퍼가 기본값을 주고, 추천 카드는 'recommendation'을 직접 넘긴다.
-  const openFrom = useCallback((race, source) => { track('race_opened', { series: race.series, source }); setOpenRaceId(race.id); }, []);
+  const openerRef = useRef(null);   // 상세를 연 요소 — 닫힐 때 포커스를 되돌린다
+  const openFrom = useCallback((race, source) => { openerRef.current = document.activeElement; track('race_opened', { series: race.series, source }); setOpenRaceId(race.id); }, []);
   const onOpenRace = useCallback((race, source = 'home') => openFrom(race, source), [openFrom]);
   const openFromSchedule = useCallback((race) => openFrom(race, 'schedule'), [openFrom]);
   const openFromSeries = useCallback((race) => openFrom(race, 'series'), [openFrom]);
   const openFromSaved = useCallback((race, source = 'saved') => openFrom(race, source), [openFrom]);
+  // 탭 전환: 떠나기 전 scrollTop 저장 → View Transition(지원 시) 안에서 동기 커밋 → 복원은 useScrollMemory의 layout effect.
+  const scrollRef = useRef(null);
+  const saveScroll = useScrollMemory(view, scrollRef);
+  useFocusViewTitle(view);
   const onGo = useCallback((v, arg) => {
-    if (v === 'series') { setCategoryFilter(arg); setView('series'); }
-    else setView(v);
-  }, []);
+    saveScroll(view);
+    withViewTransition(() => {
+      if (v === 'series') { setCategoryFilter(arg); setView('series'); }
+      else setView(v);
+    }, flushSync);
+  }, [view, saveScroll]);
+
+  // 상세: 닫힐 때 퇴장 애니메이션이 끝난 뒤 언마운트. 그동안 마지막 race를 계속 보여준다.
+  const detail = usePresence(!!openRace);
+  const [lastRace, setLastRace] = useState(openRace);            // 닫히는 동안 보여줄 마지막 race (렌더 중 상태 조정)
+  if (openRace && openRace !== lastRace) setLastRace(openRace);
+  const shownRace = openRace ?? lastRace;
+  useEffect(() => {
+    if (detail.mounted) return;
+    const el = openerRef.current;
+    if (el && el.isConnected && typeof el.focus === 'function' && el !== document.body) el.focus({ preventScroll: true });
+    else document.querySelector('[data-view-title]')?.focus({ preventScroll: true });
+    openerRef.current = null;
+  }, [detail.mounted]);
 
   const t = TOKENS[theme];
   const mobileBottomNavSpace = 'calc(92px + env(safe-area-inset-bottom, 0px))';
@@ -114,7 +135,7 @@ function App({ theme, setTheme, ...prefs }) {
       paddingTop: 'env(safe-area-inset-top, 0px)',
     }}>
       {/* Scrollable content area — sits inside the fixed-height App shell */}
-      <div style={{
+      <div ref={scrollRef} style={{
         height: '100dvh',
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
@@ -128,9 +149,9 @@ function App({ theme, setTheme, ...prefs }) {
       </div>
 
       {/* Overlays and chrome are outside the scroll wrapper so they stay fixed */}
-      {openRace && <RaceDetail race={openRace} theme={theme} onClose={() => setOpenRaceId(null)} favorites={favorites} toggleFav={toggleFav} preferences={preferences} />}
+      {detail.mounted && shownRace && <RaceDetail race={shownRace} theme={theme} onClose={() => setOpenRaceId(null)} favorites={favorites} toggleFav={toggleFav} preferences={preferences} closing={detail.closing} onExitEnd={detail.onExitEnd} />}
 
-      <TabBar theme={theme} view={view} onGo={setView} favCount={favorites.size} />
+      <TabBar theme={theme} view={view} onGo={onGo} favCount={favorites.size} />
 
       {tweaks && <TweaksPanel theme={theme} setTheme={setTheme} onClose={() => setTweaks(false)} />}
     </div>
@@ -148,7 +169,7 @@ function TabBar({ theme, view, onGo, favCount }) {
   ];
   return (
     <div style={{
-      position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 70,
+      position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 70, viewTransitionName: 'nav-chrome',
       padding: '10px 14px calc(16px + env(safe-area-inset-bottom, 0px))',
       background: theme === 'dark'
         ? 'linear-gradient(180deg, rgba(10,11,14,0) 0%, rgba(10,11,14,0.92) 30%)'
@@ -167,6 +188,7 @@ function TabBar({ theme, view, onGo, favCount }) {
           const active = view === tab.id;
           return (
             <button key={tab.id} onClick={() => onGo(tab.id)} style={{
+              viewTransitionName: active ? 'nav-pill' : undefined,
               background: active ? (theme === 'dark' ? '#fff' : '#111') : 'transparent',
               color: active ? (theme === 'dark' ? '#111' : '#fff') : t.text3,
               border: 0, borderRadius: 14, padding: '10px 4px',

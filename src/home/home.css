@@ -117,3 +117,15 @@
 .home .hero2-chans{margin-top:11px;font-family:var(--mono);font-size:10.5px;color:var(--text3);letter-spacing:.02em}
 .home .hero2-credit{position:absolute;right:10px;top:10px;font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;
   color:var(--text3);background:var(--surface2);border:1px solid var(--line);border-radius:4px;padding:2px 6px;opacity:.75;z-index:2}
+
+/* ---------- 누름 피드백 (홈). 전역 button:active(.96) 위에 크기별로 덮는다. ---------- */
+.home .iconbtn:active,.home .heart:active{transform:scale(.90)}
+.home .rowitem,.home .card2{transition:transform var(--dur-press) var(--ease-out),background var(--dur-press) var(--ease-out),opacity var(--dur-press) var(--ease-out)}
+.home .rowitem:active,.home .card2:active{transform:scale(.985);background:var(--surface2)}
+@media (hover:hover){
+  .home .rowitem:hover,.home .card2:hover{background:var(--surface2);opacity:1}
+  .home .iconbtn:hover,.home .heart:hover{opacity:.8}
+}
+/* 히어로 사진: 미리 로드해 onload에 opacity 0 → 1. 로드 전에는 .hero2의 var(--surface) 배경이 보인다. */
+.home .hero2-photo{opacity:0;transition:opacity var(--dur-move) var(--ease-out)}
+.home .hero2-photo.loaded{opacity:1}

@@ -7,7 +7,7 @@ export function PageTitle({ theme, title, sub }) {
   const t = TOKENS[theme];
   return (
     <div style={{ marginBottom: 20 }}>
-      <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.25, color: t.text }}>{title}</h1>
+      <h1 data-view-title tabIndex={-1} style={{ margin: 0, fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.25, color: t.text }}>{title}</h1>
       {sub && <p style={{ margin: '8px 0 0', fontSize: 14, color: t.text2, lineHeight: 1.5 }}>{sub}</p>}
     </div>
   );
@@ -31,7 +31,7 @@ export function CheckDot({ on, accent, theme }) {
       flex: '0 0 auto', width: 22, height: 22, borderRadius: '50%', marginTop: 1,
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       background: on ? accent : 'transparent', border: `1.5px solid ${on ? accent : t.line2}`,
-      transition: 'background 0.15s, border-color 0.15s',
+      transition: 'background var(--dur-state) var(--ease-std), border-color var(--dur-state) var(--ease-std)',
     }}>
       {on && (
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={t.bg} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">

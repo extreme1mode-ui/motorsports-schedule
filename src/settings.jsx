@@ -26,7 +26,7 @@ export function Settings({ theme, preferences, setSeriesMode, setCountry, setTim
     <div style={{ background: t.bg, color: t.text, minHeight: '100%' }}>
       <div style={{ maxWidth: 560, margin: '0 auto', padding: '20px 20px 32px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 20 }}>
-          <button type="button" onClick={() => onGo('home')} aria-label={tr('aria.home')} style={{
+          <button type="button" onClick={() => onGo('home')} aria-label={tr('aria.home')} className="press-icon" style={{
             width: 44, height: 44, marginLeft: -12, borderRadius: 10, border: 0, background: 'none',
             color: t.text2, cursor: 'pointer', display: 'grid', placeItems: 'center',
           }}>

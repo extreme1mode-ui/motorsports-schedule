@@ -36,3 +36,23 @@
   --h2scrim:linear-gradient(180deg,rgba(255,255,255,.18) 0%,rgba(255,255,255,.72) 50%,rgba(255,255,255,.97) 92%);
   --h2scrim-x:linear-gradient(95deg,rgba(255,255,255,.78) 0%,rgba(255,255,255,.34) 48%,rgba(255,255,255,0) 80%);
 }
+
+/* ---------- 모션 토큰. 모든 transition/animation은 이 값만 쓴다 (개별 컴포넌트에 숫자 직접 금지). ---------- */
+:root{
+  --dur-press:110ms;   /* 누름·호버 */
+  --dur-state:180ms;   /* 토글, 작은 상태 변화 */
+  --dur-move:260ms;    /* 화면 전환, 드로어 */
+  --dur-sheet:340ms;   /* 시트가 크게 이동할 때 */
+  --ease-out:cubic-bezier(.2,.8,.25,1);   /* 진입 */
+  --ease-in:cubic-bezier(.4,0,1,1);       /* 퇴장 */
+  --ease-std:cubic-bezier(.4,0,.2,1);     /* 그 외 */
+  --ease-pop:cubic-bezier(.34,1.3,.64,1); /* 되튐. 저장/알림 확인에만 */
+}
+
+/* 움직임 줄이기 설정을 켠 사용자에게는 모든 모션을 사실상 끈다. */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms !important; animation-iteration-count:1 !important;
+    transition-duration:.01ms !important; scroll-behavior:auto !important;
+  }
+}

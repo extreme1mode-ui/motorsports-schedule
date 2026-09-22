@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { SUPPORTED_SERIES } from './constants.js';
+import { storage } from '../storage/index.js';
 
-const STORAGE_KEY = 'paddock.prefs';
 const PREFERENCES_VERSION = 1;
 const FALLBACK_TIMEZONE = 'Asia/Seoul';
 const FALLBACK_LOCALE = 'en';
@@ -79,13 +79,12 @@ export function normalizePreferences(input) {
 }
 
 export function loadPreferences() {
-  try { return normalizePreferences(JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null')); }
+  try { return normalizePreferences(storage.preferences.read()); }
   catch { return normalizePreferences(null); }
 }
 
 export function savePreferences(prefs) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs)); }
-  catch { /* 저장 불가 환경(프라이빗 모드 등)은 무시 */ }
+  storage.preferences.write(prefs);
 }
 
 export function usePreferences() {
