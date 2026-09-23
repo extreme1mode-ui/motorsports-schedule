@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { TOKENS } from './primitives.jsx';
 import { SUPPORTED_SERIES, detectTimezone } from './schedule/index.js';
 import { MODE_OPTIONS_WITH_OFF, countryIdFromValue, countryValueFromId } from './preferences-options.js';
@@ -11,10 +12,48 @@ const LOCALE_OPTIONS = [
 ];
 import { PageTitle, SectionTitle, SeriesRow, ChoiceGroup, CountryChoices, TimezoneLabel } from './preferences-ui.jsx';
 
+// 현재 개인화 설정 → 구독 쿼리. 시리즈는 'off'가 아닌 것, level은 하나라도 'all'이면 all.
+function calendarQuery(preferences) {
+  const series = SUPPORTED_SERIES.filter((id) => (preferences?.series?.[id] || 'off') !== 'off');
+  const level = series.some((id) => preferences.series[id] === 'all') ? 'all' : 'race';
+  const params = new URLSearchParams();
+  if (series.length) params.set('series', series.join(','));
+  params.set('level', level);
+  params.set('lang', preferences?.locale || 'ko');
+  return { series, level, search: params.toString() };
+}
+
 // 온보딩에서 정한 값을 다시 바꾸는 화면. 변경은 즉시 저장된다(별도 저장 버튼 없음).
 export function Settings({ theme, preferences, setSeriesMode, setCountry, setTimezone, setLocale, setOnboarded, onGo }) {
   const t = TOKENS[theme];
   const tr = useT();
+  const [copied, setCopied] = useState(false);
+  const urlRef = useRef(null);
+
+  const { series: calSeries, level: calLevel, search } = calendarQuery(preferences);
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const host = typeof window !== 'undefined' ? window.location.host : '';
+  const calendarUrl = `${origin}/api/calendar.ics?${search}`;
+  const webcalUrl = `webcal://${host}/api/calendar.ics?${search}`;
+  const onSubscribe = (method) => track('calendar_subscribe_clicked', { method, series_count: calSeries.length, level: calLevel });
+  const copyUrl = async () => {
+    onSubscribe('copy');
+    // 클립보드가 막힌 환경(권한 거부·비보안 컨텍스트)에서는 '복사됨'이라고 하지 않고, 위에 보이는 주소를 선택해 준다.
+    try {
+      await navigator.clipboard.writeText(calendarUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      const node = urlRef.current;
+      if (node && typeof window.getSelection === 'function') {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    }
+  };
 
   const secondaryButton = {
     height: 44, padding: '0 16px', borderRadius: 12, cursor: 'pointer',
@@ -73,6 +112,26 @@ export function Settings({ theme, preferences, setSeriesMode, setCountry, setTim
             <TimezoneLabel theme={theme} timezone={preferences.timezone} />
             <button type="button" onClick={() => { const tz = detectTimezone(); if (tz !== preferences.timezone) track('timezone_changed', { detected: true }); setTimezone(tz); }} style={secondaryButton}>{tr('settings.timezone.redetect')}</button>
           </div>
+        </section>
+
+        <section style={{ marginBottom: 32 }}>
+          <SectionTitle theme={theme} title={tr('settings.calendar.title')} sub={tr('settings.calendar.sub')} />
+          <div style={{ padding: '12px 16px', borderRadius: 14, background: t.surface, border: `1px solid ${t.line}` }}>
+            <div ref={urlRef} style={{
+              fontFamily: '"JetBrains Mono", ui-monospace, monospace', fontSize: 11, color: t.text2,
+              lineHeight: 1.5, wordBreak: 'break-all', userSelect: 'all',
+            }}>{calendarUrl}</div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+              <a href={webcalUrl} onClick={() => onSubscribe('open')} style={{
+                ...secondaryButton, flex: '1 1 auto', minWidth: 140, display: 'inline-flex',
+                alignItems: 'center', justifyContent: 'center', textDecoration: 'none',
+              }}>{tr('settings.calendar.open')}</a>
+              <button type="button" onClick={copyUrl} style={{ ...secondaryButton, flex: '1 1 auto', minWidth: 120 }}>
+                {copied ? tr('settings.calendar.copied') : tr('settings.calendar.copy')}
+              </button>
+            </div>
+          </div>
+          <div style={{ fontSize: 12, color: t.text3, lineHeight: 1.5, marginTop: 8 }}>{tr('settings.calendar.note')}</div>
         </section>
 
         <section>
