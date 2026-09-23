@@ -13,6 +13,7 @@ import { t, useT } from './i18n/index.js';
 import { track, getDaysSinceFirstVisit } from './analytics.js';
 import { withViewTransition, useScrollMemory, useFocusViewTitle, usePresence } from './use-motion.js';
 import { storage } from './storage/index.js';
+import { Brand } from './Brand.jsx';
 
 export default function Root() {
   const prefs = usePreferences();
@@ -54,6 +55,7 @@ export default function Root() {
 
 function App({ theme, setTheme, ...prefs }) {
   const { preferences } = prefs;
+  const tr = useT();
   const [view, setView] = useState('home');
   const [categoryFilter, setCategoryFilter] = useState(null);
   const [openRaceId, setOpenRaceId] = useState(null);
@@ -141,6 +143,12 @@ function App({ theme, setTheme, ...prefs }) {
         WebkitOverflowScrolling: 'touch',
         paddingBottom: mobileBottomNavSpace,
       }}>
+        <header className="brand-mobile-header">
+          <button type="button" className="brand-home" onClick={() => onGo('home')} aria-label={`GRIDCUE · ${tr('nav.home')}`}>
+            <Brand />
+          </button>
+          <span className="brand-season">{safeSeasonYear} / SEASON</span>
+        </header>
         {view === 'home' && <Home theme={theme} setTheme={setTheme} now={now} races={raceList} myRaces={myRaces} preferences={preferences} favorites={favorites} toggleFav={toggleFav} onOpenRace={onOpenRace} onGo={onGo} setSeriesMode={prefs.setSeriesMode} />}
         {view === 'schedule' && <Schedule theme={theme} races={raceList} onOpenRace={openFromSchedule} now={now} seasonYear={safeSeasonYear} />}
         {view === 'series' && <SeriesView theme={theme} races={raceList} onOpenRace={openFromSeries} initialCategory={categoryFilter || 'F1'} seasonYear={safeSeasonYear} />}
@@ -188,15 +196,27 @@ function TabBar({ theme, view, onGo, favCount }) {
           const active = view === tab.id;
           return (
             <button key={tab.id} onClick={() => onGo(tab.id)} style={{
-              viewTransitionName: active ? 'nav-pill' : undefined,
-              background: active ? (theme === 'dark' ? '#fff' : '#111') : 'transparent',
+              background: 'transparent',
               color: active ? (theme === 'dark' ? '#111' : '#fff') : t.text3,
               border: 0, borderRadius: 14, padding: '10px 4px',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-              cursor: 'pointer', fontFamily: 'inherit', position: 'relative',
+              cursor: 'pointer', fontFamily: 'inherit', position: 'relative', isolation: 'isolate',
             }}>
-              <TabIcon type={tab.icon} />
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '-0.005em' }}>{tab.label}</span>
+              {/* 알약 배경만 담당하는 레이어. view-transition-name이 여기에만 붙어 아이콘·글자는 스냅샷에 안 잡힌다.
+                  z-index -1 + 부모 isolation으로 콘텐츠 뒤, 버튼 배경 위에 그린다 (레이아웃·색은 그대로). */}
+              {active && <span aria-hidden style={{
+                position: 'absolute', inset: 0, zIndex: -1, borderRadius: 14,
+                background: theme === 'dark' ? '#fff' : '#111',
+                viewTransitionName: 'nav-pill',
+              }} />}
+              {/* 아이콘·라벨은 자체 그룹으로 캡처한다. 알약(nav-pill)보다 나중에 그려져 전환 중에도 알약 위에 남는다. */}
+              <span style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+                viewTransitionName: `tab-${tab.id}`,
+              }}>
+                <TabIcon type={tab.icon} />
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '-0.005em' }}>{tab.label}</span>
+              </span>
               {tab.id === 'fav' && favCount > 0 && !active && (
                 <span style={{
                   position: 'absolute', top: 5, right: 12,

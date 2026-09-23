@@ -10,6 +10,7 @@ import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
 import { withViewTransition, useScrollMemory, useFocusViewTitle, usePresence } from './use-motion.js';
 import { storage } from './storage/index.js';
+import { Brand } from './Brand.jsx';
 
 export function useViewport() {
   const [w, setW] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1440);
@@ -117,7 +118,7 @@ export function WebApp({ theme, setTheme, ...prefs }) {
       position: 'relative',
     }}>
       <Sidebar theme={theme} view={view} onGo={onGo} favCount={favorites.size}
-        collapsed={tier === 'tablet'} tier={tier} setTheme={setTheme} />
+        collapsed={tier === 'tablet'} tier={tier} setTheme={setTheme} seasonYear={safeSeasonYear} />
 
       <main style={{ padding: `${gutter + 8}px ${gutter}px ${gutter * 2}px`, maxWidth: '100%', minWidth: 0 }}>
         <div style={{ maxWidth: maxMain, margin: '0 auto' }}>
@@ -141,7 +142,7 @@ export function WebApp({ theme, setTheme, ...prefs }) {
   );
 }
 
-function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
+function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme, seasonYear }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
   const tr = useT();
@@ -168,22 +169,10 @@ function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
         borderBottom: `1px solid ${t.line}`,
         marginBottom: 10, justifyContent: collapsed ? 'center' : 'flex-start',
       }}>
-        <div style={{
-          width: 32, height: 32, borderRadius: 8, background: t.text,
-          display: 'grid', placeItems: 'center', flex: 'none',
-        }}>
-          <svg width="18" height="18" viewBox="0 0 16 16">
-            {[[0,0],[8,0],[4,4],[12,4],[0,8],[8,8],[4,12],[12,12]].map(([x,y],i) =>
-              <rect key={i} width="4" height="4" x={x} y={y} fill={t.bg} />
-            )}
-          </svg>
-        </div>
-        {!collapsed && (
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: t.text, letterSpacing: '-0.01em', lineHeight: 1 }}>PADDOCK</div>
-            <Mono size={9} color={t.text3} style={{ letterSpacing: '0.18em', marginTop: 3, display: 'block' }}>2026 · SEASON</Mono>
-          </div>
-        )}
+        <button type="button" className="brand-home" onClick={() => onGo('home')}
+          aria-label={`GRIDCUE · ${tr('nav.home')}`} title={`GRIDCUE · ${tr('nav.home')}`}>
+          <Brand compact={collapsed} caption={`MOTORSPORT / ${seasonYear}`} />
+        </button>
       </div>
 
       <nav style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -191,28 +180,37 @@ function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
           const active = view === it.id;
           return (
             <button key={it.id} onClick={() => onGo(it.id)} title={it.label} style={{
-              viewTransitionName: active ? 'nav-pill' : undefined,
               display: 'flex', alignItems: 'center',
               gap: collapsed ? 0 : 12, justifyContent: collapsed ? 'center' : 'flex-start',
               padding: collapsed ? '12px 0' : '11px 12px',
               borderRadius: 12, border: 0, cursor: 'pointer',
-              background: active
-                ? (theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)')
-                : 'transparent',
+              background: 'transparent',
               color: active ? t.text : t.text2,
-              fontFamily: 'inherit', position: 'relative',
+              fontFamily: 'inherit', position: 'relative', isolation: 'isolate',
             }}>
-              {active && <span style={{
-                position: 'absolute', left: collapsed ? 6 : 0, top: 10, bottom: 10, width: 3,
-                background: t.text, borderRadius: 2,
+              {/* 알약 배경 전용 레이어 (아이콘·라벨 제외). 이름은 여기에만. */}
+              {active && <span aria-hidden style={{
+                position: 'absolute', inset: 0, zIndex: -1, borderRadius: 12,
+                background: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                viewTransitionName: 'nav-pill',
               }} />}
-              <SideIcon type={it.icon} stroke={active ? t.text : t.text2} />
-              {!collapsed && (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.005em' }}>{it.label}</span>
-                  <Mono size={9} color={t.text3} style={{ letterSpacing: '0.14em' }}>{it.sub}</Mono>
-                </div>
-              )}
+              {active && <span aria-hidden style={{
+                position: 'absolute', left: collapsed ? 6 : 0, top: 10, bottom: 10, width: 3,
+                background: t.text, borderRadius: 2, viewTransitionName: 'nav-bar',
+              }} />}
+              {/* 아이콘·라벨은 자체 그룹. 알약보다 나중에 그려져 전환 중에도 알약 위에 남는다. */}
+              <span style={{
+                display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 12,
+                viewTransitionName: `rail-${it.id}`,
+              }}>
+                <SideIcon type={it.icon} stroke={active ? t.text : t.text2} />
+                {!collapsed && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.005em' }}>{it.label}</span>
+                    <Mono size={9} color={t.text3} style={{ letterSpacing: '0.14em' }}>{it.sub}</Mono>
+                  </div>
+                )}
+              </span>
               {it.id === 'fav' && favCount > 0 && !collapsed && (
                 <span style={{
                   marginLeft: 'auto',
@@ -229,28 +227,37 @@ function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
       <div style={{ flex: 1 }} />
 
       <button onClick={() => onGo('settings')} title={tr('nav.settings')} style={{
-        viewTransitionName: view === 'settings' ? 'nav-pill' : undefined,
         display: 'flex', alignItems: 'center',
         gap: collapsed ? 0 : 12, justifyContent: collapsed ? 'center' : 'flex-start',
         padding: collapsed ? '12px 0' : '11px 12px', marginBottom: 10,
         borderRadius: 12, border: 0, cursor: 'pointer',
-        background: view === 'settings'
-          ? (theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)')
-          : 'transparent',
+        background: 'transparent',
         color: view === 'settings' ? t.text : t.text2,
-        fontFamily: 'inherit', position: 'relative',
+        fontFamily: 'inherit', position: 'relative', isolation: 'isolate',
       }}>
-        {view === 'settings' && <span style={{
-          position: 'absolute', left: collapsed ? 6 : 0, top: 10, bottom: 10, width: 3,
-          background: t.text, borderRadius: 2,
+        {/* 알약 배경 전용 레이어 (아이콘·라벨 제외). 이름은 여기에만. */}
+        {view === 'settings' && <span aria-hidden style={{
+          position: 'absolute', inset: 0, zIndex: -1, borderRadius: 12,
+          background: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+          viewTransitionName: 'nav-pill',
         }} />}
-        <SideIcon type="gear" stroke={view === 'settings' ? t.text : t.text2} />
-        {!collapsed && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.005em' }}>{tr('nav.settings')}</span>
-            <Mono size={9} color={t.text3} style={{ letterSpacing: '0.14em' }}>SETTINGS</Mono>
-          </div>
-        )}
+        {view === 'settings' && <span aria-hidden style={{
+          position: 'absolute', left: collapsed ? 6 : 0, top: 10, bottom: 10, width: 3,
+          background: t.text, borderRadius: 2, viewTransitionName: 'nav-bar',
+        }} />}
+        {/* 아이콘·라벨은 자체 그룹. 알약보다 나중에 그려져 전환 중에도 알약 위에 남는다. */}
+        <span style={{
+          display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 12,
+          viewTransitionName: 'rail-settings',
+        }}>
+          <SideIcon type="gear" stroke={view === 'settings' ? t.text : t.text2} />
+          {!collapsed && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.005em' }}>{tr('nav.settings')}</span>
+              <Mono size={9} color={t.text3} style={{ letterSpacing: '0.14em' }}>SETTINGS</Mono>
+            </div>
+          )}
+        </span>
       </button>
 
       {!collapsed ? (
@@ -260,8 +267,8 @@ function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
           borderRadius: 12, border: `1px solid ${t.line}`,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22D77E', boxShadow: '0 0 8px #22D77E' }} />
-            <Mono size={9} color={t.text3} style={{ letterSpacing: '0.14em' }}>LIVE TIMING · {fmt.zoneLabel}</Mono>
+            <span aria-hidden="true" style={{ width: 5, height: 5, flex: 'none', background: t.text2 }} />
+            <Mono size={9} color={t.text3} style={{ letterSpacing: '0.14em' }}>{tr('brand.localTime')} · {fmt.zoneLabel}</Mono>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
             {['dark', 'light'].map(m => (

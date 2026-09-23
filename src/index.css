@@ -43,14 +43,30 @@ button:disabled:active { transform: none; }
 *::-webkit-scrollbar { width: 0; height: 0; display: none; }
 
 /* ---------- 화면 전환 (View Transitions API). 지원 안 하면 이 블록은 그냥 무시된다. ---------- */
-::view-transition-old(root) { animation: vt-out var(--dur-move) var(--ease-out) both; }
-::view-transition-new(root) { animation: vt-in var(--dur-move) var(--ease-out) both; }
+/* 기본 길이·이징. old/new는 UA 기본 크로스페이드(plus-lighter)를 그대로 쓴다 —
+   animation:none으로 끄면 두 스냅샷이 불투명하게 겹쳐 밝아지고 잔상이 남는다.
+   기본값(--dur-move)은 알약과 아이콘·라벨 그룹이 쓴다. 라벨 색 전환이 알약 이동과 같은 길이여야
+   목적지 라벨이 알약 도착에 맞춰 또렷해진다. */
+::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) {
+  animation-duration: var(--dur-move); animation-timing-function: var(--ease-out);
+}
+/* 본문과 고정 크롬은 더 짧게 — 서로 무관한 픽셀이 겹치는 시간을 줄인다. */
+::view-transition-group(root), ::view-transition-old(root), ::view-transition-new(root),
+::view-transition-group(nav-chrome), ::view-transition-old(nav-chrome), ::view-transition-new(nav-chrome) {
+  animation-duration: var(--dur-state);
+}
+/* 본문은 크로스페이드만. transform을 주면 고정된 탭바와 어긋나 화면이 들썩인다. */
+::view-transition-old(root) { animation-name: vt-out; }
+::view-transition-new(root) { animation-name: vt-in; }
 @keyframes vt-out { to { opacity: 0; } }
-@keyframes vt-in { from { opacity: 0; transform: translateY(6px); } }
-/* 고정 크롬(탭바·사이드바)은 별도 그룹이라 root 크로스페이드에 안 섞인다. 활성 알약(nav-pill)은 같은 이름끼리 위치가 보간돼 탭 사이를 미끄러진다. */
-::view-transition-old(nav-chrome), ::view-transition-new(nav-chrome) { animation: none; }
-::view-transition-group(nav-pill) { animation-duration: var(--dur-move); animation-timing-function: var(--ease-out); }
-::view-transition-old(nav-pill), ::view-transition-new(nav-pill) { animation: none; mix-blend-mode: normal; }
+@keyframes vt-in { from { opacity: 0; } }
+/* 알약·좌측 바는 배경 레이어(글자·아이콘 없음)에만 이름이 붙어 위치만 보간된다 (길이는 위 기본값 --dur-move). */
+/* 그룹 쌓임 순서를 못 박는다. 기본(캡처 시 페인트 순서)에 맡기면 알약이 자기보다 앞서 그려진 탭의
+   라벨을 덮어(왼쪽으로 이동할 때) 글자가 사라진다. 본문 < 고정 크롬 < 알약 < 아이콘·라벨. */
+::view-transition-group(*) { z-index: 3; }              /* 아이콘·라벨 그룹(tab-*, rail-*)이 맨 위 */
+::view-transition-group(root) { z-index: 0; }
+::view-transition-group(nav-chrome) { z-index: 1; }
+::view-transition-group(nav-pill), ::view-transition-group(nav-bar) { z-index: 2; }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }
