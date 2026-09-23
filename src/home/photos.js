@@ -18,7 +18,19 @@
  */
 
 var PX_ = 'https://images.pexels.com/photos/';
-function px(id, w) { return PX_ + id + '/pexels-photo-' + id + '.jpeg?auto=compress&cs=tinysrgb&w=' + (w || 1400); }
+/* 용도별 프리셋. 같은 용도는 같은 URL이어야 브라우저 캐시가 걸린다.
+ * 실측 렌더 크기(2026-09):
+ *   데스크탑 히어로 1102x428 · 모바일 히어로 356x450 → 'hero'
+ *   상세 헤더 모바일 390x219(DPR2 = 780x438) · 데스크탑 드로어 559x198 → 'card'
+ * 'card'는 헤더 비율(16:9)로 잘라서 받는다. 안 보이는 픽셀까지 받지 않도록 (원본 비율 800w = 38~90KB → 33~59KB). */
+var SIZES = {
+  hero: 'w=1600',
+  card: 'w=800&h=450&fit=crop',
+};
+function px(id, size) {
+  var q = SIZES[size] || (typeof size === 'number' ? 'w=' + size : 'w=1400');
+  return PX_ + id + '/pexels-photo-' + id + '.jpeg?auto=compress&cs=tinysrgb&' + q;
+}
 
 /* [시리즈, 장소·대회 매칭, [사진 id, 배경위치?]] — 위에서부터 첫 일치를 쓴다. */
 var MAP = [
@@ -144,7 +156,7 @@ function photoOf(e) {
   return [spare[hash(String(e.id || key)) % spare.length]];
 }
 
-function photo(e, w) { return px(photoOf(e)[0], w); }
+function photo(e, size) { return px(photoOf(e)[0], size); }
 function photoPos(e) { return photoOf(e)[1] || 'center 42%'; }
 function photoCredit() { return 'PEXELS'; }
 

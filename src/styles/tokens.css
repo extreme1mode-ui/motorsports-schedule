@@ -10,8 +10,8 @@
   --signal-line:rgba(255,212,0,.28); --signal-wash:rgba(255,212,0,.07);
   --f1:#E10600; --wec:#2E7DFF; --imsa:#14D19B; --wrc:#FF8A00; --gtwc:#A77BFF;
   --scrim:rgba(0,0,0,.6);
-  --heroscrim:linear-gradient(100deg,rgba(14,16,21,.94) 0%,rgba(14,16,21,.70) 48%,rgba(14,16,21,.14) 100%);
-  --heroscrim-m:linear-gradient(180deg,rgba(14,16,21,.14) 0%,rgba(14,16,21,.66) 46%,rgba(14,16,21,.96) 80%);
+  --heroscrim:linear-gradient(100deg,rgba(0,0,0,.72) 0%,rgba(0,0,0,.40) 48%,rgba(0,0,0,.18) 100%);
+  --heroscrim-m:linear-gradient(180deg,rgba(0,0,0,.18) 0%,rgba(0,0,0,.45) 46%,rgba(0,0,0,.80) 80%);
   --mono:"JetBrains Mono",ui-monospace,monospace;
 }
 [data-theme="light"]{
@@ -23,18 +23,14 @@
   --signal-line:rgba(145,108,0,.30); --signal-wash:rgba(255,212,0,.14);
   --f1:#C10500; --wec:#1C5FD1; --imsa:#00926A; --wrc:#C06400; --gtwc:#6F45CC;
   --scrim:rgba(20,22,28,.35);
-  --heroscrim:linear-gradient(100deg,rgba(255,255,255,.95) 0%,rgba(255,255,255,.78) 48%,rgba(255,255,255,.26) 100%);
-  --heroscrim-m:linear-gradient(180deg,rgba(255,255,255,.18) 0%,rgba(255,255,255,.74) 46%,rgba(255,255,255,.98) 80%);
+  /* 사진 위 스크림은 테마와 무관하게 같은 값(:root 정의)을 쓴다 — 라이트에서 흰 그라데이션은 사진을 날린다. */
 }
 
 /* ---------- HERO v2 : 화면에서 가장 큰 것 = 가장 급한 것 ---------- */
-:root,[data-theme="dark"]{
-  --h2scrim:linear-gradient(180deg,rgba(14,16,21,.18) 0%,rgba(14,16,21,.72) 48%,rgba(14,16,21,.97) 92%);
-  --h2scrim-x:linear-gradient(95deg,rgba(14,16,21,.72) 0%,rgba(14,16,21,.30) 46%,rgba(14,16,21,0) 78%);
-}
-[data-theme="light"]{
-  --h2scrim:linear-gradient(180deg,rgba(255,255,255,.18) 0%,rgba(255,255,255,.72) 50%,rgba(255,255,255,.97) 92%);
-  --h2scrim-x:linear-gradient(95deg,rgba(255,255,255,.78) 0%,rgba(255,255,255,.34) 48%,rgba(255,255,255,0) 80%);
+/* 사진 위 스크림은 중립 검정 하나로. 테마별로 나누지 않는다 (사진은 테마와 무관). */
+:root{
+  --h2scrim:linear-gradient(180deg,rgba(0,0,0,.22) 0%,rgba(0,0,0,.22) 30%,rgba(0,0,0,.86) 100%);
+  --h2scrim-x:linear-gradient(95deg,rgba(0,0,0,.45) 0%,rgba(0,0,0,.18) 46%,rgba(0,0,0,0) 78%);
 }
 
 /* ---------- 모션 토큰. 모든 transition/animation은 이 값만 쓴다 (개별 컴포넌트에 숫자 직접 금지). ---------- */

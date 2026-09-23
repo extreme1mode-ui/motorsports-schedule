@@ -1,12 +1,14 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { CATEGORIES, SERIES, getVisibleSessions, getSeriesStats, getRaceStartUtc } from './schedule/index.js';
 import { TOKENS, Mono, SeriesTag, AccessBadge, ExternalIcon, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
 import { useFormat } from './use-format.js';
 import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
-import { SR_ONLY, DETAIL_SCRIM } from './a11y.js';
+import { SR_ONLY, PHOTO_SCRIM } from './a11y.js';
 import { usePop } from './use-motion.js';
 import { photo, photoPos } from './home/photos.js';
+import { useImageLoaded } from './use-motion.js';
+import { prefetchHandlers, useVisiblePrefetch } from './photo-prefetch.js';
 import { useRecommendationShown } from './use-analytics.js';
 
 // 정렬·그룹핑은 시작 시각(UTC)으로. 시간대와 무관하게 항상 옳다.
@@ -92,6 +94,10 @@ function MonthGrid({ month, races, theme, onOpen, now, seasonYear }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
   const year = seasonYear;
+  // 화면에 보이는 앞쪽 3개만 낮은 우선순위로 미리 받아둔다 (전부 받으면 모바일에서 낭비가 크다).
+  const listRef = useRef(null);
+  const monthList = useMemo(() => [...races].sort(byStart), [races]);
+  useVisiblePrefetch(listRef, monthList);
   // 달력 모양은 시간대와 무관한 달력 산술 (UTC로 계산해 로컬 TZ 영향 제거)
   const firstDow = new Date(Date.UTC(year, month, 1)).getUTCDay();
   const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
@@ -127,7 +133,7 @@ function MonthGrid({ month, races, theme, onOpen, now, seasonYear }) {
           const isToday = dateKey === todayStr;
           const isSun = i % 7 === 0; const isSat = i % 7 === 6;
           return (
-            <div key={i} className={dayRaces.length ? 'press-chip' : undefined} onClick={() => dayRaces.length && onOpen(dayRaces[0])} style={{
+            <div key={i} className={dayRaces.length ? 'press-chip' : undefined} {...(dayRaces.length ? prefetchHandlers(dayRaces[0]) : null)} onClick={() => dayRaces.length && onOpen(dayRaces[0])} style={{
               aspectRatio: '1/1.05', borderRadius: 8,
               background: isToday ? t.text : t.surface, border: `1px solid ${t.line}`,
               padding: '5px 5px 4px', display: 'flex', flexDirection: 'column',
@@ -146,16 +152,16 @@ function MonthGrid({ month, races, theme, onOpen, now, seasonYear }) {
         })}
       </div>
 
-      <div style={{ marginTop: 20, display: 'grid', gap: 8 }}>
-        {[...races].sort(byStart).map(r => (
-          <ScheduleRow key={r.id} race={r} theme={theme} onOpen={() => onOpen(r)} />
+      <div ref={listRef} style={{ marginTop: 20, display: 'grid', gap: 8 }}>
+        {monthList.map((r, i) => (
+          <ScheduleRow key={r.id} race={r} idx={i} theme={theme} onOpen={() => onOpen(r)} />
         ))}
       </div>
     </div>
   );
 }
 
-export function ScheduleRow({ race, theme, onOpen }) {
+export function ScheduleRow({ race, idx, theme, onOpen }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
   const L = fmt.race(race);
@@ -163,7 +169,7 @@ export function ScheduleRow({ race, theme, onOpen }) {
   const p = viewerParts(fmt, race);
   const dow = p?.weekdayName || '';
   return (
-    <div className="press-row" role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }} style={{
+    <div className="press-row" role="button" tabIndex={0} data-prefetch-index={idx} {...prefetchHandlers(race)} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }} style={{
       display: 'grid', gridTemplateColumns: '48px 1fr auto', gap: 12, alignItems: 'center',
       padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`,
       borderRadius: 12, cursor: 'pointer', opacity: race.status === 'cancelled' ? 0.55 : 1,
@@ -201,8 +207,10 @@ export function SeriesView({ theme, races, onOpenRace, initialCategory, seasonYe
   useEffect(() => { if (initialCategory) setSel(initialCategory); }, [initialCategory]);
   const s = CATEGORIES[sel];
   const tr = useT();
-  const list = races.filter(r => r.category === sel).sort(byStart);
+  const list = useMemo(() => races.filter(r => r.category === sel).sort(byStart), [races, sel]);
   const stats = getSeriesStats(list);
+  const roundsRef = useRef(null);
+  useVisiblePrefetch(roundsRef, list);
 
   return (
     <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 110 }}>
@@ -240,7 +248,7 @@ export function SeriesView({ theme, races, onOpenRace, initialCategory, seasonYe
         </div>
       </div>
 
-      <div style={{ padding: '0 18px', display: 'grid', gap: 8 }}>
+      <div ref={roundsRef} style={{ padding: '0 18px', display: 'grid', gap: 8 }}>
         {list.map((r, idx) => <RoundRow key={r.id} race={r} idx={idx} theme={theme} onOpen={() => onOpenRace(r)} />)}
       </div>
     </div>
@@ -265,7 +273,7 @@ function RoundRow({ race, idx, theme, onOpen }) {
   const start = getRaceStartUtc(race);
   const p = viewerParts(fmt, race);
   return (
-    <div className="press-row" role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }} style={{
+    <div className="press-row" role="button" tabIndex={0} data-prefetch-index={idx} {...prefetchHandlers(race)} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }} style={{
       display: 'grid', gridTemplateColumns: '36px 1fr auto', gap: 12, alignItems: 'center',
       padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`,
       borderRadius: 12, cursor: 'pointer', opacity: cancelled ? 0.45 : 1,
@@ -331,7 +339,7 @@ export function Favorites({ theme, races, myRaces, favorites, onOpenRace, toggle
         </div>
       ) : (
         <div style={{ padding: '0 18px', display: 'grid', gap: 8 }}>
-          {favList.map(r => <ScheduleRow key={r.id} race={r} theme={theme} onOpen={() => onOpenRace(r)} />)}
+          {favList.map((r, i) => <ScheduleRow key={r.id} race={r} idx={i} theme={theme} onOpen={() => onOpenRace(r)} />)}
         </div>
       )}
     </div>
@@ -349,28 +357,39 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
   const [notify, setNotify] = useState(false);
   const [favPop, onFavPopEnd] = usePop(faved);   // 저장될 때만 되튐
   // 열리면 포커스를 시트 안 첫 요소(뒤로 버튼)로. 닫힌 뒤 원래 요소로 되돌리는 건 App이 한다.
+  const headerPhoto = photo(race, 'card');
+  const headerLoaded = useImageLoaded(headerPhoto);
   const sheetRef = useRef(null);
   useEffect(() => { sheetRef.current?.querySelector('button')?.focus({ preventScroll: true }); }, []);
 
   return (
     <div ref={sheetRef} className={`detail-sheet${closing ? ' closing' : ''}`} onAnimationEnd={closing ? onExitEnd : undefined} style={{ position: 'absolute', inset: 0, background: t.bg, zIndex: 80, overflow: 'auto', paddingBottom: 40 }}>
-      {/* 헤더 배경 = 경기 사진 (홈 .hero2와 같은 층 구성: 사진 → 시리즈 틴트 → 스크림 → 콘텐츠). 높이는 padding이 정한다. */}
-      <div style={{ padding: '60px 18px 22px', background: theme === 'dark' ? s.dark : s.tint, position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
-        <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -3, backgroundImage: `url(${photo(race, 800)})`, backgroundSize: 'cover', backgroundPosition: photoPos(race) }} />
-        <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -2, background: s.accent, opacity: 0.16 }} />
-        <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -1, background: DETAIL_SCRIM[theme] || DETAIL_SCRIM.dark }} />
+      {/* 헤더 배경 = 경기 사진 (사진 → 중립 스크림 → 콘텐츠). 높이는 padding이 정한다.
+          사진이 뜨기 전 바탕은 시리즈 색이 아니라 중립 surface2 — 로딩 순간에 색이 번쩍이지 않게. */}
+      <div style={{ padding: '60px 18px 22px', background: t.surface2, position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
+        {/* 사진은 <img>로 둔다. CSS 배경은 스타일 적용 뒤에야 발견돼 우선순위를 줄 수 없다.
+            로드 전에는 중립 바탕이 보이고, 로드되면 페이드로 올라온다(레이아웃 불변). */}
+        <img
+          src={headerPhoto} alt="" aria-hidden="true" fetchPriority="high" decoding="async"
+          style={{
+            position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: -3,
+            objectFit: 'cover', objectPosition: photoPos(race),
+            opacity: headerLoaded ? 1 : 0, transition: 'opacity var(--dur-move) var(--ease-out)',
+          }}
+        />
+        <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -1, background: PHOTO_SCRIM }} />
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, position: 'relative' }}>
           <button onClick={onClose} aria-label={tr('aria.back')} className="press-icon" style={ICON_HIT}>
-            <span style={{ width: 36, height: 36, borderRadius: 999, background: theme === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)', display: 'grid', placeItems: 'center' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={theme === 'dark' ? '#fff' : '#111'} strokeWidth="2.4" strokeLinecap="round">
+            <span style={{ width: 36, height: 36, borderRadius: 999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round">
                 <path d="M15 18l-6-6 6-6"/>
               </svg>
             </span>
           </button>
           <button onClick={() => toggleFav(race.id)} aria-label={tr('aria.save')} className="press-icon" style={ICON_HIT}>
-            <span className={favPop} onAnimationEnd={onFavPopEnd} style={{ width: 36, height: 36, borderRadius: 999, background: theme === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)', display: 'grid', placeItems: 'center' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill={faved ? s.accent : 'none'} stroke={faved ? s.accent : (theme === 'dark' ? '#fff' : '#111')} strokeWidth="2">
+            <span className={favPop} onAnimationEnd={onFavPopEnd} style={{ width: 36, height: 36, borderRadius: 999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill={faved ? '#fff' : 'none'} stroke="#fff" strokeWidth="2">
                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
               </svg>
             </span>
@@ -380,7 +399,7 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
         <div style={{ position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <SeriesTag series={race.series} theme={theme} />
-            <Mono size={10} color={theme === 'dark' ? 'rgba(255,255,255,0.6)' : s.dark} style={{ letterSpacing: '0.12em' }}>
+            <Mono size={10} color="rgba(255,255,255,0.72)" style={{ letterSpacing: '0.12em' }}>
               {getRoundDescriptor(race)}
             </Mono>
             {race.specialBadge && <EventBadge label={race.specialBadge} tone={race.specialBadgeTone} theme={theme} />}
@@ -390,10 +409,10 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
             {race.status === 'cancelled' && <StatusPill status="cancelled" theme={theme} />}
             {race.status === 'completed' && <StatusPill status="completed" theme={theme} />}
           </div>
-          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1, color: theme === 'dark' ? '#fff' : '#111', marginBottom: 6 }}>
+          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1, color: '#fff', marginBottom: 6 }}>
             {L.name}
           </div>
-          <div style={{ fontSize: 13, color: theme === 'dark' ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.6)' }}>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.80)' }}>
             {L.circuit}{L.city ? ` · ${L.city}` : ''} · {L.country}
           </div>
         </div>

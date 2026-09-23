@@ -12,6 +12,7 @@ import { useT } from '../i18n/index.js';
 import { zonedDateFromKey } from '../schedule/format.js';
 import { scoreRace } from '../schedule/recommendations.js';
 import { track } from '../analytics.js';
+import { prefetchRacePhoto, prefetchHandlers, useVisiblePrefetch } from '../photo-prefetch.js';
 import { usePop, useImageLoaded } from '../use-motion.js';
 import { storage } from '../storage/index.js';
 
@@ -150,10 +151,10 @@ function TimeStat({ ts, dateless }) {
   );
 }
 
-function Card2({ ev, ts, onOpen, small }) {
+function Card2({ ev, ts, onOpen, small, idx }) {
   const fmt = useFormat();
   return (
-    <button type="button" className="card2" style={small ? undefined : { marginTop: 0 }} onClick={() => onOpen(ev.race)}>
+    <button type="button" className="card2" data-prefetch-index={idx} {...prefetchHandlers(ev.race)} style={small ? undefined : { marginTop: 0 }} onClick={() => onOpen(ev.race)}>
       <span className="ind" style={{ background: `var(${SERIES_VAR[ev.series]})` }} />
       <span style={{ minWidth: 0 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><SeriesBadge series={ev.series} /><span className="rnd">{roundText(ev)}</span></span>
@@ -174,11 +175,11 @@ function Card2({ ev, ts, onOpen, small }) {
   );
 }
 
-function Row({ ev, ts, dim, onOpen }) {
+function Row({ ev, ts, dim, idx, onOpen }) {
   const fmt = useFormat();
   const d = dateOf(ev);
   return (
-    <button type="button" className={`rowitem${dim ? ' dim' : ''}`} onClick={() => onOpen(ev.race)}>
+    <button type="button" className={`rowitem${dim ? ' dim' : ''}`} data-prefetch-index={idx} {...prefetchHandlers(ev.race)} onClick={() => onOpen(ev.race)}>
       <span className="dt">{md(fmt, d)} <em>{dowInList(fmt, d)}</em></span>
       <span className="ind" style={{ background: `var(${SERIES_VAR[ev.series]})` }} />
       <span className="nm ko">{ev.displayName}</span>
@@ -253,6 +254,15 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
 
   const watching = ORDER.filter((s) => modeOf(preferences, s) !== 'off').length;
 
+  // 히어로를 눌러 상세로 갈 때 바로 뜨도록, 상세 헤더가 쓰는 'card' 사진을 미리 받아둔다.
+  // (히어로는 세로로 큰 박스라 'hero'를 쓰고 상세는 헤더 비율이라 URL이 다르다 — 그래서 따로 한 장.)
+  const heroRaceId = hero?.id ?? null;
+  useEffect(() => { if (hero?.race) prefetchRacePhoto(hero.race, { priority: 'low' }); }, [heroRaceId]); // eslint-disable-line react-hooks/exhaustive-deps
+  // '이후 일정' 목록도 화면에 보이는 앞쪽 3개만.
+  const rowsRef = useRef(null);
+  const laterRaces = useMemo(() => later.map((ev) => ev.race), [later]);
+  useVisiblePrefetch(rowsRef, laterRaces);
+
   // 계측: 발견 카드 노출은 카드가 바뀔 때만 1회. 클릭은 열기 콜백에서.
   const discId = disc?.id ?? null;
   const shownRef = useRef(null);
@@ -290,8 +300,7 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
         const alertOn = alerts.has(hero.id);
         return (
           <section className="hero2">
-            <HeroPhoto url={photo(hero, 1600)} pos={photoPos(hero)} />
-            <div className="hero2-tint" style={{ background: `var(${SERIES_VAR[hero.series]})` }} />
+            <HeroPhoto url={photo(hero, 'hero')} pos={photoPos(hero)} />
             <span className="hero2-credit">PHOTO · {photoCredit(hero)}</span>
             <div className="hero2-wrap">
               <div className="hero2-left">
@@ -335,15 +344,15 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
       {mates.length > 0 && (
         <>
           <div className="sechead"><h2 className="ko">{t('home.sameWeekend')}</h2><span className="meta">{t('home.raceCount', { n: mates.length })}</span></div>
-          {mates.map((ev) => <Card2 key={ev.id} ev={ev} ts={ts(ev)} onOpen={onOpenRace} />)}
+          {mates.map((ev, i) => <Card2 key={ev.id} ev={ev} idx={i} ts={ts(ev)} onOpen={onOpenRace} />)}
         </>
       )}
 
       {later.length > 0 && (
         <>
           <div className="sechead"><h2 className="ko">{t('home.upNext')}</h2><button type="button" className="lnk" onClick={() => onGo('schedule')}>{t('schedule.viewAll')}</button></div>
-          <div className="rows">
-            {later.map((ev) => <Row key={ev.id} ev={ev} ts={ts(ev)} dim={interest(ev) === 0} onOpen={onOpenRace} />)}
+          <div className="rows" ref={rowsRef}>
+            {later.map((ev, i) => <Row key={ev.id} ev={ev} idx={i} ts={ts(ev)} dim={interest(ev) === 0} onOpen={onOpenRace} />)}
           </div>
         </>
       )}

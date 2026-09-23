@@ -3,7 +3,6 @@ export const SR_ONLY = { position: 'absolute', width: 1, height: 1, padding: 0, 
 
 // 상세 헤더 사진 위 스크림. 홈 히어로(452px)보다 낮은 헤더라 위쪽은 옅게, 글자가 놓이는 아래쪽만 짙게.
 // 다크: 흰 글자 → 어두운 스크림. 라이트: #111 글자 → 밝은 스크림(사진이 하얗게 날아가지 않게 상단은 옅게).
-export const DETAIL_SCRIM = {
-  dark: 'linear-gradient(180deg, rgba(7,8,11,0.20) 0%, rgba(7,8,11,0.50) 48%, rgba(7,8,11,0.82) 100%)',
-  light: 'linear-gradient(180deg, rgba(242,243,245,0.30) 0%, rgba(242,243,245,0.62) 48%, rgba(242,243,245,0.88) 100%)',
-};
+// 사진은 테마를 따르지 않는다 — 다크·라이트 같은 값을 쓴다. 색을 입히지 않고 중립 검정으로만 어둡게.
+// 전체 은은한 어둡기 + 글자가 놓이는 아래쪽 추가. (대비 실측에 맞춰 조정한 값)
+export const PHOTO_SCRIM = 'linear-gradient(180deg, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0.22) 30%, rgba(0,0,0,0.85) 100%)';

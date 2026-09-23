@@ -6,6 +6,8 @@
     <!-- 폰트: Pretendard 공식 dynamic subset(가변 1벌, unicode-range로 분할 → 화면에 쓰인 글리프 범위만 받음). 스크립트가 아닌 정적 자산. -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- 사진 호스트. 상세를 처음 열 때 DNS→TCP→TLS를 그 자리에서 하지 않도록 미리 연결해 둔다. -->
+    <link rel="preconnect" href="https://images.pexels.com" crossorigin />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css" />
     <!-- 제목·lang은 언어 중립 기본값. 앱이 뜨면 사용자 locale에 맞춰 App.jsx(Root)에서 바꾼다. -->
     <title>Paddock — Motorsport Schedule</title>

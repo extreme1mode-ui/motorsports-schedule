@@ -1,12 +1,14 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { TOKENS, Mono, SeriesTag, AccessBadge, ExternalIcon, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
 import { CATEGORIES, SERIES, getVisibleSessions, getSeriesStats, getRaceStartUtc } from './schedule/index.js';
 import { useFormat } from './use-format.js';
 import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
-import { SR_ONLY, DETAIL_SCRIM } from './a11y.js';
+import { SR_ONLY, PHOTO_SCRIM } from './a11y.js';
 import { usePop } from './use-motion.js';
 import { photo, photoPos } from './home/photos.js';
+import { useImageLoaded } from './use-motion.js';
+import { prefetchHandlers, useVisiblePrefetch } from './photo-prefetch.js';
 import { useRecommendationShown } from './use-analytics.js';
 
 // 정렬·그룹핑은 시작 시각(UTC)으로. 시청자 달력 파트는 사용자 시간대로.
@@ -27,7 +29,10 @@ export function WebSchedule({ theme, races, onOpenRace, now, tier, seasonYear })
   const filtered = filterCategory === 'ALL' ? races : races.filter(r => r.category === filterCategory);
   const monthOf = (r) => Number(viewerParts(fmt, r)?.month || 1) - 1;
   const monthRaces = filtered.filter(r => monthOf(r) === month);
-  const sortedMonth = [...monthRaces].sort(byStart);
+  const sortedMonth = useMemo(() => [...monthRaces].sort(byStart), [monthRaces]);
+  // 화면에 보이는 앞쪽 3개만 낮은 우선순위로 미리 받아둔다.
+  const monthListRef = useRef(null);
+  useVisiblePrefetch(monthListRef, sortedMonth);
 
   const monthCounts = Array.from({ length: 12 }, (_, m) =>
     filtered.filter(r => monthOf(r) === m).length
@@ -73,14 +78,14 @@ export function WebSchedule({ theme, races, onOpenRace, now, tier, seasonYear })
 
         <div>
           <SectionTitle theme={theme} kicker={`${fmt.monthNames[month].toUpperCase()} ROUNDS`} title={tr('schedule.roundsTitle')} />
-          <div style={{ display: 'grid', gap: 8 }}>
+          <div ref={monthListRef} style={{ display: 'grid', gap: 8 }}>
             {sortedMonth.length === 0 && (
               <div style={{
                 padding: 24, borderRadius: 12, border: `1px dashed ${t.line2}`,
                 color: t.text3, fontSize: 13, textAlign: 'center',
               }}>{tr('schedule.emptyMonth')}</div>
             )}
-            {sortedMonth.map(r => <WebScheduleRow key={r.id} race={r} theme={theme} onOpen={() => onOpenRace(r)} />)}
+            {sortedMonth.map((r, i) => <WebScheduleRow key={r.id} race={r} idx={i} theme={theme} onOpen={() => onOpenRace(r)} />)}
           </div>
         </div>
       </div>
@@ -132,7 +137,7 @@ function BigMonthGrid({ theme, month, races, onOpen, now, seasonYear }) {
           const isToday = dateKey === todayStr;
           const isSun = i % 7 === 0; const isSat = i % 7 === 6;
           return (
-            <div key={i} className={dayRaces.length ? 'press-chip' : undefined} onClick={() => dayRaces[0] && onOpen(dayRaces[0])} style={{
+            <div key={i} className={dayRaces.length ? 'press-chip' : undefined} {...(dayRaces.length ? prefetchHandlers(dayRaces[0]) : null)} onClick={() => dayRaces[0] && onOpen(dayRaces[0])} style={{
               minHeight: 96, minWidth: 0, borderRadius: 10, padding: 8,
               background: isToday ? (theme === 'dark' ? '#fff' : '#111') : 'transparent',
               border: `1px solid ${isToday ? 'transparent' : t.line}`,
@@ -170,7 +175,7 @@ function BigMonthGrid({ theme, month, races, onOpen, now, seasonYear }) {
   );
 }
 
-function WebScheduleRow({ race, theme, onOpen }) {
+function WebScheduleRow({ race, idx, theme, onOpen }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
   const L = fmt.race(race);
@@ -179,7 +184,7 @@ function WebScheduleRow({ race, theme, onOpen }) {
   const p = viewerParts(fmt, race);
   const dow = p?.weekdayName || '';
   return (
-    <div className="press-row" role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }} style={{
+    <div className="press-row" role="button" tabIndex={0} data-prefetch-index={idx} {...prefetchHandlers(race)} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }} style={{
       display: 'grid', gridTemplateColumns: '52px 1fr auto', gap: 14, alignItems: 'center',
       padding: '14px 16px', background: t.surface, border: `1px solid ${t.line}`,
       borderRadius: 12, cursor: 'pointer', opacity: race.status === 'cancelled' ? 0.5 : 1,
@@ -250,7 +255,9 @@ export function WebSeries({ theme, races, onOpenRace, initialCategory, tier, sea
   useEffect(() => { if (initialCategory) setSel(initialCategory); }, [initialCategory]);
   const s = CATEGORIES[sel];
   const tr = useT();
-  const list = races.filter(r => r.category === sel).sort(byStart);
+  const list = useMemo(() => races.filter(r => r.category === sel).sort(byStart), [races, sel]);
+  const roundsRef = useRef(null);
+  useVisiblePrefetch(roundsRef, list);
   const { rounds: roundCount, done, cancelled, upcoming } = getSeriesStats(list);
 
   return (
@@ -313,7 +320,7 @@ export function WebSeries({ theme, races, onOpenRace, initialCategory, tier, sea
         display: 'grid',
         gridTemplateColumns: tier === 'tablet' ? '1fr' : '1fr 1fr',
         gap: 10,
-      }}>
+      }} ref={roundsRef}>
         {list.map((r, idx) => <WebRoundRow key={r.id} race={r} idx={idx} theme={theme}
           onOpen={() => onOpenRace(r)} total={list.length} />)}
       </div>
@@ -343,7 +350,7 @@ function WebRoundRow({ race, idx, theme, onOpen }) {
   const p = viewerParts(fmt, race);
 
   return (
-    <div className="press-row" role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }} style={{
+    <div className="press-row" role="button" tabIndex={0} data-prefetch-index={idx} {...prefetchHandlers(race)} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }} style={{
       display: 'grid', gridTemplateColumns: '54px 1fr auto', gap: 14, alignItems: 'center',
       padding: '14px 16px', background: t.surface, border: `1px solid ${t.line}`,
       borderRadius: 12, cursor: 'pointer', opacity: cancelled ? 0.45 : 1,
@@ -397,7 +404,9 @@ function WebRoundRow({ race, idx, theme, onOpen }) {
 export function WebFavorites({ theme, races, myRaces, favorites, onOpenRace, toggleFav, tier }) {
   const t = TOKENS[theme];
   const tr = useT();
-  const favList = races.filter(r => favorites.has(r.id)).sort(byStart);
+  const favList = useMemo(() => races.filter(r => favorites.has(r.id)).sort(byStart), [races, favorites]);
+  const favRef = useRef(null);
+  useVisiblePrefetch(favRef, favList);
   // 빈 상태 추천: 다가오는 관심 경기 3개 (프로토타입 저장 화면과 같은 규칙)
   const recs = (Array.isArray(myRaces) ? myRaces : races).filter(r => r.status === 'upcoming' || r.status === 'live').slice(0, 3);
   useRecommendationShown(favList.length === 0 ? recs : []);
@@ -437,8 +446,8 @@ export function WebFavorites({ theme, races, myRaces, favorites, onOpenRace, tog
           )}
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 12 }}>
-          {favList.map(r => <FavCard key={r.id} race={r} theme={theme}
+        <div ref={favRef} style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 12 }}>
+          {favList.map((r, i) => <FavCard key={r.id} race={r} idx={i} theme={theme}
             onOpen={() => onOpenRace(r)} toggleFav={toggleFav} />)}
         </div>
       )}
@@ -473,7 +482,7 @@ function WebRecommendRow({ race, theme, onOpen, onSave }) {
   );
 }
 
-function FavCard({ race, theme, onOpen, toggleFav }) {
+function FavCard({ race, idx, theme, onOpen, toggleFav }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
   const L = fmt.race(race);
@@ -483,7 +492,7 @@ function FavCard({ race, theme, onOpen, toggleFav }) {
   const cancelled = race.status === 'cancelled';
 
   return (
-    <div className="press-row" role="button" tabIndex={0} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }} style={{
+    <div className="press-row" role="button" tabIndex={0} data-prefetch-index={idx} {...prefetchHandlers(race)} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }} style={{
       padding: 18, borderRadius: 14, cursor: 'pointer',
       background: t.surface, border: `1px solid ${t.line}`,
       position: 'relative', overflow: 'hidden', opacity: cancelled ? 0.5 : 1,
@@ -540,6 +549,8 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
   const [notify, setNotify] = useState(false);
   const width = tier === 'ultra' ? 560 : tier === 'desktop' ? 480 : 440;
   // 열리면 포커스를 드로어 안 첫 요소(닫기 버튼)로. 닫힌 뒤 원래 요소로 되돌리는 건 WebApp이 한다.
+  const headerPhoto = photo(race, 'card');
+  const headerLoaded = useImageLoaded(headerPhoto);
   const panelRef = useRef(null);
   useEffect(() => { panelRef.current?.querySelector('button')?.focus({ preventScroll: true }); }, []);
 
@@ -560,21 +571,30 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
         background: t.bg, overflow: 'auto', boxShadow: '-20px 0 60px rgba(0,0,0,0.5)',
         borderLeft: `1px solid ${t.line}`,
       }}>
-        {/* 헤더 배경 = 경기 사진 (홈 .hero2와 같은 층 구성: 사진 → 시리즈 틴트 → 스크림 → 콘텐츠). 높이는 padding이 정한다. */}
+        {/* 헤더 배경 = 경기 사진 (사진 → 중립 스크림 → 콘텐츠). 높이는 padding이 정한다.
+            사진이 뜨기 전 바탕은 시리즈 색이 아니라 중립 surface2 — 로딩 순간에 색이 번쩍이지 않게. */}
         <div style={{
           padding: '24px 28px 28px',
-          background: theme === 'dark' ? s.dark : s.tint,
+          background: t.surface2,
           position: 'relative', overflow: 'hidden', isolation: 'isolate',
         }}>
-          <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -3, backgroundImage: `url(${photo(race, 1200)})`, backgroundSize: 'cover', backgroundPosition: photoPos(race) }} />
-          <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -2, background: s.accent, opacity: 0.16 }} />
-          <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -1, background: DETAIL_SCRIM[theme] || DETAIL_SCRIM.dark }} />
+        {/* 사진은 <img>로 둔다. CSS 배경은 스타일 적용 뒤에야 발견돼 우선순위를 줄 수 없다.
+              로드 전에는 중립 바탕이 보이고, 로드되면 페이드로 올라온다(레이아웃 불변). */}
+          <img
+            src={headerPhoto} alt="" aria-hidden="true" fetchPriority="high" decoding="async"
+            style={{
+              position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: -3,
+              objectFit: 'cover', objectPosition: photoPos(race),
+              opacity: headerLoaded ? 1 : 0, transition: 'opacity var(--dur-move) var(--ease-out)',
+            }}
+          />
+          <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -1, background: PHOTO_SCRIM }} />
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, position: 'relative' }}>
             <button onClick={onClose} className="press-icon" style={{
               width: 36, height: 36, borderRadius: 10, border: 0, cursor: 'pointer',
-              background: theme === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)',
-              color: theme === 'dark' ? '#fff' : '#111', display: 'grid', placeItems: 'center',
+              background: 'rgba(0,0,0,0.4)',
+              color: '#fff', display: 'grid', placeItems: 'center',
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
                 <path d="M18 6L6 18M6 6l12 12"/>
@@ -582,8 +602,8 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
             </button>
             <button onClick={() => toggleFav(race.id)} className="press-icon" style={{
               width: 36, height: 36, borderRadius: 10, border: 0, cursor: 'pointer',
-              background: theme === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)',
-              color: faved ? s.accent : (theme === 'dark' ? '#fff' : '#111'),
+              background: 'rgba(0,0,0,0.4)',
+              color: '#fff',
               display: 'grid', placeItems: 'center',
             }}>
               <svg className={favPop.trim() || undefined} onAnimationEnd={onFavPopEnd} width="14" height="14" viewBox="0 0 24 24" fill={faved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
@@ -595,7 +615,7 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
           <div style={{ position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
               <SeriesTag series={race.series} theme={theme} />
-              <Mono size={11} color={theme === 'dark' ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.55)'} style={{ letterSpacing: '0.14em' }}>
+              <Mono size={11} color="rgba(255,255,255,0.72)" style={{ letterSpacing: '0.14em' }}>
                 {getRoundDescriptor(race)}
               </Mono>
               {race.specialBadge && <EventBadge label={race.specialBadge} tone={race.specialBadgeTone} theme={theme} />}
@@ -613,9 +633,9 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
             </div>
             <div style={{
               fontSize: 32, fontWeight: 800, letterSpacing: '-0.025em', lineHeight: 1.05,
-              color: theme === 'dark' ? '#fff' : '#111', marginBottom: 6,
+              color: '#fff', marginBottom: 6,
             }}>{L.name}</div>
-            <div style={{ fontSize: 13, color: theme === 'dark' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)' }}>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.80)' }}>
               {L.circuit}{L.city ? ` · ${L.city}` : ''} · {L.country}
             </div>
           </div>
