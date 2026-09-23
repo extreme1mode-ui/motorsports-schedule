@@ -2,6 +2,7 @@
 // 규칙·판정은 design/HOME-SPEC.md, 픽셀·여백·타이포·색은 design/paddock-home.html을 따른다.
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './home.css';
+import { LightRow } from '../Brand.jsx';
 import { adaptRaces } from './adapt.js';
 import { resolveTimeState, formatCountdown } from './time.js';
 import { getRaceWeekKey, groupRacesByWeekend } from './weeks.js';
@@ -47,16 +48,17 @@ const dow = (fmt, date) => fmt.parts(date)?.weekdayName || '';
 const dowInList = (fmt, date) => { const w = dow(fmt, date); return fmt.locale === 'ko' ? w : `(${w})`; };
 
 function heroReason(ev, ts, kind, now, fmt, t) {
-  if (kind === 'live') return { text: t('home.reason.live'), urgent: true };
+  // 라이트 로우: 갠트리 신호등처럼 레이스가 가까워질수록 하나씩 켜진다. 진행 중이면 전부 꺼진다(= lights out).
+  if (kind === 'live') return { text: t('home.reason.live'), urgent: true, lit: 0 };
   if (kind === 'soon') {
     const ms = ts.start - now; const h = Math.floor(ms / 3600000); const m = Math.max(1, Math.round((ms % 3600000) / 60000));
-    return { text: `${fmt.isNight(ts.start) ? t('home.tonight') : t('home.today')} · ${h >= 1 ? t('home.startsInHours', { h }) : t('home.startsInMinutes', { m })}`, urgent: true };
+    return { text: `${fmt.isNight(ts.start) ? t('home.tonight') : t('home.today')} · ${h >= 1 ? t('home.startsInHours', { h }) : t('home.startsInMinutes', { m })}`, urgent: true, lit: 5 };
   }
-  if (kind === 'today') return { text: t('home.reason.today'), urgent: false };
+  if (kind === 'today') return { text: t('home.reason.today'), urgent: false, lit: 5 };
   // D-day: 시작 시각이 있으면 시청자 시간대의 날짜 차이, 없으면 서킷 현지 주말 마지막 날 기준
   const ref = ts.start || zonedDateFromKey(ev.weekendEnd, '12:00', ev.timezone || 'UTC');
   const d = Math.max(0, fmt.dayDiff(ref, now) ?? 0);
-  return { text: t('home.reason.weekend', { d }), urgent: false };
+  return { text: t('home.reason.weekend', { d }), urgent: false, lit: Math.max(0, Math.min(5, 5 - d)) };
 }
 
 function heroClock(ev, ts, kind, fmt, t) {
@@ -321,7 +323,7 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
             <span className="hero2-credit">PHOTO · {photoCredit(hero)}</span>
             <div className="hero2-wrap">
               <div className="hero2-left">
-                <span className={`hero2-reason${reason.urgent ? '' : ' calm'}`}>{reason.urgent && <i />}{reason.text}</span>
+                <span className={`hero2-reason${reason.urgent ? '' : ' calm'}`}><LightRow lit={reason.lit} tone={reason.urgent ? 'signal' : 'default'} size={5} gap={3} />{reason.text}</span>
                 <div className="hero2-meta">
                   <SeriesBadge series={hero.series} /><span className="rnd">{roundText(hero)}</span>
                   {hero.isSprint && <span className="tagpill">{t('home.sprintWeekend')}</span>}
