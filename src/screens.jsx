@@ -273,7 +273,7 @@ function RoundRow({ race, idx, theme, onOpen }) {
       <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <Mono size={9} color={t.text3} style={{ letterSpacing: '0.08em' }}>RND</Mono>
         <Mono size={16} weight={700} color={done ? t.text3 : t.text} style={{ lineHeight: 1, marginTop: 2, textDecoration: cancelled ? 'line-through' : 'none' }}>
-          {race.roundLabel || String(race.round || race.plannedRound || (idx+1)).padStart(2,'0')}
+          {getRoundDisplay(race, idx + 1)}
         </Mono>
       </div>
       <div style={{ minWidth: 0 }}>

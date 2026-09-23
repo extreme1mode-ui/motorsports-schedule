@@ -360,7 +360,7 @@ function WebRoundRow({ race, idx, theme, onOpen }) {
         <Mono size={18} weight={700} color={done ? t.text3 : t.text} style={{
           lineHeight: 1, marginTop: 4, textDecoration: cancelled ? 'line-through' : 'none',
         }}>
-          {race.roundLabel || String(race.round || race.plannedRound || (idx + 1)).padStart(2, '0')}
+          {getRoundDisplay(race, idx + 1)}
         </Mono>
       </div>
       <div style={{ minWidth: 0 }}>
