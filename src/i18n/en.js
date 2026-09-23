@@ -137,8 +137,8 @@ export default {
   'settings.onboarding.sub': 'Go through setup again. Finishing overwrites your current settings.',
   'settings.onboarding.cta': 'Redo onboarding',
 
-  'rec.prestige3': 'A crown-jewel event',
-  'rec.prestige2': 'A major event of the season',
+  'rec.weight3': 'A once-a-year event',
+  'rec.weight2': 'A format you won’t see elsewhere',
   'rec.withinTwoWeeks': 'Within two weeks',
   'rec.offSeries': 'A series you’re not following yet',
 };

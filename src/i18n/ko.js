@@ -146,8 +146,8 @@ export default {
   'settings.onboarding.cta': '온보딩 다시 보기',
 
   // 추천 이유
-  'rec.prestige3': '모터스포츠 최고 권위 대회',
-  'rec.prestige2': '시즌 주요 대회',
+  'rec.weight3': '1년에 한 번뿐인 경기',
+  'rec.weight2': '포맷이 특별한 경기',
   'rec.withinTwoWeeks': '2주 안에 열려요',
   'rec.offSeries': '아직 보지 않는 시리즈예요',
 };

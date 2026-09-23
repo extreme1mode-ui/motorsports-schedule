@@ -1,13 +1,14 @@
 // 관심 시리즈 밖에서 "한번 볼 만한" 경기를 고른다. 절대 임계값은 두지 않는다 — 남은 경기를 점수로 정렬해 상위 limit개.
-import { getPrestige, getHighlights } from './highlights.js';
+import { getRaceWeight, getHighlights, getHighlightNote } from './highlights.js';
 import { getPrimarySession } from './utils.js';
 import { t } from '../i18n/t.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+// 하이라이트가 붙은 평범한 경기(35+5=40)가 하이라이트 없는 3등급(25)을 이긴다. 이 순서를 깨지 말 것.
 const SCORE = {
-  prestige: { 3: 30, 2: 20, 1: 10 },
-  highlight: 25,
+  highlight: 35,
+  weight: { 3: 25, 2: 15, 1: 5 },
   withinTwoWeeks: 15,
   withinFourWeeks: 8,
   offSeries: 20,
@@ -15,8 +16,8 @@ const SCORE = {
 
 // reasons 문구는 i18n 키 (rec.*). locale은 getRecommendations의 5번째 인자.
 const REASON = {
-  prestige3: 'rec.prestige3',
-  prestige2: 'rec.prestige2',
+  weight3: 'rec.weight3',
+  weight2: 'rec.weight2',
   withinTwoWeeks: 'rec.withinTwoWeeks',
   offSeries: 'rec.offSeries',
 };
@@ -39,12 +40,12 @@ export function scoreRace(race, preferences, now = new Date(), locale = 'ko') {
   const kinds = [];   // 계측용 이유 종류(열거형). reasons(표시 문구)와 같은 순서.
 
   const highlights = getHighlights(race);
-  if (highlights.length) { score += SCORE.highlight; reasons.push(highlights[0].note); kinds.push('highlight'); }   // 가장 구체적인 이유를 항상 앞에
+  if (highlights.length) { score += SCORE.highlight; reasons.push(getHighlightNote(highlights[0], locale)); kinds.push('highlight'); }   // 가장 구체적인 이유를 항상 앞에
 
-  const prestige = getPrestige(race);
-  score += SCORE.prestige[prestige] ?? SCORE.prestige[1];
-  if (prestige === 3) { reasons.push(t(locale, REASON.prestige3)); kinds.push('prestige3'); }
-  else if (prestige === 2) { reasons.push(t(locale, REASON.prestige2)); kinds.push('prestige2'); }
+  const weight = getRaceWeight(race);
+  score += SCORE.weight[weight] ?? SCORE.weight[1];
+  if (weight === 3) { reasons.push(t(locale, REASON.weight3)); kinds.push('weight3'); }
+  else if (weight === 2) { reasons.push(t(locale, REASON.weight2)); kinds.push('weight2'); }
 
   if (days !== null && days <= 14) { score += SCORE.withinTwoWeeks; reasons.push(t(locale, REASON.withinTwoWeeks)); kinds.push('withinTwoWeeks'); }
   else if (days !== null && days <= 28) { score += SCORE.withinFourWeeks; }
