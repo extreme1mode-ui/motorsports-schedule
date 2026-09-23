@@ -1,0 +1,200 @@
+/* ==========================================================================
+   GANTRY brand tokens · v1.1 · 2026-09-23
+   --------------------------------------------------------------------------
+   1) Primitives  --gt-*        브랜드 원색 · 타입 스케일 · 모양 · 모션
+   2) Semantic    --bg, --text…  제품(src/styles/tokens.css)이 이미 쓰는 이름과 "같은 값".
+                                  불러와도 화면은 바뀌지 않는다(--mono 포함).
+   3) Components  .gt-*          로고, 라이트 로우, 시리즈 태그, D-day 칩, 빔, 시간 표기.
+   글꼴 원칙: 로고·아이콘만 전용 아웃라인, 그 밖의 모든 글자는 Pretendard.
+              숫자는 tnum, 영문 대문자 라벨은 case.
+   ========================================================================== */
+
+:root {
+  /* ---- Neutrals · dark ---- */
+  --gt-night:     #07080B;  /* 기본 배경 */
+  --gt-carbon:    #0E1015;  /* 표면 */
+  --gt-graphite:  #14171E;  /* 표면 2 */
+  --gt-titanium:  #1C2029;  /* 표면 3 */
+  --gt-chalk:     #F4F5F7;  /* 본문 */
+  --gt-mark:      #F2F4F7;  /* 로고 (어두운 바탕) */
+  --gt-steel:     #A5A9B4;  /* 보조 텍스트 */
+  --gt-smoke:     #7C818E;  /* 라벨 · 캡션 (Night 위 5.1:1) */
+
+  /* ---- Neutrals · light ---- */
+  --gt-paper:     #F2F3F5;
+  --gt-white:     #FFFFFF;
+  --gt-mist:      #F7F8FA;
+  --gt-fog:       #EBEDF1;
+  --gt-ink:       #14161C;  /* 본문 · 로고 (밝은 바탕) */
+  --gt-slate:     #565B67;
+  --gt-ash:       #6A6E78;  /* Paper 위 4.6:1 */
+
+  /* ---- Signal · '지금'일 때만 ---- */
+  --gt-signal:      #FFD400;  /* 채움 · 불빛 (텍스트로 쓰려면 어두운 바탕에서만) */
+  --gt-signal-ink:  #8C6800;  /* 밝은 바탕 위 텍스트 (Paper 위 4.6:1) */
+
+  /* ---- Series · 식별 전용 (막대·점·칩). 작은 글자색으로 쓰지 않는다 ---- */
+  --gt-f1:   #E10600;  --gt-f1-ink:   #C10500;
+  --gt-wec:  #2E7DFF;  --gt-wec-ink:  #1C5FD1;
+  --gt-imsa: #14D19B;  --gt-imsa-ink: #00926A;
+  --gt-wrc:  #FF8A00;  --gt-wrc-ink:  #C06400;
+  --gt-gtwc: #A77BFF;  --gt-gtwc-ink: #6F45CC;
+
+  /* ---- Type · Pretendard 한 가족 (400 · 500 · 600 · 700 · 800) ---- */
+  --gt-font-ui:   "Pretendard Variable", "Pretendard", -apple-system, "Apple SD Gothic Neo", system-ui, sans-serif;
+  --gt-font-data: var(--gt-font-ui);          /* 시각·날짜·라운드도 Pretendard */
+  --gt-data-features: "tnum", "case";          /* 고정폭 숫자 + 콜론·하이픈 높이 */
+  --gt-label-features: "case", "tnum";
+  /* 스케일: 크기/행간 · 굵기 · 자간  (크기가 커질수록 자간을 조인다) */
+  --gt-display-xl: 96px/1.0; --gt-display-xl-w: 800; --gt-display-xl-ls: -0.045em;
+  --gt-display: 72px/1.04; --gt-display-w: 800; --gt-display-ls: -0.04em;
+  --gt-title-l: 48px/1.15; --gt-title-l-w: 700; --gt-title-l-ls: -0.03em;
+  --gt-title-m: 32px/1.25; --gt-title-m-w: 700; --gt-title-m-ls: -0.025em;
+  --gt-title-s: 22px/1.35; --gt-title-s-w: 700; --gt-title-s-ls: -0.02em;
+  --gt-body-l: 19px/1.6; --gt-body-l-w: 400; --gt-body-l-ls: -0.01em;
+  --gt-body: 16px/1.6; --gt-body-w: 400; --gt-body-ls: -0.005em;
+  --gt-body-s: 14px/1.55; --gt-body-s-w: 400; --gt-body-s-ls: 0.0em;
+  --gt-label: 12px/1.2; --gt-label-w: 600; --gt-label-ls: 0.08em;
+  --gt-label-s: 11px/1.2; --gt-label-s-w: 600; --gt-label-s-ls: 0.1em;
+  /* 데이터(숫자) 스케일 */
+  --gt-data-xl: 112px; --gt-data-xl-w: 700; --gt-data-xl-ls: -0.03em;
+  --gt-data-l: 40px; --gt-data-l-w: 700; --gt-data-l-ls: -0.02em;
+  --gt-data-m: 17px; --gt-data-m-w: 700; --gt-data-m-ls: -0.01em;
+  --gt-data-s: 13px; --gt-data-s-w: 600; --gt-data-s-ls: 0.0em;
+
+  /* ---- Shape ---- */
+  --gt-radius-xs: 4px;    /* 배지 */
+  --gt-radius-sm: 10px;   /* 시계 칩 */
+  --gt-radius-md: 12px;   /* 버튼 */
+  --gt-radius-lg: 14px;   /* 카드 */
+  --gt-radius-pill: 999px;
+
+  /* ---- Details ---- */
+  --gt-lights-ratio: 0.43;      /* 라이트 로우 간격 = 지름 × 0.43 (심볼 1.2u ÷ 2.8u) */
+  --gt-lights-off: 0.22;        /* 꺼진 불 불투명도 */
+  --gt-dotgrid-pitch: 12px;     /* 패턴 간격 · 점 반지름 = 간격 × 0.175 */
+
+  /* ---- Logo geometry (u = 심볼 높이 / 10) ---- */
+  --gt-logo-gap: 0.6;        /* 심볼–워드마크 간격 = 6u */
+  --gt-logo-clear: 0.3;      /* 사방 여백 = 3u */
+  --gt-logo-min-px: 12px;    /* 가로 락업 최소 캡하이트 */
+  --gt-symbol-min-px: 10px;  /* 심볼 최소 높이 */
+
+  /* ---- Motion (제품 tokens.css와 같은 값) ---- */
+  --gt-dur-press: 110ms;
+  --gt-dur-state: 180ms;
+  --gt-dur-move:  260ms;
+  --gt-dur-sheet: 340ms;
+  --gt-ease-out:  cubic-bezier(.2, .8, .25, 1);
+  --gt-ease-in:   cubic-bezier(.4, 0, 1, 1);
+  --gt-ease-std:  cubic-bezier(.4, 0, .2, 1);
+  --gt-lights-step: 1000ms;  /* 스타트 시퀀스: 1초에 한 열 */
+}
+
+/* ---- Semantic · dark (제품 기본) ---- */
+:root, [data-theme="dark"] {
+  --bg: var(--gt-night);      --surface: var(--gt-carbon);
+  --surface2: var(--gt-graphite); --surface3: var(--gt-titanium);
+  --line: rgba(255,255,255,.07);  --line2: rgba(255,255,255,.13);
+  --text: var(--gt-chalk);    --text2: var(--gt-steel);   --text3: var(--gt-smoke);
+  --brand: var(--gt-mark);    --onbrand: #0B0C10;
+  --signal: var(--gt-signal); --signal-ink: var(--gt-signal);
+  --signal-line: rgba(255,212,0,.28); --signal-wash: rgba(255,212,0,.07);
+  --f1: var(--gt-f1); --wec: var(--gt-wec); --imsa: var(--gt-imsa); --wrc: var(--gt-wrc); --gtwc: var(--gt-gtwc);
+  /* --mono는 제품 현재 값 그대로(화면 불변). 브랜드 권장값은 var(--gt-font-data) — 옮길 때 이 줄만 바꾼다. */
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* ---- Semantic · light ---- */
+[data-theme="light"] {
+  --bg: var(--gt-paper);      --surface: var(--gt-white);
+  --surface2: var(--gt-mist); --surface3: var(--gt-fog);
+  --line: rgba(16,18,24,.09); --line2: rgba(16,18,24,.16);
+  --text: var(--gt-ink);      --text2: var(--gt-slate);   --text3: var(--gt-ash);
+  --brand: var(--gt-ink);     --onbrand: var(--gt-white);
+  --signal: var(--gt-signal); --signal-ink: var(--gt-signal-ink);
+  --signal-line: rgba(145,108,0,.30); --signal-wash: rgba(255,212,0,.14);
+  --f1: var(--gt-f1-ink); --wec: var(--gt-wec-ink); --imsa: var(--gt-imsa-ink); --wrc: var(--gt-wrc-ink); --gtwc: var(--gt-gtwc-ink);
+}
+
+/* ==========================================================================
+   Type classes
+   ========================================================================== */
+.gt-t-display-xl { font: var(--gt-display-xl-w) var(--gt-display-xl) var(--gt-font-ui); letter-spacing: var(--gt-display-xl-ls); }
+.gt-t-display { font: var(--gt-display-w) var(--gt-display) var(--gt-font-ui); letter-spacing: var(--gt-display-ls); }
+.gt-t-title-l { font: var(--gt-title-l-w) var(--gt-title-l) var(--gt-font-ui); letter-spacing: var(--gt-title-l-ls); }
+.gt-t-title-m { font: var(--gt-title-m-w) var(--gt-title-m) var(--gt-font-ui); letter-spacing: var(--gt-title-m-ls); }
+.gt-t-title-s { font: var(--gt-title-s-w) var(--gt-title-s) var(--gt-font-ui); letter-spacing: var(--gt-title-s-ls); }
+.gt-t-body-l { font: var(--gt-body-l-w) var(--gt-body-l) var(--gt-font-ui); letter-spacing: var(--gt-body-l-ls); }
+.gt-t-body { font: var(--gt-body-w) var(--gt-body) var(--gt-font-ui); letter-spacing: var(--gt-body-ls); }
+.gt-t-body-s { font: var(--gt-body-s-w) var(--gt-body-s) var(--gt-font-ui); letter-spacing: var(--gt-body-s-ls); }
+.gt-t-label { font: var(--gt-label-w) var(--gt-label) var(--gt-font-ui); letter-spacing: var(--gt-label-ls); text-transform: uppercase; font-feature-settings: var(--gt-label-features); }
+.gt-t-label-s { font: var(--gt-label-s-w) var(--gt-label-s) var(--gt-font-ui); letter-spacing: var(--gt-label-s-ls); text-transform: uppercase; font-feature-settings: var(--gt-label-features); }
+.gt-t-data-xl { font-family: var(--gt-font-data); font-size: var(--gt-data-xl); font-weight: var(--gt-data-xl-w); letter-spacing: var(--gt-data-xl-ls); line-height: 1; font-feature-settings: var(--gt-data-features); }
+.gt-t-data-l { font-family: var(--gt-font-data); font-size: var(--gt-data-l); font-weight: var(--gt-data-l-w); letter-spacing: var(--gt-data-l-ls); line-height: 1; font-feature-settings: var(--gt-data-features); }
+.gt-t-data-m { font-family: var(--gt-font-data); font-size: var(--gt-data-m); font-weight: var(--gt-data-m-w); letter-spacing: var(--gt-data-m-ls); line-height: 1; font-feature-settings: var(--gt-data-features); }
+.gt-t-data-s { font-family: var(--gt-font-data); font-size: var(--gt-data-s); font-weight: var(--gt-data-s-w); letter-spacing: var(--gt-data-s-ls); line-height: 1; font-feature-settings: var(--gt-data-features); }
+.gt-label-ko { font-family: var(--gt-font-ui); font-size: 13px; font-weight: 600; letter-spacing: 0; }  /* 한글 라벨: 자간 0, +1px */
+
+/* ==========================================================================
+   Components
+   ========================================================================== */
+
+/* 로고: SVG(currentColor)를 감싸는 자리 */
+.gt-logo { display: inline-flex; align-items: flex-start; color: var(--brand); line-height: 0; }
+.gt-logo > svg { display: block; height: 100%; width: auto; }
+
+/* 라이트 로우: <span class="gt-lights gt-lights--m" data-lit="2"><i></i><i></i><i></i><i></i><i></i></span>
+   켜짐 = 5 − 남은 날(D-5 이상 0개, 당일 5개). 켜질 때는 하나씩, 꺼질 때는 한꺼번에(0ms).
+   노랑(data-tone="signal")은 시작 24시간 이내와 진행 중에만. */
+.gt-lights { --size: 8px; --gap: 3px; display: inline-flex; gap: var(--gap); flex: none; color: var(--text); }
+.gt-lights > i { width: var(--size); height: var(--size); border-radius: 50%; display: block; background: currentColor; opacity: var(--gt-lights-off); }
+.gt-lights[data-lit="1"] > i:nth-child(-n+1),
+.gt-lights[data-lit="2"] > i:nth-child(-n+2),
+.gt-lights[data-lit="3"] > i:nth-child(-n+3),
+.gt-lights[data-lit="4"] > i:nth-child(-n+4),
+.gt-lights[data-lit="5"] > i { opacity: 1; }
+.gt-lights[data-tone="signal"] { color: var(--signal-ink); }
+.gt-lights--s  { --size: 5px;  --gap: 2px; }   /* 목록 */
+.gt-lights--m  { --size: 8px;  --gap: 3px; }   /* 칩 · 버튼 (기본) */
+.gt-lights--l  { --size: 14px; --gap: 6px; }   /* 히어로 · 카드 */
+.gt-lights--xl { --size: 40px; --gap: 17px; }  /* 포스터 */
+
+/* 시리즈 태그: <span class="gt-series-tag" style="--series:var(--f1)">F1 <span class="gt-round">R15</span></span>
+   막대 3×14 · 간격 8 · 코드 12/700 +6% · 라운드 500 +4% */
+.gt-series-tag { display: inline-flex; align-items: center; gap: 8px; font: 700 12px/1 var(--gt-font-ui); letter-spacing: .06em; color: var(--text); font-feature-settings: var(--gt-label-features); }
+.gt-series-tag::before { content: ""; width: 3px; height: 14px; border-radius: 1.5px; background: var(--series, var(--text3)); }
+.gt-series-tag > .gt-round { font-weight: 500; letter-spacing: .04em; color: var(--text3); margin-left: -2px; }
+.gt-series-bar { width: 3px; border-radius: 2px; background: var(--series, var(--text3)); }
+.gt-series-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--series, var(--text3)); }
+
+/* D-day 칩: 높이 32 · 반경 16 · 왼쪽 10 / 오른쪽 14 · 텍스트 13/600 */
+.gt-chip { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 14px 0 10px; border-radius: 16px;
+  border: 1px solid var(--line2); color: var(--text2); font: 600 13px/1 var(--gt-font-ui); letter-spacing: -.01em; font-feature-settings: var(--gt-data-features); }
+.gt-chip[data-tone="signal"] { color: var(--signal-ink); border-color: var(--signal-line); background: var(--signal-wash); }
+.gt-badge-night { font: 700 11px/1 var(--gt-font-ui); color: var(--signal-ink); border: 1px solid var(--signal-line); background: var(--signal-wash); border-radius: var(--gt-radius-xs); padding: 3px 5px; }
+
+/* 빔 · 헤어라인 */
+.gt-beam { display: block; width: 24px; height: 3px; border-radius: 2px; background: currentColor; }   /* 라벨 앞 */
+.gt-beam--head { width: 40px; height: 4px; }                                                         /* 헤드라인 위 24px */
+.gt-beam-rule { height: 2px; border-radius: 1px; background: var(--text); }                          /* 목록 시작선 */
+.gt-hairline { height: 1px; background: var(--line2); }                                              /* 행 구분 */
+
+/* 시간 · 라벨:  <span class="gt-time">20:00<span class="gt-zone">KST</span></span> */
+.gt-time { font-family: var(--gt-font-data); font-feature-settings: var(--gt-data-features); letter-spacing: -0.02em; }
+.gt-time > .gt-zone { font-size: .28em; font-weight: 600; letter-spacing: .1em; vertical-align: top; margin-left: .5em; color: var(--text3); }
+.gt-label { font: 600 12px/1.2 var(--gt-font-ui); letter-spacing: .08em; text-transform: uppercase; font-feature-settings: var(--gt-label-features); color: var(--text3); }
+
+/* 패턴: 신호등 점 격자. 글자 쪽으로 사라지게 mask를 함께 쓴다. */
+.gt-dotgrid { background-image: radial-gradient(circle at center, rgba(242,244,247,.06) 0 2.1px, transparent 2.6px); background-size: var(--gt-dotgrid-pitch) var(--gt-dotgrid-pitch); }
+[data-theme="light"] .gt-dotgrid { background-image: radial-gradient(circle at center, rgba(20,22,28,.07) 0 2.1px, transparent 2.6px); }
+
+/* 로더 (심볼 SVG에 .gt-loader를 붙이면 열마다 불이 켜진다) */
+@keyframes gt-light-on { 0%, 8% { opacity: .16 } 9%, 68% { opacity: 1 } 69%, 100% { opacity: .16 } }
+.gt-loader .gt-col { animation: gt-light-on 1.4s steps(1, end) infinite; }
+.gt-loader .gt-col:nth-child(3) { animation-delay: .11s } .gt-loader .gt-col:nth-child(4) { animation-delay: .22s }
+.gt-loader .gt-col:nth-child(5) { animation-delay: .33s } .gt-loader .gt-col:nth-child(6) { animation-delay: .44s }
+
+@media (prefers-reduced-motion: reduce) {
+  .gt-loader .gt-col { animation: none; }
+}

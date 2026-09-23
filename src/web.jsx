@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { TOKENS, Mono, SeriesTag } from './primitives.jsx';
+import { GantryLockup, GantrySymbol } from './Brand.jsx';
 import { getCurrentNow, useScheduleData, filterRacesByPreferences } from './schedule/index.js';
 import { Home } from './home/Home.jsx';
 import { WebSchedule, WebSeries, WebFavorites, RaceDrawer } from './web-screens.jsx';
@@ -168,20 +169,14 @@ function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
         borderBottom: `1px solid ${t.line}`,
         marginBottom: 10, justifyContent: collapsed ? 'center' : 'flex-start',
       }}>
-        <div style={{
-          width: 32, height: 32, borderRadius: 8, background: t.text,
-          display: 'grid', placeItems: 'center', flex: 'none',
-        }}>
-          <svg width="18" height="18" viewBox="0 0 16 16">
-            {[[0,0],[8,0],[4,4],[12,4],[0,8],[8,8],[4,12],[12,12]].map(([x,y],i) =>
-              <rect key={i} width="4" height="4" x={x} y={y} fill={t.bg} />
-            )}
-          </svg>
-        </div>
-        {!collapsed && (
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: t.text, letterSpacing: '-0.01em', lineHeight: 1 }}>PADDOCK</div>
-            <Mono size={9} color={t.text3} style={{ letterSpacing: '0.18em', marginTop: 3, display: 'block' }}>2026 · SEASON</Mono>
+        {collapsed ? (
+          <span style={{ color: t.text, display: 'grid', placeItems: 'center', height: 32 }}>
+            <GantrySymbol size={16} title="Gantry" />
+          </span>
+        ) : (
+          <div style={{ color: t.text, display: 'flex', flexDirection: 'column', gap: 9, padding: '5px 0 0 2px' }}>
+            <GantryLockup height={14} />
+            <Mono size={9} color={t.text3} style={{ letterSpacing: '0.18em', display: 'block' }}>2026 · SEASON</Mono>
           </div>
         )}
       </div>

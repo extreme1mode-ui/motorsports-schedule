@@ -1,6 +1,6 @@
 // UI 문구 (ko). 키는 화면.의미 형태. 값은 기존 한국어 문구를 그대로 옮긴 것.
 export default {
-  'app.title': 'Paddock · 2026 모터스포츠',
+  'app.title': 'Gantry · 2026 모터스포츠',
   // 내비게이션·테마
   'nav.home': '홈',
   'nav.schedule': '일정',
