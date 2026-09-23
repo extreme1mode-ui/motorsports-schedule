@@ -13,7 +13,6 @@ import { t, useT } from './i18n/index.js';
 import { track, getDaysSinceFirstVisit } from './analytics.js';
 import { withViewTransition, useScrollMemory, useFocusViewTitle, usePresence } from './use-motion.js';
 import { storage } from './storage/index.js';
-import { Brand } from './Brand.jsx';
 
 export default function Root() {
   const prefs = usePreferences();
@@ -55,7 +54,6 @@ export default function Root() {
 
 function App({ theme, setTheme, ...prefs }) {
   const { preferences } = prefs;
-  const tr = useT();
   const [view, setView] = useState('home');
   const [categoryFilter, setCategoryFilter] = useState(null);
   const [openRaceId, setOpenRaceId] = useState(null);
@@ -143,12 +141,6 @@ function App({ theme, setTheme, ...prefs }) {
         WebkitOverflowScrolling: 'touch',
         paddingBottom: mobileBottomNavSpace,
       }}>
-        <header className="brand-mobile-header">
-          <button type="button" className="brand-home" onClick={() => onGo('home')} aria-label={`GRIDCUE · ${tr('nav.home')}`}>
-            <Brand />
-          </button>
-          <span className="brand-season">{safeSeasonYear} / SEASON</span>
-        </header>
         {view === 'home' && <Home theme={theme} setTheme={setTheme} now={now} races={raceList} myRaces={myRaces} preferences={preferences} favorites={favorites} toggleFav={toggleFav} onOpenRace={onOpenRace} onGo={onGo} setSeriesMode={prefs.setSeriesMode} />}
         {view === 'schedule' && <Schedule theme={theme} races={raceList} onOpenRace={openFromSchedule} now={now} seasonYear={safeSeasonYear} />}
         {view === 'series' && <SeriesView theme={theme} races={raceList} onOpenRace={openFromSeries} initialCategory={categoryFilter || 'F1'} seasonYear={safeSeasonYear} />}

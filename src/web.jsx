@@ -10,7 +10,6 @@ import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
 import { withViewTransition, useScrollMemory, useFocusViewTitle, usePresence } from './use-motion.js';
 import { storage } from './storage/index.js';
-import { Brand } from './Brand.jsx';
 
 export function useViewport() {
   const [w, setW] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1440);
@@ -118,7 +117,7 @@ export function WebApp({ theme, setTheme, ...prefs }) {
       position: 'relative',
     }}>
       <Sidebar theme={theme} view={view} onGo={onGo} favCount={favorites.size}
-        collapsed={tier === 'tablet'} tier={tier} setTheme={setTheme} seasonYear={safeSeasonYear} />
+        collapsed={tier === 'tablet'} tier={tier} setTheme={setTheme} />
 
       <main style={{ padding: `${gutter + 8}px ${gutter}px ${gutter * 2}px`, maxWidth: '100%', minWidth: 0 }}>
         <div style={{ maxWidth: maxMain, margin: '0 auto' }}>
@@ -142,7 +141,7 @@ export function WebApp({ theme, setTheme, ...prefs }) {
   );
 }
 
-function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme, seasonYear }) {
+function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
   const t = TOKENS[theme];
   const fmt = useFormat();
   const tr = useT();
@@ -169,10 +168,22 @@ function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme, seaso
         borderBottom: `1px solid ${t.line}`,
         marginBottom: 10, justifyContent: collapsed ? 'center' : 'flex-start',
       }}>
-        <button type="button" className="brand-home" onClick={() => onGo('home')}
-          aria-label={`GRIDCUE · ${tr('nav.home')}`} title={`GRIDCUE · ${tr('nav.home')}`}>
-          <Brand compact={collapsed} caption={`MOTORSPORT / ${seasonYear}`} />
-        </button>
+        <div style={{
+          width: 32, height: 32, borderRadius: 8, background: t.text,
+          display: 'grid', placeItems: 'center', flex: 'none',
+        }}>
+          <svg width="18" height="18" viewBox="0 0 16 16">
+            {[[0,0],[8,0],[4,4],[12,4],[0,8],[8,8],[4,12],[12,12]].map(([x,y],i) =>
+              <rect key={i} width="4" height="4" x={x} y={y} fill={t.bg} />
+            )}
+          </svg>
+        </div>
+        {!collapsed && (
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: t.text, letterSpacing: '-0.01em', lineHeight: 1 }}>PADDOCK</div>
+            <Mono size={9} color={t.text3} style={{ letterSpacing: '0.18em', marginTop: 3, display: 'block' }}>2026 · SEASON</Mono>
+          </div>
+        )}
       </div>
 
       <nav style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -267,8 +278,8 @@ function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme, seaso
           borderRadius: 12, border: `1px solid ${t.line}`,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <span aria-hidden="true" style={{ width: 5, height: 5, flex: 'none', background: t.text2 }} />
-            <Mono size={9} color={t.text3} style={{ letterSpacing: '0.14em' }}>{tr('brand.localTime')} · {fmt.zoneLabel}</Mono>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22D77E', boxShadow: '0 0 8px #22D77E' }} />
+            <Mono size={9} color={t.text3} style={{ letterSpacing: '0.14em' }}>LIVE TIMING · {fmt.zoneLabel}</Mono>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
             {['dark', 'light'].map(m => (
