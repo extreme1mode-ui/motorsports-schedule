@@ -145,6 +145,125 @@
   "verifiedAt": "2026-09-20"
  },
  {
+  "id": "gtwc-2026-igtc-mountpanoramacircuit",
+  "series": "GTWC",
+  "championship": "IGTC",
+  "round": 1,
+  "name": "Meguiar's Bathurst 12 Hour",
+  "nameKo": "바투스트 12시간",
+  "shortNameKo": "바투스트 12시",
+  "circuit": "Mount Panorama Circuit",
+  "circuitKo": "마운트 파노라마",
+  "city": "Bathurst",
+  "cityKo": "바투스트",
+  "country": "Australia",
+  "countryKo": "호주",
+  "timezone": "Australia/Sydney",
+  "weekendStart": "2026-02-11",
+  "weekendEnd": "2026-02-15",
+  "status": "completed",
+  "raceDateLocal": "2026-02-15",
+  "raceDateKst": "2026-02-15",
+  "kstTime": "03:45",
+  "raceKstIso": "2026-02-14T18:45:00.000Z",
+  "sessions": [
+   {
+    "t": "Parade",
+    "kind": "other",
+    "local": "2026-02-12 10:30",
+    "kst": "2026-02-12 08:30",
+    "startUtc": "2026-02-11T23:30:00.000Z"
+   },
+   {
+    "t": "Free Practice 1",
+    "kind": "practice",
+    "local": "2026-02-13 08:45",
+    "kst": "2026-02-13 06:45",
+    "startUtc": "2026-02-12T21:45:00.000Z"
+   },
+   {
+    "t": "Free Practice 2 (Bronze Drivers)",
+    "kind": "practice",
+    "local": "2026-02-13 11:00",
+    "kst": "2026-02-13 09:00",
+    "startUtc": "2026-02-13T00:00:00.000Z"
+   },
+   {
+    "t": "Free Practice 3",
+    "kind": "practice",
+    "local": "2026-02-13 14:10",
+    "kst": "2026-02-13 12:10",
+    "startUtc": "2026-02-13T03:10:00.000Z"
+   },
+   {
+    "t": "Free Practice 4 (Bronze Drivers)",
+    "kind": "practice",
+    "local": "2026-02-13 16:40",
+    "kst": "2026-02-13 14:40",
+    "startUtc": "2026-02-13T05:40:00.000Z"
+   },
+   {
+    "t": "Free Practice 5",
+    "kind": "practice",
+    "local": "2026-02-14 08:05",
+    "kst": "2026-02-14 06:05",
+    "startUtc": "2026-02-13T21:05:00.000Z"
+   },
+   {
+    "t": "Free Practice 6",
+    "kind": "practice",
+    "local": "2026-02-14 10:05",
+    "kst": "2026-02-14 08:05",
+    "startUtc": "2026-02-13T23:05:00.000Z"
+   },
+   {
+    "t": "Qualifying 1",
+    "kind": "qualifying",
+    "local": "2026-02-14 13:05",
+    "kst": "2026-02-14 11:05",
+    "startUtc": "2026-02-14T02:05:00.000Z"
+   },
+   {
+    "t": "Qualifying 2",
+    "kind": "qualifying",
+    "local": "2026-02-14 13:50",
+    "kst": "2026-02-14 11:50",
+    "startUtc": "2026-02-14T02:50:00.000Z"
+   },
+   {
+    "t": "Qualifying 3 (Pole Battle)",
+    "kind": "qualifying",
+    "local": "2026-02-14 16:15",
+    "kst": "2026-02-14 14:15",
+    "startUtc": "2026-02-14T05:15:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-02-15 05:45",
+    "kst": "2026-02-15 03:45",
+    "startUtc": "2026-02-14T18:45:00.000Z"
+   },
+   {
+    "t": "Race finish (one lap after 17:43)",
+    "kind": "finish",
+    "local": "2026-02-15 17:43",
+    "kst": "2026-02-15 15:43",
+    "startUtc": "2026-02-15T06:43:00.000Z"
+   }
+  ],
+  "broadcast": [
+   {
+    "name": "GT World (YouTube)",
+    "region": "global",
+    "url": "https://www.youtube.com/gtworld",
+    "access": "free"
+   }
+  ],
+  "sourceUrl": "https://www.intercontinentalgtchallenge.com/event/149/bathurst-12-hour",
+  "verifiedAt": "2026-09-23"
+ },
+ {
   "id": "wrc-2026-2-rallysweden",
   "series": "WRC",
   "round": 2,
@@ -608,6 +727,120 @@
   "verifiedAt": "2026-09-20"
  },
  {
+  "id": "gtwc-2026-asia-sepanginternationalcircuit",
+  "series": "GTWC",
+  "championship": "GTWC_ASIA",
+  "round": 1,
+  "name": "Sepang International Circuit, Malaysia",
+  "nameKo": "세팡",
+  "shortNameKo": "세팡",
+  "circuit": "Sepang International Circuit",
+  "circuitKo": "세팡 인터내셔널 서킷",
+  "city": "Sepang, Selangor",
+  "cityKo": "세팡",
+  "country": "Malaysia",
+  "countryKo": "말레이시아",
+  "timezone": "Asia/Kuala_Lumpur",
+  "weekendStart": "2026-04-02",
+  "weekendEnd": "2026-04-05",
+  "status": "completed",
+  "raceDateLocal": "2026-04-05",
+  "raceDateKst": "2026-04-05",
+  "kstTime": "12:30",
+  "raceKstIso": "2026-04-05T03:30:00.000Z",
+  "sessions": [
+   {
+    "t": "Test Session 1",
+    "kind": "practice",
+    "local": "2026-04-02 12:30",
+    "kst": "2026-04-02 13:30",
+    "startUtc": "2026-04-02T04:30:00.000Z"
+   },
+   {
+    "t": "Test Session 2",
+    "kind": "practice",
+    "local": "2026-04-02 13:45",
+    "kst": "2026-04-02 14:45",
+    "startUtc": "2026-04-02T05:45:00.000Z"
+   },
+   {
+    "t": "Test Session 3",
+    "kind": "practice",
+    "local": "2026-04-02 15:00",
+    "kst": "2026-04-02 16:00",
+    "startUtc": "2026-04-02T07:00:00.000Z"
+   },
+   {
+    "t": "Test Session 4",
+    "kind": "practice",
+    "local": "2026-04-02 16:15",
+    "kst": "2026-04-02 17:15",
+    "startUtc": "2026-04-02T08:15:00.000Z"
+   },
+   {
+    "t": "Official Practice",
+    "kind": "practice",
+    "local": "2026-04-03 11:00",
+    "kst": "2026-04-03 12:00",
+    "startUtc": "2026-04-03T03:00:00.000Z"
+   },
+   {
+    "t": "Bronze Session",
+    "kind": "practice",
+    "local": "2026-04-03 12:10",
+    "kst": "2026-04-03 13:10",
+    "startUtc": "2026-04-03T04:10:00.000Z"
+   },
+   {
+    "t": "Pre-Qualifying",
+    "kind": "qualifying",
+    "local": "2026-04-03 15:40",
+    "kst": "2026-04-03 16:40",
+    "startUtc": "2026-04-03T07:40:00.000Z"
+   },
+   {
+    "t": "Qualifying 1",
+    "kind": "qualifying",
+    "local": "2026-04-04 10:25",
+    "kst": "2026-04-04 11:25",
+    "startUtc": "2026-04-04T02:25:00.000Z"
+   },
+   {
+    "t": "Qualifying 2",
+    "kind": "qualifying",
+    "local": "2026-04-04 10:47",
+    "kst": "2026-04-04 11:47",
+    "startUtc": "2026-04-04T02:47:00.000Z"
+   },
+   {
+    "t": "Race 1",
+    "kind": "race",
+    "local": "2026-04-04 14:15",
+    "kst": "2026-04-04 15:15",
+    "startUtc": "2026-04-04T06:15:00.000Z"
+   },
+   {
+    "t": "Race 2",
+    "kind": "race",
+    "local": "2026-04-05 11:30",
+    "kst": "2026-04-05 12:30",
+    "startUtc": "2026-04-05T03:30:00.000Z"
+   }
+  ],
+  "broadcast": [
+   {
+    "name": "GT World (YouTube)",
+    "region": "global",
+    "url": "https://www.youtube.com/gtworld",
+    "access": "free"
+   }
+  ],
+  "sourceUrl": "https://www.gt-world-challenge-asia.com/event/80/sepang",
+  "verifiedAt": "2026-09-23",
+  "roundLabel": "R1-2",
+  "roundDescriptor": "ROUND 1-2"
+ },
+ {
   "id": "wrc-2026-4-croatiarally",
   "series": "WRC",
   "round": 4,
@@ -758,7 +991,8 @@
    }
   ],
   "sourceUrl": "https://www.gt-world-challenge-europe.com/event/246/circuit-paul-ricard",
-  "verifiedAt": "2026-09-20"
+  "verifiedAt": "2026-09-20",
+  "championship": "GTWC_EU"
  },
  {
   "id": "f1-2026-x-saudiarabiangrandprix",
@@ -1037,6 +1271,127 @@
   "verifiedAt": "2026-09-20"
  },
  {
+  "id": "gtwc-2026-asia-pertaminamandalikainternatio",
+  "series": "GTWC",
+  "championship": "GTWC_ASIA",
+  "round": 3,
+  "name": "Pertamina Mandalika International Circuit, Indonesia",
+  "nameKo": "만달리카",
+  "shortNameKo": "만달리카",
+  "circuit": "Pertamina Mandalika International Circuit",
+  "circuitKo": "만달리카 서킷",
+  "city": "Kuta Mandalika, Central Lombok, West Nusa Tenggara",
+  "cityKo": "롬복",
+  "country": "Indonesia",
+  "countryKo": "인도네시아",
+  "timezone": "Asia/Makassar",
+  "weekendStart": "2026-04-30",
+  "weekendEnd": "2026-05-03",
+  "status": "completed",
+  "raceDateLocal": "2026-05-03",
+  "raceDateKst": "2026-05-03",
+  "kstTime": "12:30",
+  "raceKstIso": "2026-05-03T03:30:00.000Z",
+  "sessions": [
+   {
+    "t": "Test 1",
+    "kind": "practice",
+    "local": "2026-04-30 11:00",
+    "kst": "2026-04-30 12:00",
+    "startUtc": "2026-04-30T03:00:00.000Z"
+   },
+   {
+    "t": "Test 2",
+    "kind": "practice",
+    "local": "2026-04-30 13:00",
+    "kst": "2026-04-30 14:00",
+    "startUtc": "2026-04-30T05:00:00.000Z"
+   },
+   {
+    "t": "Test 3",
+    "kind": "practice",
+    "local": "2026-04-30 15:00",
+    "kst": "2026-04-30 16:00",
+    "startUtc": "2026-04-30T07:00:00.000Z"
+   },
+   {
+    "t": "Test 4",
+    "kind": "practice",
+    "local": "2026-04-30 16:05",
+    "kst": "2026-04-30 17:05",
+    "startUtc": "2026-04-30T08:05:00.000Z"
+   },
+   {
+    "t": "Test 5",
+    "kind": "practice",
+    "local": "2026-05-01 08:30",
+    "kst": "2026-05-01 09:30",
+    "startUtc": "2026-05-01T00:30:00.000Z"
+   },
+   {
+    "t": "Practice",
+    "kind": "practice",
+    "local": "2026-05-01 10:50",
+    "kst": "2026-05-01 11:50",
+    "startUtc": "2026-05-01T02:50:00.000Z"
+   },
+   {
+    "t": "Bronze Session",
+    "kind": "practice",
+    "local": "2026-05-01 12:00",
+    "kst": "2026-05-01 13:00",
+    "startUtc": "2026-05-01T04:00:00.000Z"
+   },
+   {
+    "t": "Pre-Qualifying",
+    "kind": "qualifying",
+    "local": "2026-05-01 14:55",
+    "kst": "2026-05-01 15:55",
+    "startUtc": "2026-05-01T06:55:00.000Z"
+   },
+   {
+    "t": "Qualifying 1",
+    "kind": "qualifying",
+    "local": "2026-05-02 09:15",
+    "kst": "2026-05-02 10:15",
+    "startUtc": "2026-05-02T01:15:00.000Z"
+   },
+   {
+    "t": "Qualifying 2",
+    "kind": "qualifying",
+    "local": "2026-05-02 09:37",
+    "kst": "2026-05-02 10:37",
+    "startUtc": "2026-05-02T01:37:00.000Z"
+   },
+   {
+    "t": "Race 1",
+    "kind": "race",
+    "local": "2026-05-02 13:30",
+    "kst": "2026-05-02 14:30",
+    "startUtc": "2026-05-02T05:30:00.000Z"
+   },
+   {
+    "t": "Race 2",
+    "kind": "race",
+    "local": "2026-05-03 11:30",
+    "kst": "2026-05-03 12:30",
+    "startUtc": "2026-05-03T03:30:00.000Z"
+   }
+  ],
+  "broadcast": [
+   {
+    "name": "GT World (YouTube)",
+    "region": "global",
+    "url": "https://www.youtube.com/gtworld",
+    "access": "free"
+   }
+  ],
+  "sourceUrl": "https://www.gt-world-challenge-asia.com/event/81/pertamina-mandalika-international-circuit",
+  "verifiedAt": "2026-09-23",
+  "roundLabel": "R3-4",
+  "roundDescriptor": "ROUND 3-4"
+ },
+ {
   "id": "f1-2026-4-miamigrandprix",
   "series": "F1",
   "round": 4,
@@ -1277,7 +1632,8 @@
    }
   ],
   "sourceUrl": "https://www.gt-world-challenge-europe.com/event/247/brands-hatch",
-  "verifiedAt": "2026-09-20"
+  "verifiedAt": "2026-09-20",
+  "championship": "GTWC_EU"
  },
  {
   "id": "wec-2026-2-totalenergies6hoursofspafran",
@@ -1455,8 +1811,6 @@
   "weekendStart": "2026-05-14",
   "weekendEnd": "2026-05-17",
   "status": "completed",
-  "cup": "other",
-  "note": "not an SRO GTWC round",
   "raceDateLocal": "2026-05-16",
   "raceDateKst": "2026-05-16",
   "kstTime": "22:00",
@@ -1541,7 +1895,8 @@
    }
   ],
   "sourceUrl": "https://www.intercontinentalgtchallenge.com/event/150/adac-ravenol-24h-nuerburgring",
-  "verifiedAt": "2026-09-20"
+  "verifiedAt": "2026-09-20",
+  "championship": "IGTC"
  },
  {
   "id": "f1-2026-5-canadiangrandprix",
@@ -1793,7 +2148,8 @@
    }
   ],
   "sourceUrl": "https://www.gt-world-challenge-europe.com/event/248/monza",
-  "verifiedAt": "2026-09-20"
+  "verifiedAt": "2026-09-20",
+  "championship": "GTWC_EU"
  },
  {
   "id": "imsa-2026-5-chevroletdetroitsportscarcla",
@@ -2350,7 +2706,11 @@
    }
   ],
   "sourceUrl": "https://www.gt-world-challenge-europe.com/event/249/crowdstrike-24-hours-of-spa",
-  "verifiedAt": "2026-09-20"
+  "verifiedAt": "2026-09-20",
+  "championship": "GTWC_EU",
+  "alsoCountsFor": [
+   "IGTC"
+  ]
  },
  {
   "id": "imsa-2026-6-sahlenssixhoursoftheglen",
@@ -2652,6 +3012,106 @@
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/great-britain",
   "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "gtwc-2026-asia-fujiinternationalspeedway",
+  "series": "GTWC",
+  "championship": "GTWC_ASIA",
+  "round": 5,
+  "name": "Fuji International Speedway (SRO GT PowerTour), Japan",
+  "nameKo": "후지",
+  "shortNameKo": "후지",
+  "circuit": "Fuji International Speedway",
+  "circuitKo": "후지 스피드웨이",
+  "city": "Oyama, Shizuoka",
+  "cityKo": "오야마",
+  "country": "Japan",
+  "countryKo": "일본",
+  "timezone": "Asia/Tokyo",
+  "weekendStart": "2026-07-09",
+  "weekendEnd": "2026-07-12",
+  "status": "completed",
+  "raceDateLocal": "2026-07-12",
+  "raceDateKst": "2026-07-12",
+  "kstTime": "11:35",
+  "raceKstIso": "2026-07-12T02:35:00.000Z",
+  "sessions": [
+   {
+    "t": "Test Session 1",
+    "kind": "practice",
+    "local": "2026-07-09 13:00",
+    "kst": "2026-07-09 13:00",
+    "startUtc": "2026-07-09T04:00:00.000Z"
+   },
+   {
+    "t": "Test Session 2",
+    "kind": "practice",
+    "local": "2026-07-09 15:20",
+    "kst": "2026-07-09 15:20",
+    "startUtc": "2026-07-09T06:20:00.000Z"
+   },
+   {
+    "t": "Official Practice",
+    "kind": "practice",
+    "local": "2026-07-10 11:10",
+    "kst": "2026-07-10 11:10",
+    "startUtc": "2026-07-10T02:10:00.000Z"
+   },
+   {
+    "t": "Bronze Session",
+    "kind": "practice",
+    "local": "2026-07-10 12:15",
+    "kst": "2026-07-10 12:15",
+    "startUtc": "2026-07-10T03:15:00.000Z"
+   },
+   {
+    "t": "Pre-Qualifying",
+    "kind": "qualifying",
+    "local": "2026-07-10 15:45",
+    "kst": "2026-07-10 15:45",
+    "startUtc": "2026-07-10T06:45:00.000Z"
+   },
+   {
+    "t": "Qualifying 1",
+    "kind": "qualifying",
+    "local": "2026-07-11 08:30",
+    "kst": "2026-07-11 08:30",
+    "startUtc": "2026-07-10T23:30:00.000Z"
+   },
+   {
+    "t": "Qualifying 2",
+    "kind": "qualifying",
+    "local": "2026-07-11 08:52",
+    "kst": "2026-07-11 08:52",
+    "startUtc": "2026-07-10T23:52:00.000Z"
+   },
+   {
+    "t": "Race 1",
+    "kind": "race",
+    "local": "2026-07-11 12:35",
+    "kst": "2026-07-11 12:35",
+    "startUtc": "2026-07-11T03:35:00.000Z"
+   },
+   {
+    "t": "Race 2",
+    "kind": "race",
+    "local": "2026-07-12 11:35",
+    "kst": "2026-07-12 11:35",
+    "startUtc": "2026-07-12T02:35:00.000Z"
+   }
+  ],
+  "broadcast": [
+   {
+    "name": "GT World (YouTube)",
+    "region": "global",
+    "url": "https://www.youtube.com/gtworld",
+    "access": "free"
+   }
+  ],
+  "sourceUrl": "https://www.gt-world-challenge-asia.com/event/82/fuji-international-speedway",
+  "verifiedAt": "2026-09-23",
+  "roundLabel": "R5-6",
+  "roundDescriptor": "ROUND 5-6"
  },
  {
   "id": "wec-2026-4-rolex6hoursofsopaulo",
@@ -2989,7 +3449,8 @@
    }
   ],
   "sourceUrl": "https://www.gt-world-challenge-europe.com/event/250/misano",
-  "verifiedAt": "2026-09-20"
+  "verifiedAt": "2026-09-20",
+  "championship": "GTWC_EU"
  },
  {
   "id": "f1-2026-10-belgiangrandprix",
@@ -3408,7 +3869,8 @@
    }
   ],
   "sourceUrl": "https://www.gt-world-challenge-europe.com/event/251/magny-cours",
-  "verifiedAt": "2026-09-20"
+  "verifiedAt": "2026-09-20",
+  "championship": "GTWC_EU"
  },
  {
   "id": "f1-2026-12-dutchgrandprix",
@@ -3627,6 +4089,106 @@
   "verifiedAt": "2026-09-20"
  },
  {
+  "id": "gtwc-2026-asia-okayamainternationalcircuit",
+  "series": "GTWC",
+  "championship": "GTWC_ASIA",
+  "round": 7,
+  "name": "Okayama International Circuit (SRO GT PowerTour), Japan",
+  "nameKo": "오카야마",
+  "shortNameKo": "오카야마",
+  "circuit": "Okayama International Circuit",
+  "circuitKo": "오카야마 인터내셔널 서킷",
+  "city": "Mimasaka, Okayama",
+  "cityKo": "오카야마",
+  "country": "Japan",
+  "countryKo": "일본",
+  "timezone": "Asia/Tokyo",
+  "weekendStart": "2026-08-27",
+  "weekendEnd": "2026-08-30",
+  "status": "completed",
+  "raceDateLocal": "2026-08-30",
+  "raceDateKst": "2026-08-30",
+  "kstTime": "10:00",
+  "raceKstIso": "2026-08-30T01:00:00.000Z",
+  "sessions": [
+   {
+    "t": "Test Session 1",
+    "kind": "practice",
+    "local": "2026-08-27 12:00",
+    "kst": "2026-08-27 12:00",
+    "startUtc": "2026-08-27T03:00:00.000Z"
+   },
+   {
+    "t": "Test Session 2",
+    "kind": "practice",
+    "local": "2026-08-27 15:45",
+    "kst": "2026-08-27 15:45",
+    "startUtc": "2026-08-27T06:45:00.000Z"
+   },
+   {
+    "t": "Official Practice",
+    "kind": "practice",
+    "local": "2026-08-28 12:20",
+    "kst": "2026-08-28 12:20",
+    "startUtc": "2026-08-28T03:20:00.000Z"
+   },
+   {
+    "t": "Bronze Session",
+    "kind": "practice",
+    "local": "2026-08-28 13:30",
+    "kst": "2026-08-28 13:30",
+    "startUtc": "2026-08-28T04:30:00.000Z"
+   },
+   {
+    "t": "Pre-Qualifying",
+    "kind": "qualifying",
+    "local": "2026-08-28 15:40",
+    "kst": "2026-08-28 15:40",
+    "startUtc": "2026-08-28T06:40:00.000Z"
+   },
+   {
+    "t": "Qualifying 1",
+    "kind": "qualifying",
+    "local": "2026-08-29 09:00",
+    "kst": "2026-08-29 09:00",
+    "startUtc": "2026-08-29T00:00:00.000Z"
+   },
+   {
+    "t": "Qualifying 2",
+    "kind": "qualifying",
+    "local": "2026-08-29 09:22",
+    "kst": "2026-08-29 09:22",
+    "startUtc": "2026-08-29T00:22:00.000Z"
+   },
+   {
+    "t": "Race 1",
+    "kind": "race",
+    "local": "2026-08-29 13:00",
+    "kst": "2026-08-29 13:00",
+    "startUtc": "2026-08-29T04:00:00.000Z"
+   },
+   {
+    "t": "Race 2",
+    "kind": "race",
+    "local": "2026-08-30 10:00",
+    "kst": "2026-08-30 10:00",
+    "startUtc": "2026-08-30T01:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   {
+    "name": "GT World (YouTube)",
+    "region": "global",
+    "url": "https://www.youtube.com/gtworld",
+    "access": "free"
+   }
+  ],
+  "sourceUrl": "https://www.gt-world-challenge-asia.com/event/84/okayama-international-circuit",
+  "verifiedAt": "2026-09-23",
+  "roundLabel": "R7-8",
+  "roundDescriptor": "ROUND 7-8"
+ },
+ {
   "id": "gtwc-2026-4-3hoursofnrburgring",
   "series": "GTWC",
   "round": 4,
@@ -3728,7 +4290,8 @@
    }
   ],
   "sourceUrl": "https://www.gt-world-challenge-europe.com/event/252/n%C3%BCrburgring",
-  "verifiedAt": "2026-09-20"
+  "verifiedAt": "2026-09-20",
+  "championship": "GTWC_EU"
  },
  {
   "id": "f1-2026-13-italiangrandprix",
@@ -4060,6 +4623,97 @@
   "verifiedAt": "2026-09-20"
  },
  {
+  "id": "gtwc-2026-igtc-suzukacircuit",
+  "series": "GTWC",
+  "championship": "IGTC",
+  "round": 4,
+  "name": "Suzuka 1000km",
+  "nameKo": "스즈카 1000km",
+  "shortNameKo": "스즈카 1000km",
+  "circuit": "Suzuka Circuit",
+  "circuitKo": "스즈카 서킷",
+  "city": "Suzuka, Mie Prefecture",
+  "cityKo": "스즈카",
+  "country": "Japan",
+  "countryKo": "일본",
+  "timezone": "Asia/Tokyo",
+  "weekendStart": "2026-09-11",
+  "weekendEnd": "2026-09-13",
+  "status": "completed",
+  "raceDateLocal": "2026-09-13",
+  "raceDateKst": "2026-09-13",
+  "kstTime": "12:50",
+  "raceKstIso": "2026-09-13T03:50:00.000Z",
+  "sessions": [
+   {
+    "t": "Test Session 1",
+    "kind": "other",
+    "local": "2026-09-11 09:10",
+    "kst": "2026-09-11 09:10",
+    "startUtc": "2026-09-11T00:10:00.000Z"
+   },
+   {
+    "t": "Test Session 2",
+    "kind": "other",
+    "local": "2026-09-11 12:10",
+    "kst": "2026-09-11 12:10",
+    "startUtc": "2026-09-11T03:10:00.000Z"
+   },
+   {
+    "t": "Night Practice",
+    "kind": "practice",
+    "local": "2026-09-11 17:50",
+    "kst": "2026-09-11 17:50",
+    "startUtc": "2026-09-11T08:50:00.000Z"
+   },
+   {
+    "t": "Pre Qualifying",
+    "kind": "qualifying",
+    "local": "2026-09-12 10:40",
+    "kst": "2026-09-12 10:40",
+    "startUtc": "2026-09-12T01:40:00.000Z"
+   },
+   {
+    "t": "Qualifying 1",
+    "kind": "qualifying",
+    "local": "2026-09-12 17:40",
+    "kst": "2026-09-12 17:40",
+    "startUtc": "2026-09-12T08:40:00.000Z"
+   },
+   {
+    "t": "Qualifying 2",
+    "kind": "qualifying",
+    "local": "2026-09-12 18:02",
+    "kst": "2026-09-12 18:02",
+    "startUtc": "2026-09-12T09:02:00.000Z"
+   },
+   {
+    "t": "Qualifying 3",
+    "kind": "qualifying",
+    "local": "2026-09-12 18:25",
+    "kst": "2026-09-12 18:25",
+    "startUtc": "2026-09-12T09:25:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-09-13 12:50",
+    "kst": "2026-09-13 12:50",
+    "startUtc": "2026-09-13T03:50:00.000Z"
+   }
+  ],
+  "broadcast": [
+   {
+    "name": "GT World (YouTube)",
+    "region": "global",
+    "url": "https://www.youtube.com/gtworld",
+    "access": "free"
+   }
+  ],
+  "sourceUrl": "https://www.intercontinentalgtchallenge.com/event/152/suzuka-1000km",
+  "verifiedAt": "2026-09-23"
+ },
+ {
   "id": "gtwc-2026-4-gtworldchallengeeuropesprint",
   "series": "GTWC",
   "round": 4,
@@ -4168,7 +4822,8 @@
    }
   ],
   "sourceUrl": "https://www.gt-world-challenge-europe.com/event/253/zandvoort",
-  "verifiedAt": "2026-09-20"
+  "verifiedAt": "2026-09-20",
+  "championship": "GTWC_EU"
  },
  {
   "id": "imsa-2026-10-tirerackcombattleonthebricks",
@@ -4752,7 +5407,223 @@
    }
   ],
   "sourceUrl": "https://www.gt-world-challenge-europe.com/event/254/barcelona",
-  "verifiedAt": "2026-09-20"
+  "verifiedAt": "2026-09-20",
+  "championship": "GTWC_EU"
+ },
+ {
+  "id": "gtwc-2026-asia-beijingstreetcircuitbeijinge",
+  "series": "GTWC",
+  "championship": "GTWC_ASIA",
+  "round": 9,
+  "name": "Beijing Street Circuit, China",
+  "nameKo": "베이징",
+  "shortNameKo": "베이징",
+  "circuit": "Beijing Street Circuit (Beijing E-Town Street Circuit)",
+  "circuitKo": "베이징 스트리트 서킷",
+  "city": "Beijing (Yizhuang / E-Town)",
+  "cityKo": "베이징",
+  "country": "China",
+  "countryKo": "중국",
+  "timezone": "Asia/Shanghai",
+  "weekendStart": "2026-10-02",
+  "weekendEnd": "2026-10-04",
+  "status": "scheduled",
+  "raceDateLocal": "2026-10-04",
+  "raceDateKst": "2026-10-04",
+  "kstTime": "16:00",
+  "raceKstIso": "2026-10-04T07:00:00.000Z",
+  "sessions": [
+   {
+    "t": "GT World Challenge Asia Official Paid Test 1",
+    "kind": "practice",
+    "local": "2026-10-02 10:25",
+    "kst": "2026-10-02 11:25",
+    "startUtc": "2026-10-02T02:25:00.000Z"
+   },
+   {
+    "t": "GT World Challenge Asia Official Paid Test 2",
+    "kind": "practice",
+    "local": "2026-10-02 13:05",
+    "kst": "2026-10-02 14:05",
+    "startUtc": "2026-10-02T05:05:00.000Z"
+   },
+   {
+    "t": "GT World Challenge Asia Official Practice",
+    "kind": "practice",
+    "local": "2026-10-02 15:55",
+    "kst": "2026-10-02 16:55",
+    "startUtc": "2026-10-02T07:55:00.000Z"
+   },
+   {
+    "t": "GT World Challenge Asia Pre-Qualifying",
+    "kind": "qualifying",
+    "local": "2026-10-03 08:30",
+    "kst": "2026-10-03 09:30",
+    "startUtc": "2026-10-03T00:30:00.000Z"
+   },
+   {
+    "t": "GT World Challenge Asia Qualifying 1",
+    "kind": "qualifying",
+    "local": "2026-10-03 11:50",
+    "kst": "2026-10-03 12:50",
+    "startUtc": "2026-10-03T03:50:00.000Z"
+   },
+   {
+    "t": "GT World Challenge Asia Qualifying 2",
+    "kind": "qualifying",
+    "local": "2026-10-03 12:12",
+    "kst": "2026-10-03 13:12",
+    "startUtc": "2026-10-03T04:12:00.000Z"
+   },
+   {
+    "t": "GT World Challenge Asia Race 1",
+    "kind": "race",
+    "local": "2026-10-03 15:45",
+    "kst": "2026-10-03 16:45",
+    "startUtc": "2026-10-03T07:45:00.000Z"
+   },
+   {
+    "t": "GT World Challenge Asia Race 2",
+    "kind": "race",
+    "local": "2026-10-04 15:00",
+    "kst": "2026-10-04 16:00",
+    "startUtc": "2026-10-04T07:00:00.000Z"
+   }
+  ],
+  "broadcast": [
+   {
+    "name": "GT World (YouTube)",
+    "region": "global",
+    "url": "https://www.youtube.com/gtworld",
+    "access": "free"
+   }
+  ],
+  "sourceUrl": "https://www.gt-world-challenge-asia.com/event/83/beijing-street-circuit",
+  "verifiedAt": "2026-09-23",
+  "roundLabel": "R9-10",
+  "roundDescriptor": "ROUND 9-10"
+ },
+ {
+  "id": "gtwc-2026-igtc-indianapolismotorspeedwayroa",
+  "series": "GTWC",
+  "championship": "IGTC",
+  "round": 5,
+  "name": "Indianapolis 8 Hour",
+  "nameKo": "인디애나폴리스 8시간",
+  "shortNameKo": "인디 8시간",
+  "circuit": "Indianapolis Motor Speedway (road course)",
+  "circuitKo": "인디애나폴리스 모터 스피드웨이",
+  "city": "Indianapolis, Indiana",
+  "cityKo": "인디애나폴리스",
+  "country": "United States of America",
+  "countryKo": "미국",
+  "timezone": "America/Indiana/Indianapolis",
+  "weekendStart": "2026-10-08",
+  "weekendEnd": "2026-10-10",
+  "status": "scheduled",
+  "alsoCountsFor": [
+   "GTWC_AMERICA"
+  ],
+  "raceDateLocal": "2026-10-10",
+  "raceDateKst": "2026-10-11",
+  "kstTime": "01:30",
+  "raceKstIso": "2026-10-10T16:30:00.000Z",
+  "sessions": [
+   {
+    "t": "Test Session 1",
+    "kind": "other",
+    "local": "2026-10-07 15:25",
+    "kst": "2026-10-08 04:25",
+    "startUtc": "2026-10-07T19:25:00.000Z"
+   },
+   {
+    "t": "Test Session 2",
+    "kind": "other",
+    "local": "2026-10-08 10:45",
+    "kst": "2026-10-08 23:45",
+    "startUtc": "2026-10-08T14:45:00.000Z"
+   },
+   {
+    "t": "Bronze Test",
+    "kind": "other",
+    "local": "2026-10-08 18:30",
+    "kst": "2026-10-09 07:30",
+    "startUtc": "2026-10-08T22:30:00.000Z"
+   },
+   {
+    "t": "Free Practice",
+    "kind": "practice",
+    "local": "2026-10-08 19:00",
+    "kst": "2026-10-09 08:00",
+    "startUtc": "2026-10-08T23:00:00.000Z"
+   },
+   {
+    "t": "Pre Qualifying",
+    "kind": "qualifying",
+    "local": "2026-10-09 09:50",
+    "kst": "2026-10-09 22:50",
+    "startUtc": "2026-10-09T13:50:00.000Z"
+   },
+   {
+    "t": "Qualifying 1",
+    "kind": "qualifying",
+    "local": "2026-10-09 15:35",
+    "kst": "2026-10-10 04:35",
+    "startUtc": "2026-10-09T19:35:00.000Z"
+   },
+   {
+    "t": "Qualifying 2",
+    "kind": "qualifying",
+    "local": "2026-10-09 15:57",
+    "kst": "2026-10-10 04:57",
+    "startUtc": "2026-10-09T19:57:00.000Z"
+   },
+   {
+    "t": "Qualifying 3",
+    "kind": "qualifying",
+    "local": "2026-10-09 16:20",
+    "kst": "2026-10-10 05:20",
+    "startUtc": "2026-10-09T20:20:00.000Z"
+   },
+   {
+    "t": "Pole Shootout (Top-10)",
+    "kind": "qualifying",
+    "local": "2026-10-09 17:35",
+    "kst": "2026-10-10 06:35",
+    "startUtc": "2026-10-09T21:35:00.000Z"
+   },
+   {
+    "t": "Pre-Race",
+    "kind": "other",
+    "local": "2026-10-10 11:15",
+    "kst": "2026-10-11 00:15",
+    "startUtc": "2026-10-10T15:15:00.000Z"
+   },
+   {
+    "t": "Race",
+    "kind": "race",
+    "local": "2026-10-10 12:30",
+    "kst": "2026-10-11 01:30",
+    "startUtc": "2026-10-10T16:30:00.000Z"
+   },
+   {
+    "t": "Race finish",
+    "kind": "finish",
+    "local": "2026-10-10 20:30",
+    "kst": "2026-10-11 09:30",
+    "startUtc": "2026-10-11T00:30:00.000Z"
+   }
+  ],
+  "broadcast": [
+   {
+    "name": "GT World (YouTube)",
+    "region": "global",
+    "url": "https://www.youtube.com/gtworld",
+    "access": "free"
+   }
+  ],
+  "sourceUrl": "https://www.intercontinentalgtchallenge.com/event/153/Indianapolis%208%20Hour",
+  "verifiedAt": "2026-09-23"
  },
  {
   "id": "f1-2026-17-singaporegrandprix",
@@ -5016,7 +5887,8 @@
    }
   ],
   "sourceUrl": "https://www.gt-world-challenge-europe.com/event/255/portimao",
-  "verifiedAt": "2026-09-20"
+  "verifiedAt": "2026-09-20",
+  "championship": "GTWC_EU"
  },
  {
   "id": "wec-2026-x-qatar1812km",
@@ -5226,6 +6098,99 @@
   ],
   "sourceUrl": "https://www.formula1.com/en/racing/2026/mexico",
   "verifiedAt": "2026-09-20"
+ },
+ {
+  "id": "gtwc-2026-asia-shanghaiinternationalcircuit",
+  "series": "GTWC",
+  "championship": "GTWC_ASIA",
+  "round": 11,
+  "name": "Shanghai International Circuit, China",
+  "nameKo": "상하이",
+  "shortNameKo": "상하이",
+  "circuit": "Shanghai International Circuit",
+  "circuitKo": "상하이 인터내셔널 서킷",
+  "city": "Jiading, Shanghai",
+  "cityKo": "상하이",
+  "country": "China",
+  "countryKo": "중국",
+  "timezone": "Asia/Shanghai",
+  "weekendStart": "2026-10-30",
+  "weekendEnd": "2026-11-01",
+  "status": "scheduled",
+  "raceDateLocal": "2026-11-01",
+  "raceDateKst": "2026-11-01",
+  "kstTime": "14:05",
+  "raceKstIso": "2026-11-01T05:05:00.000Z",
+  "sessions": [
+   {
+    "t": "GT World Challenge Asia Powered by AWS Official Paid Test",
+    "kind": "practice",
+    "local": "2026-10-30 08:30",
+    "kst": "2026-10-30 09:30",
+    "startUtc": "2026-10-30T00:30:00.000Z"
+   },
+   {
+    "t": "GT World Challenge Asia Powered by AWS Official Practice",
+    "kind": "practice",
+    "local": "2026-10-30 10:38",
+    "kst": "2026-10-30 11:38",
+    "startUtc": "2026-10-30T02:38:00.000Z"
+   },
+   {
+    "t": "GT World Challenge Asia Powered by AWS Bronze Session",
+    "kind": "practice",
+    "local": "2026-10-30 11:45",
+    "kst": "2026-10-30 12:45",
+    "startUtc": "2026-10-30T03:45:00.000Z"
+   },
+   {
+    "t": "GT World Challenge Asia Powered by AWS Pre-Qualifying",
+    "kind": "qualifying",
+    "local": "2026-10-30 14:55",
+    "kst": "2026-10-30 15:55",
+    "startUtc": "2026-10-30T06:55:00.000Z"
+   },
+   {
+    "t": "GT World Challenge Asia Powered by AWS Qualifying 1",
+    "kind": "qualifying",
+    "local": "2026-10-31 09:35",
+    "kst": "2026-10-31 10:35",
+    "startUtc": "2026-10-31T01:35:00.000Z"
+   },
+   {
+    "t": "GT World Challenge Asia Powered by AWS Qualifying 2",
+    "kind": "qualifying",
+    "local": "2026-10-31 09:57",
+    "kst": "2026-10-31 10:57",
+    "startUtc": "2026-10-31T01:57:00.000Z"
+   },
+   {
+    "t": "GT World Challenge Asia Powered by AWS Race 1",
+    "kind": "race",
+    "local": "2026-10-31 12:50",
+    "kst": "2026-10-31 13:50",
+    "startUtc": "2026-10-31T04:50:00.000Z"
+   },
+   {
+    "t": "GT World Challenge Asia Powered by AWS Race 2",
+    "kind": "race",
+    "local": "2026-11-01 13:05",
+    "kst": "2026-11-01 14:05",
+    "startUtc": "2026-11-01T05:05:00.000Z"
+   }
+  ],
+  "broadcast": [
+   {
+    "name": "GT World (YouTube)",
+    "region": "global",
+    "url": "https://www.youtube.com/gtworld",
+    "access": "free"
+   }
+  ],
+  "sourceUrl": "https://www.gt-world-challenge-asia.com/event/90/shanghai-international-circuit",
+  "verifiedAt": "2026-09-23",
+  "roundLabel": "R11-12",
+  "roundDescriptor": "ROUND 11-12"
  },
  {
   "id": "wec-2026-x-bapcoenergies8hoursofbahrain",
