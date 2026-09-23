@@ -60,10 +60,10 @@ export function getRecommendations(races = [], preferences = null, now = new Dat
   const candidates = [];
   for (const race of races) {
     if (!race || race.status === 'cancelled') continue;
-    const { score, reasons, time } = scoreRace(race, preferences, at, locale);
+    const { score, reasons, kinds, time } = scoreRace(race, preferences, at, locale);
     if (time === null || time < at) continue;                   // 이미 끝난 경기 제외
-    candidates.push({ race, score, reasons, time });
+    candidates.push({ race, score, reasons, kinds, time });
   }
   candidates.sort((a, b) => (b.score - a.score) || (a.time - b.time));  // 동점이면 빠른 날짜 먼저
-  return candidates.slice(0, Math.max(0, limit)).map(({ race, score, reasons }) => ({ race, score, reasons }));
+  return candidates.slice(0, Math.max(0, limit)).map(({ race, score, reasons, kinds }) => ({ race, score, reasons, kinds }));
 }

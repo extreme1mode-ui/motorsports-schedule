@@ -133,3 +133,13 @@
 /* 히어로 사진: 미리 로드해 onload에 opacity 0 → 1. 로드 전에는 .hero2의 var(--surface) 배경이 보인다. */
 .home .hero2-photo{opacity:0;transition:opacity var(--dur-move) var(--ease-out)}
 .home .hero2-photo.loaded{opacity:1}
+
+/* The compact identity header needs a readable title and explicit local time.
+   On phones, let the tools share the title row and give the clock its own row. */
+.home .pagehead-tools{display:flex;gap:5px;align-items:center}
+@media(max-width:599px){
+  .home .pagehead{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 12px;align-items:start}
+  .home .pagehead-tools{display:contents}
+  .home .pagehead .mobtools{grid-column:2;grid-row:1}
+  .home .pagehead .clock{grid-column:1 / -1;grid-row:2;justify-self:start}
+}

@@ -10,7 +10,7 @@ import { SERIES_DESCRIPTION_KEYS } from '../preferences-options.js';
 import { useFormat } from '../use-format.js';
 import { useT } from '../i18n/index.js';
 import { zonedDateFromKey } from '../schedule/format.js';
-import { scoreRace } from '../schedule/recommendations.js';
+import { getRecommendations } from '../schedule/recommendations.js';
 import { track } from '../analytics.js';
 import { prefetchRacePhoto, prefetchHandlers, useVisiblePrefetch } from '../photo-prefetch.js';
 import { usePop, useImageLoaded } from '../use-motion.js';
@@ -243,14 +243,15 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
   // --- 이후 일정 (관심 경기, 최대 7) ---
   const later = mine.filter((ev) => !used.has(ev.id) && isAlive(ts(ev).state)).slice(0, 7);
 
-  // --- 새로 볼만한 것: 관심이 꺼진 시리즈 중 가장 가까운 경기 ---
+  // --- 새로 볼만한 것: 추천 엔진이 점수로 고른다 (관심 경기 제외, 아직 안 끝난 것만) ---
   const mineIds = new Set(mine.map((ev) => ev.id));
-  let disc = null; let discSeries = null;
-  for (const s of ORDER) {
-    if (modeOf(preferences, s) !== 'off') continue;
-    const found = all.find((ev) => ev.series === s && !mineIds.has(ev.id) && isAlive(ts(ev).state));
-    if (found) { disc = found; discSeries = s; break; }
-  }
+  const discPool = all.filter((ev) => !mineIds.has(ev.id) && isAlive(ts(ev).state));
+  const discPicks = getRecommendations(discPool.map((ev) => ev.race), preferences, at, 1, fmt.locale);
+  const discRank = discPicks.length ? 0 : null;                 // 카드가 하나라 limit=1 — 순위는 배열 index
+  const discPick = discPicks[0] || null;
+  const disc = discPick ? discPool.find((ev) => ev.race === discPick.race) || null : null;
+  const discSeries = disc?.series ?? null;
+  const discReasons = (discPick?.reasons || []).filter(Boolean);
 
   const watching = ORDER.filter((s) => modeOf(preferences, s) !== 'off').length;
 
@@ -269,9 +270,9 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
   useEffect(() => {
     if (!disc || shownRef.current === discId) return;
     shownRef.current = discId;
-    track('recommendation_shown', { series: disc.series, reason_kinds: scoreRace(disc.race, preferences, at).kinds });
+    track('recommendation_shown', { series: disc.series, reason_kinds: discPick.kinds || [], score: discPick.score, rank: discRank });
   }, [discId]); // eslint-disable-line react-hooks/exhaustive-deps
-  const openDiscover = (race) => { track('recommendation_clicked', { series: race.series, position: 0 }); onOpenRace(race, 'recommendation'); };
+  const openDiscover = (race) => { track('recommendation_clicked', { series: race.series, position: discRank ?? 0 }); onOpenRace(race, 'recommendation'); };
 
   return (
     <div className="home">
@@ -280,7 +281,7 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
           <h1 className="ko" data-view-title tabIndex={-1} >{t('home.title')}</h1>
           <div className="sub ko">{t('home.watching', { count: watching })}</div>
         </div>
-        <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+        <div className="pagehead-tools">
           <span className="clock m">{fmt.zoneLabel} <Clock /></span>
           <div className="mobtools">
             <button type="button" className="iconbtn" aria-label={t('nav.settings')} onClick={() => onGo('settings')}><Icon name="sliders" /></button>
@@ -364,6 +365,11 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
             <h3 className="ko">{t('home.discover.title', { name: t(`series.${discSeries}.name`), josa: josa(t(`series.${discSeries}.name`), '은', '는') })}</h3>
             <p className="ko">{t('home.discover.body', { desc: t(SERIES_DESCRIPTION_KEYS[discSeries]) })}</p>
             <Card2 ev={disc} ts={ts(disc)} onOpen={openDiscover} small />
+            {discReasons.length > 0 && (
+              <div className="ko" style={{ marginTop: 8, fontSize: 11.5, color: 'var(--text3)', lineHeight: 1.45 }}>
+                {discReasons.join(' · ')}
+              </div>
+            )}
             <button type="button" className="cta ghost" style={{ marginTop: 11 }} onClick={() => { track('series_mode_changed', { series: discSeries, from: modeOf(preferences, discSeries), to: 'race' }); setSeriesMode?.(discSeries, 'race'); }}>{t('home.discover.add', { series: discSeries })}</button>
           </div>
         </>
