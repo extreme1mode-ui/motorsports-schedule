@@ -1,19 +1,26 @@
-// 캘린더 구독(.ics) — Vercel Function. GET /api/calendar.ics?series=F1,WEC&level=race&lang=ko
+// 캘린더 구독(.ics) — Vercel Function.
+//   구독:    GET /api/calendar.ics?series=F1,WEC&level=race&lang=ko&year=2026
+//   한 경기: GET /api/calendar.ics?race=<경기 id>&lang=ko  → 30분 전 VALARM이 붙은 파일 하나
 //
 // 시각은 데이터의 startUtc를 UTC 그대로 쓴다. 시간대 변환도, VTIMEZONE 블록도 만들지 않는다.
 // (구독자의 캘린더 앱이 자기 시간대로 보여준다.)
-import season from '../src/schedule/season-2026.json' with { type: 'json' };
+import season2026 from '../src/schedule/season-2026.json' with { type: 'json' };
+import season2027 from '../src/schedule/season-2027.json' with { type: 'json' };
 import { formatSessionLabel, getRaceLabels } from '../src/schedule/utils.js';
+
+// 연도별 시즌 데이터. 없는 연도는 400으로 돌려준다 — 다른 연도를 조용히 내보내면 섞인 일정이 된다.
+const SEASONS = { 2026: season2026, 2027: season2027 };
+const SUPPORTED_SEASONS = Object.keys(SEASONS).map(Number).sort((a, b) => a - b);
 
 const SERIES = ['F1', 'WEC', 'IMSA', 'WRC', 'GTWC'];
 const LEVELS = ['all', 'race'];
 const LANGS = ['ko', 'en'];
 const UID_DOMAIN = 'paddock.app';          // 호스트가 바뀌어도 UID가 흔들리지 않게 고정값
-const PRODID = '-//Paddock//2026 Motorsport Schedule//KO';
+const PRODID = '-//Paddock//Motorsport Schedule//KO';   // 연도를 넣지 않는다 — 한 코드가 여러 시즌을 낸다
 
 const CALNAME = {
-  ko: 'Paddock · 2026 모터스포츠',
-  en: 'Paddock · 2026 Motorsport',
+  ko: (year) => `Paddock · ${year} 모터스포츠`,
+  en: (year) => `Paddock · ${year} Motorsport`,
 };
 
 // 세션 기본 길이. 종료 시각이 데이터에 없을 때만 쓴다.
@@ -87,7 +94,7 @@ function raceDurationFromName(race) {
 
 // ---------- VEVENT ----------
 
-function buildEvent(race, session, { finishAt, lang, labels, uid, dtstamp }) {
+function buildEvent(race, session, { finishAt, lang, labels, uid, dtstamp, alarm = false }) {
   const start = toIcsUtc(session.startUtc);
   if (!start) return null;
 
@@ -111,7 +118,8 @@ function buildEvent(race, session, { finishAt, lang, labels, uid, dtstamp }) {
 
   const sessionLabel = formatSessionLabel(session.t, session.kind, lang);
   const title = [race.series, labels.shortName].filter(Boolean).join(' ');
-  lines.push(`SUMMARY:${escapeText(sessionLabel ? `${title} — ${sessionLabel}` : title)}`);
+  const summary = sessionLabel ? `${title} — ${sessionLabel}` : title;
+  lines.push(`SUMMARY:${escapeText(summary)}`);
 
   const location = [labels.circuit, labels.city].filter(Boolean).join(', ');
   if (location) lines.push(`LOCATION:${escapeText(location)}`);
@@ -124,21 +132,48 @@ function buildEvent(race, session, { finishAt, lang, labels, uid, dtstamp }) {
   }
 
   if (race.status === 'cancelled') lines.push('STATUS:CANCELLED');
+
+  // 30분 전 알람. 단일 경기(내려받는 파일)에만 넣는다 — 구독 캘린더는 클라이언트마다 알람 처리가 달라
+  // 기존 구독자의 동작을 바꾸면 안 된다.
+  if (alarm) {
+    lines.push('BEGIN:VALARM', 'TRIGGER:-PT30M', 'ACTION:DISPLAY',
+      `DESCRIPTION:${escapeText(summary)}`, 'END:VALARM');
+  }
+
   lines.push('END:VEVENT');
   return lines;
 }
 
+// 경기 id로 찾는다. 연도를 몰라도 되게 지원 시즌 전체를 본다.
+export function findRace(raceId) {
+  const id = String(raceId || '');
+  if (!id) return null;
+  for (const year of SUPPORTED_SEASONS) {
+    const race = SEASONS[year].find((r) => r.id === id);
+    if (race) return { race, year };
+  }
+  return null;
+}
+
+// 내려받는 파일 이름. 영문 이름 기준이라 locale과 무관하게 안전한 ASCII가 나온다.
+function fileNameFor(race) {
+  return `${slug(race.name) || slug(race.id) || 'race'}.ics`;
+}
+
 // ---------- 캘린더 본문 ----------
 
-export function buildCalendar({ series = null, level = 'race', lang = 'ko' } = {}) {
-  const wanted = series && series.length ? new Set(series) : null;
+export function buildCalendar({ series = null, level = 'race', lang = 'ko', year = SUPPORTED_SEASONS[0], race: raceId = null } = {}) {
+  // race가 오면 그 경기 하나만. 알람은 이 모드에서만 붙는다.
+  const single = raceId ? findRace(raceId) : null;
+  const season = single ? [single.race] : (SEASONS[Number(year)] || []);
+  const wanted = single ? null : (series && series.length ? new Set(series) : null);
   const lines = [
     'BEGIN:VCALENDAR',
     `PRODID:${PRODID}`,
     'VERSION:2.0',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    `X-WR-CALNAME:${escapeText(CALNAME[lang] || CALNAME.ko)}`,
+    `X-WR-CALNAME:${escapeText(single ? (getRaceLabels(single.race, lang).shortName || single.race.name) : (CALNAME[lang] || CALNAME.ko)(year))}`,
     'REFRESH-INTERVAL;VALUE=DURATION:PT12H',
     'X-PUBLISHED-TTL:PT12H',
   ];
@@ -164,7 +199,7 @@ export function buildCalendar({ series = null, level = 'race', lang = 'ko' } = {
       used.set(base, seen + 1);
       const uid = `${seen ? `${base}-${seen + 1}` : base}@${UID_DOMAIN}`;
 
-      const event = buildEvent(race, session, { finishAt, lang, labels, uid, dtstamp });
+      const event = buildEvent(race, session, { finishAt, lang, labels, uid, dtstamp, alarm: Boolean(single) });
       if (event) lines.push(...event);
     }
   }
@@ -180,7 +215,17 @@ export function parseQuery(url) {
   const series = rawSeries.filter((s) => SERIES.includes(s));
   const level = LEVELS.includes(params.get('level')) ? params.get('level') : 'race';
   const lang = LANGS.includes(params.get('lang')) ? params.get('lang') : 'ko';
-  return { series: series.length ? series : null, level, lang };
+  // year가 없으면 현재 연도. 잘못된 값이나 지원하지 않는 연도는 그대로 돌려 호출부가 400으로 처리한다.
+  const rawYear = params.get('year');
+  const year = Number(rawYear ?? new Date().getFullYear());
+  // race=<id>면 단일 경기 모드. 없는 id는 호출부가 404로 처리한다 (조용히 전체 일정을 주면 안 된다).
+  const race = params.get('race') || null;
+  const found = race ? findRace(race) : null;
+  return {
+    series: series.length ? series : null, level, lang, race,
+    raceFound: Boolean(found), raceName: found ? found.race.name : null,
+    year, yearSupported: Number.isInteger(year) && Boolean(SEASONS[year]),
+  };
 }
 
 export default function handler(req, res) {
@@ -190,11 +235,28 @@ export default function handler(req, res) {
     return;
   }
 
-  const { series, level, lang } = parseQuery(req.url || '/api/calendar.ics');
-  const body = buildCalendar({ series, level, lang });
+  const { series, level, lang, race, raceFound, year, yearSupported } = parseQuery(req.url || '/api/calendar.ics');
+
+  if (race && !raceFound) {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+    res.status(404).send(`Race not found: ${race}`);
+    return;
+  }
+  if (!race && !yearSupported) {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+    res.status(400).send(`Unsupported year: ${year}. Supported: ${SUPPORTED_SEASONS.join(', ')}`);
+    return;
+  }
+
+  const body = buildCalendar({ series, level, lang, year, race });
 
   res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
   res.setHeader('Cache-Control', 'public, s-maxage=3600');
-  res.setHeader('Content-Disposition', 'inline; filename="paddock.ics"');
+  // 단일 경기는 내려받아 캘린더 앱에서 여는 파일, 구독은 그대로 inline.
+  res.setHeader('Content-Disposition', race
+    ? `attachment; filename="${fileNameFor(findRace(race).race)}"`
+    : 'inline; filename="paddock.ics"');
   res.status(200).send(req.method === 'HEAD' ? '' : body);
 }

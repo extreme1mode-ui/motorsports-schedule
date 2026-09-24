@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getFallbackScheduleData, loadScheduleData } from './service.js';
+import { getFallbackScheduleData, hasSeasonData, loadScheduleData } from './service.js';
 
 export function getCurrentNow() {
   return new Date();
@@ -21,10 +21,11 @@ function loadScheduleCached(year, { force = false } = {}) {
 export function useScheduleData(now = new Date()) {
   const seasonYear = now.getFullYear();
   const [state, setState] = useState(() => ({
-    races: getFallbackScheduleData(now),
+    races: getFallbackScheduleData(seasonYear, now),
     loading: true,
     error: null,
     usingFallback: true,
+    seasonSupported: hasSeasonData(seasonYear),
     lastUpdatedAt: null,
   }));
 
@@ -42,6 +43,7 @@ export function useScheduleData(now = new Date()) {
         loading: false,
         error: nextState.error,
         usingFallback: nextState.usingFallback,
+        seasonSupported: nextState.seasonSupported !== false,   // 해당 연도 데이터가 아예 없으면 false (빈 일정)
         lastUpdatedAt: nextState.lastUpdatedAt,
       });
     }

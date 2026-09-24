@@ -194,11 +194,27 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
   const [, setExpiredTick] = useState(0);
   const onExpire = useCallback(() => setExpiredTick((n) => n + 1), []);
   useEffect(() => { storage.alerts.write(alerts); }, [alerts]);
-  const toggleAlert = (id) => setAlerts((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
 
   const fmt = useFormat();
   const t = useT();
   const at = useMemo(() => (now instanceof Date ? now : new Date(now)), [now]);
+
+  // 알림 = 그 경기 하나짜리 .ics를 내려받아 OS 캘린더에 담는 것(30분 전 알람 포함).
+  // localStorage는 "이미 담았다"는 표시용으로만 쓴다 — 담긴 뒤에 우리가 지울 수는 없다.
+  const toggleAlert = (ev) => {
+    const id = ev?.id;
+    if (!id) return;
+    const already = alerts.has(id);
+    if (!already) {
+      const start = ev.startUtc ? new Date(ev.startUtc) : null;
+      const daysUntil = start ? Math.round((start.getTime() - at.getTime()) / 86400000) : null;   // at = 분 단위로 고정된 현재 시각
+      track('race_alarm_added', { series: ev.series, race_id: id, ...(daysUntil === null ? {} : { days_until: daysUntil }) });
+      // OpenF1 경로의 F1은 id가 meeting_key 기반이라 정적 데이터에 없다 — 매칭된 정적 id를 쓴다.
+      const calendarId = ev.race?.staticId || id;
+      window.open(`/api/calendar.ics?race=${encodeURIComponent(calendarId)}&lang=${fmt.locale}`, '_blank', 'noopener,noreferrer');
+    }
+    setAlerts((prev) => { const next = new Set(prev); if (already) next.delete(id); else next.add(id); return next; });
+  };
 
   // 관심 경기(myRaces)와 전체(races)를 홈 형태로. 시간 상태는 한 번만 계산해 id로 찾는다.
   const mine = useMemo(() => adaptRaces(myRaces || [], preferences, fmt.locale), [myRaces, preferences, fmt.locale]);
@@ -325,7 +341,7 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
                       // "○○로 보기"는 중계처 랜딩으로 바로 나간다 (새 탭). 클릭 계측은 onClick, 이동은 브라우저 기본 동작.
                       ? <a className="cta" href={bcast[0].url} target="_blank" rel="noopener noreferrer" onClick={() => track('broadcast_clicked', { name: bcast[0].name, region: bcast[0].region, access: bcast[0].access, series: hero.series, source: 'home' })}>{t('home.watchOn', { channel: chans[0] })}</a>
                       : <button type="button" className="cta" onClick={() => onOpenRace(hero.race)}>{t('home.watchOn', { channel: chans[0] })}</button>)
-                    : <button type="button" className="cta" onClick={() => toggleAlert(hero.id)}>{alertOn ? t('home.alertOn') : t('home.alertSet')}</button>}
+                    : <button type="button" className="cta" onClick={() => toggleAlert(hero)}>{alertOn ? t('home.alertOn') : t('home.alertSet')}</button>}
                   <HeartButton on={!!faved} label={t('aria.save')} onClick={() => toggleFav?.(hero.id)} />
                   <button type="button" className="linkbtn" onClick={() => onOpenRace(hero.race)}>{t('home.detail')}</button>
                 </div>

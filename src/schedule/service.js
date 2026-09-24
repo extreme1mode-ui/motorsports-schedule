@@ -1,4 +1,5 @@
-import seasonRaces from './season-2026.json' with { type: 'json' };
+import season2026 from './season-2026.json' with { type: 'json' };
+import season2027 from './season-2027.json' with { type: 'json' };
 import { SUPPORTED_SERIES } from './constants.js';
 import { getRaceKey } from './highlights.js';
 import {
@@ -15,14 +16,41 @@ import {
   sortRacesByPrimaryDate,
 } from './utils.js';
 
-// OpenF1 경로의 중계처: 날짜로 매칭된 정적 레코드의 값. 매칭이 없으면 정적 F1 데이터의 첫 중계처 목록(전 라운드 동일).
-const F1_BROADCAST = seasonRaces.find((race) => race.series === 'F1' && Array.isArray(race.broadcast) && race.broadcast.length)?.broadcast ?? [];
 const OPEN_F1_MEETINGS_URL = 'https://api.openf1.org/v1/meetings';
 const OPEN_F1_SESSIONS_URL = 'https://api.openf1.org/v1/sessions';
 
-// 검증된 2026 시즌 정적 데이터. OpenF1 API 실패 시 F1도 이 데이터로 떨어진다.
-function getStaticFallbackRaces() {
-  return seasonRaces;
+// 연도별 정적 시즌 데이터. OpenF1 API 실패 시 F1도 이 데이터로 떨어진다.
+// 없는 연도를 조용히 다른 연도로 떨어뜨리지 않는다 — 그러면 두 시즌이 섞인 일정이 나온다.
+const SEASONS = {
+  2026: season2026,
+  2027: season2027,
+};
+export const SUPPORTED_SEASONS = Object.keys(SEASONS).map(Number).sort((a, b) => a - b);
+
+export function hasSeasonData(year) {
+  return Array.isArray(SEASONS[Number(year)]);
+}
+
+export function getStaticFallbackRaces(year) {
+  const races = SEASONS[Number(year)];
+  if (!races) {
+    warnMissingSeason(year);
+    return [];
+  }
+  return races;
+}
+
+// 같은 연도로 반복 경고하지 않는다.
+const warnedSeasons = new Set();
+function warnMissingSeason(year) {
+  if (warnedSeasons.has(year)) return;
+  warnedSeasons.add(year);
+  console.warn(`[schedule] ${year} 시즌 데이터가 없습니다. 지원 연도: ${SUPPORTED_SEASONS.join(', ')}. 빈 일정을 돌려줍니다.`);
+}
+
+// OpenF1 경로의 중계처: 날짜로 매칭된 정적 레코드의 값. 매칭이 없으면 그 연도 F1 데이터의 첫 중계처 목록(전 라운드 동일).
+function f1BroadcastFor(year) {
+  return getStaticFallbackRaces(year).find((race) => race.series === 'F1' && Array.isArray(race.broadcast) && race.broadcast.length)?.broadcast ?? [];
 }
 
 function normalizeRaceCollection(races, source, now = new Date()) {
@@ -46,7 +74,7 @@ function selectPrimarySession(sessions) {
     || sessions[0];
 }
 
-// OpenF1 meeting ↔ season-2026.json의 F1 레코드 매칭. 키는 **주말 날짜 구간 겹침(현지 날짜)**.
+// OpenF1 meeting ↔ 해당 연도 season-YYYY.json의 F1 레코드 매칭. 키는 **주말 날짜 구간 겹침(현지 날짜)**.
 //  - round: OpenF1 응답에 없고, 정적 라운드도 재편됨(바레인 4→16) → 불안정
 //  - name : 'Barcelona Grand Prix' ≠ 'Barcelona-Catalunya Grand Prix', 'Bahrain Grand Prix'가 2건(4월 취소분·10월 세팡) → 모호
 //  - date : F1은 같은 주에 두 대회가 없고, 연기된 바레인도 정적 데이터가 10월로 반영돼 있어 1:1 → 채택
@@ -56,7 +84,7 @@ const STATIC_KO_FIELDS = ['nameKo', 'shortNameKo', 'circuitKo', 'cityKo', 'count
 const STATIC_IDENTITY_FIELDS = ['nameKo', 'shortNameKo', 'countryKo'];
 const normalizeMeetingName = (name) => String(name || '').toLowerCase().replace(/grand prix/g, '').replace(/[^a-z0-9]/g, '');
 
-function matchStaticF1(meetings, staticF1) {
+function matchStaticF1(meetings, staticF1, year) {
   const matches = new Map();
   const claimed = new Set();
   const claim = (meeting, race, full) => { claimed.add(race.id); matches.set(meeting.meeting_key, { race, full }); };
@@ -86,12 +114,12 @@ function matchStaticF1(meetings, staticF1) {
   }
   const unmatched = meetings.filter((meeting) => !meeting.is_cancelled && !matches.get(meeting.meeting_key)?.full);
   if (unmatched.length) {
-    console.warn(`[schedule] OpenF1 F1 경기 ${unmatched.length}건이 season-2026.json과 매칭되지 않아 한글 표시명 없이 표시됩니다: ${unmatched.map((m) => `${m.meeting_name} (${localRaceDay(m)})`).join(', ')}`);
+    console.warn(`[schedule] OpenF1 F1 경기 ${unmatched.length}건이 season-${year}.json과 매칭되지 않아 한글 표시명 없이 표시됩니다: ${unmatched.map((m) => `${m.meeting_name} (${localRaceDay(m)})`).join(', ')}`);
   }
   return matches;
 }
 
-function mapOpenF1Meeting(meeting, sessions, match = null) {
+function mapOpenF1Meeting(meeting, sessions, match = null, fallbackBroadcast = []) {
   const orderedSessions = [...sessions].sort((left, right) => new Date(left.date_start) - new Date(right.date_start));
   const primary = selectPrimarySession(orderedSessions);
   const offset = meeting.gmt_offset?.slice(0, 6) || '+00:00';
@@ -109,6 +137,9 @@ function mapOpenF1Meeting(meeting, sessions, match = null) {
     name: meeting.meeting_name,
     // 정적 데이터의 한글 표시명 보존 (없으면 null → 영문 폴백)
     ...Object.fromEntries(koFields.map((field) => [field, staticRace?.[field] ?? null])),
+    // 정적 레코드의 id. 캘린더 파일(/api/calendar.ics?race=)은 정적 데이터로 만들기 때문에
+    // API 경로의 id(f1-<meeting_key>)로는 찾을 수 없다.
+    staticId: match?.full ? (staticRace?.id ?? null) : null,
     status: meeting.is_cancelled ? 'cancelled' : 'scheduled',
     shortName: meeting.meeting_name?.replace(/ Grand Prix/i, ' GP') || meeting.meeting_name,
     eventName: meeting.meeting_name,
@@ -130,7 +161,7 @@ function mapOpenF1Meeting(meeting, sessions, match = null) {
       startUtc: session.date_start,
       endUtc: session.date_end,
     })),
-    broadcast: (match?.full && Array.isArray(staticRace?.broadcast) && staticRace.broadcast.length) ? staticRace.broadcast : F1_BROADCAST,
+    broadcast: (match?.full && Array.isArray(staticRace?.broadcast) && staticRace.broadcast.length) ? staticRace.broadcast : fallbackBroadcast,
     timezone,
     isSprint: orderedSessions.some((session) => session.session_type === 'Sprint'),
     eventStartUtc: coerceIsoWithOffset(meeting.date_start),
@@ -159,19 +190,30 @@ async function fetchOpenF1Schedule(year) {
   }, new Map());
 
   const grandPrix = meetings.filter(isGrandPrixMeeting);
-  const matches = matchStaticF1(grandPrix, getStaticFallbackRaces().filter((race) => race.series === 'F1'));
+  const matches = matchStaticF1(grandPrix, getStaticFallbackRaces(year).filter((race) => race.series === 'F1'), year);
+  const fallbackBroadcast = f1BroadcastFor(year);
   return grandPrix
     // 취소된 meeting이 이름으로만 매칭됐다면(= 같은 이름의 정적 레코드를 다른 날짜의 meeting이 이미 점유) 옮겨진 대회의
     // 옛 일정이다. 정적 데이터는 이를 한 라운드로 취급하므로 여기서도 뺀다 (예: 4월 바레인 → 10월 세팡).
     .filter((meeting) => !(meeting.is_cancelled && matches.get(meeting.meeting_key) && !matches.get(meeting.meeting_key).full))
-    .map((meeting) => mapOpenF1Meeting(meeting, sessionsByMeeting.get(meeting.meeting_key) || [], matches.get(meeting.meeting_key) || null));
+    .map((meeting) => mapOpenF1Meeting(meeting, sessionsByMeeting.get(meeting.meeting_key) || [], matches.get(meeting.meeting_key) || null, fallbackBroadcast));
 }
 
 export async function loadScheduleData(year, now = new Date()) {
-  const fallback = normalizeRaceCollection(getStaticFallbackRaces(), 'fallback', now);
+  const seasonSupported = hasSeasonData(year);
+  const fallback = normalizeRaceCollection(getStaticFallbackRaces(year), 'fallback', now);
+
+  // 데이터가 없는 연도는 빈 일정을 그대로 돌려준다. 다른 연도로 떨어뜨리면 섞인 일정이 나온다.
+  if (!seasonSupported) {
+    return { races: [], error: null, usingFallback: true, seasonSupported: false, seasonYear: Number(year), lastUpdatedAt: new Date().toISOString() };
+  }
 
   try {
     const f1FromApi = await fetchOpenF1Schedule(year);
+    // OpenF1에 아직 그 시즌이 없으면(빈 배열) 정적 F1을 살린다. 안 그러면 F1만 통째로 사라진다.
+    if (!f1FromApi.length) {
+      return { races: fallback, error: null, usingFallback: true, seasonSupported: true, seasonYear: Number(year), lastUpdatedAt: new Date().toISOString() };
+    }
     const merged = [
       ...fallback.filter((race) => race.series !== 'F1'),
       ...normalizeRaceCollection(f1FromApi, 'api', now),
@@ -181,6 +223,8 @@ export async function loadScheduleData(year, now = new Date()) {
       races: normalizeRaceCollection(merged, 'mixed', now),
       error: null,
       usingFallback: false,
+      seasonSupported: true,
+      seasonYear: Number(year),
       lastUpdatedAt: new Date().toISOString(),
     };
   } catch (error) {
@@ -188,11 +232,13 @@ export async function loadScheduleData(year, now = new Date()) {
       races: fallback,
       error,
       usingFallback: true,
+      seasonSupported: true,
+      seasonYear: Number(year),
       lastUpdatedAt: new Date().toISOString(),
     };
   }
 }
 
-export function getFallbackScheduleData(now = new Date()) {
-  return normalizeRaceCollection(getStaticFallbackRaces(), 'fallback', now);
+export function getFallbackScheduleData(year, now = new Date()) {
+  return normalizeRaceCollection(getStaticFallbackRaces(year), 'fallback', now);
 }
