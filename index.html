@@ -40,6 +40,121 @@
   </head>
   <body>
     <div id="root"></div>
+
+    <!-- 스플래시: 빔 → 불이 한 열씩 → 워드마크 → 불이 한꺼번에 꺼지며 걷힘.
+         JS 번들보다 먼저 보여야 해서 index.html에 직접 넣는다. 앱 렌더링은 막지 않는다.
+         테마는 localStorage['paddock.theme']를 따르고(React가 data-theme을 붙이기 전이라), 한 세션에 한 번만 나온다. -->
+    <style>
+      #gt-splash{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;background:#07080B;color:#F2F4F7;
+        transition:opacity 260ms cubic-bezier(.2,.8,.25,1);-webkit-user-select:none;user-select:none;cursor:pointer}
+      #gt-splash[data-tone="light"]{background:#F2F3F5;color:#14161C}
+      #gt-splash.gs-hide{opacity:0;pointer-events:none}
+      #gt-splash.gs-gone{display:none}
+      #gt-splash .gs-grid{position:absolute;inset:0;background-image:radial-gradient(circle at center,currentColor 0 2.1px,transparent 2.6px);
+        background-size:12px 12px;opacity:.05;
+        -webkit-mask-image:radial-gradient(ellipse 60% 55% at 50% 48%,transparent 30%,#000 100%);
+        mask-image:radial-gradient(ellipse 60% 55% at 50% 48%,transparent 30%,#000 100%)}
+      #gt-splash .gs-mark{position:relative;display:grid;justify-items:center;gap:30px;transform:translateY(-4%)}
+      #gt-splash .gs-sym{width:clamp(112px,26vw,168px);height:auto;display:block;overflow:visible}
+      #gt-splash .gs-beam{transform-box:fill-box;transform-origin:0 50%;transform:scaleX(0)}
+      #gt-splash.gs-run .gs-beam{transform:scaleX(1);transition:transform 340ms cubic-bezier(.2,.8,.25,1)}
+      #gt-splash .gs-col{opacity:.14}
+      #gt-splash .gs-col.on{opacity:1;transition:opacity 180ms linear}
+      #gt-splash .gs-col.out{opacity:.14;transition:none}
+      #gt-splash .gs-word{height:clamp(15px,3.4vw,19px);width:auto;display:block;opacity:0;transform:translateY(6px)}
+      #gt-splash .gs-word.in{opacity:1;transform:none;transition:opacity 420ms cubic-bezier(.2,.8,.25,1),transform 420ms cubic-bezier(.2,.8,.25,1)}
+      #gt-splash .gs-foot{position:absolute;left:0;right:0;bottom:calc(36px + env(safe-area-inset-bottom,0px));
+        display:flex;flex-direction:column;align-items:center;gap:12px}
+      #gt-splash .gs-lbl{font:600 11px/1 "Pretendard Variable",Pretendard,system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;
+        font-feature-settings:"case","tnum";color:#7C818E}
+      #gt-splash[data-tone="light"] .gs-lbl{color:#6A6E78}
+      #gt-splash .gs-cap{font:600 15px/1.2 "Pretendard Variable",Pretendard,system-ui,sans-serif;letter-spacing:-.01em;min-height:18px;opacity:0;
+        transition:opacity 260ms cubic-bezier(.2,.8,.25,1)}
+      #gt-splash .gs-cap.in{opacity:1}
+      @media (prefers-reduced-motion: reduce){ #gt-splash *{transition:none!important;animation:none!important} }
+    </style>
+    <div id="gt-splash" role="presentation" aria-hidden="true">
+      <div class="gs-grid"></div>
+      <div class="gs-mark">
+        <svg class="gs-sym" viewBox="0 0 1330 708" fill="currentColor" aria-hidden="true" focusable="false">
+          <rect class="gs-beam" x="0" y="0" width="1330" height="122" rx="61"/>
+          <g class="gs-col"><circle cx="105" cy="330" r="98"/><circle cx="105" cy="610" r="98"/></g>
+          <g class="gs-col"><circle cx="385" cy="330" r="98"/><circle cx="385" cy="610" r="98"/></g>
+          <g class="gs-col"><circle cx="665" cy="330" r="98"/><circle cx="665" cy="610" r="98"/></g>
+          <g class="gs-col"><circle cx="945" cy="330" r="98"/><circle cx="945" cy="610" r="98"/></g>
+          <g class="gs-col"><circle cx="1225" cy="330" r="98"/><circle cx="1225" cy="610" r="98"/></g>
+        </svg>
+        <svg class="gs-word" viewBox="0 0 4576 700" aria-hidden="true" focusable="false"><path fill="currentColor" d="M200,0h300c154.5,0 197.1,37.3 199.9,184h-144.9c-4.7,-48.9 -26.1,-62 -86.9,-62h-236c-70.4,0 -88,17.6 -88,88v280c0,70.4 17.6,88 88,88h236c70.4,0 88,-17.6 88,-88v-39h-206v-122h350v171c0,160 -40,200 -200,200h-300c-160,0 -200,-40 -200,-200v-300c0,-160 40,-200 200,-200zM764,700l235,-700h300l235,700h-146.9l-53,-158h-370.2l-53,158zM1004.9,420h288.2l-100,-298h-88.2zM1618,700v-700h187.2l339,481.6l17.4,33.3l-7.6,-36.4v-478.5h144v700h-187.2l-339,-481.6l-17.4,-33.3l7.6,36.4v478.5zM2451,0h528c48.8,0 61,12.2 61,61c0,48.8 -12.2,61 -61,61l-192,0v578h-144v-578h-192c-48.8,0 -61,-12.2 -61,-61c0,-48.8 12.2,-61 61,-61zM3128,700v-700h470c147.2,0 184,36.8 184,184v74.5c0,113.4 -27.9,143.1 -138.8,144l164.8,297.5h-175.7l-164.8,-297.5h-195.6v297.5zM3585.2,280.5c42.2,0 52.8,-10.6 52.8,-52.8v-26.5c0,-63.4 -15.8,-79.2 -79.2,-79.2h-286.8v158.5zM3816,0h181.4l187.7,227.1l9.2,33.5l12.5,-33.5l187.7,-227.1h181.4l-308,372.6v327.4h-144v-327.4z"/></svg>
+        <div class="gs-cap"></div>
+      </div>
+      <div class="gs-foot"><span class="gs-lbl">Know when it’s lights out.</span><span class="gs-lbl" style="opacity:.7">2026 Season</span></div>
+    </div>
+    <script>
+      /* 빔 340ms → 불 한 열씩(180ms, 110ms 간격) → 워드마크 420ms → 잠깐 유지 → 불이 한꺼번에 꺼짐(0ms) → 걷힘 260ms */
+      (function () {
+        var el = document.getElementById('gt-splash');
+        if (!el) return;
+        var cols = [].slice.call(el.querySelectorAll('.gs-col'));
+        var word = el.querySelector('.gs-word'), cap = el.querySelector('.gs-cap');
+        var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var timers = [], busy = false, resolveFn = null;
+        function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+        function clear() { timers.forEach(clearTimeout); timers = []; }
+        function tone() {
+          var t = null;
+          try { t = localStorage.getItem('paddock.theme'); } catch (e) { /* 프라이빗 모드 */ }
+          if (!t) t = document.documentElement.getAttribute('data-theme');
+          el.setAttribute('data-tone', t === 'light' ? 'light' : 'dark');
+        }
+        function reset() {
+          el.classList.remove('gs-run', 'gs-hide', 'gs-gone');
+          cols.forEach(function (c) { c.classList.remove('on', 'out'); });
+          word.classList.remove('in'); cap.classList.remove('in');
+        }
+        function finish() {
+          clear();
+          cols.forEach(function (c) { c.classList.remove('on'); c.classList.add('out'); });   // 한꺼번에 꺼짐(페이드 없음)
+          later(function () { el.classList.add('gs-hide'); }, reduce ? 0 : 160);
+          later(function () {
+            el.classList.add('gs-gone'); busy = false;
+            if (resolveFn) { resolveFn(); resolveFn = null; }
+          }, reduce ? 10 : 440);
+        }
+        function play(opts) {
+          opts = opts || {};
+          clear(); reset(); tone(); busy = true;
+          cap.textContent = opts.caption || '';
+          return new Promise(function (res) {
+            resolveFn = res;
+            void el.offsetWidth;
+            if (reduce) {   // 모션 줄이기: 애니메이션 없이 짧게 보여 주고 끝낸다
+              cols.forEach(function (c) { c.classList.add('on'); });
+              word.classList.add('in'); if (opts.caption) cap.classList.add('in');
+              el.classList.add('gs-run'); later(finish, 600); return;
+            }
+            requestAnimationFrame(function () { el.classList.add('gs-run'); });
+            var t0 = opts.caption ? 120 : 180;
+            cols.forEach(function (c, i) { later(function () { c.classList.add('on'); }, t0 + 340 + i * 110); });
+            later(function () { word.classList.add('in'); }, t0 + 520);
+            if (opts.caption) later(function () { cap.classList.add('in'); }, t0 + 700);
+            later(finish, t0 + 340 + 4 * 110 + 180 + (opts.caption ? 900 : 620));
+          });
+        }
+        el.addEventListener('click', function () { if (busy) finish(); });
+        document.addEventListener('keydown', function (e) {
+          if (busy && (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ')) finish();
+        });
+        window.__gantrySplash = { play: play };
+        // 한 세션에 한 번만. 다시 보려면 __gantrySplash.play()를 부른다(온보딩 완료 등).
+        var seen = false;
+        try { seen = sessionStorage.getItem('gantry.splash') === '1'; } catch (e) { /* 무시 */ }
+        if (seen) { el.classList.add('gs-gone'); }
+        else {
+          try { sessionStorage.setItem('gantry.splash', '1'); } catch (e) { /* 무시 */ }
+          play();
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
