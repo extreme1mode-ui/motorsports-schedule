@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { TOKENS, Mono, SeriesTag, AccessBadge, ExternalIcon, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay, FONT_DATA } from './primitives.jsx';
-import { CATEGORIES, SERIES, getVisibleSessions, getSeriesStats, getRaceStartUtc } from './schedule/index.js';
+import { CATEGORIES, SERIES, getVisibleSessions, getSeriesStats, getRaceStartUtc, buildRaceWeekBars } from './schedule/index.js';
 import { useFormat } from './use-format.js';
 import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
@@ -15,6 +15,18 @@ import { useRecommendationShown } from './use-analytics.js';
 const startMs = (r) => { const iso = getRaceStartUtc(r) || r.primaryStartUtc; return iso ? new Date(iso).getTime() : Number.MAX_SAFE_INTEGER; };
 const byStart = (a, b) => startMs(a) - startMs(b);
 const viewerParts = (fmt, r) => fmt.parts(getRaceStartUtc(r) || r.primaryStartUtc);
+
+// 달력 막대 치수. 오버레이 grid가 날짜 칸 grid와 열이 정확히 겹쳐야 해서 gap을 공유한다.
+// CAL_BAR_TOP = 칸 위 패딩(8) + 날짜 숫자 줄(≈16) + 숫자와 막대 사이(6)
+const CAL_GAP = 6;
+const CAL_BAR_H = 18;
+const CAL_BAR_GAP = 3;
+const CAL_BAR_TOP = 30;
+const CAL_LANES = 4;
+const CAL_CELL_MIN = 96;
+// 레인이 많은 주는 칸이 막대를 담도록 늘어난다 (오버레이는 절대배치라 높이에 기여하지 않는다).
+const weekMinHeight = (lanes, hasMore) =>
+  Math.max(CAL_CELL_MIN, CAL_BAR_TOP + lanes * CAL_BAR_H + Math.max(0, lanes - 1) * CAL_BAR_GAP + (hasMore ? 14 : 0) + 8);
 import { PageHeader } from './web.jsx';
 import { SectionTitle } from './web.jsx';
 
@@ -101,16 +113,15 @@ function BigMonthGrid({ theme, month, races, onOpen, now, seasonYear }) {
   const firstDow = new Date(Date.UTC(year, month, 1)).getUTCDay();
   const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
 
-  const byDay = {};
-  for (const r of races) {
-    const d = Number(viewerParts(fmt, r)?.day || 0);
-    (byDay[d] = byDay[d] || []).push(r);
-  }
+  // 레이스 위크 전체를 잇는 막대. 세션 시각을 시청자 시간대로 옮겨 만든다 (서킷 현지 주말 날짜가 아니다).
+  const { weeks: barWeeks } = buildRaceWeekBars(races, { parts: fmt.parts, year, month, firstDow, daysInMonth, maxLanes: CAL_LANES });
 
   const cells = [];
   for (let i = 0; i < firstDow; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
   while (cells.length % 7) cells.push(null);
+  const weekRows = [];
+  for (let i = 0; i < cells.length; i += 7) weekRows.push(cells.slice(i, i + 7));
 
   const todayStr = now.toISOString().slice(0, 10);
 
@@ -129,43 +140,74 @@ function BigMonthGrid({ theme, month, races, onOpen, now, seasonYear }) {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 6 }}>
-        {cells.map((d, i) => {
-          if (!d) return <div key={i} style={{ minHeight: 96 }} />;
-          const dayRaces = byDay[d] || [];
-          const dateKey = `${seasonYear}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-          const isToday = dateKey === todayStr;
-          const isSun = i % 7 === 0; const isSat = i % 7 === 6;
+      {/* 주마다 컨테이너 하나. 그 위에 같은 열 구조의 오버레이를 얹어 칸을 넘어가는 막대를 그린다. */}
+      <div style={{ display: 'grid', gap: CAL_GAP }}>
+        {weekRows.map((row, w) => {
+          const week = barWeeks[w] || { segments: [], overflow: {}, byDay: {} };
+          const lanes = week.segments.reduce((n, seg) => Math.max(n, seg.lane + 1), 0);
+          const minHeight = weekMinHeight(lanes, Object.keys(week.overflow).length > 0);
           return (
-            <div key={i} className={dayRaces.length ? 'press-chip' : undefined} {...(dayRaces.length ? prefetchHandlers(dayRaces[0]) : null)} onClick={() => dayRaces[0] && onOpen(dayRaces[0])} style={{
-              minHeight: 96, minWidth: 0, borderRadius: 10, padding: 8,
-              background: isToday ? (theme === 'dark' ? '#fff' : '#111') : 'transparent',
-              border: `1px solid ${isToday ? 'transparent' : t.line}`,
-              cursor: dayRaces.length ? 'pointer' : 'default',
-              display: 'flex', flexDirection: 'column',
-            }}>
-              <Mono size={13} weight={isToday ? 700 : 500}
-                color={isToday ? (theme === 'dark' ? '#111' : '#fff') : isSun ? '#FF6B7A' : isSat ? '#6BA3FF' : t.text}
-                style={{ display: 'block' }}>
-                {d}
-              </Mono>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 6, flex: 1, minWidth: 0 }}>
-                {dayRaces.slice(0, 3).map((r, j) => (
-                  <div key={j} title={fmt.race(r).name} style={{
-                    fontSize: 10, fontWeight: 600, letterSpacing: '-0.005em',
-                    padding: '3px 5px', borderRadius: 4,
-                    background: SERIES[r.series].accent, color: '#fff',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    opacity: r.status === 'cancelled' ? 0.45 : 1,
-                    textDecoration: r.status === 'cancelled' ? 'line-through' : 'none',
-                  }}>{fmt.race(r).shortName}</div>
-                ))}
-                {dayRaces.length > 3 && (
-                  <Mono size={9} color={isToday ? (theme === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)') : t.text3}
-                    style={{ letterSpacing: '0.08em', marginTop: 2 }}>
-                    +{dayRaces.length - 3}
-                  </Mono>
-                )}
+            <div key={w} style={{ position: 'relative' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: CAL_GAP }}>
+                {row.map((d, i) => {
+                  if (!d) return <div key={i} style={{ minHeight }} />;
+                  const dayRaces = week.byDay[d] || [];
+                  const more = week.overflow[d] || 0;
+                  const dateKey = `${seasonYear}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                  const isToday = dateKey === todayStr;
+                  const isSun = i % 7 === 0; const isSat = i % 7 === 6;
+                  return (
+                    <div key={i} className={dayRaces.length ? 'press-chip' : undefined} {...(dayRaces.length ? prefetchHandlers(dayRaces[0]) : null)} onClick={() => dayRaces[0] && onOpen(dayRaces[0])} style={{
+                      minHeight, minWidth: 0, borderRadius: 10, padding: 8,
+                      background: isToday ? (theme === 'dark' ? '#fff' : '#111') : 'transparent',
+                      border: `1px solid ${isToday ? 'transparent' : t.line}`,
+                      cursor: dayRaces.length ? 'pointer' : 'default',
+                      display: 'flex', flexDirection: 'column',
+                    }}>
+                      <Mono size={13} weight={isToday ? 700 : 500}
+                        color={isToday ? (theme === 'dark' ? '#111' : '#fff') : isSun ? '#FF6B7A' : isSat ? '#6BA3FF' : t.text}
+                        style={{ display: 'block' }}>
+                        {d}
+                      </Mono>
+                      <div style={{ flex: 1 }} />
+                      {more > 0 && (
+                        <Mono size={9} color={isToday ? (theme === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)') : t.text3}
+                          style={{ letterSpacing: '0.08em' }}>
+                          +{more}
+                        </Mono>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* 막대 오버레이. 빈 곳은 pointer-events로 통과시켜 날짜 칸 클릭을 막지 않는다. */}
+              <div style={{
+                position: 'absolute', inset: 0, display: 'grid',
+                gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+                columnGap: CAL_GAP, rowGap: CAL_BAR_GAP, gridAutoRows: CAL_BAR_H,
+                alignContent: 'start', paddingTop: CAL_BAR_TOP, pointerEvents: 'none',
+              }}>
+                {week.segments.map((seg, j) => {
+                  const r = seg.race;
+                  return (
+                    <div key={j} className="press-chip" title={fmt.race(r).name}
+                      {...prefetchHandlers(r)} onClick={() => onOpen(r)}
+                      style={{
+                        gridColumn: `${seg.startCol + 1} / ${seg.endCol + 2}`, gridRow: seg.lane + 1,
+                        height: CAL_BAR_H, minWidth: 0, boxSizing: 'border-box',
+                        fontSize: 10, fontWeight: 600, letterSpacing: '-0.005em', lineHeight: '12px',
+                        padding: '3px 5px', background: SERIES[r.series].accent, color: '#fff',
+                        // 이어지는 쪽은 각지게 + 칸 끝까지. 실제 시작·끝만 둥글게 하고 안쪽으로 들인다.
+                        borderRadius: `${seg.roundStart ? 4 : 0}px ${seg.roundEnd ? 4 : 0}px ${seg.roundEnd ? 4 : 0}px ${seg.roundStart ? 4 : 0}px`,
+                        marginLeft: seg.roundStart ? 4 : 0, marginRight: seg.roundEnd ? 4 : 0,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        opacity: r.status === 'cancelled' ? 0.45 : 1,
+                        textDecoration: r.status === 'cancelled' ? 'line-through' : 'none',
+                        pointerEvents: 'auto', cursor: 'pointer',
+                      }}>{fmt.race(r).shortName}</div>
+                  );
+                })}
               </div>
             </div>
           );

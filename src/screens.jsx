@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { CATEGORIES, SERIES, getVisibleSessions, getSeriesStats, getRaceStartUtc } from './schedule/index.js';
+import { CATEGORIES, SERIES, getVisibleSessions, getSeriesStats, getRaceStartUtc, buildRaceWeekBars } from './schedule/index.js';
 import { TOKENS, Mono, SeriesTag, AccessBadge, ExternalIcon, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay, FONT_DATA } from './primitives.jsx';
 import { useFormat } from './use-format.js';
 import { useT } from './i18n/index.js';
@@ -16,6 +16,14 @@ const startMs = (r) => { const iso = getRaceStartUtc(r) || r.primaryStartUtc; re
 const byStart = (a, b) => startMs(a) - startMs(b);
 // 시청자 달력 기준 파트 (시작 시각 → 사용자 시간대). 시작 미정이면 primaryStartUtc(주말 시작)로.
 const viewerParts = (fmt, r) => fmt.parts(getRaceStartUtc(r) || r.primaryStartUtc);
+
+// 달력 막대 치수. 오버레이 grid가 날짜 칸 grid와 열이 정확히 겹쳐야 해서 gap을 공유한다.
+// CAL_BAR_TOP = 칸 위 패딩(5) + 날짜 숫자 줄(≈13) + 숫자와 막대 사이(3)
+const CAL_GAP = 3;
+const CAL_BAR_H = 4;
+const CAL_BAR_GAP = 2;
+const CAL_BAR_TOP = 21;
+const CAL_LANES = 3;
 
 // 터치 타깃 44px (QA R4). 버튼 상자는 투명 44px, 보이는 상자는 안쪽 span이 그린다.
 const CHIP_HIT = { minHeight: 44, minWidth: 44, padding: 0, border: 0, background: 'none', cursor: 'pointer', flex: 'none', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' };
@@ -102,16 +110,15 @@ function MonthGrid({ month, races, theme, onOpen, now, seasonYear }) {
   const firstDow = new Date(Date.UTC(year, month, 1)).getUTCDay();
   const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
 
-  const byDay = {};
-  for (const r of races) {
-    const d = Number(viewerParts(fmt, r)?.day || 0);
-    (byDay[d] = byDay[d] || []).push(r);
-  }
+  // 레이스 위크 전체를 잇는 막대. 세션 시각을 시청자 시간대로 옮겨 만든다 (서킷 현지 주말 날짜가 아니다).
+  const { weeks: barWeeks } = buildRaceWeekBars(races, { parts: fmt.parts, year, month, firstDow, daysInMonth, maxLanes: CAL_LANES });
 
   const cells = [];
   for (let i = 0; i < firstDow; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
   while (cells.length % 7) cells.push(null);
+  const weekRows = [];
+  for (let i = 0; i < cells.length; i += 7) weekRows.push(cells.slice(i, i + 7));
 
   const todayStr = fmt.dateKey(now);
 
@@ -125,26 +132,57 @@ function MonthGrid({ month, races, theme, onOpen, now, seasonYear }) {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
-        {cells.map((d, i) => {
-          if (!d) return <div key={i} style={{ aspectRatio: '1/1.05' }} />;
-          const dayRaces = byDay[d] || [];
-          const dateKey = `${seasonYear}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-          const isToday = dateKey === todayStr;
-          const isSun = i % 7 === 0; const isSat = i % 7 === 6;
+      {/* 주마다 컨테이너 하나. 그 위에 같은 열 구조의 오버레이를 얹어 칸을 넘어가는 막대를 그린다. */}
+      <div style={{ display: 'grid', gap: CAL_GAP }}>
+        {weekRows.map((row, w) => {
+          const week = barWeeks[w] || { segments: [], overflow: {}, byDay: {} };
           return (
-            <div key={i} className={dayRaces.length ? 'press-chip' : undefined} {...(dayRaces.length ? prefetchHandlers(dayRaces[0]) : null)} onClick={() => dayRaces.length && onOpen(dayRaces[0])} style={{
-              aspectRatio: '1/1.05', borderRadius: 8,
-              background: isToday ? t.text : t.surface, border: `1px solid ${t.line}`,
-              padding: '5px 5px 4px', display: 'flex', flexDirection: 'column',
-              cursor: dayRaces.length ? 'pointer' : 'default', overflow: 'hidden',
-            }}>
-              <Mono size={11} weight={isToday ? 700 : 500} color={isToday ? t.bg : (isSun ? '#FF6B7A' : isSat ? '#6BA3FF' : t.text)}>
-                {d}
-              </Mono>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 3, flex: 1 }}>
-                {dayRaces.slice(0,3).map((r, j) => (
-                  <div key={j} style={{ height: 4, borderRadius: 2, background: SERIES[r.series].accent }} />
+            <div key={w} style={{ position: 'relative' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: CAL_GAP }}>
+                {row.map((d, i) => {
+                  if (!d) return <div key={i} style={{ aspectRatio: '1/1.05' }} />;
+                  const dayRaces = week.byDay[d] || [];
+                  const more = week.overflow[d] || 0;
+                  const dateKey = `${seasonYear}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                  const isToday = dateKey === todayStr;
+                  const isSun = i % 7 === 0; const isSat = i % 7 === 6;
+                  return (
+                    <div key={i} className={dayRaces.length ? 'press-chip' : undefined} {...(dayRaces.length ? prefetchHandlers(dayRaces[0]) : null)} onClick={() => dayRaces.length && onOpen(dayRaces[0])} style={{
+                      aspectRatio: '1/1.05', borderRadius: 8,
+                      background: isToday ? t.text : t.surface, border: `1px solid ${t.line}`,
+                      padding: '5px 5px 4px', display: 'flex', flexDirection: 'column',
+                      cursor: dayRaces.length ? 'pointer' : 'default', overflow: 'hidden',
+                    }}>
+                      <Mono size={11} weight={isToday ? 700 : 500} color={isToday ? t.bg : (isSun ? '#FF6B7A' : isSat ? '#6BA3FF' : t.text)}>
+                        {d}
+                      </Mono>
+                      <div style={{ flex: 1 }} />
+                      {more > 0 && (
+                        <Mono size={9} color={isToday ? t.bg : t.text3} style={{ letterSpacing: '0.08em' }}>+{more}</Mono>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* 막대 오버레이. 빈 곳은 pointer-events로 통과시켜 날짜 칸 클릭을 막지 않는다. */}
+              <div style={{
+                position: 'absolute', inset: 0, display: 'grid',
+                gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+                columnGap: CAL_GAP, rowGap: CAL_BAR_GAP, gridAutoRows: CAL_BAR_H,
+                alignContent: 'start', paddingTop: CAL_BAR_TOP, pointerEvents: 'none',
+              }}>
+                {week.segments.map((seg, j) => (
+                  <div key={j} className="press-chip" title={fmt.race(seg.race).name}
+                    {...prefetchHandlers(seg.race)} onClick={() => onOpen(seg.race)}
+                    style={{
+                      gridColumn: `${seg.startCol + 1} / ${seg.endCol + 2}`, gridRow: seg.lane + 1,
+                      height: CAL_BAR_H, background: SERIES[seg.race.series].accent,
+                      // 이어지는 쪽은 각지게 + 칸 끝까지. 실제 시작·끝만 둥글게 하고 안쪽으로 들인다.
+                      borderRadius: `${seg.roundStart ? 2 : 0}px ${seg.roundEnd ? 2 : 0}px ${seg.roundEnd ? 2 : 0}px ${seg.roundStart ? 2 : 0}px`,
+                      marginLeft: seg.roundStart ? 4 : 0, marginRight: seg.roundEnd ? 4 : 0,
+                      pointerEvents: 'auto', cursor: 'pointer',
+                    }} />
                 ))}
               </div>
             </div>

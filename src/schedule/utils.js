@@ -224,6 +224,99 @@ export function getRaceStartUtc(race) {
   return getPrimarySession(race)?.startUtc || null;
 }
 
+// 달력에 그릴 '레이스 위크 막대'. 경기 하나가 주말 전체를 잇는 막대 하나가 된다.
+//
+// 구간은 각 세션의 startUtc를 **시청자 시간대**로 옮긴 날짜의 최소~최대다.
+// weekendStart/weekendEnd로 계산하면 안 된다 — 그건 서킷 현지 날짜라서 시청자 달력과 어긋난다
+// (라스베이거스: 현지 11/19~21이지만 KST로는 11/20~22).
+//
+//   parts        use-format의 fmt.parts. (isoOrDate) => { year, month, day, ... }
+//   year, month  달력이 보여주는 연/월 (month는 0-based — Date와 같게)
+//   firstDow     1일의 요일 (0=일). 달력 cells 배열과 같은 기준
+//   daysInMonth  그 달의 일수
+//   maxLanes     한 주에 쌓을 수 있는 막대 줄 수. 넘치면 +N으로 흘린다
+//
+// 반환 { weeks: [{ segments, overflow, byDay }] }  — 주는 일요일 시작, cells를 7개씩 자른 것과 1:1
+//   segments  [{ race, from, to, startCol, endCol, lane, roundStart, roundEnd }]
+//             주 경계를 넘는 구간은 주마다 조각으로 쪼갠다. roundStart/roundEnd가 false인 쪽은
+//             다음(이전) 줄로 이어진다는 뜻이라 호출부가 모서리를 각지게 그린다.
+//             lane은 달 전체에서 한 번만 배정해서, 쪼개진 조각들이 줄을 바꾸지 않는다.
+//   overflow  { [day]: n }  레인이 모자라 못 그린 조각 수
+//   byDay     { [day]: race[] }  그 날을 덮는 경기들 (칸 클릭용)
+export function buildRaceWeekBars(races = [], { parts, year, month, firstDow, daysInMonth, maxLanes = 3 }) {
+  const dayOf = (value) => {
+    const p = parts(value);
+    if (!p || Number(p.year) !== year || Number(p.month) - 1 !== month) return null;   // 표시 중인 달 밖은 잘라낸다
+    return Number(p.day);
+  };
+
+  // --- 경기별 구간 ---
+  const spans = [];
+  for (const race of races) {
+    const sessions = (Array.isArray(race?.sessions) ? race.sessions : []).filter((x) => x.startUtc);
+    let days = sessions.map((x) => dayOf(x.startUtc)).filter((d) => d !== null);
+    if (!sessions.length) {
+      // 시각이 하나도 없는 경기(2027 데이터, 취소분)는 대표 시각 하루짜리 구간.
+      const only = dayOf(getRaceStartUtc(race) || race.primaryStartUtc);
+      days = only ? [only] : [];
+    }
+    if (!days.length) continue;
+    spans.push({ race, from: Math.min(...days), to: Math.max(...days) });
+  }
+
+  // --- 레인 배정 (달 전체에서 한 번만) ---
+  // 주 단위로 배정하면 주 경계에서 쪼갠 두 조각이 서로 다른 레인을 받아 막대가 줄을 바꿔 버린다.
+  // 그래서 쪼개기 **전에** span 단위로 배정하고, 거기서 나온 조각들이 같은 lane을 그대로 물려받는다.
+  // 정렬 3번째 키(race.id)는 결정성용 — 같은 달을 다시 그려도 배치가 같아야 한다.
+  spans.sort((a, b) => a.from - b.from
+    || (b.to - b.from) - (a.to - a.from)
+    || String(a.race.id ?? '').localeCompare(String(b.race.id ?? '')));
+
+  const lanes = [];              // lane → 이미 놓인 span들
+  const placedSpans = [];
+  const overflowSpans = [];
+  for (const span of spans) {
+    let lane = lanes.findIndex((rows) => rows.every((r) => span.to < r.from || span.from > r.to));
+    if (lane === -1) {
+      if (lanes.length >= maxLanes) { overflowSpans.push(span); continue; }   // 자리 없음 → span 통째로 +N
+      lane = lanes.length; lanes.push([]);
+    }
+    lanes[lane].push(span);
+    span.lane = lane;
+    placedSpans.push(span);
+  }
+
+  // --- 주 경계에서 쪼개기 ---
+  const cellIndex = (d) => d + firstDow - 1;
+  const weekOf = (d) => Math.floor(cellIndex(d) / 7);
+  const colOf = (d) => cellIndex(d) % 7;
+  const weekCount = Math.ceil((firstDow + daysInMonth) / 7);
+  const weeks = Array.from({ length: weekCount }, () => ({ segments: [], overflow: {}, byDay: {} }));
+
+  for (const { race, from, to } of spans) {
+    for (let d = from; d <= to; d++) (weeks[weekOf(d)].byDay[d] = weeks[weekOf(d)].byDay[d] || []).push(race);
+  }
+  // 못 그린 span은 덮는 모든 날짜에 +1. 일부 주만 그려지는 일은 없다 — span 단위로 빠진다.
+  for (const { from, to } of overflowSpans) {
+    for (let d = from; d <= to; d++) weeks[weekOf(d)].overflow[d] = (weeks[weekOf(d)].overflow[d] || 0) + 1;
+  }
+
+  for (const { race, from, to, lane } of placedSpans) {
+    for (let w = weekOf(from); w <= weekOf(to); w++) {
+      const segFrom = Math.max(from, w * 7 - firstDow + 1);
+      const segTo = Math.min(to, w * 7 + 6 - firstDow + 1);
+      if (segFrom > segTo) continue;
+      weeks[w].segments.push({
+        race, from: segFrom, to: segTo, lane,
+        startCol: colOf(segFrom), endCol: colOf(segTo),
+        roundStart: segFrom === from, roundEnd: segTo === to,
+      });
+    }
+  }
+
+  return { weeks };
+}
+
 // 대표 세션: race → sprint → 첫 세션 순.
 export function getPrimarySession(race) {
   const sessions = Array.isArray(race?.sessions) ? race.sessions : [];
