@@ -76,8 +76,8 @@ export function WebApp({ theme, setTheme, ...prefs }) {
   }, []);
   // source: 어느 화면에서 열었는지. 화면별 래퍼가 기본값을 주고, 추천 카드는 'recommendation'을 직접 넘긴다.
   const openerRef = useRef(null);   // 드로어를 연 요소 — 닫힐 때 포커스를 되돌린다
-  const openFrom = useCallback((race, source) => { openerRef.current = document.activeElement; track('race_opened', { series: race.series, source }); setOpenRaceId(race.id); }, []);
-  const onOpenRace = useCallback((race, source = 'home') => openFrom(race, source), [openFrom]);
+  const openFrom = useCallback((race, source, extra) => { openerRef.current = document.activeElement; track('race_opened', { series: race.series, source, ...extra }); setOpenRaceId(race.id); }, []);
+  const onOpenRace = useCallback((race, source = 'home', extra) => openFrom(race, source, extra), [openFrom]);
   const openFromSchedule = useCallback((race) => openFrom(race, 'schedule'), [openFrom]);
   const openFromSeries = useCallback((race) => openFrom(race, 'series'), [openFrom]);
   const openFromSaved = useCallback((race, source = 'saved') => openFrom(race, source), [openFrom]);

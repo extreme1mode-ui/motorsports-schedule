@@ -4,13 +4,14 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './home.css';
 import { LightRow } from '../Brand.jsx';
 import { adaptRaces } from './adapt.js';
-import { resolveTimeState, formatCountdown } from './time.js';
+import { resolveTimeState, resolveWeekendPhase, formatCountdown } from './time.js';
 import { getRaceWeekKey, groupRacesByWeekend } from './weeks.js';
 import { photo, photoPos, photoCredit } from './photos.js';
 import { SERIES_DESCRIPTION_KEYS } from '../preferences-options.js';
 import { useFormat } from '../use-format.js';
 import { useT } from '../i18n/index.js';
 import { zonedDateFromKey } from '../schedule/format.js';
+import { formatSessionLabel } from '../schedule/utils.js';
 import { getRecommendations } from '../schedule/recommendations.js';
 import { track } from '../analytics.js';
 import { prefetchRacePhoto, prefetchHandlers, useVisiblePrefetch } from '../photo-prefetch.js';
@@ -48,7 +49,32 @@ const dow = (fmt, date) => fmt.parts(date)?.weekdayName || '';
 // 리스트 행 요일: ko '토' / en '(Sat)' — 영어는 'Oct 3 (Sat)' 꼴
 const dowInList = (fmt, date) => { const w = dow(fmt, date); return fmt.locale === 'ko' ? w : `(${w})`; };
 
-function heroReason(ev, ts, kind, now, fmt, t) {
+function heroReason(ev, ts, kind, now, fmt, t, phase) {
+  // 주말 진행 상황이 먼저다. 본경기 시작 시각만 보면 연습·예선이 달리는 중에도 'D-2'가 뜬다.
+  // 'before'/'after'는 아래 기존 판정(D-day 등)으로 그대로 넘긴다.
+  // 정규화된 세션의 라벨 필드는 tEn이다 (normalizeSessions). 원본 JSON의 t도 같이 받아둔다.
+  const label = phase?.session ? formatSessionLabel(phase.session.tEn ?? phase.session.t, phase.session.kind, fmt.locale) : '';
+  if (label && phase.phase === 'session-live') {
+    return { text: t('home.reason.sessionLive', { session: label }), urgent: true, lit: 0 };
+  }
+  if (label && phase.phase === 'session-soon') {
+    const ms = Math.max(0, phase.startsInMs ?? 0);
+    const h = Math.floor(ms / 3600000);
+    const m = Math.max(1, Math.round(ms / 60000));
+    return {
+      text: h >= 1 ? t('home.reason.sessionSoonHours', { session: label, h }) : t('home.reason.sessionSoonMinutes', { session: label, m }),
+      urgent: true, lit: 5,
+    };
+  }
+  if (label && phase.phase === 'between') {
+    // 시각은 전부 시청자 시간대. ko는 '25(금)', en은 'Sep 25 (Fri)' — 오늘이어도 날짜를 그대로 붙인다.
+    const next = new Date(phase.session.startUtc);
+    const p = fmt.parts(next);
+    const when = fmt.locale === 'ko' && p
+      ? `${Number(p.day)}(${p.weekdayName}) ${fmt.time(next)}`
+      : `${fmt.shortDate(next)} ${fmt.time(next)}`;
+    return { text: t('home.reason.nextSession', { session: label, when }), urgent: false, lit: 5 };
+  }
   // 라이트 로우: 갠트리 신호등처럼 레이스가 가까워질수록 하나씩 켜진다. 진행 중이면 전부 꺼진다(= lights out).
   if (kind === 'live') return { text: t('home.reason.live'), urgent: true, lit: 0 };
   if (kind === 'soon') {
@@ -313,7 +339,9 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
 
       {hero ? (() => {
         const hts = ts(hero);
-        const reason = heroReason(hero, hts, kind, at, fmt, t);
+        const phase = resolveWeekendPhase(hero.race, at, { mode: modeOf(preferences, hero.series) });
+        const reason = heroReason(hero, hts, kind, at, fmt, t, phase);
+        const openHero = () => onOpenRace(hero.race, 'home', { hero_phase: phase.phase });
         const clock = heroClock(hero, hts, kind, fmt, t);
         const bcast = fmt.broadcast(hero.broadcast);
         const chans = bcast.map((b) => b.name);
@@ -345,10 +373,10 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
                     ? (bcast[0].url
                       // "○○로 보기"는 중계처 랜딩으로 바로 나간다 (새 탭). 클릭 계측은 onClick, 이동은 브라우저 기본 동작.
                       ? <a className="cta" href={bcast[0].url} target="_blank" rel="noopener noreferrer" onClick={() => track('broadcast_clicked', { name: bcast[0].name, region: bcast[0].region, access: bcast[0].access, series: hero.series, source: 'home' })}>{t('home.watchOn', { channel: chans[0] })}</a>
-                      : <button type="button" className="cta" onClick={() => onOpenRace(hero.race)}>{t('home.watchOn', { channel: chans[0] })}</button>)
+                      : <button type="button" className="cta" onClick={openHero}>{t('home.watchOn', { channel: chans[0] })}</button>)
                     : <button type="button" className="cta" onClick={() => toggleAlert(hero)}>{alertOn ? t('home.alertOn') : t('home.alertSet')}</button>}
                   <HeartButton on={!!faved} label={t('aria.save')} onClick={() => toggleFav?.(hero.id)} />
-                  <button type="button" className="linkbtn" onClick={() => onOpenRace(hero.race)}>{t('home.detail')}</button>
+                  <button type="button" className="linkbtn" onClick={openHero}>{t('home.detail')}</button>
                 </div>
                 {chans.length > 0 && <div className="hero2-chans">{chans.join(' · ')}</div>}
               </div>
