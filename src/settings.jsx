@@ -4,6 +4,7 @@ import { SUPPORTED_SERIES, detectTimezone } from './schedule/index.js';
 import { MODE_OPTIONS_WITH_OFF, countryIdFromValue, countryValueFromId } from './preferences-options.js';
 import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
+import { GantrySymbol } from './Brand.jsx';
 
 // 언어 이름은 번역하지 않는다(각 언어의 자기 표기). raw: true → ChoiceGroup이 t()를 거치지 않음
 const LOCALE_OPTIONS = [
@@ -140,6 +141,19 @@ export function Settings({ theme, preferences, setSeriesMode, setCountry, setTim
             {tr('settings.onboarding.cta')}
           </button>
         </section>
+
+        {/* 브랜드 서명 */}
+        <footer className="gt-sign" style={{
+          marginTop: 48, paddingTop: 28, borderTop: `1px solid ${t.line}`,
+          display: 'grid', justifyItems: 'center', gap: 12, color: t.text3, textAlign: 'center',
+        }}>
+          <span style={{ color: t.text }}><GantrySymbol size={20} title="Gantry" /></span>
+          {/* 대문자 전용 자형(case)으로 무게중심을 맞춘다. */}
+          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', fontFeatureSettings: '"case"' }}>
+            Know when it’s lights out.
+          </span>
+          <span style={{ fontSize: 12, color: t.text3, fontFeatureSettings: '"tnum"' }}>Gantry · 2026 Season</span>
+        </footer>
       </div>
     </div>
   );

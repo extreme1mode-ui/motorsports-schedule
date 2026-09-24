@@ -14,6 +14,7 @@ import { zonedDateFromKey } from '../schedule/format.js';
 import { getRecommendations } from '../schedule/recommendations.js';
 import { track } from '../analytics.js';
 import { prefetchRacePhoto, prefetchHandlers, useVisiblePrefetch } from '../photo-prefetch.js';
+import { GantryLockup } from '../Brand.jsx';
 import { usePop, useImageLoaded } from '../use-motion.js';
 import { storage } from '../storage/index.js';
 
@@ -296,6 +297,8 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
     <div className="home">
       <div className="pagehead">
         <div>
+          {/* 모바일에서만. 데스크톱은 사이드바에 로고가 있다. */}
+          <span className="pagehead-brand"><GantryLockup height={11} /></span>
           <h1 className="ko" data-view-title tabIndex={-1} >{t('home.title')}</h1>
           <div className="sub ko">{t('home.watching', { count: watching })}</div>
         </div>
