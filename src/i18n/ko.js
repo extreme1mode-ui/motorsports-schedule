@@ -2,6 +2,7 @@
 export default {
   'app.title': 'Gantry · 2026 모터스포츠',
   // 내비게이션·테마
+  'brand.ready': '레이싱 위켄드 준비 완료',
   'nav.home': '홈',
   'nav.schedule': '일정',
   'nav.series': '시리즈',

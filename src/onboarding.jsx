@@ -5,6 +5,7 @@ import { MODE_OPTIONS, COUNTRY_OPTIONS, guessCountryFromTimezone, countryValueFr
 import { PageTitle, SeriesRow, ChoiceGroup, CountryChoices, TimezoneLabel } from './preferences-ui.jsx';
 import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
+import { GantryLockup } from './Brand.jsx';
 
 const TOTAL_STEPS = 3;
 
@@ -50,6 +51,7 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
     track('onboarding_completed', { series_on: chosen.length, series_all: chosen.filter((m) => m === 'all').length, series_race: chosen.filter((m) => m === 'race').length });
     SUPPORTED_SERIES.forEach((id) => setSeriesMode(id, selected.has(id) ? (modes[id] || 'all') : 'off'));
     setCountry(countryValueFromId(countryId));
+    window.__gantrySplash?.play({ caption: tr('brand.ready') });   // 라이츠아웃 전환으로 앱에 들어간다
     setOnboarded(true);
   };
 
@@ -59,6 +61,7 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
     track('onboarding_skipped', { step });
     SUPPORTED_SERIES.forEach((id) => setSeriesMode(id, 'all'));
     setCountry(countryValueFromId(countryId));
+    window.__gantrySplash?.play({ caption: tr('brand.ready') });
     setOnboarded(true);
   };
 
@@ -79,6 +82,8 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
         maxWidth: 560, margin: '0 auto', padding: '20px 20px 32px',
         minHeight: '100dvh', display: 'flex', flexDirection: 'column',
       }}>
+        <div style={{ marginBottom: 28, color: t.text }}><GantryLockup height={14} /></div>
+
         {/* 진행 표시 + 건너뛰기 */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

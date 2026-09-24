@@ -1,6 +1,7 @@
 // UI 문구 (en). 키가 없으면 이 파일의 값이 기본값이다.
 export default {
   'app.title': 'Gantry — Motorsport Schedule',
+  'brand.ready': 'Your racing weekend is ready',
   'nav.home': 'Home',
   'nav.schedule': 'Schedule',
   'nav.series': 'Series',
