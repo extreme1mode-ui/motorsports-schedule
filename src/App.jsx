@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { getCurrentNow, useScheduleData, usePreferences, filterRacesByPreferences } from './schedule/index.js';
-import { TOKENS, Mono } from './primitives.jsx';
+import { TOKENS, Mono, FONT_DATA } from './primitives.jsx';
 import { Home } from './home/Home.jsx';
 import { Schedule, SeriesView, Favorites, RaceDetail } from './screens.jsx';
 import { WebApp, useViewport } from './web.jsx';
@@ -214,7 +214,7 @@ function TabBar({ theme, view, onGo, favCount }) {
                   position: 'absolute', top: 5, right: 12,
                   background: '#FF6B7A', color: '#fff', borderRadius: 999,
                   fontSize: 9, fontWeight: 700, padding: '1px 5px', minWidth: 14, textAlign: 'center',
-                  fontFamily: '"JetBrains Mono", ui-monospace',
+                  ...FONT_DATA,
                 }}>{favCount}</span>
               )}
             </button>

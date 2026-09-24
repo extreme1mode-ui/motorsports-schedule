@@ -12,7 +12,8 @@
   --scrim:rgba(0,0,0,.6);
   --heroscrim:linear-gradient(100deg,rgba(0,0,0,.72) 0%,rgba(0,0,0,.40) 48%,rgba(0,0,0,.18) 100%);
   --heroscrim-m:linear-gradient(180deg,rgba(0,0,0,.18) 0%,rgba(0,0,0,.45) 46%,rgba(0,0,0,.80) 80%);
-  --mono:"JetBrains Mono",ui-monospace,monospace;
+  /* 숫자·라벨용 스택. 서체는 Pretendard 하나로 통일하고 숫자만 tnum으로 고정폭을 얻는다. */
+  --mono:"Pretendard Variable","Pretendard",-apple-system,"Apple SD Gothic Neo",system-ui,sans-serif;
 }
 [data-theme="light"]{
   --bg:#F2F3F5; --surface:#FFFFFF; --surface2:#F7F8FA; --surface3:#EBEDF1;

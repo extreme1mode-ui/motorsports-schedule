@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { CATEGORIES, SERIES, getVisibleSessions, getSeriesStats, getRaceStartUtc } from './schedule/index.js';
-import { TOKENS, Mono, SeriesTag, AccessBadge, ExternalIcon, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
+import { TOKENS, Mono, SeriesTag, AccessBadge, ExternalIcon, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay, FONT_DATA } from './primitives.jsx';
 import { useFormat } from './use-format.js';
 import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
@@ -403,7 +403,7 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
               {getRoundDescriptor(race)}
             </Mono>
             {race.specialBadge && <EventBadge label={race.specialBadge} tone={race.specialBadgeTone} theme={theme} />}
-            {race.isSprint && <span style={{ padding: '2px 6px', fontSize: 9, fontWeight: 800, letterSpacing: '0.08em', borderRadius: 3, background: 'rgba(255,255,255,0.18)', color: '#fff', fontFamily: '"JetBrains Mono", ui-monospace' }}>SPRINT</span>}
+            {race.isSprint && <span style={{ padding: '2px 6px', fontSize: 9, fontWeight: 800, letterSpacing: '0.08em', borderRadius: 3, background: 'rgba(255,255,255,0.18)', color: '#fff', ...FONT_DATA }}>SPRINT</span>}
             {race.isNextRace && <StatusPill status="next" theme={theme} />}
             {race.status === 'live' && <StatusPill status="live" theme={theme} />}
             {race.status === 'cancelled' && <StatusPill status="cancelled" theme={theme} />}

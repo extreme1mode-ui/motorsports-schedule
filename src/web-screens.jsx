@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { TOKENS, Mono, SeriesTag, AccessBadge, ExternalIcon, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay } from './primitives.jsx';
+import { TOKENS, Mono, SeriesTag, AccessBadge, ExternalIcon, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay, FONT_DATA } from './primitives.jsx';
 import { CATEGORIES, SERIES, getVisibleSessions, getSeriesStats, getRaceStartUtc } from './schedule/index.js';
 import { useFormat } from './use-format.js';
 import { useT } from './i18n/index.js';
@@ -381,7 +381,7 @@ function WebRoundRow({ race, idx, theme, onOpen }) {
             <span style={{
               padding: '2px 6px', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
               borderRadius: 3, background: theme === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)',
-              color: t.text2, fontFamily: '"JetBrains Mono", ui-monospace',
+              color: t.text2, ...FONT_DATA,
             }}>SPRINT</span>
           )}
           <Mono size={10} color={t.text3}>{p ? `${fmt.monthDay(start || race.primaryStartUtc)} · ${p.weekdayName}` : ''}</Mono>
@@ -623,7 +623,7 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
                 <span style={{
                   padding: '3px 7px', fontSize: 10, fontWeight: 800, letterSpacing: '0.1em',
                   borderRadius: 3, background: 'rgba(255,255,255,0.2)', color: '#fff',
-                  fontFamily: '"JetBrains Mono", ui-monospace',
+                  ...FONT_DATA,
                 }}>SPRINT</span>
               )}
               {race.isNextRace && <StatusPill status="next" theme={theme} />}

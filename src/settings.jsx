@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { TOKENS } from './primitives.jsx';
+import { TOKENS, FONT_DATA } from './primitives.jsx';
 import { SUPPORTED_SERIES, detectTimezone } from './schedule/index.js';
 import { MODE_OPTIONS_WITH_OFF, countryIdFromValue, countryValueFromId } from './preferences-options.js';
 import { useT } from './i18n/index.js';
@@ -118,7 +118,7 @@ export function Settings({ theme, preferences, setSeriesMode, setCountry, setTim
           <SectionTitle theme={theme} title={tr('settings.calendar.title')} sub={tr('settings.calendar.sub')} />
           <div style={{ padding: '12px 16px', borderRadius: 14, background: t.surface, border: `1px solid ${t.line}` }}>
             <div ref={urlRef} style={{
-              fontFamily: '"JetBrains Mono", ui-monospace, monospace', fontSize: 11, color: t.text2,
+              ...FONT_DATA, fontSize: 11, color: t.text2,
               lineHeight: 1.5, wordBreak: 'break-all', userSelect: 'all',
             }}>{calendarUrl}</div>
             <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>

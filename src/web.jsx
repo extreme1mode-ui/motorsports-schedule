@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { flushSync } from 'react-dom';
-import { TOKENS, Mono, SeriesTag } from './primitives.jsx';
+import { TOKENS, Mono, SeriesTag, FONT_DATA } from './primitives.jsx';
 import { GantryLockup, GantrySymbol } from './Brand.jsx';
 import { getCurrentNow, useScheduleData, filterRacesByPreferences } from './schedule/index.js';
 import { Home } from './home/Home.jsx';
@@ -222,7 +222,7 @@ function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
                   marginLeft: 'auto',
                   background: '#FF6B7A', color: '#fff', borderRadius: 999,
                   fontSize: 9, fontWeight: 700, padding: '2px 6px', minWidth: 16, textAlign: 'center',
-                  fontFamily: '"JetBrains Mono", ui-monospace',
+                  ...FONT_DATA,
                 }}>{favCount}</span>
               )}
             </button>

@@ -14,15 +14,30 @@ export const TOKENS = {
   },
 };
 
+// 숫자·영문 라벨용 글꼴. 서체는 Pretendard 하나로 통일하고 숫자만 tnum으로 고정폭을 얻는다.
+// 인라인 스타일에서 같은 문자열을 반복하지 말고 이 상수를 가져다 쓴다.
+export const FONT_DATA = {
+  fontFamily: '"Pretendard Variable", "Pretendard", -apple-system, "Apple SD Gothic Neo", system-ui, sans-serif',
+  fontFeatureSettings: '"tnum"',
+};
+
+// 대문자 라벨 자간 규칙: 0.1em 이상으로 넘어온 값은 0.08em으로 줄인다.
+function capLetterSpacing(value) {
+  if (typeof value !== 'string') return value;
+  const m = value.match(/^(-?[\d.]+)em$/);
+  return m && Number(m[1]) >= 0.1 ? '0.08em' : value;
+}
+
 // 날짜·시간 표기는 useFormat()(사용자 시간대) 또는 schedule/format.js를 쓴다. KST 고정 래퍼는 제거됨.
 
 export function Mono({ children, size = 14, weight = 500, color, style }) {
   return (
     <span style={{
-      fontFamily: '"JetBrains Mono", ui-monospace, monospace',
+      ...FONT_DATA,
       fontSize: size, fontWeight: weight, color,
       fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em',
       ...style,
+      ...(style?.letterSpacing ? { letterSpacing: capLetterSpacing(style.letterSpacing) } : null),
     }}>{children}</span>
   );
 }
@@ -36,7 +51,7 @@ export function SeriesTag({ series, theme = 'dark', variant = 'solid' }) {
         padding: '3px 7px 3px 5px', borderRadius: 4,
         background: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
         fontSize: 10, fontWeight: 700, letterSpacing: '0.04em',
-        color: s.accent, textTransform: 'uppercase', fontFamily: '"JetBrains Mono", ui-monospace',
+        color: s.accent, textTransform: 'uppercase', ...FONT_DATA,
       }}>
         <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.accent }} />
         {s.short}
@@ -49,7 +64,7 @@ export function SeriesTag({ series, theme = 'dark', variant = 'solid' }) {
       padding: '3px 7px', borderRadius: 4,
       background: s.accent, color: '#fff',
       fontSize: 10, fontWeight: 800, letterSpacing: '0.04em',
-      textTransform: 'uppercase', fontFamily: '"JetBrains Mono", ui-monospace',
+      textTransform: 'uppercase', ...FONT_DATA,
     }}>{s.short}</span>
   );
 }
@@ -98,7 +113,7 @@ export function EventBadge({ label, tone = 'accent', theme = 'dark' }) {
       borderRadius: 3,
       background: colors.background,
       color: colors.color,
-      fontFamily: '"JetBrains Mono", ui-monospace',
+      ...FONT_DATA,
       textTransform: 'uppercase',
     }}>{label}</span>
   );
@@ -110,28 +125,28 @@ export function StatusPill({ status, theme = 'dark' }) {
     <span style={{
       padding: '2px 6px', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
       borderRadius: 3, background: 'rgba(46,125,255,0.15)', color: '#6BA3FF',
-      fontFamily: '"JetBrains Mono", ui-monospace', textTransform: 'uppercase',
+      ...FONT_DATA, textTransform: 'uppercase',
     }}>NEXT</span>
   );
   if (status === 'live') return (
     <span style={{
       padding: '2px 6px', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
       borderRadius: 3, background: 'rgba(20,209,155,0.16)', color: '#22D77E',
-      fontFamily: '"JetBrains Mono", ui-monospace', textTransform: 'uppercase',
+      ...FONT_DATA, textTransform: 'uppercase',
     }}>LIVE</span>
   );
   if (status === 'cancelled') return (
     <span style={{
       padding: '2px 6px', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
       borderRadius: 3, background: 'rgba(255,77,95,0.15)', color: '#FF6B7A',
-      fontFamily: '"JetBrains Mono", ui-monospace', textTransform: 'uppercase',
+      ...FONT_DATA, textTransform: 'uppercase',
     }}>CANCELLED</span>
   );
   if (status === 'completed') return (
     <span style={{
       padding: '2px 6px', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
       borderRadius: 3, background: theme === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)',
-      color: t.text3, fontFamily: '"JetBrains Mono", ui-monospace', textTransform: 'uppercase',
+      color: t.text3, ...FONT_DATA, textTransform: 'uppercase',
     }}>DONE</span>
   );
   return null;

@@ -6,25 +6,25 @@
 .home h1,.home h2,.home h3,.home p{margin:0}
 .home button{font-family:inherit;cursor:pointer;color:inherit}
 .home .ko{word-break:keep-all;overflow-wrap:break-word}
-.home .m{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.home .m{font-family:var(--mono);font-feature-settings:"tnum";font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 
 .home .pagehead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:18px}
 .home .pagehead h1{font-size:21px;font-weight:800;letter-spacing:-.02em}
 @media(min-width:900px){.home .pagehead h1{font-size:24px}}
 .home .pagehead .sub{color:var(--text3);font-size:11.5px;margin-top:5px}
-.home .clock{font-family:var(--mono);font-size:11.5px;color:var(--text2);border:1px solid var(--line);
+.home .clock{font-family:var(--mono);font-feature-settings:"tnum";font-size:11.5px;color:var(--text2);border:1px solid var(--line);
   border-radius:9px;padding:7px 10px;white-space:nowrap}
 .home .clock b{color:var(--text);font-weight:600}
 .home .sechead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:26px 0 10px}
 .home .sechead h2{font-size:14px;font-weight:700;letter-spacing:-.01em}
-.home .sechead .meta{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:.05em}
+.home .sechead .meta{font-family:var(--mono);font-feature-settings:"tnum";font-size:10px;color:var(--text3);letter-spacing:.05em}
 .home .sechead .lnk{background:none;border:0;color:var(--text3);font-size:11.5px;font-weight:600;
   min-height:44px;min-width:44px;padding:13px 8px;margin:-13px -8px}
 
-.home .sbadge{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9.5px;font-weight:700;
+.home .sbadge{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-feature-settings:"tnum";font-size:9.5px;font-weight:700;
   letter-spacing:.07em;color:var(--text2)}
 .home .sbadge i{width:6px;height:6px;border-radius:50%;display:block}
-.home .rnd{font-family:var(--mono);font-size:9.5px;color:var(--text3);letter-spacing:.07em;font-weight:600}
+.home .rnd{font-family:var(--mono);font-feature-settings:"tnum";font-size:9.5px;color:var(--text3);letter-spacing:.07em;font-weight:600}
 .home .tagpill{font-size:9.5px;color:var(--text3);border:1px solid var(--line2);border-radius:4px;padding:2px 5px;font-weight:600}
 .home .heart{background:none;border:0;color:var(--text2);opacity:.75;width:44px;height:44px;display:grid;place-items:center;
   border-radius:9px;flex:0 0 44px}
@@ -39,7 +39,7 @@
 .home .linkbtn{background:none;border:0;color:var(--text2);font-size:12px;font-weight:700;min-height:44px;min-width:44px;padding:10px 8px;
   text-decoration:underline;text-underline-offset:3px}
 
-.home .time{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12.5px;font-weight:600;white-space:nowrap}
+.home .time{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-feature-settings:"tnum";font-size:12.5px;font-weight:600;white-space:nowrap}
 .home .time .z{font-size:9px;color:var(--text3);letter-spacing:.08em}
 .home .time--tba{color:var(--text3);font-weight:500}
 .home .time--soon{color:var(--signal-ink)}
@@ -59,12 +59,12 @@
 .home .rows{border-top:1px solid var(--line)}
 .home .rowitem{display:flex;align-items:center;gap:11px;padding:0 2px;border-bottom:1px solid var(--line);
   background:none;border-left:0;border-right:0;border-top:0;width:100%;text-align:left;min-height:48px}
-.home .rowitem .dt{font-family:var(--mono);font-size:11px;color:var(--text2);flex:0 0 68px}
+.home .rowitem .dt{font-family:var(--mono);font-feature-settings:"tnum";font-size:11px;color:var(--text2);flex:0 0 68px}
 .home .rowitem .dt em{font-style:normal;color:var(--text3)}
 .home .rowitem .ind{width:3px;height:26px;border-radius:2px;flex:0 0 3px}
 .home .rowitem .nm{font-size:13px;font-weight:600;letter-spacing:-.01em;min-width:0;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap}
-.home .rowitem .rd{font-family:var(--mono);font-size:9.5px;color:var(--text3);white-space:nowrap}
+.home .rowitem .rd{font-family:var(--mono);font-feature-settings:"tnum";font-size:9.5px;color:var(--text3);white-space:nowrap;word-spacing:.3em}
 .home .rowitem .side{margin-left:auto;display:flex;align-items:center;gap:8px;flex:0 0 auto}
 .home .rowitem.dim{opacity:.42}
 
@@ -109,17 +109,17 @@
 .home .hero2-title{font-size:33px;font-weight:800;letter-spacing:-.032em;line-height:1.14;margin-top:9px;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
 @media(min-width:900px){.home .hero2-title{font-size:46px}}
-.home .hero2-official{font-family:var(--mono);font-size:10.5px;color:rgba(255,255,255,.62);margin-top:8px}
+.home .hero2-official{font-family:var(--mono);font-feature-settings:"tnum";font-size:10.5px;color:rgba(255,255,255,.62);margin-top:8px}
 .home .hero2-place{color:rgba(255,255,255,.80);font-size:13px;margin-top:9px}
-.home .hero2-clock{font-family:var(--mono);font-size:46px;font-weight:700;letter-spacing:-.045em;line-height:1;white-space:nowrap}
+.home .hero2-clock{font-family:var(--mono);font-feature-settings:"tnum";font-size:46px;font-weight:700;letter-spacing:-.045em;line-height:1;white-space:nowrap}
 @media(min-width:900px){.home .hero2-clock{font-size:62px}}
 .home .hero2-clock.urgent{color:var(--signal)}
-.home .hero2-when{font-family:var(--mono);font-size:11.5px;color:rgba(255,255,255,.80);margin-top:9px}
+.home .hero2-when{font-family:var(--mono);font-feature-settings:"tnum";font-size:11.5px;color:rgba(255,255,255,.80);margin-top:9px}
 .home .hero2-act{margin-top:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 @media(min-width:900px){.home .hero2-act{justify-content:flex-end}}
 .home .hero2-act .cta{width:auto;padding:12px 18px}
-.home .hero2-chans{margin-top:11px;font-family:var(--mono);font-size:10.5px;color:rgba(255,255,255,.62);letter-spacing:.02em}
-.home .hero2-credit{position:absolute;right:10px;top:10px;font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;
+.home .hero2-chans{margin-top:11px;font-family:var(--mono);font-feature-settings:"tnum";font-size:10.5px;color:rgba(255,255,255,.62);letter-spacing:.02em}
+.home .hero2-credit{position:absolute;right:10px;top:10px;font-family:var(--mono);font-feature-settings:"tnum";font-size:8.5px;letter-spacing:.08em;
   color:var(--text3);background:var(--surface2);border:1px solid var(--line);border-radius:4px;padding:2px 6px;opacity:.75;z-index:2}
 
 /* ---------- 누름 피드백 (홈). 전역 button:active(.96) 위에 크기별로 덮는다. ---------- */
