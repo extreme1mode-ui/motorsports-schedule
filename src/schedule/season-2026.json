@@ -5314,6 +5314,111 @@
     "startUtc": "2026-10-01T14:05:00.000Z"
    },
    {
+    "t": "SS2 Tula – Erula 1",
+    "kind": "other",
+    "local": "2026-10-02 08:01",
+    "kst": "2026-10-02 15:01",
+    "startUtc": "2026-10-02T06:01:00.000Z"
+   },
+   {
+    "t": "SS3 Su Filigosu – Lerno 1",
+    "kind": "other",
+    "local": "2026-10-02 09:01",
+    "kst": "2026-10-02 16:01",
+    "startUtc": "2026-10-02T07:01:00.000Z"
+   },
+   {
+    "t": "SS4 Monti di Ala' – Lerno 1",
+    "kind": "other",
+    "local": "2026-10-02 10:08",
+    "kst": "2026-10-02 17:08",
+    "startUtc": "2026-10-02T08:08:00.000Z"
+   },
+   {
+    "t": "SS5 Tula – Erula 2",
+    "kind": "other",
+    "local": "2026-10-02 14:31",
+    "kst": "2026-10-02 21:31",
+    "startUtc": "2026-10-02T12:31:00.000Z"
+   },
+   {
+    "t": "SS6 Su Filigosu – Lerno 2",
+    "kind": "other",
+    "local": "2026-10-02 15:31",
+    "kst": "2026-10-02 22:31",
+    "startUtc": "2026-10-02T13:31:00.000Z"
+   },
+   {
+    "t": "SS7 Monti di Ala' – Lerno 2",
+    "kind": "other",
+    "local": "2026-10-02 16:38",
+    "kst": "2026-10-02 23:38",
+    "startUtc": "2026-10-02T14:38:00.000Z"
+   },
+   {
+    "t": "SS8 Lerno – Monti di Ala' 1",
+    "kind": "other",
+    "local": "2026-10-03 08:01",
+    "kst": "2026-10-03 15:01",
+    "startUtc": "2026-10-03T06:01:00.000Z"
+   },
+   {
+    "t": "SS9 Coiluna – Loelle 1",
+    "kind": "other",
+    "local": "2026-10-03 09:11",
+    "kst": "2026-10-03 16:11",
+    "startUtc": "2026-10-03T07:11:00.000Z"
+   },
+   {
+    "t": "SS10 Solorche' 1",
+    "kind": "other",
+    "local": "2026-10-03 10:07",
+    "kst": "2026-10-03 17:07",
+    "startUtc": "2026-10-03T08:07:00.000Z"
+   },
+   {
+    "t": "SS11 Lerno – Monti di Ala' 2",
+    "kind": "other",
+    "local": "2026-10-03 14:31",
+    "kst": "2026-10-03 21:31",
+    "startUtc": "2026-10-03T12:31:00.000Z"
+   },
+   {
+    "t": "SS12 Coiluna – Loelle 2",
+    "kind": "other",
+    "local": "2026-10-03 15:41",
+    "kst": "2026-10-03 22:41",
+    "startUtc": "2026-10-03T13:41:00.000Z"
+   },
+   {
+    "t": "SS13 Solorche' 2",
+    "kind": "other",
+    "local": "2026-10-03 16:37",
+    "kst": "2026-10-03 23:37",
+    "startUtc": "2026-10-03T14:37:00.000Z"
+   },
+   {
+    "t": "SS14 Osilo – Tergu 1",
+    "kind": "other",
+    "local": "2026-10-04 08:31",
+    "kst": "2026-10-04 15:31",
+    "startUtc": "2026-10-04T06:31:00.000Z"
+   },
+   {
+    "t": "SS15 Sassari – Argentiera 1",
+    "kind": "other",
+    "local": "2026-10-04 10:05",
+    "kst": "2026-10-04 17:05",
+    "startUtc": "2026-10-04T08:05:00.000Z"
+   },
+   {
+    "t": "SS16 Osilo – Tergu 2",
+    "kind": "other",
+    "local": "2026-10-04 11:38",
+    "kst": "2026-10-04 18:38",
+    "startUtc": "2026-10-04T09:38:00.000Z"
+   },
+   {
     "t": "SS17 Sassari – Argentiera 2 [Power Stage]",
     "kind": "race",
     "local": "2026-10-04 14:15",
