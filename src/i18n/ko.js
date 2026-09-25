@@ -130,6 +130,8 @@ export default {
   'ob.back': '이전',
   'ob.next': '다음',
   'ob.start': '시작하기',
+  'ob.side.title': '이번 주말,<br>불이 켜지는 곳.',
+  'ob.side.sub': '관심 시리즈를 고르면 레이스 주말을 내 시간으로 정리해 드려요.',
 
   // 설정
   'settings.title': '설정',

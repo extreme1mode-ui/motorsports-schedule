@@ -1,0 +1,64 @@
+/* 온보딩 v1.1 — 브랜드 면 + 폼. 값은 tokens.css의 역할 변수만 쓴다. */
+.ob{min-height:100dvh;display:grid;background:var(--bg);color:var(--text);font-family:"Pretendard Variable","Pretendard",-apple-system,"Apple SD Gothic Neo",system-ui,sans-serif}
+.ob button{font-family:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}
+.ob h1,.ob h2,.ob p{margin:0}
+.ob-side{display:none}
+@media(min-width:1024px){
+  .ob{grid-template-columns:minmax(420px,1fr) minmax(520px,1.1fr)}
+  .ob-side{display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden;padding:48px;background:#0B0C10;color:#F4F5F7}
+  .ob-grid{position:absolute;inset:0;background-image:radial-gradient(circle at 6px 6px,rgba(242,244,247,.07) 2.1px,transparent 2.7px);background-size:12px 12px;
+    -webkit-mask-image:linear-gradient(90deg,transparent 20%,#000);mask-image:linear-gradient(90deg,transparent 20%,#000)}
+  .ob-side>*:not(.ob-grid){position:relative}
+  .ob-sym{margin-bottom:48px;color:#F4F5F7}
+  .ob-sym .gt-col{transition:fill-opacity var(--dur-state) linear}
+  .ob-side h2{font-size:60px;font-weight:800;letter-spacing:-.05em;line-height:1.02}
+  .ob-side p{font-size:17px;color:#A5A9B4;margin-top:18px;line-height:1.6;max-width:440px;word-break:keep-all}
+  .ob-side-foot{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#7C818E}
+  .ob-lamps{display:inline-flex;gap:5px}
+  .ob-lamps i{width:7px;height:7px;border-radius:50%;background:#F4F5F7;opacity:.22}
+  .ob-lamps i.on{opacity:1}
+}
+.ob-form{display:flex;flex-direction:column;width:100%;max-width:600px;margin:0 auto;min-height:100dvh;
+  padding:calc(env(safe-area-inset-top,0px) + 20px) 20px calc(env(safe-area-inset-bottom,0px) + 24px)}
+@media(min-width:1024px){.ob-form{padding:48px 56px}.ob-mlock{visibility:hidden}}
+.ob-mlock{color:var(--text);line-height:0}
+.ob-prog{display:flex;align-items:center;justify-content:space-between;margin:26px 0 30px}
+.ob-steps{display:flex;align-items:center;gap:5px}
+.ob-steps i{width:28px;height:3px;border-radius:2px;background:var(--line2)}
+.ob-steps i.on{background:var(--text)}
+.ob-steps span{margin-left:8px;font-size:12px;font-weight:600;color:var(--text3);font-feature-settings:"tnum"}
+.ob-skip{color:var(--text3)!important;font-size:13.5px;font-weight:600;min-height:44px;padding:0 0 0 12px!important}
+.ob-step{flex:1;outline:none;animation:ob-in var(--dur-move) var(--ease-out)}
+@keyframes ob-in{from{opacity:0;transform:translateY(6px)}}
+.ob h1{font-size:26px;font-weight:800;letter-spacing:-.035em;line-height:1.25;word-break:keep-all}
+.ob h1:focus{outline:none}
+.ob-lead{font-size:14.5px;color:var(--text2);margin-top:8px!important;line-height:1.55;word-break:keep-all}
+.ob-lead b{color:var(--text);font-weight:600;font-feature-settings:"tnum"}
+.ob-list{display:grid;gap:8px;margin-top:22px}
+.ob-opt{display:flex;align-items:flex-start;gap:14px;width:100%;min-height:56px;padding:14px 16px!important;border-radius:14px;
+  border:1px solid var(--line)!important;background:var(--surface)!important;text-align:left;transition:border-color var(--dur-press),box-shadow var(--dur-press)}
+.ob-opt.center{align-items:center}
+.ob-opt:hover{border-color:var(--line2)!important}
+.ob-opt[aria-checked="true"]{border-color:var(--text)!important;box-shadow:inset 0 0 0 1px var(--text)}
+.ob-dot{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line2);display:grid;place-items:center;flex:none;margin-top:1px}
+.ob-opt.check .ob-dot{border-radius:6px}
+.ob-opt[aria-checked="true"] .ob-dot{background:var(--text);border-color:var(--text)}
+.ob-opt[aria-checked="true"] .ob-dot::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--bg)}
+.ob-opt.check[aria-checked="true"] .ob-dot::after{width:10px;height:6px;border-radius:0;background:none;border-left:2px solid var(--bg);border-bottom:2px solid var(--bg);transform:rotate(-45deg) translate(1px,-1px)}
+.ob-opt-body{min-width:0;display:block}
+.ob-opt-head{display:flex;align-items:center;gap:10px}
+.ob-tag{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:.06em;font-feature-settings:"case";line-height:1}
+.ob-tag i{width:3px;height:14px;border-radius:1.5px;display:block}
+.ob-sub{font-size:12.5px;color:var(--text3)}
+.ob-desc{display:block;font-size:13px;color:var(--text2);margin-top:6px;line-height:1.5;word-break:keep-all}
+.ob-name{font-size:15.5px;font-weight:700}
+.ob-card{padding:14px 16px;border-radius:14px;border:1px solid var(--line);background:var(--surface)}
+.ob-radios{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:3px;border-radius:12px;background:var(--surface2);margin-top:12px}
+.ob-radios button{min-height:56px;padding:8px 10px!important;border-radius:9px;display:grid;gap:2px;text-align:center;font-size:13.5px;font-weight:600;color:var(--text2)!important}
+.ob-radios button small{font-size:11.5px;font-weight:500;opacity:.7}
+.ob-radios button[aria-checked="true"]{background:var(--text)!important;color:var(--bg)!important}
+.ob-actions{display:flex;gap:8px;margin-top:28px}
+.ob-btn{height:52px;border-radius:14px;font-size:15px;font-weight:700;padding:0 20px!important}
+.ob-btn.line{border:1px solid var(--line2)!important;min-width:92px}
+.ob-btn.primary{flex:1;background:var(--text)!important;color:var(--bg)!important}
+.ob-btn[disabled]{opacity:.35;cursor:default}

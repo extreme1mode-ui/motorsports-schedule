@@ -123,6 +123,8 @@ export default {
   'ob.back': 'Back',
   'ob.next': 'Next',
   'ob.start': 'Get started',
+  'ob.side.title': 'Your racing weekend,<br>in your time zone.',
+  'ob.side.sub': 'Pick your series and we’ll lay out every race weekend in your time.',
 
   'settings.title': 'Settings',
   'settings.series.title': 'My series',

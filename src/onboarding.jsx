@@ -1,164 +1,134 @@
+// 온보딩 3단계(시리즈 → 관심 수준 → 국가). 단계·커밋 순서·건너뛰기 규칙은 기존과 같다.
+// v1.1: 데스크톱은 왼쪽 브랜드 면(단계마다 심볼의 열이 하나씩 더 켜짐) + 오른쪽 폼. 모바일은 폼만.
 import { useEffect, useRef, useState } from 'react';
-import { TOKENS, Mono, SeriesTag } from './primitives.jsx';
+import './onboarding.css';
 import { SERIES, SUPPORTED_SERIES } from './schedule/index.js';
-import { MODE_OPTIONS, COUNTRY_OPTIONS, guessCountryFromTimezone, countryValueFromId, readTheme } from './preferences-options.js';
-import { PageTitle, SeriesRow, ChoiceGroup, CountryChoices, TimezoneLabel } from './preferences-ui.jsx';
+import { MODE_OPTIONS, COUNTRY_OPTIONS, SERIES_DESCRIPTION_KEYS, guessCountryFromTimezone, countryValueFromId } from './preferences-options.js';
 import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
-import { GantryLockup } from './Brand.jsx';
+import { GantryLockup, GantrySymbol } from './Brand.jsx';
 
-const TOTAL_STEPS = 3;
+const TOTAL = 3;
+const LIT = [0, 2, 3, 5];
+
+function Tag({ id }) {
+  return <span className="ob-tag"><i style={{ background: `var(--${id.toLowerCase()})` }} />{id}</span>;
+}
 
 export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarded }) {
-  const [theme] = useState(readTheme);
-  const t = TOKENS[theme];
-  const tr = useT();
+  const t = useT();
   const [step, setStep] = useState(1);
   const [selected, setSelected] = useState(() => new Set());
   const [modes, setModes] = useState({});
   const [countryId, setCountryId] = useState(() => guessCountryFromTimezone(preferences.timezone));
   const stepRef = useRef(null);
-
-  // 스텝이 바뀌면 포커스를 스텝 컨테이너로 옮겨 탭 순서를 처음부터 시작한다.
-  useEffect(() => { stepRef.current?.focus(); }, [step]);
-
-  // 계측: 온보딩 진입 1회 (StrictMode 이중 effect 방지).
+  useEffect(() => { stepRef.current?.focus({ preventScroll: true }); }, [step]);
   const startedRef = useRef(false);
   useEffect(() => { if (!startedRef.current) { startedRef.current = true; track('onboarding_started'); } }, []);
 
   const selectedList = SUPPORTED_SERIES.filter((id) => selected.has(id));
   const canNext = step !== 1 || selected.size > 0;
-
-  const toggleSeries = (id) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
-
-  const goNext = () => {
-    if (!canNext) return;
-    track('onboarding_step_completed', { step });
-    if (step < TOTAL_STEPS) setStep(step + 1);
-    else finish();
-  };
-  const goBack = () => setStep((s) => Math.max(1, s - 1));
-
-  // 커밋 순서 고정: 시리즈 → 국가 → onboarded(마지막).
+  const toggle = (id) => setSelected((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const finish = () => {
     const chosen = SUPPORTED_SERIES.filter((id) => selected.has(id)).map((id) => modes[id] || 'all');
     track('onboarding_completed', { series_on: chosen.length, series_all: chosen.filter((m) => m === 'all').length, series_race: chosen.filter((m) => m === 'race').length });
     SUPPORTED_SERIES.forEach((id) => setSeriesMode(id, selected.has(id) ? (modes[id] || 'all') : 'off'));
     setCountry(countryValueFromId(countryId));
-    window.__gantrySplash?.play({ caption: tr('brand.ready') });   // 라이츠아웃 전환으로 앱에 들어간다
+    window.__gantrySplash?.play({ caption: t('brand.ready') });
     setOnboarded(true);
   };
-
-  // 건너뛰기도 국가는 채운다 — null이면 중계처 필터가 global만 통과시켜 국내 중계처(쿠팡플레이 등)가 사라진다.
-  // 3단계에서 쓰는 시간대 기반 추정값을 그대로 쓰고, 설정에서 언제든 바꿀 수 있다. 커밋 순서는 finish와 같다.
   const skip = () => {
     track('onboarding_skipped', { step });
     SUPPORTED_SERIES.forEach((id) => setSeriesMode(id, 'all'));
     setCountry(countryValueFromId(countryId));
-    window.__gantrySplash?.play({ caption: tr('brand.ready') });
+    window.__gantrySplash?.play({ caption: t('brand.ready') });
     setOnboarded(true);
   };
-
-  const onKeyDown = (e) => {
-    // 선택 항목(button)에 포커스가 있을 때의 Enter는 그 항목의 토글로 두고,
-    // 컨테이너 자체에 포커스가 있을 때만 Enter로 다음 스텝으로 넘어간다.
-    if (e.key === 'Enter' && e.target === stepRef.current) { e.preventDefault(); goNext(); }
-  };
-
-  const countryLabel = tr(COUNTRY_OPTIONS.find((c) => c.id === countryId)?.label ?? 'country.OTHER');
+  const next = () => { if (!canNext) return; track('onboarding_step_completed', { step }); if (step < TOTAL) setStep(step + 1); else finish(); };
+  const onKeyDown = (e) => { if (e.key === 'Enter' && e.target === stepRef.current) { e.preventDefault(); next(); } };
+  const countryLabel = t(COUNTRY_OPTIONS.find((c) => c.id === countryId)?.label ?? 'country.OTHER');
 
   return (
-    <div style={{
-      minHeight: '100dvh', background: t.bg, color: t.text,
-      paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-    }}>
-      <div style={{
-        maxWidth: 560, margin: '0 auto', padding: '20px 20px 32px',
-        minHeight: '100dvh', display: 'flex', flexDirection: 'column',
-      }}>
-        <div style={{ marginBottom: 28, color: t.text }}><GantryLockup height={14} /></div>
+    <div className="ob">
+      <aside className="ob-side" aria-hidden="true">
+        <div className="ob-grid" />
+        <div className="ob-side-top"><GantryLockup height={16} /></div>
+        <div className="ob-side-mid">
+          <div className="ob-sym"><GantrySymbol size={112} lit={LIT[step]} /></div>
+          <h2 dangerouslySetInnerHTML={{ __html: t('ob.side.title') }} />
+          <p>{t('ob.side.sub')}</p>
+        </div>
+        <div className="ob-side-foot">
+          <span>Know when it’s lights out.</span>
+          <span className="ob-lamps">{[1, 2, 3].map((i) => <i key={i} className={i <= step ? 'on' : undefined} />)}</span>
+        </div>
+      </aside>
 
-        {/* 진행 표시 + 건너뛰기 */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ display: 'flex', gap: 4 }} aria-hidden>
-              {Array.from({ length: TOTAL_STEPS }, (_, i) => (
-                <span key={i} style={{ width: 20, height: 3, borderRadius: 2, background: i < step ? t.text : t.line2 }} />
-              ))}
-            </div>
-            <Mono size={12} color={t.text3}>{step}/{TOTAL_STEPS}</Mono>
-          </div>
-          <button type="button" onClick={skip} style={{
-            background: 'none', border: 0, minHeight: 44, minWidth: 44, padding: '8px 0 8px 12px', margin: '-6px 0', color: t.text3,
-            fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-          }}>{tr('ob.skip')}</button>
+      <main className="ob-form">
+        <div className="ob-mlock"><GantryLockup height={14} /></div>
+        <div className="ob-prog">
+          <div className="ob-steps" aria-hidden="true">{Array.from({ length: TOTAL }, (_, i) => <i key={i} className={i < step ? 'on' : undefined} />)}<span>{step}/{TOTAL}</span></div>
+          <button type="button" className="ob-skip" onClick={skip}>{t('ob.skip')}</button>
         </div>
 
-        {/* 스텝 본문 */}
-        <div ref={stepRef} tabIndex={-1} onKeyDown={onKeyDown} style={{ outline: 'none', flex: 1 }}
-          aria-label={tr('ob.stepAria', { step })}>
+        <div ref={stepRef} tabIndex={-1} onKeyDown={onKeyDown} className="ob-step" key={step} aria-label={t('ob.stepAria', { step })}>
           {step === 1 && (
             <>
-              <PageTitle theme={theme} title={tr('ob.s1.title')} sub={tr('ob.s1.sub')} />
-              <div style={{ display: 'grid', gap: 8 }} role="group" aria-label={tr('ob.s1.aria')}>
+              <h1 data-view-title tabIndex={-1}>{t('ob.s1.title')}</h1>
+              <p className="ob-lead">{t('ob.s1.sub')}</p>
+              <div className="ob-list" role="group" aria-label={t('ob.s1.aria')}>
                 {SUPPORTED_SERIES.map((id) => (
-                  <SeriesRow key={id} seriesId={id} theme={theme} selected={selected.has(id)} onToggle={() => toggleSeries(id)} />
+                  <button key={id} type="button" role="checkbox" aria-checked={selected.has(id)} className="ob-opt check" onClick={() => toggle(id)}>
+                    <span className="ob-dot" />
+                    <span className="ob-opt-body">
+                      <span className="ob-opt-head"><Tag id={id} /><span className="ob-sub">{SERIES[id].name}</span></span>
+                      <span className="ob-desc">{t(SERIES_DESCRIPTION_KEYS[id])}</span>
+                    </span>
+                  </button>
                 ))}
               </div>
             </>
           )}
-
           {step === 2 && (
             <>
-              <PageTitle theme={theme} title={tr('ob.s2.title')} sub={tr('ob.s2.sub')} />
-              <div style={{ display: 'grid', gap: 20 }}>
+              <h1 data-view-title tabIndex={-1}>{t('ob.s2.title')}</h1>
+              <p className="ob-lead">{t('ob.s2.sub')}</p>
+              <div className="ob-list">
                 {selectedList.map((id) => (
-                  <div key={id}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                      <SeriesTag series={id} theme={theme} />
-                      <span style={{ fontSize: 14, fontWeight: 600, color: t.text2 }}>{SERIES[id].name}</span>
+                  <div key={id} className="ob-card">
+                    <div className="ob-opt-head"><Tag id={id} /><span className="ob-sub">{SERIES[id].name}</span></div>
+                    <div className="ob-radios" role="radiogroup" aria-label={t('ob.levelAria', { series: SERIES[id].name })}>
+                      {MODE_OPTIONS.map((o) => (
+                        <button key={o.id} type="button" role="radio" aria-checked={(modes[id] || 'all') === o.id} onClick={() => setModes((p) => ({ ...p, [id]: o.id }))}>
+                          {t(o.label)}<small>{t(o.sub)}</small>
+                        </button>
+                      ))}
                     </div>
-                    <ChoiceGroup theme={theme} options={MODE_OPTIONS} value={modes[id] || 'all'}
-                      onChange={(mode) => setModes((prev) => ({ ...prev, [id]: mode }))}
-                      label={tr('ob.levelAria', { series: SERIES[id].name })} />
                   </div>
                 ))}
               </div>
             </>
           )}
-
           {step === 3 && (
             <>
-              <PageTitle theme={theme}
-                title={tr('ob.s3.title', { country: countryLabel })}
-                sub={<>{tr('ob.s3.subBefore')}<TimezoneLabel theme={theme} timezone={preferences.timezone} />{tr('ob.s3.subAfter')}</>} />
-              <CountryChoices theme={theme} value={countryId} onChange={setCountryId} />
+              <h1 data-view-title tabIndex={-1}>{t('ob.s3.title', { country: countryLabel })}</h1>
+              <p className="ob-lead">{t('ob.s3.subBefore')}<b>{preferences.timezone}</b>{t('ob.s3.subAfter')}</p>
+              <div className="ob-list" role="radiogroup" aria-label={t('aria.country')}>
+                {COUNTRY_OPTIONS.map((c) => (
+                  <button key={c.id} type="button" role="radio" aria-checked={countryId === c.id} className="ob-opt center" onClick={() => setCountryId(c.id)}>
+                    <span className="ob-dot" /><span className="ob-name">{t(c.label)}</span>
+                  </button>
+                ))}
+              </div>
             </>
           )}
         </div>
 
-        {/* 하단 액션 */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 28 }}>
-          {step > 1 && (
-            <button type="button" onClick={goBack} style={{
-              flex: '0 0 auto', minWidth: 88, height: 52, borderRadius: 14, cursor: 'pointer',
-              background: 'transparent', border: `1px solid ${t.line2}`, color: t.text2,
-              fontSize: 15, fontWeight: 600, fontFamily: 'inherit',
-            }}>{tr('ob.back')}</button>
-          )}
-          <button type="button" onClick={goNext} disabled={!canNext} style={{
-            flex: 1, height: 52, borderRadius: 14, border: 0, cursor: canNext ? 'pointer' : 'default',
-            background: t.text, color: t.bg, opacity: canNext ? 1 : 0.35,
-            fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
-          }}>{step < TOTAL_STEPS ? tr('ob.next') : tr('ob.start')}</button>
+        <div className="ob-actions">
+          {step > 1 && <button type="button" className="ob-btn line" onClick={() => setStep((s) => Math.max(1, s - 1))}>{t('ob.back')}</button>}
+          <button type="button" className="ob-btn primary" disabled={!canNext} onClick={next}>{step < TOTAL ? t('ob.next') : t('ob.start')}</button>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
