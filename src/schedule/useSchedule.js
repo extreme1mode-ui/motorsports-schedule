@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getFallbackScheduleData, hasSeasonData, loadScheduleData } from './service.js';
+import { validateCurationKeys } from './highlights.js';
 
 export function getCurrentNow() {
   return new Date();
@@ -10,6 +11,15 @@ const REFRESH_MS = 15 * 60 * 1000;
 // 연도별 로드 결과 캐시(모듈 단위). 훅 인스턴스가 다시 마운트돼도(모바일↔웹 셸 전환, 온보딩 종료 등) 같은 요청을 또 보내지 않는다.
 // 진행 중인 요청은 promise를 공유하고, 끝난 요청은 REFRESH_MS 동안 재사용한다. 주기 갱신은 force로 캐시를 건너뛴다.
 const loadCache = new Map(); // year → { promise, at }
+
+// 큐레이션 키(RACE_WEIGHT / RACE_HIGHLIGHTS)는 시리즈+현지 경기일로 매칭한다. 일정이 바뀌면(2027 파일, API 변경)
+// 조용히 사라지므로 개발 중에 한 번 대조해서 console.warn을 남긴다. 연도마다 한 번, 프로덕션에서는 아예 실행되지 않는다.
+const curationChecked = new Set();
+function checkCuration(year, races) {
+  if (!import.meta.env.DEV || curationChecked.has(year)) return;
+  curationChecked.add(year);
+  validateCurationKeys(races);
+}
 function loadScheduleCached(year, { force = false } = {}) {
   const hit = loadCache.get(year);
   if (!force && hit && Date.now() - hit.at < REFRESH_MS) return hit.promise;
@@ -35,6 +45,7 @@ export function useScheduleData(now = new Date()) {
     async function refresh(force = false) {
       const nextState = await loadScheduleCached(seasonYear, { force });
       if (cancelled) return;
+      checkCuration(seasonYear, nextState.races);
       if (nextState.error) {
         console.warn('[schedule] Falling back to local schedule data', nextState.error);
       }

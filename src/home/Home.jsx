@@ -13,6 +13,7 @@ import { useT } from '../i18n/index.js';
 import { zonedDateFromKey } from '../schedule/format.js';
 import { formatSessionLabel } from '../schedule/utils.js';
 import { getRecommendations } from '../schedule/recommendations.js';
+import { getHighlights, getHighlightNote, getRaceWeight } from '../schedule/highlights.js';
 import { track } from '../analytics.js';
 import { prefetchRacePhoto, prefetchHandlers, useVisiblePrefetch } from '../photo-prefetch.js';
 import { GantryLockup } from '../Brand.jsx';
@@ -95,6 +96,20 @@ function heroClock(ev, ts, kind, fmt, t) {
   // 주말 기간은 이벤트 고유 정보 — 서킷 현지 날짜 그대로
   if (kind === 'today' || !st) return { big: `${fmt.plainMonthDay(ev.weekendStart)} – ${fmt.plainMonthDay(ev.weekendEnd)}`, urgent: false, sub: t('home.clock.tba') };
   return { big: md(fmt, st), urgent: false, sub: `${t('home.weekdayTime', { weekday: dow(fmt, st), time: fmt.time(st) })}${fmt.isNight(st) ? ` · ${t('home.night')}` : ''}` };
+}
+
+// 히어로 큐레이션 줄. heroReason(시간·주말 진행 상태)이 못 담는 '왜 하필 이 경기인가'를 한 줄로 붙인다.
+// 우선순위는 추천 엔진(scoreRace)과 같다 — 하이라이트가 등급을 이긴다. 1등급이면 null(줄 자체를 안 그린다).
+function heroCuration(race, locale, t) {
+  const highlights = getHighlights(race);
+  if (highlights.length) {
+    const text = getHighlightNote(highlights[0], locale);
+    if (text) return { kind: 'highlight', text };
+  }
+  const weight = getRaceWeight(race);
+  if (weight === 3) return { kind: 'weight3', text: t('rec.weight3') };
+  if (weight === 2) return { kind: 'weight2', text: t('rec.weight2') };
+  return null;
 }
 
 // 히어로 사진: 미리 로드하고 onload 때 .loaded로 opacity 0 → 1 (home.css). 레이아웃은 .hero2 min-height가 잡고 있어 안 움직인다.
@@ -341,7 +356,8 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
         const hts = ts(hero);
         const phase = resolveWeekendPhase(hero.race, at, { mode: modeOf(preferences, hero.series) });
         const reason = heroReason(hero, hts, kind, at, fmt, t, phase);
-        const openHero = () => onOpenRace(hero.race, 'home', { hero_phase: phase.phase });
+        const curation = heroCuration(hero.race, fmt.locale, t);
+        const openHero = () => onOpenRace(hero.race, 'home', { hero_phase: phase.phase, hero_curation: curation?.kind ?? null });
         const clock = heroClock(hero, hts, kind, fmt, t);
         const bcast = fmt.broadcast(hero.broadcast);
         const chans = bcast.map((b) => b.name);
@@ -355,6 +371,8 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
             <div className="hero2-wrap">
               <div className="hero2-left">
                 <span className={`hero2-reason${reason.urgent ? '' : ' calm'}`}><LightRow lit={reason.lit} tone={reason.urgent ? 'signal' : 'default'} size={5} gap={3} />{reason.text}</span>
+                {/* 발견 카드의 이유 줄과 같은 치수. 색만 사진 위 흰 글자 계조(.hero2-official/.hero2-chans와 동일). */}
+                {curation && <div className="ko" style={{ marginTop: 8, fontSize: 11.5, color: 'rgba(255,255,255,0.62)', lineHeight: 1.45 }}>{curation.text}</div>}
                 <div className="hero2-meta">
                   <SeriesBadge series={hero.series} /><span className="rnd">{roundText(hero)}</span>
                   {hero.isSprint && <span className="tagpill">{t('home.sprintWeekend')}</span>}
