@@ -9,6 +9,7 @@ import { usePop } from './use-motion.js';
 import { photo, photoPos } from './home/photos.js';
 import { useImageLoaded } from './use-motion.js';
 import { prefetchHandlers, useVisiblePrefetch } from './photo-prefetch.js';
+import { toggleAlarm, useAlarms } from './alarm.js';
 import { useRecommendationShown } from './use-analytics.js';
 
 // 정렬·그룹핑은 시작 시각(UTC)으로. 시간대와 무관하게 항상 옳다.
@@ -396,7 +397,13 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
   const ticketUrl = (race.status !== 'completed' && race.status !== 'cancelled' && race.ticketUrl) || null;
   const officialUrl = race.officialUrl || null;
   const linkTrack = (event) => track(event, { series: race.series, race_id: race.id, source: 'detail' });
-  const [notify, setNotify] = useState(false);
+  // 캘린더 담기. 히어로와 같은 함수·같은 저장소를 쓴다(alarm.js).
+  // 끝났거나 취소됐거나 시각이 확정된 세션이 하나도 없으면 담을 게 없어서 행 자체를 그리지 않는다.
+  const alarms = useAlarms();
+  const alarmOn = alarms.has(race.id);
+  const canAlarm = race.status !== 'completed' && race.status !== 'cancelled'
+    && (Array.isArray(race.sessions) ? race.sessions : []).some((x) => x.startUtc);
+  const onAlarm = () => toggleAlarm(race, { source: 'detail', preferences, locale: fmt.locale });
   const [favPop, onFavPopEnd] = usePop(faved);   // 저장될 때만 되튐
   // 열리면 포커스를 시트 안 첫 요소(뒤로 버튼)로. 닫힌 뒤 원래 요소로 되돌리는 건 App이 한다.
   const headerPhoto = photo(race, 'card');
@@ -526,20 +533,24 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
         <div style={{ marginTop: 8, fontSize: 11, color: t.text3 }}>{tr('detail.broadcastNote')}</div>
       </section>
 
-      <section style={{ padding: '20px 18px 0' }}>
-        <div style={{ padding: '14px 16px', background: t.surface, border: `1px solid ${t.line}`, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>{tr('detail.alertTitle')}</div>
-            <div style={{ fontSize: 11, color: t.text3, marginTop: 2 }}>{tr('detail.alertSub')}</div>
+      {canAlarm && (
+        <section style={{ padding: '20px 18px 0' }}>
+          <div style={{ padding: '14px 16px', background: t.surface, border: `1px solid ${t.line}`, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>{tr('detail.alarmTitle')}</div>
+              <div style={{ fontSize: 11, color: t.text3, marginTop: 2 }}>{tr('detail.alarmSub')}</div>
+            </div>
+            {/* 스위치가 아니라 버튼이다 — 꺼도 캘린더에서 지워지지 않으니 스위치는 거짓말이 된다. */}
+            <button type="button" onClick={onAlarm} aria-pressed={alarmOn}
+                style={{ minHeight: 44, minWidth: 72, padding: '0 16px', borderRadius: 999, flex: 'none', cursor: 'pointer',
+                  fontFamily: 'inherit', fontSize: 13, fontWeight: 700, letterSpacing: '-0.005em',
+                  border: alarmOn ? `1px solid ${t.line2}` : 0,
+                  background: alarmOn ? 'transparent' : s.accent, color: alarmOn ? t.text2 : '#fff' }}>
+                {alarmOn ? tr('detail.alarmAdded') : tr('detail.alarmAdd')}
+              </button>
           </div>
-          <button onClick={() => setNotify(!notify)} role="switch" aria-checked={notify} aria-label={tr('detail.alertTitle')} style={{ width: 46, height: 44, margin: '-8px 0', padding: 0, border: 0, background: 'none', cursor: 'pointer', display: 'grid', placeItems: 'center', flex: 'none' }}>
-            <span style={{ display: 'block', width: 46, height: 28, borderRadius: 999, background: notify ? s.accent : (theme === 'dark' ? '#3A3D45' : '#D8DAE3'), position: 'relative', transition: 'background var(--dur-state) var(--ease-std)' }}>
-              {/* 노브는 left 대신 transform으로 이동 (레이아웃 재계산 없음) */}
-              <span style={{ position: 'absolute', top: 2, left: 2, width: 24, height: 24, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transform: `translateX(${notify ? 18 : 0}px)`, transition: 'transform var(--dur-state) var(--ease-std)' }} />
-            </span>
-          </button>
-        </div>
-      </section>
+        </section>
+      )}
 
       {(ticketUrl || officialUrl) && (
         <section style={{ padding: '24px 18px 0' }}>

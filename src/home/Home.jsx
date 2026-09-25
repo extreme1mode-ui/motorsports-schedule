@@ -18,7 +18,7 @@ import { track } from '../analytics.js';
 import { prefetchRacePhoto, prefetchHandlers, useVisiblePrefetch } from '../photo-prefetch.js';
 import { GantryLockup } from '../Brand.jsx';
 import { usePop, useImageLoaded } from '../use-motion.js';
-import { storage } from '../storage/index.js';
+import { toggleAlarm, useAlarms } from '../alarm.js';
 
 const ORDER = ['F1', 'WEC', 'IMSA', 'GTWC', 'WRC'];
 const SERIES_VAR = { F1: '--f1', WEC: '--wec', IMSA: '--imsa', WRC: '--wrc', GTWC: '--gtwc' };
@@ -234,31 +234,15 @@ function Row({ ev, ts, dim, idx, onOpen }) {
 
 // ---------- 홈 본체 ----------
 function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites, toggleFav, onOpenRace, onGo, setSeriesMode }) {
-  const [alerts, setAlerts] = useState(() => storage.alerts.read());
+  const alerts = useAlarms();   // 상세에서 담아도 히어로가 바로 '담음'이 된다 (alarm.js가 알린다)
   const [, setExpiredTick] = useState(0);
   const onExpire = useCallback(() => setExpiredTick((n) => n + 1), []);
-  useEffect(() => { storage.alerts.write(alerts); }, [alerts]);
 
   const fmt = useFormat();
   const t = useT();
   const at = useMemo(() => (now instanceof Date ? now : new Date(now)), [now]);
 
-  // 알림 = 그 경기 하나짜리 .ics를 내려받아 OS 캘린더에 담는 것(30분 전 알람 포함).
-  // localStorage는 "이미 담았다"는 표시용으로만 쓴다 — 담긴 뒤에 우리가 지울 수는 없다.
-  const toggleAlert = (ev) => {
-    const id = ev?.id;
-    if (!id) return;
-    const already = alerts.has(id);
-    if (!already) {
-      const start = ev.startUtc ? new Date(ev.startUtc) : null;
-      const daysUntil = start ? Math.round((start.getTime() - at.getTime()) / 86400000) : null;   // at = 분 단위로 고정된 현재 시각
-      track('race_alarm_added', { series: ev.series, race_id: id, ...(daysUntil === null ? {} : { days_until: daysUntil }) });
-      // OpenF1 경로의 F1은 id가 meeting_key 기반이라 정적 데이터에 없다 — 매칭된 정적 id를 쓴다.
-      const calendarId = ev.race?.staticId || id;
-      window.open(`/api/calendar.ics?race=${encodeURIComponent(calendarId)}&lang=${fmt.locale}`, '_blank', 'noopener,noreferrer');
-    }
-    setAlerts((prev) => { const next = new Set(prev); if (already) next.delete(id); else next.add(id); return next; });
-  };
+  const toggleAlert = (ev) => toggleAlarm(ev, { source: 'hero', preferences, locale: fmt.locale, now: at });
 
   // 관심 경기(myRaces)와 전체(races)를 홈 형태로. 시간 상태는 한 번만 계산해 id로 찾는다.
   const mine = useMemo(() => adaptRaces(myRaces || [], preferences, fmt.locale), [myRaces, preferences, fmt.locale]);

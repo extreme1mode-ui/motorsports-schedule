@@ -9,6 +9,7 @@ import { usePop } from './use-motion.js';
 import { photo, photoPos } from './home/photos.js';
 import { useImageLoaded } from './use-motion.js';
 import { prefetchHandlers, useVisiblePrefetch } from './photo-prefetch.js';
+import { toggleAlarm, useAlarms } from './alarm.js';
 import { useRecommendationShown } from './use-analytics.js';
 
 // 정렬·그룹핑은 시작 시각(UTC)으로. 시청자 달력 파트는 사용자 시간대로.
@@ -589,10 +590,16 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
   const ticketUrl = (race.status !== 'completed' && race.status !== 'cancelled' && race.ticketUrl) || null;
   const officialUrl = race.officialUrl || null;
   const linkTrack = (event) => track(event, { series: race.series, race_id: race.id, source: 'detail' });
+  // 캘린더 담기. 히어로와 같은 함수·같은 저장소를 쓴다(alarm.js).
+  // 끝났거나 취소됐거나 시각이 확정된 세션이 하나도 없으면 담을 게 없어서 행 자체를 그리지 않는다.
+  const alarms = useAlarms();
+  const alarmOn = alarms.has(race.id);
+  const canAlarm = race.status !== 'completed' && race.status !== 'cancelled'
+    && (Array.isArray(race.sessions) ? race.sessions : []).some((x) => x.startUtc);
+  const onAlarm = () => toggleAlarm(race, { source: 'detail', preferences, locale: fmt.locale });
   const sessions = getVisibleSessions(race, preferences?.series?.[race.series]);
   const faved = favorites.has(race.id);
   const [favPop, onFavPopEnd] = usePop(faved);   // 저장될 때만 되튐
-  const [notify, setNotify] = useState(false);
   const width = tier === 'ultra' ? 560 : tier === 'desktop' ? 480 : 440;
   // 열리면 포커스를 드로어 안 첫 요소(닫기 버튼)로. 닫힌 뒤 원래 요소로 되돌리는 건 WebApp이 한다.
   const headerPhoto = photo(race, 'card');
@@ -766,29 +773,27 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
             <div style={{ marginTop: 8, fontSize: 11, color: t.text3 }}>{tr('detail.broadcastNote')}</div>
           </section>
 
-          <section style={{ marginBottom: 24 }}>
-            <div style={{
-              padding: '14px 16px', background: t.surface, border: `1px solid ${t.line}`,
-              borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            }}>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>{tr('detail.alertTitle')}</div>
-                <div style={{ fontSize: 11, color: t.text3, marginTop: 2 }}>{tr('detail.alertSub')}</div>
-              </div>
-              <button onClick={() => setNotify(!notify)} style={{
-                width: 46, height: 28, borderRadius: 999, border: 0, cursor: 'pointer',
-                background: notify ? s.accent : (theme === 'dark' ? '#3A3D45' : '#D8DAE3'),
-                position: 'relative', transition: 'background var(--dur-state) var(--ease-std)',
+          {canAlarm && (
+            <section style={{ marginBottom: 24 }}>
+              <div style={{
+                padding: '14px 16px', background: t.surface, border: `1px solid ${t.line}`,
+                borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
               }}>
-                {/* 노브는 left 대신 transform으로 이동 (레이아웃 재계산 없음) */}
-                <div style={{
-                  position: 'absolute', top: 2, left: 2,
-                  width: 24, height: 24, borderRadius: '50%', background: '#fff',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transform: `translateX(${notify ? 18 : 0}px)`, transition: 'transform var(--dur-state) var(--ease-std)',
-                }} />
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>{tr('detail.alarmTitle')}</div>
+                  <div style={{ fontSize: 11, color: t.text3, marginTop: 2 }}>{tr('detail.alarmSub')}</div>
+                </div>
+                {/* 스위치가 아니라 버튼이다 — 꺼도 캘린더에서 지워지지 않으니 스위치는 거짓말이 된다. */}
+                <button type="button" onClick={onAlarm} aria-pressed={alarmOn}
+                    style={{ minHeight: 44, minWidth: 72, padding: '0 16px', borderRadius: 999, flex: 'none', cursor: 'pointer',
+                      fontFamily: 'inherit', fontSize: 13, fontWeight: 700, letterSpacing: '-0.005em',
+                      border: alarmOn ? `1px solid ${t.line2}` : 0,
+                      background: alarmOn ? 'transparent' : s.accent, color: alarmOn ? t.text2 : '#fff' }}>
+                    {alarmOn ? tr('detail.alarmAdded') : tr('detail.alarmAdd')}
               </button>
-            </div>
-          </section>
+              </div>
+            </section>
+          )}
 
           {(ticketUrl || officialUrl) && (
             <>
