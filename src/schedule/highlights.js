@@ -72,7 +72,35 @@ export const getPrestige = getRaceWeight;
 //   'GTWC:2026-05-16': [
 //     { kind: 'crossover', ko: '맥스 베르스타펜 출전', en: 'Max Verstappen entered' },
 //   ],
-export const RACE_HIGHLIGHTS = {};
+export const RACE_HIGHLIGHTS = {
+  // ── 2026-10-03~04 주말 (조사 2026-09-25) ─────────────────────────────
+  // 배열 첫 항목이 화면에 쓰인다(추천 이유 · 히어로 큐레이션 줄). 가장 강한 사실을 맨 앞에.
+
+  // IMSA 프티 르망 — imsa.com 엔트리 노트북(09-23), RACER(09-23)
+  'IMSA:2026-10-03': [
+    { kind: 'title', ko: '시즌 최종전 · 4개 클래스 챔피언 결정', en: 'Season finale · titles decided in all four classes' },
+    { kind: 'crossover', ko: '인디카 챔피언 알렉스 팔로우·스콧 딕슨 출전', en: 'IndyCar champions Álex Palou and Scott Dixon entered' },
+    { kind: 'milestone', ko: '어큐라 마이어 섕크 레이싱 체제의 마지막 경기', en: 'Final race of the Acura Meyer Shank Racing era' },
+  ],
+
+  // GTWC 유럽 스프린트 컵 바르셀로나 — Wikipedia 2026 Sprint Cup, GPblog(09-20)
+  'GTWC:2026-10-03': [
+    { kind: 'title', ko: '스프린트 컵 최종전 · 8개 팀 타이틀 경쟁', en: 'Sprint Cup finale · eight crews still in the title fight' },
+    { kind: 'rivalry', ko: '베르스타펜 팀과 아르튀르 르클레르(샤를의 동생) 공동 2위', en: "Team Verstappen Racing and Arthur Leclerc (Charles's brother) tied for second" },
+  ],
+
+  // WRC 사르데냐 — DirtFish(09-17), Jalopnik, Speedcafe: 사우디 취소로 최종전
+  'WRC:2026-10-04': [
+    { kind: 'title', ko: '사우디 취소로 시즌 최종전 · 드라이버 챔피언 결정', en: "Season finale after Saudi cancellation · drivers' title decided here" },
+  ],
+
+  // F1 바레인 GP(세팡 개최) — formula1.com, Sky Sports
+  'F1:2026-10-04': [
+    { kind: 'milestone', ko: '2017년 이후 첫 세팡 F1 · 바레인 GP를 말레이시아에서 대체 개최', en: 'First F1 race at Sepang since 2017 · Bahrain GP held in Malaysia' },
+  ],
+
+  // GTWC 아시아 베이징 — 6라운드 중 5라운드. 확인된 특이사항 없음 → 넣지 않음.
+};
 
 export const HIGHLIGHT_KINDS = ['crossover', 'title', 'debut', 'milestone', 'rivalry'];
 
