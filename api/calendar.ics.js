@@ -16,11 +16,11 @@ const SERIES = ['F1', 'WEC', 'IMSA', 'WRC', 'GTWC'];
 const LEVELS = ['all', 'race'];
 const LANGS = ['ko', 'en'];
 const UID_DOMAIN = 'paddock.app';          // 호스트가 바뀌어도 UID가 흔들리지 않게 고정값
-const PRODID = '-//Paddock//Motorsport Schedule//KO';   // 연도를 넣지 않는다 — 한 코드가 여러 시즌을 낸다
+const PRODID = '-//Gantry//Motorsport Schedule//KO';   // 연도를 넣지 않는다 — 한 코드가 여러 시즌을 낸다
 
 const CALNAME = {
-  ko: (year) => `Paddock · ${year} 모터스포츠`,
-  en: (year) => `Paddock · ${year} Motorsport`,
+  ko: (year) => `Gantry · ${year} 모터스포츠`,
+  en: (year) => `Gantry · ${year} Motorsport`,
 };
 
 // 세션 기본 길이. 종료 시각이 데이터에 없을 때만 쓴다.
