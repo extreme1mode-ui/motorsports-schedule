@@ -585,6 +585,10 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
   const tr = useT();
   const L = fmt.race(race);
   const s = SERIES[race.series];
+  // 티켓은 아직 안 끝나고 안 취소된 경기에만. 공식 사이트는 언제나.
+  const ticketUrl = (race.status !== 'completed' && race.status !== 'cancelled' && race.ticketUrl) || null;
+  const officialUrl = race.officialUrl || null;
+  const linkTrack = (event) => track(event, { series: race.series, race_id: race.id, source: 'detail' });
   const sessions = getVisibleSessions(race, preferences?.series?.[race.series]);
   const faved = favorites.has(race.id);
   const [favPop, onFavPopEnd] = usePop(faved);   // 저장될 때만 되튐
@@ -786,14 +790,29 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
             </div>
           </section>
 
-          <button style={{
-            width: '100%', padding: '16px', borderRadius: 12, border: 0,
-            background: s.accent, color: '#fff', fontSize: 15, fontWeight: 700,
-            letterSpacing: '-0.005em', cursor: 'pointer', fontFamily: 'inherit',
-            boxShadow: `0 10px 24px ${s.accent}33`,
-          }}>
-            {tr('detail.tickets')}
-          </button>
+          {(ticketUrl || officialUrl) && (
+            <>
+              {/* 방송 링크와 같은 방식의 실제 <a>. 가운데·Cmd 클릭이 되고 스크린리더가 링크로 읽는다. */}
+              <a href={ticketUrl || officialUrl} target="_blank" rel="noopener noreferrer"
+                onClick={() => linkTrack(ticketUrl ? 'ticket_clicked' : 'official_site_clicked')}
+                style={{
+                  width: '100%', boxSizing: 'border-box', padding: '16px', borderRadius: 12, border: 0,
+                  background: s.accent, color: '#fff', fontSize: 15, fontWeight: 700,
+                  letterSpacing: '-0.005em', cursor: 'pointer', fontFamily: 'inherit',
+                  boxShadow: `0 10px 24px ${s.accent}33`,
+                  display: 'grid', placeItems: 'center', textDecoration: 'none',
+                }}>
+                {ticketUrl ? tr('detail.buyTickets') : tr('detail.openOfficialSite')}
+              </a>
+              {ticketUrl && officialUrl && (
+                <a href={officialUrl} target="_blank" rel="noopener noreferrer"
+                  onClick={() => linkTrack('official_site_clicked')}
+                  style={{ display: 'grid', placeItems: 'center', minHeight: 44, marginTop: 4, fontSize: 13, fontWeight: 600, color: t.text2, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                  {tr('detail.officialSite')}
+                </a>
+              )}
+            </>
+          )}
         </div>
       </aside>
     </div>

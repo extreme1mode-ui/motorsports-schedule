@@ -111,7 +111,9 @@ export default {
   'aria.external': '새 탭에서 열림',
   'detail.alertTitle': '시작 30분 전 알림',
   'detail.alertSub': '결승 세션 전에 푸시 알림',
-  'detail.tickets': '티켓 · 공식 사이트 열기',
+  'detail.buyTickets': '티켓 구매',
+  'detail.officialSite': '공식 사이트',
+  'detail.openOfficialSite': '공식 사이트 열기',
 
   // 온보딩
   'ob.skip': '건너뛰기',

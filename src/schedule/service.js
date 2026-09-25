@@ -162,6 +162,9 @@ function mapOpenF1Meeting(meeting, sessions, match = null, fallbackBroadcast = [
       endUtc: session.date_end,
     })),
     broadcast: (match?.full && Array.isArray(staticRace?.broadcast) && staticRace.broadcast.length) ? staticRace.broadcast : fallbackBroadcast,
+    // 티켓·공식 사이트 URL은 정적 데이터에만 있다. broadcast와 같은 조건(full 매칭)에서만 가져온다.
+    officialUrl: (match?.full && staticRace?.officialUrl) || null,
+    ticketUrl: (match?.full && staticRace?.ticketUrl) || null,
     timezone,
     isSprint: orderedSessions.some((session) => session.session_type === 'Sprint'),
     eventStartUtc: coerceIsoWithOffset(meeting.date_start),

@@ -105,7 +105,9 @@ export default {
   'aria.external': 'Opens in a new tab',
   'detail.alertTitle': 'Alert 30 min before start',
   'detail.alertSub': 'Push notification before the race session',
-  'detail.tickets': 'Tickets · official site',
+  'detail.buyTickets': 'Buy tickets',
+  'detail.officialSite': 'Official site',
+  'detail.openOfficialSite': 'Open official site',
 
   'ob.skip': 'Skip',
   'ob.stepAria': 'Onboarding step {step}',
