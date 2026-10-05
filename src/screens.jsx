@@ -11,6 +11,7 @@ import { useImageLoaded } from './use-motion.js';
 import { prefetchHandlers, useVisiblePrefetch } from './photo-prefetch.js';
 import { toggleAlarm, useAlarms } from './alarm.js';
 import { useRecommendationShown } from './use-analytics.js';
+import { CircuitMapSection } from './circuit-map/CircuitMap.jsx';
 
 // 정렬·그룹핑은 시작 시각(UTC)으로. 시간대와 무관하게 항상 옳다.
 const startMs = (r) => { const iso = getRaceStartUtc(r) || r.primaryStartUtc; return iso ? new Date(iso).getTime() : Number.MAX_SAFE_INTEGER; };
@@ -495,6 +496,9 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
           ))}
         </div>
       </section>
+
+      {/* 현장 · ON SITE — 서킷 맵이 있는 경기만 (CircuitMap.jsx hasMap) */}
+      <CircuitMapSection race={race} />
 
       <section style={{ padding: '20px 18px 0' }}>
         <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.14em' }}>WEEKEND</Mono>

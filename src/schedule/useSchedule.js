@@ -61,9 +61,13 @@ export function useScheduleData(now = new Date()) {
 
     refresh();
     const intervalId = window.setInterval(() => refresh(true), REFRESH_MS);
+    // 데모 시계가 시각을 옮기면 상태(LIVE·NEXT)를 새 시각으로 다시 계산한다. 기본 빌드에서는 이 이벤트가 오지 않는다.
+    const onClock = () => refresh(true);
+    window.addEventListener('gantry:clock', onClock);
     return () => {
       cancelled = true;
       window.clearInterval(intervalId);
+      window.removeEventListener('gantry:clock', onClock);
     };
   }, [seasonYear]);
 

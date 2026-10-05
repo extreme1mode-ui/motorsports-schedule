@@ -13,6 +13,8 @@ import { t, useT } from './i18n/index.js';
 import { track, getDaysSinceFirstVisit } from './analytics.js';
 import { withViewTransition, useScrollMemory, useFocusViewTitle, usePresence } from './use-motion.js';
 import { storage } from './storage/index.js';
+import { CircuitMapProvider } from './circuit-map/CircuitMap.jsx';
+import { DemoClockSheet } from './demo/DemoClockSheet.jsx';
 
 export default function Root() {
   const prefs = usePreferences();
@@ -47,7 +49,11 @@ export default function Root() {
       : <App theme={theme} setTheme={setTheme} {...prefs} />;
   return (
     <FormatProvider locale={prefs.preferences.locale} timeZone={prefs.preferences.timezone} country={prefs.preferences.country}>
-      {screen}
+      {/* 서킷 맵 레이어는 모바일·웹 셸 바깥에 둔다 — 창 크기로 셸이 바뀌어도 지도와 상태가 유지된다. */}
+      <CircuitMapProvider setTheme={setTheme}>
+        {screen}
+        <DemoClockSheet />
+      </CircuitMapProvider>
     </FormatProvider>
   );
 }

@@ -1,0 +1,41 @@
+{
+ "gates":[
+  {"id":"g1","n":"1","name":"Republic Blvd","pt":[1059.5,278.5]},
+  {"id":"g2","n":"2","name":"Temasek Ave","pt":[792.9,484.8]},
+  {"id":"g3a","n":"3A","name":"Stamford","pt":[386.4,184.7]},
+  {"id":"g3b","n":"3B","name":"Stamford","pt":[425.3,169.6]},
+  {"id":"g4","n":"4","name":"Empress","pt":[64.3,388.0]},
+  {"id":"g5","n":"5","name":"Fullerton","pt":[141.6,578.0]},
+  {"id":"g6","n":"6","name":"Jubilee","pt":[200.4,552.4]},
+  {"id":"g7","n":"7","name":"Marina Square","pt":[445.9,356.8]},
+  {"id":"g8","n":"8","name":"Helix","pt":[593.2,741.6]}
+ ],
+ "stages":[
+  {"id":"padang","pt":[240.5,249.5]},{"id":"downtown","pt":[307.2,313.6]},{"id":"garage","pt":[199.9,378.4]},
+  {"id":"waterside","pt":[151.2,412.2]},{"id":"dbsot","pt":[372.0,489.3]},{"id":"wharf","pt":[1125.3,221.6]},{"id":"barge","pt":[1127.2,372.8]}
+ ],
+ "villages":[{"id":"v4","pt":[276.0,346.0]},{"id":"v1","pt":[1106.0,252.8]}],
+ "stands":[
+  {"id":"padangA","name":"Padang A","c":[289.3,214.0]},
+  {"id":"padangB","name":"Padang B","c":[185.4,277.9]},
+  {"id":"stamford","name":"Stamford","c":[449.6,224.1]},
+  {"id":"connaught","name":"Connaught","c":[347.6,325.3]},
+  {"id":"empress","name":"Empress","c":[109.4,409.8]},
+  {"id":"turn2","name":"Turn 2","c":[1054.4,393.8]},
+  {"id":"chicane2","name":"Chicane @ Turn 2","c":[985.0,398.4]},
+  {"id":"t1","name":"Turn 1","c":[1058.0,430.0]},
+  {"id":"pitexit","name":"Pit Exit","c":[1020.1,448.5]},
+  {"id":"republic","name":"Republic","c":[878.8,555.1]},
+  {"id":"raffles","name":"Raffles","c":[867.5,602.6]},
+  {"id":"pit","name":"Pit","c":[1002.8,564.1],"also":[[978.6,623.9]]},
+  {"id":"superpit","name":"Super Pit","c":[961.2,668.8]},
+  {"id":"bayfront","name":"Bayfront","c":[690.0,665.6],"also":[[694.4,680.2]]},
+  {"id":"promenade","name":"Promenade","c":[765.3,733.6]},
+  {"id":"skyline","name":"Skyline","c":[789.1,725.6]},
+  {"id":"marinabay","name":"Marina Bay","c":[887.8,793.2]}
+ ],
+ "platforms":[{"id":"empressP","name":"Empress Platform","pt":[114.8,413.0]},{"id":"t1P","name":"Turn 1 Platform","pt":[1042.0,458.0]}],
+ "overpass":[[386.2,258.8],[454.1,448.6],[609.5,388.1],[655.4,441.1],[733.9,702.2],[775.0,518.6],[929.1,473.3],[1023.8,475.7]],
+ "underpass":[{"n":"A","pt":[374.4,284.8]},{"n":"B","pt":[400.8,267.3]},{"n":"C","pt":[411.6,304.7]},{"n":"D","pt":[390.0,325.6]}],
+ "track":{"start":[978.8,588.0],"finish":[941.6,679.2],"podium":[914.7,690.0]}
+}

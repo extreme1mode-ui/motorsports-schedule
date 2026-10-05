@@ -30,6 +30,7 @@ const weekMinHeight = (lanes, hasMore) =>
   Math.max(CAL_CELL_MIN, CAL_BAR_TOP + lanes * CAL_BAR_H + Math.max(0, lanes - 1) * CAL_BAR_GAP + (hasMore ? 14 : 0) + 8);
 import { PageHeader } from './web.jsx';
 import { SectionTitle } from './web.jsx';
+import { CircuitMapSection } from './circuit-map/CircuitMap.jsx';
 
 export function WebSchedule({ theme, races, onOpenRace, now, tier, seasonYear }) {
   const t = TOKENS[theme];
@@ -608,7 +609,8 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
   useEffect(() => { panelRef.current?.querySelector('button')?.focus({ preventScroll: true }); }, []);
 
   useEffect(() => {
-    const k = e => { if (e.key === 'Escape') onClose(); };
+    // 서킷 맵이 열려 있으면 Esc는 지도가 먼저 받는다 (지도 레이어 → 지도 나가기). 드로어는 그대로 둔다.
+    const k = e => { if (e.key === 'Escape' && !document.documentElement.classList.contains('cm-open')) onClose(); };
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
   }, [onClose]);
@@ -728,6 +730,9 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
               ))}
             </div>
           </section>
+
+          {/* 현장 · ON SITE — 서킷 맵이 있는 경기만 (CircuitMap.jsx hasMap) */}
+          <CircuitMapSection race={race} variant="drawer" />
 
           <section style={{ marginBottom: 24 }}>
             <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.16em', display: 'block', marginBottom: 12 }}>WEEKEND</Mono>

@@ -19,6 +19,9 @@ import { prefetchRacePhoto, prefetchHandlers, useVisiblePrefetch } from '../phot
 import { GantryLockup } from '../Brand.jsx';
 import { usePop, useImageLoaded } from '../use-motion.js';
 import { toggleAlarm, useAlarms } from '../alarm.js';
+import { HeroSiteRow } from '../circuit-map/CircuitMap.jsx';
+import { demoClock } from '../demo/clock.js';
+import { openDemoClock } from '../demo/DemoClockSheet.jsx';
 
 const ORDER = ['F1', 'WEC', 'IMSA', 'GTWC', 'WRC'];
 const SERIES_VAR = { F1: '--f1', WEC: '--wec', IMSA: '--imsa', WRC: '--wrc', GTWC: '--gtwc' };
@@ -328,7 +331,10 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
           <div className="sub ko">{t('home.watching', { count: watching })}</div>
         </div>
         <div className="pagehead-tools">
-          <span className="clock m">{fmt.zoneLabel} <Clock /></span>
+          {demoClock.enabled
+            // 데모 빌드: 시계 칩이 데모 시계 시트를 연다.
+            ? <button type="button" className="clock m clock--demo" aria-label={t('demo.open')} onClick={openDemoClock}>{fmt.zoneLabel} <Clock /><span className="dm">{t('demo.badge')}</span></button>
+            : <span className="clock m">{fmt.zoneLabel} <Clock /></span>}
           <div className="mobtools">
             <button type="button" className="iconbtn" aria-label={t('nav.settings')} onClick={() => onGo('settings')}><Icon name="sliders" /></button>
             <button type="button" className="iconbtn" aria-label={t('theme.toggle')} onClick={() => setTheme?.(theme === 'dark' ? 'light' : 'dark')}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /></button>
@@ -382,6 +388,8 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
                 </div>
                 {chans.length > 0 && <div className="hero2-chans">{chans.join(' · ')}</div>}
               </div>
+              {/* 현장 줄: '현장에 가요'를 켠 지도 있는 경기, 주말 동안만 */}
+              <HeroSiteRow race={hero.race} now={now} />
             </div>
           </section>
         );
