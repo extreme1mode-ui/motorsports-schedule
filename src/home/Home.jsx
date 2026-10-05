@@ -21,7 +21,7 @@ import { usePop, useImageLoaded } from '../use-motion.js';
 import { toggleAlarm, useAlarms } from '../alarm.js';
 import { HeroSiteRow } from '../circuit-map/CircuitMap.jsx';
 import { demoClock } from '../demo/clock.js';
-import { openDemoClock } from '../demo/DemoClockSheet.jsx';
+import { openDemoClock } from '../demo/demo-clock-events.js';
 
 const ORDER = ['F1', 'WEC', 'IMSA', 'GTWC', 'WRC'];
 const SERIES_VAR = { F1: '--f1', WEC: '--wec', IMSA: '--imsa', WRC: '--wrc', GTWC: '--gtwc' };

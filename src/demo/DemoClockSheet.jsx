@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import './demo.css';
 import { demoClock } from './clock.js';
+import { DEMO_OPEN_EVENT } from './demo-clock-events.js';
 import { useT } from '../i18n/index.js';
 import { useFormat } from '../use-format.js';
 
@@ -14,8 +15,6 @@ const PRESETS = [
   { key: 'after', at: Date.UTC(2026, 9, 12, 1, 0) },
 ];
 
-export const openDemoClock = () => window.dispatchEvent(new Event('gantry:demo-open'));
-
 export function DemoClockSheet() {
   const [open, setOpen] = useState(false);
   const tr = useT();
@@ -26,8 +25,8 @@ export function DemoClockSheet() {
 
   useEffect(() => {
     const on = () => { openerRef.current = document.activeElement; setOpen(true); };
-    window.addEventListener('gantry:demo-open', on);
-    return () => window.removeEventListener('gantry:demo-open', on);
+    window.addEventListener(DEMO_OPEN_EVENT, on);
+    return () => window.removeEventListener(DEMO_OPEN_EVENT, on);
   }, []);
   const close = useCallback(() => {
     setOpen(false);
