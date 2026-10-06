@@ -1,8 +1,19 @@
-// OpenFreeMap(OSM) z14 벡터 타일 → gantry-osm-marina-bay.json
-// 사용: https://openfreemap.org 를 브라우저로 열고 개발자 콘솔에 이 파일 내용을 붙여 넣는다. 끝나면 JSON 파일이 내려받아진다.
-// 범위: 경도 103.8440–103.8720 · 위도 1.2770–1.3045 (마리나 베이 일대). 좌표는 z14 전역 픽셀(정수 + 1/4) 그대로 둔다.
+// OpenFreeMap(OSM) z14 벡터 타일 → gantry-osm-<venue>.json (경기마다 하나)
+// 사용: https://openfreemap.org 를 브라우저로 열고 개발자 콘솔에 이 파일 내용을 붙여 넣는다. 끝나면 JSON 파일이 경기 수만큼 내려받아진다.
+//   특정 경기만: 붙여 넣기 전에 window.GANTRY_ONLY = ['cota'] 처럼 지정한다.
+// 범위는 아래 VENUES의 [서경, 남위, 동경, 북위]. 좌표는 z14 전역 픽셀(정수 + 1/4) 그대로 둔다.
 // 라이선스: © OpenStreetMap contributors (ODbL) · 지도에 출처를 표시해야 한다.
-(async () => {
+const VENUES = [
+  ['marina-bay', [103.8440, 1.2770, 103.8720, 1.3045]],     // 싱가포르 (2026-09-27판으로 만든 base.json의 범위)
+  ['cota',       [-97.6650, 30.1150, -97.6150, 30.1520]],  // 미국 · Circuit of the Americas
+  ['mexicocity', [-99.1080, 19.3920, -99.0750, 19.4150]],  // 멕시코 · Autódromo Hermanos Rodríguez
+  ['interlagos', [-46.7170, -23.7160, -46.6840, -23.6820]],// 브라질 · Interlagos
+  ['lasvegas',   [-115.1850, 36.1000, -115.1450, 36.1340]],// 라스베이거스 · Strip Circuit
+  ['lusail',     [51.4350, 25.4750, 51.4700, 25.5050]],    // 카타르 · Lusail
+  ['yasmarina',  [54.5850, 24.4500, 54.6200, 24.4920]],    // 아부다비 · Yas Marina
+];
+(async () => { for (const [VID, BBOX] of VENUES) { if (window.GANTRY_ONLY && !window.GANTRY_ONLY.includes(VID)) continue; await extract(VID, BBOX); } })();
+async function extract(VID, BBOX) {
   function Reader(buf){ this.b=buf; this.p=0; }
   Reader.prototype.varint=function(){ let r=0,s=0,b; do{ b=this.b[this.p++]; r+=(b&0x7f)*Math.pow(2,s); s+=7; }while(b>=0x80); return r; };
   Reader.prototype.svarint=function(){ const v=this.varint(); return (v%2===1)? -(v+1)/2 : v/2; };
@@ -29,7 +40,7 @@
   const tj=await (await fetch('https://tiles.openfreemap.org/planet')).json();
   const url=tj.tiles[0], Z=14, E=4096, N=2**Z;
   const gx=lon=>(lon+180)/360*N*E, gy=lat=>{ const r=lat*Math.PI/180; return (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*N*E; };
-  const BX0=Math.floor(gx(103.8440)), BX1=Math.ceil(gx(103.8720)), BY0=Math.floor(gy(1.3045)), BY1=Math.ceil(gy(1.2770));
+  const BX0=Math.floor(gx(BBOX[0])), BX1=Math.ceil(gx(BBOX[2])), BY0=Math.floor(gy(BBOX[3])), BY1=Math.ceil(gy(BBOX[1]));
   const clipPoly=(ring,x0,y0,x1,y1)=>{ let pts=ring;
     const E2=[[p=>p[0]>=x0,(a,b)=>{const t=(x0-a[0])/(b[0]-a[0]);return [x0,a[1]+t*(b[1]-a[1])];}],[p=>p[0]<=x1,(a,b)=>{const t=(x1-a[0])/(b[0]-a[0]);return [x1,a[1]+t*(b[1]-a[1])];}],
               [p=>p[1]>=y0,(a,b)=>{const t=(y0-a[1])/(b[1]-a[1]);return [a[0]+t*(b[0]-a[0]),y0];}],[p=>p[1]<=y1,(a,b)=>{const t=(y1-a[1])/(b[1]-a[1]);return [a[0]+t*(b[0]-a[0]),y1];}]];
@@ -58,5 +69,6 @@
         else if(f.type===3) G.forEach(r=>{ const c=clipPoly(r,cx0,cy0,cx1,cy1); if(c.length>=3) g.push(c); });
         if(!g.length) continue;
         arr.push({id:f.id,t:f.type,k:tx+'/'+ty,p:props,g:g.map(r=>r.map(p=>[Math.round(p[0]*4)/4,Math.round(p[1]*4)/4]).flat())}); } } }
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(out)],{type:'application/json'})); a.download='gantry-osm-marina-bay.json'; a.click();
-})();
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(out)],{type:'application/json'})); a.download='gantry-osm-'+VID+'.json'; a.click();
+  await new Promise(r=>setTimeout(r,1500));
+}
