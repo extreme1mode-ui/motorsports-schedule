@@ -1,4 +1,4 @@
-# 서킷 맵 데이터 만들기 (`src/circuit-map/base.json`)
+# 서킷 맵 데이터 만들기 (`src/circuit-map/venues/sgp26/base.json`)
 
 서킷 맵의 바탕 지도와 행사 배치를 두 원본에서 다시 만든다. 같은 입력이면 같은 `base.json`이 나온다(바이트 단위로 확인함).
 

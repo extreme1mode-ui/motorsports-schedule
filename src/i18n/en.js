@@ -156,6 +156,7 @@ export default {
   'cm.title': 'Live circuit map',
   'cm.sub': 'Grandstands, gates, MRT and session times on one map',
   'cm.ticket': 'My ticket · {name} · {zone}',
+  'cm.ticketNoZone': 'My ticket · {name}',
   'cm.open': 'Open circuit map',
   'cm.attend': "I'm going",
   'cm.attendNote': 'During the weekend you can open it straight from the Home hero',

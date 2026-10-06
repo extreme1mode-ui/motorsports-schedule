@@ -17,6 +17,10 @@ const mqDesk = window.matchMedia('(min-width:900px)');
 /* ── storage ── */
 const store = HOST.store;
 
+/* global listeners are recorded so another venue's map can replace this one (destroy) */
+const OFF = [];
+const onG = (t, type, fn, o) => { t.addEventListener(type, fn, o); OFF.push(() => t.removeEventListener(type, fn, o)); };
+
 /* ── projection (metres, north-up) ── */
 const LON0 = VN.proj.lon0, LAT0 = VN.proj.lat0, KX = Math.cos(VN.proj.kxLat*Math.PI/180)*111320, KY = 110574;
 const P = (lon, lat) => ({x:(lon-LON0)*KX, y:(LAT0-lat)*KY});
@@ -67,7 +71,9 @@ const PIT_D = BM && BM.pit ? pathD(BM.pit) : (() => {
 const SPOTS = VN.spots.map(o => Object.assign({}, o));
 const STAGES = VN.stages.map(o => Object.assign({}, o));
 const GATES = VN.gates.map(o => Object.assign({}, o));
-GATES.forEach(g => { g.short = g.n+'번 · '+g.name; })
+/* gates: number and name are both optional (some official maps print neither) — gname is what '… 게이트' reads */
+const gNum = n => /^\d/.test(n) ? n+'번' : n;
+GATES.forEach(g => { g.n = g.n || ''; g.name = g.name || ''; g.gname = g.name || (g.n ? gNum(g.n) : g.st ? g.st+' 쪽' : '입장'); g.short = g.n && g.name ? g.n+'번 · '+g.name : g.gname; })
 const MRTS = VN.transit.items.map(o => Object.assign({}, o));
 const VILLAGES = VN.village.items.map(o => Object.assign({}, o));
 const LANDMARKS = VN.landmarks.map(o => Object.assign({}, o));
@@ -118,7 +124,9 @@ SPOTS.forEach(sp => {
   sp.covLen = Math.round(ranges.reduce((a,r)=>a+(r[1]-r[0]),0));
   const inCov = s => ranges.some(r => (s>=r[0]&&s<=r[1]) || (s+LEN>=r[0]&&s+LEN<=r[1]));
   sp.turns = TURNS.filter(t => inCov(t.s)).map(t => t.n);
-  if(!sp.turns.length){ let best=null,bd=1e9; TURNS.forEach(t=>{const d=Math.hypot(t.x-sp.x,t.y-sp.y); if(d<bd){bd=d;best=t;}}); sp.turns=[best.n]; }
+  if(!sp.turns.length){   // nothing within sight radius (stand on a long straight): the corner nearest along the lap from the closest track point
+    let bi=0, bd=1e12; SAMP.forEach((q,i) => { const d=(q[0]-sp.x)**2+(q[1]-sp.y)**2; if(d<bd){bd=d;bi=i;} });
+    const s0 = SAMP[bi][2]; let best=null, bs=1e9; TURNS.forEach(t => { const d = Math.abs(((t.s - s0) % LEN + LEN*1.5) % LEN - LEN/2); if(d<bs){bs=d;best=t;} }); sp.turns=[best.n]; }
 });
 
 /* ════════ TIME ════════ */
@@ -147,17 +155,22 @@ function until(ms, t){
 const dayTag = d => DAYS[d] ? DAYS[d].w : '';
 
 /* ════════ SCHEDULE (local time, as published) ════════ */
-const TRACK_RAW = VN.track, ACT_RAW = VN.acts || [], TBA = VN.tba || null, GARAGE_ACTS = TBA ? TBA.acts : [];
+const TRACK_RAW = VN.track, ACT_RAW = VN.acts || [];
+/* stages whose line-up has no times yet (one object or a list) */
+const TBAS = [].concat(VN.tba || []), tbaOf = id => TBAS.find(b => b.stage===id) || null;
 const ITEMS = [];
-TRACK_RAW.forEach((r,i) => ITEMS.push({id:'t'+i, kind:'track', day:r[0], s:tm(r[0],r[1]), e:tm(r[0],r[2]), series:r[3], en:r[4], title:r[5], note:r[6]}));
-ACT_RAW.forEach((r,i) => ITEMS.push({id:'a'+i, kind:'act', day:r[0], stage:r[1], title:r[2], s:tm(r[0],r[3]), e:tm(r[0],r[4]), approx:!!r[5]}));
+TRACK_RAW.forEach((r,i) => ITEMS.push({id:'t'+i, kind:'track', day:r[0], s:tm(r[0],r[1]), e:tm(r[0],r[2]), series:r[3], en:r[4], title:r[5], note:r[6], endMax:!!r[7]}));   // r[7]: end not published, e = start + max race time
+ACT_RAW.forEach((r,i) => { const open = r[4]==null || r[4]==='';   // end time not published: shown as a start only
+  ITEMS.push({id:'a'+i, kind:'act', day:r[0], stage:r[1], title:r[2], s:tm(r[0],r[3]), e:tm(r[0], open ? r[3] : r[4]), approx:!!r[5], open}); });
 ITEMS.sort((a,b)=>a.s-b.s || a.e-b.e);
 const IT = {}; ITEMS.forEach(x => IT[x.id]=x);
+/* timeline width for an act with no published end: up to the next act on the same stage (20–60 min), drawn fading out */
+const openSpan = it => { const nx = ITEMS.find(x => x.kind==='act' && x.stage===it.stage && x.day===it.day && x.s > it.s); return nx ? Math.max(20, Math.min(60, (nx.s-it.s)/M)) : 45; };
 const TRACK = ITEMS.filter(x=>x.kind==='track');
 const EV_START = tm(0,'00:00'), EV_END = tm(ND-1,'23:59')+M;
 const QUIET = VN.quietTitles || [];
 const isQuiet = it => QUIET.includes(it.title);
-const st = (it, t) => t < it.s ? 'next' : t < it.e ? 'live' : 'past';
+const st = (it, t) => t < it.s ? 'next' : it.open ? 'open' : t < it.e ? 'live' : 'past';
 const itemPlace = it => it.kind==='act' ? BYID['stage:'+it.stage] : (S.seat ? BYID['spot:'+S.seat] : null);
 const placeName = it => it.kind==='act' ? stageName(it.stage) : (S.seat ? BYID['spot:'+S.seat].name+' (내 자리)' : '트랙');
 
@@ -185,7 +198,7 @@ function canEnter(zone){ const t=tk(); if(zone==null || !t || !t.zones) return n
 const CK = HOST.CK;
 function now(){ return Date.now(); }
 function setClock(t, speed, demo){ HOST.setClock(t, speed, demo); }
-HOST.onClock(() => { lastPhase = null; lastSig = ''; lastMin = -1; tick(true); if(HOST.active()) renderSheet(); });
+{ const un = HOST.onClock(() => { lastPhase = null; lastSig = ''; lastMin = -1; tick(true); if(HOST.active()) renderSheet(); }); if(typeof un === 'function') OFF.push(un); }
 
 /* ════════ WALKING ESTIMATE ════════ */
 function segX(a,b,c,d){
@@ -404,7 +417,7 @@ function buildPins(){
   });
   if(S.layers.gate) GATES.forEach(g => {
     const sel = selKey==='gate:'+g.id;
-    mk('gate', g, `<span class="b">${ico('gate')}</span><span class="lb"><b class="gn">${g.n}</b>${esc(g.name)}</span>`, 30, {cls:sel?'sel':'', minK: sel?0:.5, aria:g.n+'번 게이트 '+g.name});
+    mk('gate', g, `<span class="b">${ico('gate')}</span><span class="lb">${g.n?`<b class="gn">${g.n}</b>`:''}${esc(g.name || (g.n ? '' : g.gname))}</span>`, 30, {cls:sel?'sel':'', minK: sel?0:.5, aria: g.n && g.name ? g.n+'번 게이트 '+g.name : g.gname+' 게이트'});
   });
   if(S.layers.mrt) MRTS.forEach(m => {
     const sel = selKey==='mrt:'+m.id;
@@ -627,7 +640,7 @@ function startGest(){
   if(a.length===1) gest = {mode:'pan', x:a[0].x, y:a[0].y, tx:V.tx, ty:V.ty, r};
   else if(a.length>=2){ const [p,q]=a; gest = {mode:'pinch', d:Math.hypot(p.x-q.x,p.y-q.y), cx:(p.x+q.x)/2-r.left, cy:(p.y+q.y)/2-r.top, k:V.k, tx:V.tx, ty:V.ty, r}; }
 }
-window.addEventListener('pointermove', e => {
+onG(window, 'pointermove', e => {
   if(!ptrs.has(e.pointerId) || !gest) return;
   ptrs.set(e.pointerId, {x:e.clientX, y:e.clientY});
   const a = [...ptrs.values()];
@@ -651,7 +664,7 @@ function endPtr(e){
   if(ptrs.size) startGest(); else gest = null;
   if(S.placing) updatePlaceCross();
 }
-window.addEventListener('pointerup', endPtr); window.addEventListener('pointercancel', endPtr);
+onG(window, 'pointerup', endPtr); onG(window, 'pointercancel', endPtr);
 wrap.addEventListener('click', e => {
   if(moved){ e.stopPropagation(); e.preventDefault(); return; }
   if(S.placing) return;
@@ -749,7 +762,7 @@ let dragEndAt = 0;
     d = null;
   };
   [$('#grip'), $('#tabs')].forEach(el => el.addEventListener('pointerdown', start));
-  window.addEventListener('pointermove', move); window.addEventListener('pointerup', end); window.addEventListener('pointercancel', end);
+  onG(window, 'pointermove', move); onG(window, 'pointerup', end); onG(window, 'pointercancel', end);
   $('#grip').addEventListener('click', () => performance.now()-dragEndAt > 350 && setSheet(S.sheet==='peek' ? 'half' : S.sheet==='half' ? 'full' : 'peek'));
   $('#grip').addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){ e.preventDefault(); $('#grip').click(); } });
 })();
@@ -889,7 +902,7 @@ function row(it, t, o){
   let meta = o.meta != null ? o.meta : esc(placeName(it));
   if(lk && !o.noLock) meta = `${ico('lock','s')} ${meta} · ${zName(BYID['stage:'+it.stage].zone)} 필요`;
   else if(w && o.meta == null) meta += ` · 도보 ${w.m}분`;
-  const sub = s==='live' ? `<span class="tlive">LIVE</span>` : `<small>${o.showDay?dayTag(it.day)+' · ':''}${it.approx?'약 ':''}–${hm(it.e)}</small>`;
+  const sub = s==='live' ? `<span class="tlive">LIVE</span>` : it.open ? `<small>${o.showDay?dayTag(it.day)+' · ':''}시작</small>` : `<small>${o.showDay?dayTag(it.day)+' · ':''}${it.approx?'약 ':''}–${it.endMax?'최대 ':''}${hm(it.e)}</small>`;
   const bar = it.kind==='track' ? it.series : '';
   return `<div class="row ${cls}"><button class="main" data-act="item" data-id="${it.id}" aria-label="${esc(it.title)}, ${hm(it.s)} ${TZA}${s==='live'?', 진행 중':s==='past'?', 종료':''}">
       <span class="bar ${bar}"></span>
@@ -1011,10 +1024,10 @@ function vSched(t){
     let h = `<div class="tl-row"><div class="tl-lab" ${r.id!=='track'?`role="button" tabindex="0" data-act="sel" data-type="stage" data-id="${r.id}" aria-label="${esc(r.name)} 지도에서 보기"`:''}><b>${r.id==='track'?'트랙':esc(TL_NAME[r.id])}</b>${r.zone!=null?zb(r.zone).replace(zBadge(r.zone), zShort(r.zone)):r.id==='track'?VN.tl.trackTag:''}</div>`;
     for(let m=TL0; m<=TL1; m+=30) h += `<span class="tl-gl${m%60?' h':''}" style="left:${x(m)}px"></span>`;
     items.forEach(it => {
-      const s = st(it,t), a = mins(it.s), b = it.e > tm(day,'23:59') ? TL1 : mins(it.e);
+      const s = st(it,t), a = mins(it.s), b = it.open ? Math.min(TL1, a + openSpan(it)) : it.e > tm(day,'23:59') ? TL1 : mins(it.e);
       const w = Math.max(6, (b-a)*PPM - 4), sv = S.saved.has(it.id);
-      h += `<button class="blk ${it.kind==='track'?it.series:''} ${sv?'saved':''} ${s} ${lk?'lock':''}" style="left:${x(a)+2}px;width:${w}px" data-act="item" data-id="${it.id}" aria-label="${esc(it.title)} ${hm(it.s)}부터 ${hm(it.e)}까지 ${TZA}${s==='live'?', 진행 중':''}${sv?', 내 계획에 담음':''}">
-        ${sv?`<svg class="sv" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-star"/></svg>`:''}<span class="bi"><b>${esc(it.title)}</b><span class="m">${s==='live'?'LIVE · ':''}${it.approx?'약 ':''}${hm(it.s)}–${hm(it.e)}</span></span></button>`;
+      h += `<button class="blk ${it.kind==='track'?it.series:''} ${sv?'saved':''} ${s} ${lk?'lock':''}" style="left:${x(a)+2}px;width:${w}px" data-act="item" data-id="${it.id}" aria-label="${esc(it.title)} ${it.open?hm(it.s)+' 시작, 끝나는 시각 미발표':hm(it.s)+'부터 '+hm(it.e)+'까지'} ${TZA}${s==='live'?', 진행 중':''}${sv?', 내 계획에 담음':''}">
+        ${sv?`<svg class="sv" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-star"/></svg>`:''}<span class="bi"><b>${esc(it.title)}</b><span class="m">${s==='live'?'LIVE · ':''}${it.open?hm(it.s)+' 시작':(it.approx?'약 ':'')+hm(it.s)+'–'+hm(it.e)}</span></span></button>`;
     });
     rowsH += h + `</div>`;
   });
@@ -1022,7 +1035,7 @@ function vSched(t){
   if(dayOf(t)===day){ const m = mins(t); if(m>=TL0 && m<=TL1) nowl = `<span class="nowl" data-t="${hm(t)}" style="left:${x(m)}px"></span>`; }
   return `${daySeg(day,'sday')}
     <div class="tl"><div class="tl-sc" data-keep="tl"><div class="tl-in" style="width:${LABW+W+24}px">${hd}<div style="position:relative">${rowsH}${nowl}</div></div></div></div>
-    ${TBA?`<p class="note"><b>${esc(TBA.name)}</b> · ${GARAGE_ACTS.join(', ')} · ${TBA.days} · 시작 시각 미정 · 확정되면 알려드립니다</p>`:''}
+    ${TBAS.map(b => `<p class="note"><b>${esc(b.name)}</b> · ${b.acts.join(', ')} · ${b.days} · 시작 시각 미정 · 확정되면 알려드립니다</p>`).join('')}
 `;
 }
 
@@ -1065,7 +1078,7 @@ function vGuide(t){
 function vPlan(t){
   const day = S.planDay==null ? curDay() : S.planDay;
   const seat = S.seat && BYID['spot:'+S.seat];
-  let h = `<div class="sec">${seat ? seatCard(seat) : `<div class="seat-card"><span class="ic">${ico('ticket')}</span><span class="tx"><span class="lbl">My ticket</span><b>${tk()?esc(tk().name):'티켓 미선택'}</b><span class="m">${tk()&&tk().zones?'지정석 없음 · Zone '+tk().zones.join('·'):tk()&&tk().planSub?esc(tk().planSub):'티켓을 고르면 들어갈 수 있는 곳을 표시해요'}</span></span><button class="btn sm ghost" data-act="ticket">변경</button></div>`}</div>`;
+  let h = `<div class="sec">${seat ? seatCard(seat) : `<div class="seat-card"><span class="ic">${ico('ticket')}</span><span class="tx"><span class="lbl">My ticket</span><b>${tk()?esc(tk().name):'티켓 미선택'}</b><span class="m">${tk()&&tk().zones?'지정석 없음 · '+(tk().zones.every(z=>typeof z==='number') ? 'Zone '+tk().zones.join('·') : tk().zones.map(zName).join('·')):tk()&&tk().planSub?esc(tk().planSub):'티켓을 고르면 들어갈 수 있는 곳을 표시해요'}</span></span><button class="btn sm ghost" data-act="ticket">변경</button></div>`}</div>`;
   h += `<div class="sec" style="margin-top:18px">${daySeg(day,'pday')}</div>`;
   const items = ITEMS.filter(x => x.day===day && S.saved.has(x.id));
   if(!items.length){
@@ -1138,21 +1151,23 @@ function dStage(sgd, t){
   h += `<div class="tiles">${walkTile(sgd)}${GATES.length?nearTile(sgd, GATES, 'gate', '게이트'):''}${MRTS.length?nearTile(sgd, MRTS, 'mrt', TR.short):''}</div>`;
   h += accLine(sgd.zone);
   if(sgd.desc) h += `<p class="desc">${esc(sgd.desc)}</p>`;
-  if(TBA && sgd.id===TBA.stage){
-    h += `<div class="sec" style="margin-top:22px">${sh('라인업',TBA.days)}<div class="grp">${GARAGE_ACTS.map(a=>`<div class="row"><div class="main" style="min-height:54px"><span class="bar"></span><span class="tx"><b>${esc(a)}</b><span class="m">${esc(TBA.name)}</span></span><span class="tm" style="font-size:12px;font-weight:600;color:var(--text3)">시작 시각 미정</span></div></div>`).join('')}</div><p class="note">시작 시각이 확정되면 알려드립니다.</p></div>`;
-  } else {
+  const TBA = tbaOf(sgd.id);
+  if(TBA){
+    h += `<div class="sec" style="margin-top:22px">${sh('라인업',TBA.days)}<div class="grp">${TBA.acts.map(a=>`<div class="row"><div class="main" style="min-height:54px"><span class="bar"></span><span class="tx"><b>${esc(a)}</b><span class="m">${esc(TBA.name)}</span></span><span class="tm" style="font-size:12px;font-weight:600;color:var(--text3)">시작 시각 미정</span></div></div>`).join('')}</div><p class="note">시작 시각이 확정되면 알려드립니다.</p></div>`;
+  }
+  if(!TBA || ITEMS.some(x=>x.kind==='act'&&x.stage===sgd.id)){
     const acts = ITEMS.filter(x=>x.kind==='act'&&x.stage===sgd.id);
     const nid = nextIdOf(acts, t);
     const td = dayOf(t); const order = td<0||td>ND-1 ? DIDX : [td].concat(DIDX.filter(x=>x>td), DIDX.filter(x=>x<td));
     order.forEach(dd => {
       const a = acts.filter(x=>x.day===dd); if(!a.length) return;
-      h += `<div class="sec" style="margin-top:22px">${sh(dLabel(dd), dd===td ? '오늘 · '+TZA : dd<td ? '지난 공연' : TZA)}<div class="grp">${a.map(x=>row(x,t,{meta: st(x,t)==='live' ? `종료까지 ${dur((x.e-t)/M)}` : (x.approx?'약 ':'')+dur((x.e-x.s)/M), nextId:nid, noWalk:true, noLock:true})).join('')}</div></div>`;
+      h += `<div class="sec" style="margin-top:22px">${sh(dLabel(dd), dd===td ? '오늘 · '+TZA : dd<td ? '지난 공연' : TZA)}<div class="grp">${a.map(x=>row(x,t,{meta: st(x,t)==='live' ? `종료까지 ${dur((x.e-t)/M)}` : x.open ? '끝나는 시각 미발표' : (x.approx?'약 ':'')+dur((x.e-x.s)/M), nextId:nid, noWalk:true, noLock:true})).join('')}</div></div>`;
     });
   }
   return h + approx;
 }
 function dGate(g, t){
-  let h = `<div class="pc-hd"><div class="kicker">${ico('gate','s')}입장 게이트${g.side!=null?` · <span class="zb">${zBadge(g.side)} 쪽</span>`:''}</div><h3>${esc(g.name)} 게이트</h3>${xBtn}</div>`;
+  let h = `<div class="pc-hd"><div class="kicker">${ico('gate','s')}입장 게이트${g.side!=null?` · <span class="zb">${zBadge(g.side)} 쪽</span>`:''}</div><h3>${esc(g.gname)} 게이트</h3>${xBtn}</div>`;
   h += `<div class="tiles" style="--n:${MRTS.length?2:1}">${walkTile(g)}${MRTS.length?nearTile(g, MRTS, 'mrt', TR.short):''}</div>`;
   { const gd = VN.gateDesc(g); if(gd) h += `<p class="desc">${gd}</p>`; }
   const spots = nearest(g, SPOTS, 3);
@@ -1163,7 +1178,7 @@ function dMrt(m, t){
   let h = `<div class="pc-hd"><div class="kicker">${ico(TR.icon||'train','s')}${TR.kicker}${m.codes.length?' · ':''}${m.codes.map(c=>`<span class="mrt-c">${c}</span>`).join(' ')}</div><h3>${esc(m.name)}</h3>${xBtn}</div>`;
   const gs = nearest(m, GATES, 2);
   h += `<div class="tiles" style="--n:1">${walkTile(m)}</div>`;
-  h += `<div class="sec" style="margin-top:22px">${sh('가까운 게이트')}<div class="grp kv">${gs.map(n=>`<button class="gi" data-act="sel" data-type="gate" data-id="${n.o.id}"><span class="k">${n.o.side!=null?zBadge(n.o.side)+' 쪽':n.o.n?n.o.n+'번 게이트':'게이트'}</span><span class="v">${esc(n.o.name)} 게이트<small>도보 약 ${n.w.m}분</small></span>${ico('next','go')}</button>`).join('')}</div></div>`;
+  h += `<div class="sec" style="margin-top:22px">${sh('가까운 게이트')}<div class="grp kv">${gs.map(n=>`<button class="gi" data-act="sel" data-type="gate" data-id="${n.o.id}"><span class="k">${n.o.side!=null?zBadge(n.o.side)+' 쪽':n.o.n?n.o.n+'번 게이트':'게이트'}</span><span class="v">${esc(n.o.gname)} 게이트<small>도보 약 ${n.w.m}분</small></span>${ico('next','go')}</button>`).join('')}</div></div>`;
   if(m.note || TR.note) h += `<p class="note">${esc(m.note || TR.note)}</p>`;
   h += approx;
   return h;
@@ -1192,7 +1207,7 @@ function dItem(it, t){
     <div class="main" style="margin-top:0"><div><span class="lbl">${WEEKDAY_EN[it.day]} · ${DAYS[it.day].d}</span>${it.approx?`<span class="tz"><span style="font-size:.42em;font-weight:600;color:var(--text2);margin:.6em .25em 0 0;letter-spacing:0">약</span>${hm(it.s)}<small>${TZA}</small></span>`:tzT(it.s)}</div>
       ${it.kind==='track' ? miniTrack({live:s==='live', arcs: pl ? pl.cov : [], dot: pl}) : ''}</div>
     ${s==='live'?`<div class="prog"><i style="width:${((t-it.s)/(it.e-it.s)*100).toFixed(1)}%"></i></div>`:''}
-    <div class="stats">${stat(s==='live'?'종료까지':s==='past'?'상태':'시작까지', s==='live'?dur((it.e-t)/M):s==='past'?'종료':until(it.s,t).replace(' 뒤',''))}${stat('끝나는 시각', hm(it.e), TZA)}${stat('한국 시간', `${kst(it.s)}`, 'KST')}</div>
+    <div class="stats">${stat(s==='live'?'종료까지':s==='past'||s==='open'?'상태':'시작까지', s==='live'?dur((it.e-t)/M):s==='past'?'종료':s==='open'?'시작함':until(it.s,t).replace(' 뒤',''))}${it.open?stat('끝나는 시각', '미발표'):stat('끝나는 시각', (it.endMax?'최대 ':'')+hm(it.e), TZA)}${stat('한국 시간', `${kst(it.s)}`, 'KST')}</div>
   </div></div>`;
   const placeTile = it.kind==='act' ? `<button class="tile" data-act="sel" data-type="stage" data-id="${sgd.id}">${ico('music')}${esc(sgd.short||sgd.name)}<small>지도에서 보기</small></button>`
                   : pl ? `<button class="tile" data-act="sel" data-type="spot" data-id="${pl.id}">${ico('seat')}${esc(pl.name)}<small>내 자리</small></button>`
@@ -1211,15 +1226,15 @@ function vSearch(t){
   if(!q) return h + `<div class="sgrp">${sh('빠른 찾기')}<div class="qchips">${VN.quick.map(x=>`<button class="chip" data-act="q" data-id="${esc(x)}">${esc(x)}</button>`).join('')}</div></div>`;
   const m = s => s.toLowerCase().includes(q);
   const acts = ITEMS.filter(x => m(x.title) || (x.en && m(x.en)));
-  const places = [].concat(SPOTS.filter(x=>m(x.name)), STAGES.filter(x=>m(x.name)), GATES.filter(x=>m(x.name)||m(x.name+' 게이트')), MRTS.filter(x=>m(x.name)||x.codes.some(c=>m(c))), VILLAGES.filter(x=>m(x.name)||m(String(x.label||VN.village.label).toLowerCase())||m('빌리지')));
+  const places = [].concat(SPOTS.filter(x=>m(x.name)), STAGES.filter(x=>m(x.name)), GATES.filter(x=>m(x.gname)||m(x.gname+' 게이트')), MRTS.filter(x=>m(x.name)||x.codes.some(c=>m(c))), VILLAGES.filter(x=>m(x.name)||m(String(x.label||VN.village.label).toLowerCase())||m('빌리지')));
   const tnm = q.match(/^t?(\d{1,2})(번)?( ?코너)?$/); const turns = tnm && BYID['turn:'+(+tnm[1])] ? [BYID['turn:'+(+tnm[1])]] : [];
-  const garage = GARAGE_ACTS.filter(a=>m(a));
+  const garage = TBAS.map(b => ({b, a:b.acts.filter(a=>m(a))})).filter(x => x.a.length);
   if(!acts.length && !places.length && !turns.length && !garage.length) return h + `<div class="sgrp"><div class="empty">${sym()}<b>찾는 결과가 없어요</b>영문 이름으로도 검색해 보세요.</div></div>`;
   if(acts.length) h += `<div class="sgrp">${sh('일정', TZA)}<div class="grp">${acts.slice(0,12).map(x=>row(x,t,{showDay:true})).join('')}</div></div>`;
-  if(garage.length) h += `<div class="sgrp">${sh(esc(TBA.name))}<div class="grp"><button class="spot" data-act="sel" data-type="stage" data-id="${TBA.stage}"><span class="ic rd">${ico('music')}</span><span class="tx"><span class="nm">${garage.map(esc).join(', ')}</span><p>${esc(TBA.name)} · ${TBA.days} · 시작 시각 미정</p></span></button></div></div>`;
+  garage.forEach(({b, a}) => { h += `<div class="sgrp">${sh(esc(b.name))}<div class="grp"><button class="spot" data-act="sel" data-type="stage" data-id="${b.stage}"><span class="ic rd">${ico('music')}</span><span class="tx"><span class="nm">${a.map(esc).join(', ')}</span><p>${esc(b.name)} · ${b.days} · 시작 시각 미정</p></span></button></div></div>`; });
   const icon = {spot:'seat',stage:'music',gate:'gate',mrt:TR.icon||'train',village:'village'};
   const lab = {spot:'그랜드스탠드',stage:'무대',gate:'게이트',mrt:TR.layer,village:VN.village.label,turn:'코너'};
-  if(places.length||turns.length) h += `<div class="sgrp">${sh('장소')}<div class="grp">${places.concat(turns).map(o=>`<button class="spot" data-act="sel" data-type="${o.type}" data-id="${o.id}">${o.type==='spot'?miniTrack({arcs:o.cov, dot:o}):o.type==='turn'?miniTrack({turn:o.n}):`<span class="ic ${o.type==='stage'?'rd':''}">${ico(icon[o.type])}</span>`}<span class="tx"><span class="nm">${esc(o.name)}${o.type==='gate'?' 게이트':''}${o.zone?' '+zb(o.zone):''}</span><p>${o.type==='spot'&&o.kind?o.kind:lab[o.type]}</p></span><span class="rt">${S.me?`<b>${walk(S.me,o).m}분</b>도보`:''}</span></button>`).join('')}</div></div>`;
+  if(places.length||turns.length) h += `<div class="sgrp">${sh('장소')}<div class="grp">${places.concat(turns).map(o=>`<button class="spot" data-act="sel" data-type="${o.type}" data-id="${o.id}">${o.type==='spot'?miniTrack({arcs:o.cov, dot:o}):o.type==='turn'?miniTrack({turn:o.n}):`<span class="ic ${o.type==='stage'?'rd':''}">${ico(icon[o.type])}</span>`}<span class="tx"><span class="nm">${esc(o.type==='gate'?o.gname:o.name)}${o.type==='gate'?' 게이트':''}${o.zone?' '+zb(o.zone):''}</span><p>${o.type==='spot'&&o.kind?o.kind:lab[o.type]}</p></span><span class="rt">${S.me?`<b>${walk(S.me,o).m}분</b>도보`:''}</span></button>`).join('')}</div></div>`;
   return h;
 }
 body.addEventListener('input', e => { if(e.target.id==='q'){ S.q = e.target.value; renderSheet(); } });
@@ -1288,7 +1303,7 @@ let lastFocus = null;
 function openModal(html){ closeLayers(); lastFocus = document.activeElement; dlg.innerHTML = `<div class="gp"><span></span></div>`+html; modal.classList.add('on'); modal.setAttribute('aria-hidden','false'); dlg.setAttribute('tabindex','-1'); dlg.scrollTop = 0; setTimeout(()=>{ (dlg.querySelector('[autofocus]') || dlg).focus({preventScroll:true}); }, 30); }
 function closeModal(){ if(!modal.classList.contains('on')) return; modal.classList.remove('on'); modal.setAttribute('aria-hidden','true'); if(lastFocus && lastFocus.focus) lastFocus.focus(); }
 modal.addEventListener('click', e => { if(e.target.matches('[data-close]')) { if(!S.ticket) pickTicket('none'); closeModal(); } });
-document.addEventListener('keydown', e => {
+onG(document, 'keydown', e => {
   if(e.key!=='Escape' || !HOST.active()) return;
   e.stopImmediatePropagation();
   const sp = $('#splash'); if(sp && !sp.hidden) return;
@@ -1302,7 +1317,7 @@ document.addEventListener('keydown', e => {
 function openTicket(first){
   const cur = S.ticket;
   openModal(`${first?`<div class="head">${sym()}<span class="lbl">Live circuit map</span></div>`:''}<h3>${first?'어떤 티켓으로 가세요?':'내 티켓'}</h3><p class="sub">${esc(VN.ticketSub)}</p>
-    <div class="grp opts" role="radiogroup" aria-label="티켓">${TICKETS.map(x=>`<button class="opt" role="radio" aria-checked="${cur===x.id}" data-tk="${x.id}"><span class="tx"><b>${esc(x.name)}${x.zl?` <span class="zb">${x.zl==='ALL'?'ALL ZONES':x.badge||x.zl.replace('Z','ZONE ')}</span>`:''}</b><span>${esc(x.sub)}</span></span><span class="rd"></span></button>`).join('')}</div>
+    <div class="grp opts" role="radiogroup" aria-label="티켓">${TICKETS.map(x=>`<button class="opt" role="radio" aria-checked="${cur===x.id}" data-tk="${x.id}"><span class="tx"><b>${esc(x.name)}${x.zl?` <span class="zb">${x.zl==='ALL'?'ALL ZONES':x.badge||(x.zones&&ZONES&&ZONES[x.zones[0]]?ZONES[x.zones[0]].badge:x.zl.replace('Z','ZONE '))}</span>`:''}</b><span>${esc(x.sub)}</span></span><span class="rd"></span></button>`).join('')}</div>
     ${VN.ticketNote?`<p class="note">${esc(VN.ticketNote)}</p>`:''}`);
   $$('[data-tk]', dlg).forEach(b => b.onclick = () => { $$('[data-tk]', dlg).forEach(x=>x.setAttribute('aria-checked', String(x===b))); setTimeout(()=>{ pickTicket(b.dataset.tk); closeModal(); }, 160); });
 }
@@ -1368,7 +1383,7 @@ $('#b-info-d').onclick = openInfo;
 /* ════════ TOP, LAYERS, STATUS ════════ */
 function renderTop(){
   const t = tk();
-  const z = !t ? '' : !t.zones ? '' : t.zl==='ALL' ? 'ALL' : t.zl;
+  const z0 = !t ? '' : !t.zones ? '' : t.zl==='ALL' ? 'ALL' : t.zl, z = z0.length <= 4 ? z0 : '';   // the button badge only fits a short code
   $('#b-ticket').innerHTML = `${ico('ticket')}${z?`<span class="zt">${z}</span>`:''}`;
   $('#b-ticket').setAttribute('aria-label', '내 티켓: ' + (t ? t.name : '선택 안 함'));
   $('#b-ticket-d').innerHTML = ico('ticket','s');
@@ -1383,7 +1398,7 @@ function renderLayers(){
 $('#layerpop').addEventListener('click', e => { const b=e.target.closest('[data-ly]'); if(!b) return; const k=b.dataset.ly; S.layers[k]=S.layers[k]?0:1; store.set('layers', S.layers); b.setAttribute('aria-checked', String(!!S.layers[k])); if(k==='amen'){ renderLayers(); layoutPop(); const nb=$(`#layerpop [data-ly="amen"]`); nb && nb.focus(); } buildPins(); });
 function closeLayers(){ $('#layerpop').classList.remove('on'); $('#b-layers').setAttribute('aria-expanded','false'); }
 $('#b-layers').onclick = e => { e.stopPropagation(); const on = !$('#layerpop').classList.contains('on'); $('#layerpop').classList.toggle('on', on); $('#b-layers').setAttribute('aria-expanded', String(on)); layoutPop(); requestDraw(); };
-document.addEventListener('pointerdown', e => { if($('#layerpop').classList.contains('on') && !e.target.closest('#layerpop,#b-layers')) closeLayers(); });
+onG(document, 'pointerdown', e => { if($('#layerpop').classList.contains('on') && !e.target.closest('#layerpop,#b-layers')) closeLayers(); });
 
 let lastSig = '', lastMin = -1, lastPhase = null, lastHero = '', lastClock = '';
 const REMIND = 30;
@@ -1446,8 +1461,8 @@ function layout(){
   requestDraw();
 }
 let rzT = 0;
-window.addEventListener('resize', () => { if(!HOST.active()) return; clearTimeout(rzT); rzT = setTimeout(() => { const [cx,cy] = s2w(V.w/2, V.h/2); layout(); V.tx = V.w/2 - cx*V.k; V.ty = V.h/2 - cy*V.k; clampView(); requestDraw(); }, 60); });
-mqDesk.addEventListener && mqDesk.addEventListener('change', () => { if(!HOST.active()) return; layout(); fit(false); renderSheet(true); });
+onG(window, 'resize', () => { if(!HOST.active()) return; clearTimeout(rzT); rzT = setTimeout(() => { const [cx,cy] = s2w(V.w/2, V.h/2); layout(); V.tx = V.w/2 - cx*V.k; V.ty = V.h/2 - cy*V.k; clampView(); requestDraw(); }, 60); });
+mqDesk.addEventListener && onG(mqDesk, 'change', () => { if(!HOST.active()) return; layout(); fit(false); renderSheet(true); });
 
 
 /* ════════ BOOT ════════ */
@@ -1458,7 +1473,7 @@ layout();
 if(S.me) $('#b-me').setAttribute('aria-pressed','true');
 fit(false);
 tick(true); renderSheet(true);
-setInterval(() => tick(false), 1000);
+const tickI = setInterval(() => tick(false), 1000); OFF.push(() => clearInterval(tickI));
 $('#b-exit').onclick = () => HOST.exit();
 $('#b-exit-d').onclick = () => HOST.exit();
 let entered = 0;
@@ -1472,7 +1487,8 @@ function enter(){
   if(!entered && !S.ticket) setTimeout(() => openTicket(true), 300);
   entered++;
 }
-const API = {enter, closeOverlays(){ closeLayers(); closeModal(); }, S, tk};
+function destroy(){ OFF.splice(0).forEach(f => { try{ f(); }catch(e){} }); if(anim) cancelAnimationFrame(anim.raf); clearTimeout(placeBase._t); clearTimeout(toastT); clearTimeout(rzT); clearTimeout(draw._st); if(window.__gantry && window.__gantry.S === S) delete window.__gantry; }
+const API = {enter, closeOverlays(){ closeLayers(); closeModal(); }, destroy, S, tk, id: VN.id};
 window.__gantry = {S, V, setClock, tm, select, fit, openTicket, pickTicket, setSheet, toggleSave, setMe, now, renderSheet, heroState};
 return API;
 }

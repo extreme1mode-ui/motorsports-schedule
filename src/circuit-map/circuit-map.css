@@ -375,6 +375,7 @@
 #cm .tl-lab .zb, #cm .tl-lab .stag{align-self:flex-start}
 #cm .tl-hd .tl-lab{height:34px;justify-content:center}
 #cm .blk{position:absolute;top:6px;bottom:6px;border-radius:10px;background:var(--surface2);padding:6px 10px;text-align:left;overflow:clip;display:flex;flex-direction:column;justify-content:center;min-width:6px;transition:transform var(--dur-press) var(--ease-std)}
+#cm .blk.open{-webkit-mask-image:linear-gradient(90deg,#000 60%,transparent);mask-image:linear-gradient(90deg,#000 60%,transparent)}   /* end time not published */
 #cm .blk::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 1px var(--line);pointer-events:none}
 #cm .blk:active{transform:scale(.985)}
 #cm .blk .bi{display:flex;flex-direction:column;min-width:0;transform:translateX(var(--sh,0px));width:calc(100% - var(--sh,0px))}

@@ -7,7 +7,7 @@ import numpy as np, collections
 exec(open(TOOLS+'helpers.py').read())
 BM=json.load(open(HERE+'bm.json'))
 EV=json.load(open(HERE+'evt.json'))
-OLD=json.load(open(REPO+'src/circuit-map/base.json'))
+OLD=json.load(open(REPO+'src/circuit-map/venues/sgp26/base.json'))
 L=D['layers']
 # ---- road labels: anchors along named roads
 PRI={'motorway':5,'trunk':5,'primary':4,'secondary':3,'tertiary':2,'minor':1}
@@ -75,5 +75,5 @@ EV2['amen']=json.load(open(HERE+'amen_real.json'))
 OUT={'track':OLD['track'], 'bm':BM, 'evt':EV2, 'roadlab':anchors,
      'src':{'osm':D['src'],'cpm':'Formula 1 Singapore Airlines Singapore Grand Prix 2026 · Circuit Park Map (as of 10 Sep 2026)'}}
 s=json.dumps(OUT,separators=(',',':'))
-open(REPO+'src/circuit-map/base.json','w').write(s)
+open(REPO+'src/circuit-map/venues/sgp26/base.json','w').write(s)
 print('base.json bytes', len(s))

@@ -87,7 +87,7 @@ def lines(feats, tol):
             pts=dp(raw,far(tol,raw,500,3.0),False)
             if len(pts)>=2: out.append(pts)
     return out
-TRK=np.array(json.load(open(REPO+'src/circuit-map/base.json'))['track']['pts'])[::3]
+TRK=np.array(json.load(open(REPO+'src/circuit-map/venues/sgp26/base.json'))['track']['pts'])[::3]
 def dist_trk(pts):
     P=np.array(pts); c=P.mean(0)
     return float(np.min(np.hypot(*(TRK-c).T)))

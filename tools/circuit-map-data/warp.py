@@ -40,7 +40,7 @@ import re
 PC=cumlen(PT)
 TL={int(w[0][1:]):np.array([(w[1]+w[3])/2,(w[2]+w[4])/2]) for w in words if re.fullmatch(r'T\d{1,2}',w[0])}
 spdf={k:project(PT,PC,q)[0] for k,q in TL.items()}
-B=json.load(open(REPO+'src/circuit-map/base.json'))
+B=json.load(open(REPO+'src/circuit-map/venues/sgp26/base.json'))
 RT=np.array(B['track']['pts'],float); RC=cumlen(RT); RL=RC[-1]
 sreal={int(k):v for k,v in B['track']['turns'].items()}
 # piecewise mapping real s -> pdf s, cyclic through turns 1..19

@@ -165,6 +165,7 @@ export default {
   'cm.title': '라이브 서킷 맵',
   'cm.sub': '관람석·게이트·MRT와 세션 시간을 한 지도에서',
   'cm.ticket': '내 티켓 · {name} · {zone}',
+  'cm.ticketNoZone': '내 티켓 · {name}',
   'cm.open': '서킷 맵 열기',
   'cm.attend': '현장에 가요',
   'cm.attendNote': '주말 동안 홈 히어로에서 바로 열 수 있어요',

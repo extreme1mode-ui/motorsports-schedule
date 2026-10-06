@@ -9,9 +9,9 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import './entry.css';
-import { CircuitMapCtx, useCircuitMap, hasMap, mapStore } from './context.js';
+import { CircuitMapCtx, useCircuitMap, hasMap, mapStoreFor } from './context.js';
 import { loadMapChunk, preloadMapChunk } from './load-chunk.js';
-import { MINI } from './mini-circuit.js';
+import { VENUES, venueOfRace } from './venues/index.js';
 import { storage } from '../storage/index.js';
 import { demoClock } from '../demo/clock.js';
 import { useT } from '../i18n/index.js';
@@ -19,9 +19,10 @@ import { useFormat } from '../use-format.js';
 import { track } from '../analytics.js';
 
 export function CircuitMapProvider({ setTheme, children }) {
-  const [open, setOpen] = useState(null);            // { raceId, from: 'detail' | 'home' } | null
+  const [open, setOpen] = useState(null);            // { raceId, venue, from: 'detail' | 'home' } | null
   const [attend, setAttend] = useState(() => storage.attend.read());
-  const [ticket, setTicket] = useState(() => mapStore.get('ticketInfo', null));
+  // 경기마다 고른 티켓(카드·현장 줄에 표시). 지도 코어가 HOST.onTicket으로 알려 준다.
+  const [tickets, setTickets] = useState(() => Object.fromEntries(VENUES.map((v) => [v.id, mapStoreFor(v.id).get('ticketInfo', null)])));
   const openerRef = useRef(null);
   const pushedRef = useRef(false);
 
@@ -30,7 +31,7 @@ export function CircuitMapProvider({ setTheme, children }) {
   const openMap = useCallback((race, from) => {
     openerRef.current = document.activeElement;
     track('circuit_map_opened', { race_id: race.id, source: from });
-    setOpen({ raceId: race.id, from });
+    setOpen({ raceId: race.id, venue: venueOfRace(race).id, from });
     // 지도는 히스토리 한 칸: 브라우저/OS 뒤로 = 나가기.
     try { history.pushState({ ...(history.state || {}), gantryMap: race.id }, ''); pushedRef.current = true; } catch { pushedRef.current = false; }
   }, []);
@@ -54,14 +55,15 @@ export function CircuitMapProvider({ setTheme, children }) {
     });
   }, []);
 
-  const onTicket = useCallback((info) => { mapStore.set('ticketInfo', info); setTicket(info); }, []);
+  const onTicket = useCallback((venue, info) => { mapStoreFor(venue).set('ticketInfo', info); setTickets((p) => ({ ...p, [venue]: info })); }, []);
+  const ticketOf = useCallback((race) => { const v = venueOfRace(race); return v ? tickets[v.id] || null : null; }, [tickets]);
 
   // 포커스 복귀용 opener는 Provider가 소유한다. 레이어는 이 함수로 한 번 꺼내 쓰고 비운다
   // (컨텍스트 값을 밖에서 고치지 않는다).
   const takeOpener = useCallback(() => { const el = openerRef.current; openerRef.current = null; return el; }, []);
 
-  const value = useMemo(() => ({ open, openMap, closeMap, attend, toggleAttend, ticket, onTicket, takeOpener, setTheme }),
-    [open, openMap, closeMap, attend, toggleAttend, ticket, onTicket, takeOpener, setTheme]);
+  const value = useMemo(() => ({ open, openMap, closeMap, attend, toggleAttend, ticketOf, onTicket, takeOpener, setTheme }),
+    [open, openMap, closeMap, attend, toggleAttend, ticketOf, onTicket, takeOpener, setTheme]);
   return (
     <CircuitMapCtx.Provider value={value}>
       {children}
@@ -70,7 +72,7 @@ export function CircuitMapProvider({ setTheme, children }) {
   );
 }
 
-// ---------- 전체 화면 레이어 (body에 포털, 한 번 만들면 계속 재사용) ----------
+// ---------- 전체 화면 레이어 (body에 포털). 같은 경기는 만든 지도를 계속 재사용하고, 다른 경기를 열면 바꿔 단다 ----------
 function CircuitMapLayer() {
   const ctx = useCircuitMap();
   const tr = useT();
@@ -94,20 +96,21 @@ function CircuitMapLayer() {
     exitLabel: () => live.current.tr(live.current.ctx.open?.from === 'home' ? 'cm.back.home' : 'cm.back.detail'),
     exitAria: () => { const { tr: t, ctx: c } = live.current; return t('cm.backAria', { to: t(c.open?.from === 'home' ? 'cm.back.home' : 'cm.back.detail') }); },
     setTheme: (v) => live.current.ctx.setTheme?.(v),
-    onTicket: (info) => live.current.ctx.onTicket(info),
-    store: mapStore,
+    onTicket: (info) => { const o = live.current.ctx.open; if (o) live.current.ctx.onTicket(o.venue, info); },
   }), []);
 
   // 열기: 청크를 기다림 → (처음 한 번) 마크업·코어 생성 → 보이게 → enter → 포커스.
   // 기다리는 사이에 닫거나 다시 열 수 있으므로 cancelled로 늦게 온 결과를 버린다.
   // 지도 CSS가 이 청크에 있어서, 받기 전에 hidden을 풀면 화면이 깨진다.
+  const venue = ctx.open ? ctx.open.venue : null;
   useLayoutEffect(() => {
-    if (!isOpen) return undefined;
+    if (!isOpen || !venue) return undefined;
     let cancelled = false;
-    loadMapChunk().then(({ GantryMap, MAP_MARKUP, BASE }) => {
+    loadMapChunk(venue).then(({ GantryMap, mapMarkup, VN, BASE }) => {
       const el = elRef.current;
       if (cancelled || !el) return;
-      if (!apiRef.current) { el.innerHTML = MAP_MARKUP; apiRef.current = GantryMap(HOST, BASE); }
+      if (apiRef.current && apiRef.current.id !== VN.id) { apiRef.current.destroy(); apiRef.current = null; }
+      if (!apiRef.current) { el.innerHTML = mapMarkup(VN); apiRef.current = GantryMap({ ...HOST, store: mapStoreFor(VN.id) }, BASE, VN); }
       el.hidden = false;
       apiRef.current.enter();
       document.documentElement.classList.add('cm-open');
@@ -119,7 +122,7 @@ function CircuitMapLayer() {
       if (!cancelled) live.current.ctx.closeMap();   // 레이어를 열지 않는다 (새 문구는 만들지 않는다)
     });
     return () => { cancelled = true; };
-  }, [isOpen, HOST]);
+  }, [isOpen, venue, HOST]);
 
   // 닫기: 지도 안 오버레이 정리 → 퇴장 애니메이션 → 숨김 → 포커스를 누른 버튼으로
   useEffect(() => {
@@ -151,28 +154,29 @@ function CircuitMapLayer() {
   );
 }
 
-// ---------- 미니 서킷 (base.json 트랙 좌표에서 미리 뽑아 둔 path — mini-circuit.js) ----------
-function MiniCircuit() {
+// ---------- 미니 서킷 (경기 base.json 트랙 좌표에서 미리 뽑아 둔 path — venues/index.js) ----------
+function MiniCircuit({ mini }) {
   return (
-    <svg className="cme-mini" viewBox={MINI.vb} aria-hidden="true" focusable="false">
-      <path d={MINI.d} className="cme-mini-c" />
-      <path d={MINI.d} className="cme-mini-t" />
+    <svg className="cme-mini" viewBox={mini.vb} aria-hidden="true" focusable="false">
+      <path d={mini.d} className="cme-mini-c" />
+      <path d={mini.d} className="cme-mini-t" />
     </svg>
   );
 }
 
 // 진입점이 화면에 나타나면 idle 시간에 지도 청크를 미리 받아 둔다.
 // 훅이라 조건부 return보다 먼저 호출해야 한다(show가 false여도 호출 자체는 한다).
-function useMapPreload(show) {
+function useMapPreload(show, venueId) {
   useEffect(() => {
-    if (!show) return undefined;
+    if (!show || !venueId) return undefined;
+    const preload = () => preloadMapChunk(venueId);
     let idle = 0; let alive = true;
     // 첫 로드가 끝난 뒤에 받는다. 로드 중에 끼어들면 첫 화면 자원과 대역을 다툰다.
     const schedule = () => {
       if (!alive) return;
       const ric = window.requestIdleCallback;
-      if (ric) idle = ric(preloadMapChunk, { timeout: 3000 });
-      else idle = setTimeout(preloadMapChunk, 600);
+      if (ric) idle = ric(preload, { timeout: 3000 });
+      else idle = setTimeout(preload, 600);
     };
     if (document.readyState === 'complete') schedule();
     else window.addEventListener('load', schedule, { once: true });
@@ -181,34 +185,35 @@ function useMapPreload(show) {
       window.removeEventListener('load', schedule);
       if (idle) (window.cancelIdleCallback || clearTimeout)(idle);
     };
-  }, [show]);
+  }, [show, venueId]);
 }
 
 // 버튼에 포인터·포커스가 닿는 순간에도 받는다 — 누를 때는 대개 이미 와 있다.
-const PRELOAD_ON = { onPointerEnter: preloadMapChunk, onFocus: preloadMapChunk };
+const preloadOn = (venueId) => ({ onPointerEnter: () => preloadMapChunk(venueId), onFocus: () => preloadMapChunk(venueId) });
 
 // ---------- 진입점 1: 경기 상세의 '현장 · ON SITE' 카드 ----------
 export function CircuitMapSection({ race, variant = 'sheet' }) {
   const ctx = useCircuitMap();
   const tr = useT();
+  const v = venueOfRace(race);
   const show = !!ctx && hasMap(race) && race.status !== 'cancelled';
-  useMapPreload(show);
+  useMapPreload(show, v && v.id);
   if (!show) return null;
   const going = ctx.attend.has(race.id);
-  const tk = ctx.ticket;
+  const tk = ctx.ticketOf(race);
   return (
     <section className={`cme cme--${variant}`}>
       <span className="cme-lbl">{tr('cm.section')}</span>
       <div className="cme-card">
         <div className="cme-top">
-          <MiniCircuit />
+          <MiniCircuit mini={v.mini} />
           <div className="cme-tx">
             <b>{tr('cm.title')}</b>
-            <span>{tk ? tr('cm.ticket', { name: tk.name, zone: tk.zl }) : tr('cm.sub')}</span>
+            <span>{tk ? tr(tk.zl ? 'cm.ticket' : 'cm.ticketNoZone', { name: tk.name, zone: tk.zl }) : tr(v.sub)}</span>
           </div>
         </div>
         <div className="cme-act">
-          <button type="button" className="cme-btn cme-btn--fill" {...PRELOAD_ON} onClick={() => ctx.openMap(race, 'detail')}>
+          <button type="button" className="cme-btn cme-btn--fill" {...preloadOn(v.id)} onClick={() => ctx.openMap(race, 'detail')}>
             <MapIcon />{tr('cm.open')}
           </button>
           <button type="button" className="cme-btn cme-btn--line" aria-pressed={going} onClick={() => ctx.toggleAttend(race)}>
@@ -230,17 +235,18 @@ export function HeroSiteRow({ race, now }) {
   const tr = useT();
   const fmt = useFormat();
   const at = now instanceof Date ? now : new Date();
+  const v = venueOfRace(race);
   const show = !!ctx && hasMap(race) && !!ctx.attend.has(race.id)
     && race.status !== 'cancelled' && !!race.weekendStart && !!race.weekendEnd
     && fmt.dateKey(at) >= shiftKey(race.weekendStart, -1) && fmt.dateKey(at) <= race.weekendEnd;
-  useMapPreload(show);
+  useMapPreload(show, v && v.id);
   if (!show) return null;
 
   // 다음 세션 카운트다운은 히어로 이유 줄이 이미 보여준다 — 여기서는 현장 정보(내 티켓)만.
-  const tk = ctx.ticket;
-  const status = tk ? tr('cm.ticket', { name: tk.name, zone: tk.zl }) : tr('cm.row.preview');
+  const tk = ctx.ticketOf(race);
+  const status = tk ? tr(tk.zl ? 'cm.ticket' : 'cm.ticketNoZone', { name: tk.name, zone: tk.zl }) : tr('cm.row.preview');
   return (
-    <button type="button" className="hero2-site" {...PRELOAD_ON} onClick={() => ctx.openMap(race, 'home')}>
+    <button type="button" className="hero2-site" {...preloadOn(v.id)} onClick={() => ctx.openMap(race, 'home')}>
       <span className="hs-l"><MapIcon /><span className="hs-lbl">{tr('cm.row.label')}</span></span>
       <span className="hs-st">{status}</span>
       <svg className="hs-ch" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
