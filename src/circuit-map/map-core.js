@@ -73,7 +73,7 @@ const STAGES = VN.stages.map(o => Object.assign({}, o));
 const GATES = VN.gates.map(o => Object.assign({}, o));
 /* gates: number and name are both optional (some official maps print neither) — gname is what '… 게이트' reads */
 const gNum = n => /^\d/.test(n) ? n+'번' : n;
-GATES.forEach(g => { g.n = g.n || ''; g.name = g.name || ''; g.gname = g.name || (g.n ? gNum(g.n) : g.st ? g.st+' 쪽' : '입장'); g.short = g.n && g.name ? g.n+'번 · '+g.name : g.gname; })
+GATES.forEach(g => { g.n = g.n || ''; g.name = g.name || ''; g.gname = g.name || (g.n ? gNum(g.n) : g.st ? g.st+' 쪽' : '입장'); g.short = g.n && g.name ? gNum(g.n)+' · '+g.name : g.gname; })
 const MRTS = VN.transit.items.map(o => Object.assign({}, o));
 const VILLAGES = VN.village.items.map(o => Object.assign({}, o));
 const LANDMARKS = VN.landmarks.map(o => Object.assign({}, o));
@@ -419,7 +419,7 @@ function buildPins(){
   });
   if(S.layers.gate) GATES.forEach(g => {
     const sel = selKey==='gate:'+g.id;
-    mk('gate', g, `<span class="b">${ico('gate')}</span><span class="lb">${g.n?`<b class="gn">${g.n}</b>`:''}${esc(g.name || (g.n ? '' : g.gname))}</span>`, 30, {cls:sel?'sel':'', minK: sel?0:.5, aria: g.n && g.name ? g.n+'번 게이트 '+g.name : g.gname+' 게이트'});
+    mk('gate', g, `<span class="b">${ico('gate')}</span><span class="lb">${g.n?`<b class="gn">${g.n}</b>`:''}${esc(g.name || (g.n ? '' : g.gname))}</span>`, 30, {cls:sel?'sel':'', minK: sel?0:.5, aria: g.n && g.name ? gNum(g.n)+' 게이트 '+g.name : g.gname+' 게이트'});
   });
   if(S.layers.mrt) MRTS.forEach(m => {
     const sel = selKey==='mrt:'+m.id;
@@ -1051,7 +1051,7 @@ const INTENTS = [
   {id:'podium', t:'포디움', f:sp=>sp.tags.includes('podium')},
   {id:'stage', t:'무대와 가까운', sort:sp=>nearest(sp, STAGES)[0].w.d},
   {id:'mrt', t:TR.near, sort:sp=>nearest(sp, MRTS)[0].w.d}
-];
+].filter(i => !(i.id==='stage' && !STAGES.length) && !(i.id==='mrt' && !MRTS.length)); // 무대·정류장이 없는 경기는 그 칩을 숨긴다
 function seatCard(seat){
   return `<button class="seat-card" data-act="sel" data-type="spot" data-id="${seat.id}">${miniTrack({arcs:seat.cov, dot:seat})}
     <span class="tx"><span class="lbl">My seat</span><b>${esc(seat.name)} ${zb(seat.zone)}</b><span class="m">${seat.turns.map(n=>n+'번').join('·')} 코너 · 약 ${seat.covLen}m 구간이 보여요</span></span>${ico('next')}</button>`;
@@ -1182,7 +1182,7 @@ function dMrt(m, t){
   let h = `<div class="pc-hd"><div class="kicker">${ico(TR.icon||'train','s')}${TR.kicker}${m.codes.length?' · ':''}${m.codes.map(c=>`<span class="mrt-c">${c}</span>`).join(' ')}</div><h3>${esc(m.name)}</h3>${xBtn}</div>`;
   const gs = nearest(m, GATES, 2);
   h += `<div class="tiles" style="--n:1">${walkTile(m)}</div>`;
-  h += `<div class="sec" style="margin-top:22px">${sh('가까운 게이트')}<div class="grp kv">${gs.map(n=>`<button class="gi" data-act="sel" data-type="gate" data-id="${n.o.id}"><span class="k">${n.o.side!=null?zBadge(n.o.side)+' 쪽':n.o.n?n.o.n+'번 게이트':'게이트'}</span><span class="v">${esc(n.o.gname)} 게이트<small>도보 약 ${n.w.m}분</small></span>${ico('next','go')}</button>`).join('')}</div></div>`;
+  h += `<div class="sec" style="margin-top:22px">${sh('가까운 게이트')}<div class="grp kv">${gs.map(n=>`<button class="gi" data-act="sel" data-type="gate" data-id="${n.o.id}"><span class="k">${n.o.side!=null?zBadge(n.o.side)+' 쪽':n.o.n?gNum(n.o.n)+' 게이트':'게이트'}</span><span class="v">${esc(n.o.gname)} 게이트<small>도보 약 ${n.w.m}분</small></span>${ico('next','go')}</button>`).join('')}</div></div>`;
   if(m.note || TR.note) h += `<p class="note">${esc(m.note || TR.note)}</p>`;
   h += approx;
   return h;
