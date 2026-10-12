@@ -94,7 +94,7 @@
 #cm #mapwrap.dragging{cursor:grabbing}
 #cm #map, #cm #ov{position:absolute;inset:0;width:100%;height:100%}
 #cm #ov{pointer-events:none}
-#cm #pins{position:absolute;inset:0;pointer-events:none}
+#cm #pins{position:absolute;inset:0;pointer-events:none;transform-origin:0 0}
 #cm .m-land{fill:var(--land)}
 #cm .m-dots-c{fill:var(--dots)}
 #cm .m-water{fill:var(--water);stroke:var(--shore);stroke-width:1;vector-effect:non-scaling-stroke}

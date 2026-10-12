@@ -389,6 +389,8 @@ function buildPins(){
     if(o && o.type) el.dataset.key = o.type+':'+o.id;
     pinsEl.appendChild(el);
     const p = {el, lb:el.querySelector('.lb'), x:o.x, y:o.y, kind, pri, minK:(opts&&opts.minK)||0, lw:0, lh:0, off:(opts&&opts.off)||null, o};
+    // pinned to its map point once: #pins moves with the map camera, scale(var(--inv)) keeps the pin at screen size
+    el.style.transform = `translate(${p.x}px,${p.y}px) scale(var(--inv))` + (p.off ? ` translate(${p.off.x*p.off.px}px,${p.off.y*p.off.px}px)` : '');
     out.push(p); return p;
   };
   const selKey = S.sel ? S.sel.type+':'+S.sel.id : '';
@@ -461,6 +463,9 @@ let drawQueued = false;
 function requestDraw(){ if(!drawQueued){ drawQueued=true; requestAnimationFrame(()=>{ drawQueued=false; draw(); }); } }
 function draw(){
   world.setAttribute('transform', `matrix(${V.k} 0 0 ${V.k} ${V.tx} ${V.ty})`);
+  // pins ride the same camera in the same frame as the track and base map (one transform for the layer, not one per pin)
+  pinsEl.style.transform = `matrix(${V.k},0,0,${V.k},${V.tx},${V.ty})`;
+  pinsEl.style.setProperty('--inv', 1/V.k);
   const lod = V.k < .42 ? 0 : V.k < 1.05 ? 1 : 2;
   placeBase();
   const mbg = $('#mbg'); if(mbg) mbg.style.transform = `translate(${(V.tx % 12).toFixed(1)}px,${(V.ty % 12).toFixed(1)}px)`;   // light grid: compositor-only
@@ -536,7 +541,6 @@ function draw(){
     if(p._hid !== !show){ p._hid = !show; p.el.hidden = !show; }
     if(!show) return;
     p.sx=x; p.sy=y;
-    p.el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
     vis.push(p);
     if(box) boxes.push(box);
   });
