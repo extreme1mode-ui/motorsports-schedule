@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { formatSessionLabel } from '../src/schedule/utils.js';
+import { raceHeading, raceTitle } from '../src/race-title.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dist = path.join(root, 'dist');
@@ -35,17 +36,8 @@ function monthDayKo(dateKey, withWeekday) {
 }
 
 const text = (v) => (typeof v === 'string' && v.trim() ? v.trim() : null);
-const nameOf = (r) => text(r.nameKo) || text(r.name);
 const circuitOf = (r) => text(r.circuitKo) || text(r.circuit);
 const cityOf = (r) => text(r.cityKo) || text(r.city);
-const seasonYearOf = (r) => (/^\d{4}$/.test(String(r.season)) ? String(r.season)
-  : (/(\d{4})/.exec(r.weekendStart || r.raceDateLocal || r.id || '')?.[1] || null));
-
-function titleFor(race) {
-  const parts = [nameOf(race), [race.series, seasonYearOf(race)].filter(Boolean).join(' ')].filter(Boolean);
-  return `${parts.join(' · ')} | Gantry`;
-}
-
 // 서킷과 도시가 같으면 한 번만 쓴다 (WRC는 '도요타, 도요타'처럼 같은 값이 들어온다).
 // 미리보기 문구에서만 합친다 — 앱 화면과 시즌 JSON은 그대로다.
 function placeOf(race) {
@@ -79,11 +71,6 @@ function descriptionFor(race) {
   return cancelled ? `취소된 경기 · ${body}` : body;
 }
 
-// 본문용 제목: '호주 그랑프리 · F1 2026'. <title>과 같은 조각에서 ' | Gantry'만 뺀다.
-function headingFor(race) {
-  return [nameOf(race), [race.series, seasonYearOf(race)].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
-}
-
 // 서킷·도시·국가에서 같은 값은 한 번만 쓴다 (placeOf와 같은 규칙에 국가를 더한 것).
 function fullPlaceOf(race) {
   const parts = [circuitOf(race), cityOf(race), text(race.countryKo) || text(race.country)].filter(Boolean);
@@ -100,7 +87,7 @@ const link = (url, label) => `<a href="${esc(url)}" style="color:inherit">${esc(
 function bodyFor(race) {
   const out = [];
   if (race.status === 'cancelled') out.push('<p><strong>취소된 경기</strong></p>');
-  out.push(`<h1>${esc(headingFor(race))}</h1>`);
+  out.push(`<h1>${esc(raceHeading(race))}</h1>`);
   const where = fullPlaceOf(race);
   if (where) out.push(`<p>장소: ${esc(where)}</p>`);
 
@@ -151,7 +138,7 @@ function jsonLdFor(race, url) {
   const data = Object.fromEntries(Object.entries({
     '@context': 'https://schema.org',
     '@type': 'SportsEvent',
-    name: headingFor(race),
+    name: raceHeading(race),
     url,
     startDate: text(final?.startUtc) || text(race.weekendStart),
     endDate: text(race.weekendEnd),
@@ -205,7 +192,7 @@ for (const season of SEASONS) {
     const id = text(race.id);
     if (!id) continue;
     const values = {
-      title: esc(titleFor(race)),
+      title: esc(raceTitle(race)),
       desc: esc(descriptionFor(race)),
       url: esc(`${ORIGIN}/race/${id}`),
     };

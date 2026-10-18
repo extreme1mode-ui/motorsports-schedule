@@ -3,6 +3,8 @@
 //   - 앱 안에서 상세를 열고 닫을 때 주소를 맞춘다. pushState는 쓰지 않는다 —
 //     뒤로 가기 동작은 지금 그대로여야 하고, 서킷 맵이 history.state.gantryMap을 쓴다.
 import { useEffect, useRef } from 'react';
+import { raceTitle } from './race-title.js';
+import { setRaceTitle } from './document-title.js';
 
 const RACE_PATH = /^\/race\/([^/?#]+)\/?$/;
 
@@ -58,6 +60,8 @@ export function useRaceLink({ races, ready, openRace, openFrom, onDone }) {
     if (phase.current !== 'init') return;
     const id = raceIdFromPath();
     if (!id) { phase.current = 'done'; return; }
+    // 정적 경기 페이지(/race/<id>)가 넣어 둔 제목을 그대로 붙잡아 둔다. 앱 제목이 덮어쓰지 않게.
+    setRaceTitle(document.title);
     if (!ready || !races.length) return;             // 일정 데이터가 확정될 때까지 기다린다
 
     const race = races.find((r) => r.staticId === id || r.id === id);
@@ -67,6 +71,7 @@ export function useRaceLink({ races, ready, openRace, openFrom, onDone }) {
     } else {
       phase.current = 'done';
       replacePath('/');                             // 없는 id면 홈을 그대로 두고 주소만 정리
+      setRaceTitle(null);
       latest.current.onDone?.();
     }
   }, [races, ready]);
@@ -77,9 +82,11 @@ export function useRaceLink({ races, ready, openRace, openFrom, onDone }) {
     if (openRace) {
       const id = racePathId(openRace);
       if (id) replacePath(`/race/${encodeURIComponent(id)}`);
+      setRaceTitle(raceTitle(openRace));
       return;
     }
     replacePath('/');
+    setRaceTitle(null);
     if (phase.current === 'opened') {               // 링크로 연 상세를 닫았다 → 온보딩으로 돌아갈 차례
       phase.current = 'done';
       latest.current.onDone?.();

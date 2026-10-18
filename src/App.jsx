@@ -14,6 +14,7 @@ import { track, getDaysSinceFirstVisit, recordFirstTouch, firstTouchProps } from
 import { useRaceLink, hasRaceLinkInPath } from './share-link.js';
 import { withViewTransition, useScrollMemory, useFocusViewTitle, usePresence } from './use-motion.js';
 import { storage } from './storage/index.js';
+import { setAppTitle } from './document-title.js';
 import { CircuitMapProvider } from './circuit-map/CircuitMap.jsx';
 import { DemoClockSheet } from './demo/DemoClockSheet.jsx';
 
@@ -27,10 +28,11 @@ export default function Root() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
   // index.html의 lang/title은 한국어 기본값(검색용). 앱이 뜨면 사용자 locale로 바꾼다.
+  // 경기 상세가 걸려 있는 동안은 경기 제목이 이긴다(document-title.js).
   useEffect(() => {
     const locale = prefs.preferences.locale || 'ko';
     document.documentElement.lang = locale;
-    document.title = t(locale, 'app.title');
+    setAppTitle(t(locale, 'app.title'));
   }, [prefs.preferences.locale]);
 
   // 방문 빈도·재방문율: 앱이 뜰 때 1회 (StrictMode의 이중 effect는 ref로 막는다).

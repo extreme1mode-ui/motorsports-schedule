@@ -1,6 +1,6 @@
 // UI 문구 (ko). 키는 화면.의미 형태. 값은 기존 한국어 문구를 그대로 옮긴 것.
 export default {
-  'app.title': 'Gantry — F1·WEC·WRC·IMSA 경기 일정, 한국 시간으로',
+  'app.title': "Gantry — Know when it's lights out",
   // 내비게이션·테마
   'brand.ready': '레이싱 위켄드 준비 완료',
   'nav.home': '홈',
