@@ -112,6 +112,7 @@ if (!/<\/head>/.test(template)) {
 }
 
 let count = 0;
+const pageIds = new Set();
 for (const season of SEASONS) {
   for (const race of season) {
     const id = text(race.id);
@@ -128,8 +129,22 @@ for (const season of SEASONS) {
     const dir = path.join(dist, 'race', id);
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, 'index.html'), html);
+    pageIds.add(id);
     count += 1;
   }
 }
 
 console.log(`[race-pages] 경기 페이지 ${count}개 생성 → dist/race/<id>/index.html`);
+
+// sitemap은 위에서 실제로 만든 페이지의 id만 쓴다 — 목록을 따로 두면 페이지와 어긋난다.
+// 같은 id가 두 번 나오면 페이지는 하나만 남으므로 sitemap에도 한 번만 넣는다.
+const sitemapUrls = [`${ORIGIN}/`, ...[...pageIds].map((id) => `${ORIGIN}/race/${id}`)];
+const sitemap = [
+  '<?xml version="1.0" encoding="UTF-8"?>',
+  '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+  ...sitemapUrls.map((url) => `  <url><loc>${esc(url)}</loc></url>`),
+  '</urlset>',
+  '',
+].join('\n');
+fs.writeFileSync(path.join(dist, 'sitemap.xml'), sitemap);
+console.log(`[race-pages] sitemap 주소 ${sitemapUrls.length}개 생성 (홈 1 + 경기 ${pageIds.size}) → dist/sitemap.xml`);
