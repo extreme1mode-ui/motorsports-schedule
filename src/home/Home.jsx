@@ -300,8 +300,6 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
   const discSeries = disc?.series ?? null;
   const discReasons = (discPick?.reasons || []).filter(Boolean);
 
-  const watching = ORDER.filter((s) => modeOf(preferences, s) !== 'off').length;
-
   // 히어로를 눌러 상세로 갈 때 바로 뜨도록, 상세 헤더가 쓰는 'card' 사진을 미리 받아둔다.
   // (히어로는 세로로 큰 박스라 'hero'를 쓰고 상세는 헤더 비율이라 URL이 다르다 — 그래서 따로 한 장.)
   const heroRaceId = hero?.id ?? null;
@@ -324,11 +322,11 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
   return (
     <div className="home">
       <div className="pagehead">
-        <div>
+        <div className="pagehead-id">
           {/* 모바일에서만. 데스크톱은 사이드바에 로고가 있다. */}
           <span className="pagehead-brand"><GantryLockup height={11} /></span>
-          <h1 className="ko" data-view-title tabIndex={-1} >{t('home.title')}</h1>
-          <div className="sub ko">{t('home.watching', { count: watching })}</div>
+          {/* 제목은 화면에서만 숨긴다 — 화면 전환 포커스(data-view-title)와 화면 낭독기가 쓴다. */}
+          <h1 className="ko vh" data-view-title tabIndex={-1} >{t('home.title')}</h1>
         </div>
         <div className="pagehead-tools">
           {demoClock.enabled
