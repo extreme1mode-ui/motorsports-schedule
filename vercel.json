@@ -1,0 +1,10 @@
+{
+  "redirects": [
+    {
+      "source": "/:path((?!api/).*)",
+      "has": [{ "type": "host", "value": "motorsports-schedule.vercel.app" }],
+      "destination": "https://www.gantryracing.com/:path",
+      "permanent": true
+    }
+  ]
+}
