@@ -229,10 +229,16 @@ async function fetchCalendarPreferences(token) {
   const { createClient } = await import('@supabase/supabase-js');
   const client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 
-  const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), PROFILE_TIMEOUT_MS));
-  const { data, error } = await Promise.race([client.rpc('calendar_preferences', { token }), timeout]);
-  if (error) throw error;
-  return data ?? null;   // null = 그런 토큰이 없다 → 404
+  // 응답이 먼저 와도 타이머를 남기지 않는다.
+  let timer;
+  try {
+    const timeout = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('timeout')), PROFILE_TIMEOUT_MS); });
+    const { data, error } = await Promise.race([client.rpc('calendar_preferences', { token }), timeout]);
+    if (error) throw error;
+    return data ?? null;   // null = 그런 토큰이 없다 → 404
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // 프로필 값 → buildCalendar 인자. 'all'/'race'만 통과시키고 나머지는 빼 버린다.

@@ -22,7 +22,9 @@ async function flush() {
   pending = null;
   if (!prefs) return;
   const { saveMyPreferences } = await import('./client.js');
-  setCalendarToken(await saveMyPreferences(prefs));
+  // 저장에 실패하면(null) 받아 둔 토큰을 그대로 둔다. 지우면 설정 화면 주소가 예전 쿼리 주소로 되돌아간다.
+  const token = await saveMyPreferences(prefs);
+  if (token) setCalendarToken(token);
 }
 
 function queue(prefs) {
