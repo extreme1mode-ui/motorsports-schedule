@@ -4,10 +4,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-  ROOT, racesInRange, defaultRange, raceName, placeOf, cardSessions, sessionLabel,
+  ROOT, racesInRange, defaultRange, raceName, cardSessions,
   sessionWhen, broadcastLine, zoneLabel,
 } from './data.mjs';
-import { renderCard, MAX_RACES } from './render.mjs';
+import { renderCard, planCard } from './render.mjs';
 
 const argv = process.argv.slice(2);
 const opt = (name, fallback) => {
@@ -48,7 +48,9 @@ console.log(`  ${'id'.padEnd(idW)}  verifiedAt`);
 for (const r of races) console.log(`  ${r.id.padEnd(idW)}  ${r.verifiedAt || '(없음)'}`);
 console.log('');
 
-const shown = races.slice(0, MAX_RACES);
+// 카드에 몇 경기를 넣을지는 렌더러가 정한다 — 글자 크기를 지키면서 들어갈 만큼만 넣는다.
+const plan = planCard(races);
+const shown = races.slice(0, plan.count);
 const more = races.length - shown.length;
 
 const outDir = path.join(ROOT, 'out/weekly-card', from);
@@ -62,16 +64,17 @@ function caption(locale, channel) {
   const tz = ko ? '한국 시간' : zoneLabel(enTz);
   const lines = [ko ? `이번 주말 모터스포츠 (${tz})` : `This race weekend (${tz})`, ''];
   for (const race of races) {
-    lines.push(raceName(race, locale) || race.id);
-    for (const s of cardSessions(race)) {
-      const when = sessionWhen(s, locale, enTz);
-      if (when) lines.push(`${sessionLabel(s, locale)} ${when}`);
+    lines.push(`${race.series} · ${raceName(race, locale) || race.id}`);
+    for (const item of cardSessions(race, locale)) {
+      const when = sessionWhen(item.session, locale, enTz);
+      if (when) lines.push(`${item.label} ${when}`);
     }
     const watch = broadcastLine(race, locale);
     if (watch) lines.push(watch);
     lines.push(`${LINK}/race/${race.id}?${utm(channel)}`);
     lines.push('');
   }
+  lines.push(ko ? '내 시간대와 관심 시리즈로 보기:' : 'Your time zone, your series:');
   lines.push(`${LINK}/?${utm(channel)}`);
   return lines.join('\n');
 }
@@ -79,7 +82,7 @@ function caption(locale, channel) {
 const made = [];
 for (const locale of ['ko', 'en']) {
   const file = path.join(outDir, `gantry-weekly-${locale}.png`);
-  const bytes = await renderCard({ races: shown, locale, from, to, tz: enTz, more }, file);
+  const bytes = await renderCard({ races: shown, locale, from, to, tz: enTz, more, tier: plan.tier, space: plan.space }, file);
   made.push(`${file} (${Math.round(bytes / 1024)}KB)`);
   for (const channel of channels) {
     const body = caption(locale, channel);

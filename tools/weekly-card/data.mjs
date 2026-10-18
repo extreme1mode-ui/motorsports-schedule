@@ -74,15 +74,38 @@ export function zoneLabel(timeZone) {
   } catch { return timeZone; }
 }
 
-// 카드에 넣을 세션: race 전부(최대 2) + 첫 qualifying 1개, 시각순.
-export function cardSessions(race) {
-  const list = [...raceSessions(race)].slice(0, 2);
-  const qual = sessionsOf(race).find((s) => s && s.kind === 'qualifying' && s.startUtc);
-  if (qual) list.push(qual);
-  return list.sort((a, b) => new Date(a.startUtc) - new Date(b.startUtc));
-}
+// 카드·문구에 넣을 세션과 라벨. 앱의 formatSessionLabel은 그대로 두고 여기서만 다듬는다.
+//
+// - race 세션은 전부(최대 2개)
+// - qualifying은 race가 정확히 1개인 경기만, 첫 race 직전의 마지막 예선(본예선) 하나
+// - KO 라벨은 formatSessionLabel. race가 2개인데 라벨이 같으면 순서대로 ' 1', ' 2'를 붙인다.
+// - EN 라벨은 데이터 원문(t)이 길어서 쓰지 않는다. 'Qualifying' / 'Race'(2개면 'Race 1·2') /
+//   WRC의 race는 'Power Stage'.
+export function cardSessions(race, locale, { raceOnly = false } = {}) {
+  const ko = locale === 'ko';
+  const finals = raceSessions(race).slice(0, 2);
+  const koLabels = finals.map((s) => formatSessionLabel(s.t, s.kind, 'ko'));
+  const sameLabel = koLabels.length === 2 && koLabels[0] === koLabels[1];
+  const enBase = race.series === 'WRC' ? 'Power Stage' : 'Race';
 
-export const sessionLabel = (session, locale) => formatSessionLabel(session.t, session.kind, locale);
+  const list = finals.map((session, i) => ({
+    session,
+    label: ko
+      ? `${koLabels[i]}${sameLabel ? ` ${i + 1}` : ''}`
+      : `${enBase}${finals.length === 2 ? ` ${i + 1}` : ''}`,
+  }));
+
+  if (!raceOnly && finals.length === 1) {
+    const start = new Date(finals[0].startUtc).getTime();
+    const before = sessionsOf(race)
+      .filter((s) => s && s.kind === 'qualifying' && s.startUtc && new Date(s.startUtc).getTime() < start)
+      .sort((a, b) => new Date(a.startUtc) - new Date(b.startUtc));
+    const main = before[before.length - 1];
+    if (main) list.push({ session: main, label: ko ? formatSessionLabel(main.t, main.kind, 'ko') : 'Qualifying' });
+  }
+
+  return list.sort((a, b) => new Date(a.session.startUtc) - new Date(b.session.startUtc));
+}
 
 // 중계 한 줄. KO는 한국 기준, EN은 글로벌 기준.
 export function broadcastLine(race, locale) {
