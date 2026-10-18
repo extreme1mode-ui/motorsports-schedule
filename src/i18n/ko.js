@@ -129,7 +129,6 @@ export default {
   'results.status.retired': '리타이어 · {laps}랩',
   'results.status.dns': '출발 못 함',
   'results.status.dsq': '실격',
-  'results.source': '출처 Jolpica F1 API · 팀 색 OpenF1 · 사진 Formula 1 · {date} 기준',
   'results.podiumAria': '포디움: {list}',
   'standings.title': '드라이버 순위',
   'standings.kicker': "DRIVERS' CHAMPIONSHIP",

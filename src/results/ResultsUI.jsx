@@ -127,10 +127,6 @@ function Segment({ items, value, onChange, theme }) {
   );
 }
 
-function SourceNote({ data, t, tr, fmt }) {
-  return <div style={{ marginTop: 8, fontSize: 11, color: t.text3, lineHeight: 1.5 }}>{tr('results.source', { date: fmt.plainDateFull(data.source.fetchedAt.slice(0, 10)) })}</div>;
-}
-
 const Pts = ({ v, t, size }) => (
   <Mono size={size} weight={700} color={t.text} style={{ whiteSpace: 'nowrap' }}>{v}<span style={{ fontSize: 9, fontWeight: 700, color: t.text3, marginLeft: 3, letterSpacing: '0.06em' }}>PTS</span></Mono>
 );
@@ -182,7 +178,6 @@ export function RaceResultSection({ race, theme, variant = 'sheet' }) {
           )}
         </div>
       )}
-      <SourceNote data={data} t={t} tr={tr} fmt={fmt} />
     </section>
   );
 }
@@ -281,7 +276,6 @@ export function StandingsList({ theme, races, variant = 'mobile' }) {
           </div>
         ))}
       </div>
-      <SourceNote data={data} t={t} tr={tr} fmt={fmt} />
     </section>
   );
 }

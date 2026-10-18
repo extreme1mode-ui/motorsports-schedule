@@ -123,7 +123,6 @@ export default {
   'results.status.retired': 'Retired · {laps} laps',
   'results.status.dns': 'Did not start',
   'results.status.dsq': 'Disqualified',
-  'results.source': 'Source: Jolpica F1 API · team colours OpenF1 · photos Formula 1 · as of {date}',
   'results.podiumAria': 'Podium: {list}',
   'standings.title': "Drivers' standings",
   'standings.kicker': "DRIVERS' CHAMPIONSHIP",
