@@ -9,6 +9,7 @@ import { Settings } from './settings.jsx';
 import { useFormat } from './use-format.js';
 import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
+import { useRaceLink } from './share-link.js';
 import { withViewTransition, useScrollMemory, useFocusViewTitle, usePresence } from './use-motion.js';
 import { storage } from './storage/index.js';
 
@@ -26,7 +27,7 @@ export function useViewport() {
   return { w, tier, isWeb: w >= 900 };
 }
 
-export function WebApp({ theme, setTheme, ...prefs }) {
+export function WebApp({ theme, setTheme, onShareLinkDone, ...prefs }) {
   const { preferences } = prefs;
   const [view, setView] = useState('home');
   const [categoryFilter, setCategoryFilter] = useState(null);
@@ -81,6 +82,8 @@ export function WebApp({ theme, setTheme, ...prefs }) {
   const openFromSchedule = useCallback((race) => openFrom(race, 'schedule'), [openFrom]);
   const openFromSeries = useCallback((race) => openFrom(race, 'series'), [openFrom]);
   const openFromSaved = useCallback((race, source = 'saved') => openFrom(race, source), [openFrom]);
+  // 공유 주소(/race/<id>): 들어오면 그 상세를 열고, 열고 닫을 때 주소를 맞춘다.
+  useRaceLink({ races: raceList, ready: !schedule.loading, openRace, openFrom, onDone: onShareLinkDone });
   // 탭 전환: 웹은 window 스크롤. 떠나기 전 scrollY 저장 → View Transition 안에서 동기 커밋 → layout effect에서 복원.
   const saveScroll = useScrollMemory(view, null);
   useFocusViewTitle(view);

@@ -11,6 +11,7 @@ import { readTheme } from './preferences-options.js';
 import { FormatProvider } from './format-context.jsx';
 import { t, useT } from './i18n/index.js';
 import { track, getDaysSinceFirstVisit, recordFirstTouch, firstTouchProps } from './analytics.js';
+import { useRaceLink, hasRaceLinkInPath } from './share-link.js';
 import { withViewTransition, useScrollMemory, useFocusViewTitle, usePresence } from './use-motion.js';
 import { storage } from './storage/index.js';
 import { CircuitMapProvider } from './circuit-map/CircuitMap.jsx';
@@ -42,12 +43,17 @@ export default function Root() {
     track('app_opened', { locale, timezone, onboarded, days_since_first: getDaysSinceFirstVisit(), ...firstTouchProps() });
   }, [prefs.preferences]);
 
+  // 공유 주소로 들어왔으면 온보딩보다 상세를 먼저 보여준다. 상세를 닫으면 평소 온보딩이 나온다.
+  // (온보딩 화면 자체는 그대로다 — 여기서 순서만 바꾼다.)
+  const [shareFirst, setShareFirst] = useState(hasRaceLinkInPath);
+  const onShareLinkDone = useCallback(() => setShareFirst(false), []);
+
   // 언어·시간대·국가는 preferences에서. 바꾸면 컨텍스트가 갱신돼 즉시 반영된다.
-  const screen = !prefs.preferences.onboarded
+  const screen = !prefs.preferences.onboarded && !shareFirst
     ? <Onboarding {...prefs} />
     : isWeb
-      ? <WebApp theme={theme} setTheme={setTheme} {...prefs} />
-      : <App theme={theme} setTheme={setTheme} {...prefs} />;
+      ? <WebApp theme={theme} setTheme={setTheme} onShareLinkDone={onShareLinkDone} {...prefs} />
+      : <App theme={theme} setTheme={setTheme} onShareLinkDone={onShareLinkDone} {...prefs} />;
   return (
     <FormatProvider locale={prefs.preferences.locale} timeZone={prefs.preferences.timezone} country={prefs.preferences.country}>
       {/* 서킷 맵 레이어는 모바일·웹 셸 바깥에 둔다 — 창 크기로 셸이 바뀌어도 지도와 상태가 유지된다. */}
@@ -59,7 +65,7 @@ export default function Root() {
   );
 }
 
-function App({ theme, setTheme, ...prefs }) {
+function App({ theme, setTheme, onShareLinkDone, ...prefs }) {
   const { preferences } = prefs;
   const [view, setView] = useState('home');
   const [categoryFilter, setCategoryFilter] = useState(null);
@@ -104,6 +110,8 @@ function App({ theme, setTheme, ...prefs }) {
   const openFromSchedule = useCallback((race) => openFrom(race, 'schedule'), [openFrom]);
   const openFromSeries = useCallback((race) => openFrom(race, 'series'), [openFrom]);
   const openFromSaved = useCallback((race, source = 'saved') => openFrom(race, source), [openFrom]);
+  // 공유 주소(/race/<id>): 들어오면 그 상세를 열고, 열고 닫을 때 주소를 맞춘다.
+  useRaceLink({ races: raceList, ready: !schedule.loading, openRace, openFrom, onDone: onShareLinkDone });
   // 탭 전환: 떠나기 전 scrollTop 저장 → View Transition(지원 시) 안에서 동기 커밋 → 복원은 useScrollMemory의 layout effect.
   const scrollRef = useRef(null);
   const saveScroll = useScrollMemory(view, scrollRef);

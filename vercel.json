@@ -6,5 +6,9 @@
       "destination": "https://www.gantryracing.com/:path",
       "permanent": true
     }
+  ],
+  "rewrites": [
+    { "source": "/race/:id", "destination": "/index.html" },
+    { "source": "/race/:id/", "destination": "/index.html" }
   ]
 }

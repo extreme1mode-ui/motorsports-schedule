@@ -10,6 +10,7 @@ import { photo, photoPos } from './home/photos.js';
 import { useImageLoaded } from './use-motion.js';
 import { prefetchHandlers, useVisiblePrefetch } from './photo-prefetch.js';
 import { toggleAlarm, useAlarms } from './alarm.js';
+import { raceShareUrl } from './share-link.js';
 import { useRecommendationShown } from './use-analytics.js';
 import { CircuitMapSection } from './circuit-map/CircuitMap.jsx';
 
@@ -406,6 +407,26 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
     && (Array.isArray(race.sessions) ? race.sessions : []).some((x) => x.startUtc);
   const onAlarm = () => toggleAlarm(race, { source: 'detail', preferences, locale: fmt.locale });
   const [favPop, onFavPopEnd] = usePop(faved);   // 저장될 때만 되튐
+  // 공유: navigator.share가 있으면 시트, 없으면 클립보드 복사 후 '링크를 복사했어요'를 2초.
+  const [linkCopied, setLinkCopied] = useState(false);
+  const onShare = async () => {
+    const url = raceShareUrl(race);
+    if (!url) return;
+    const title = fmt.race(race).name;
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title, url });
+        track('race_shared', { series: race.series, method: 'native' });
+      } catch { /* 사용자가 취소했거나 공유가 막혔다 — 아무것도 하지 않는다 */ }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      track('race_shared', { series: race.series, method: 'copy' });
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch { /* 클립보드가 막힌 환경 — 조용히 넘어간다 */ }
+  };
   // 열리면 포커스를 시트 안 첫 요소(뒤로 버튼)로. 닫힌 뒤 원래 요소로 되돌리는 건 App이 한다.
   const headerPhoto = photo(race, 'card');
   const headerLoaded = useImageLoaded(headerPhoto);
@@ -437,13 +458,27 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
               </svg>
             </span>
           </button>
-          <button onClick={() => toggleFav(race.id)} aria-label={tr('aria.save')} className="press-icon" style={ICON_HIT}>
-            <span className={favPop} onAnimationEnd={onFavPopEnd} style={{ width: 36, height: 36, borderRadius: 999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill={faved ? '#fff' : 'none'} stroke="#fff" strokeWidth="2">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-              </svg>
-            </span>
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2, position: 'relative' }}>
+            <button onClick={() => toggleFav(race.id)} aria-label={tr('aria.save')} className="press-icon" style={ICON_HIT}>
+              <span className={favPop} onAnimationEnd={onFavPopEnd} style={{ width: 36, height: 36, borderRadius: 999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill={faved ? '#fff' : 'none'} stroke="#fff" strokeWidth="2">
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+              </span>
+            </button>
+            <button onClick={onShare} aria-label={tr('aria.share')} className="press-icon" style={ICON_HIT}>
+              <span style={{ width: 36, height: 36, borderRadius: 999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center' }}>
+                <ShareIcon />
+              </span>
+            </button>
+            {linkCopied && (
+              <span role="status" style={{
+                position: 'absolute', top: '100%', right: 0, marginTop: 6, whiteSpace: 'nowrap',
+                padding: '5px 9px', borderRadius: 8, background: 'rgba(0,0,0,0.72)',
+                color: '#fff', fontSize: 11, fontWeight: 600,
+              }}>{tr('detail.linkCopied')}</span>
+            )}
+          </div>
         </div>
 
         <div style={{ position: 'relative' }}>
@@ -607,5 +642,14 @@ function InfoCell({ label, value, theme }) {
       <Mono size={9} color={t.text3} style={{ letterSpacing: '0.14em', display: 'block' }}>{label}</Mono>
       <div style={{ fontSize: 13, fontWeight: 600, color: t.text, marginTop: 4 }}>{value}</div>
     </div>
+  );
+}
+
+// 공유 아이콘. 하트 버튼과 같은 크기 안에 들어간다.
+function ShareIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3v13M12 3l-4 4M12 3l4 4M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
+    </svg>
   );
 }
