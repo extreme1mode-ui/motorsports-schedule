@@ -115,6 +115,9 @@ export default {
   'detail.alarmAdd': '담기',
   'detail.alarmAdded': '담음',
   'detail.linkCopied': '링크를 복사했어요',
+  // 경기 사진 출처 (Commons CC BY · BY-SA 표기 조건). photo.credit = 전체 문장(title·낭독), photo.by = 화면 앞부분
+  'photo.credit': '사진 {by} · {license}',
+  'photo.by': '사진 {by}',
   'detail.buyTickets': '티켓 구매',
   'detail.officialSite': '공식 사이트',
   'detail.openOfficialSite': '공식 사이트 열기',

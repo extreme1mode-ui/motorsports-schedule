@@ -9,6 +9,7 @@ import { usePop } from './use-motion.js';
 import { photo, photoPos } from './home/photos.js';
 import { useImageLoaded } from './use-motion.js';
 import { prefetchHandlers, useVisiblePrefetch } from './photo-prefetch.js';
+import { PhotoCredit } from './photo-credit.jsx';
 import { toggleAlarm, useAlarms } from './alarm.js';
 import { raceShareUrl } from './share-link.js';
 import { useRecommendationShown } from './use-analytics.js';
@@ -760,6 +761,7 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
               {L.circuit}{L.city ? ` · ${L.city}` : ''} · {L.country}
             </div>
           </div>
+          <PhotoCredit race={race} inset={12} />
         </div>
 
         <div style={{ padding: '24px 28px 40px' }}>

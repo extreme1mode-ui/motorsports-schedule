@@ -352,10 +352,15 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
         const urgent = kind === 'live' || kind === 'soon';
         const faved = favorites?.has(hero.id);
         const alertOn = alerts.has(hero.id);
+        const credit = photoCredit(hero);
         return (
           <section className="hero2">
             <HeroPhoto url={photo(hero, 'hero')} pos={photoPos(hero)} />
-            <span className="hero2-credit">PHOTO · {photoCredit(hero)}</span>
+            {credit && (
+              <a className="hero2-credit" href={credit.url} target="_blank" rel="noopener noreferrer" title={t('photo.credit', credit)} aria-label={t('photo.credit', credit)}>
+                <span className="by">{t('photo.by', credit)}</span><span className="lic">&nbsp;· {credit.license}</span>
+              </a>
+            )}
             <div className="hero2-wrap">
               <div className="hero2-left">
                 <span className={`hero2-reason${reason.urgent ? '' : ' calm'}`}><LightRow lit={reason.lit} tone={reason.urgent ? 'signal' : 'default'} size={5} gap={3} />{reason.text}</span>

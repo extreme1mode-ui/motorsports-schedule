@@ -109,6 +109,9 @@ export default {
   'detail.alarmAdd': 'Add',
   'detail.alarmAdded': 'Added',
   'detail.linkCopied': 'Link copied',
+  // Race photo credit (Commons CC BY · BY-SA attribution). photo.credit = full text (title, screen readers), photo.by = visible lead
+  'photo.credit': 'Photo: {by} · {license}',
+  'photo.by': 'Photo: {by}',
   'detail.buyTickets': 'Buy tickets',
   'detail.officialSite': 'Official site',
   'detail.openOfficialSite': 'Open official site',
