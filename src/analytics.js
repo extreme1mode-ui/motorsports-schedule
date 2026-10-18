@@ -115,6 +115,37 @@ export function track(event, props = {}) {
   }
 }
 
+// 첫 유입 경로. 처음 들어온 주소의 utm을 한 번만 저장하고 그 뒤로는 덮어쓰지 않는다.
+// PostHog는 랜딩 방문에만 utm을 붙이므로, 재방문에도 "어디서 온 사람인가"를 보려면 여기서 들고 있어야 한다.
+// 주소창의 utm은 지우지 않는다. 값은 주소에 있는 그대로 저장한다(대소문자·내용 변형 없음).
+export function recordFirstTouch(now = new Date()) {
+  try {
+    if (storage.firstTouch.read()) return;   // 이미 있으면 첫 유입을 유지한다
+    const params = new URLSearchParams(window.location.search);
+    const source = params.get('utm_source');
+    const medium = params.get('utm_medium');
+    const campaign = params.get('utm_campaign');
+    if (!source && !medium && !campaign) return;
+    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    storage.firstTouch.write({ source: source ?? null, medium: medium ?? null, campaign: campaign ?? null, date });
+  } catch {
+    // 계측 실패는 앱 동작에 영향을 주면 안 된다.
+  }
+}
+
+// app_opened에 붙일 첫 유입 속성. 저장된 값이 없으면 빈 객체 — 속성이 아예 붙지 않는다.
+export function firstTouchProps() {
+  try {
+    const ft = storage.firstTouch.read();
+    if (!ft) return {};
+    const out = {};
+    if (ft.source) out.first_utm_source = ft.source;
+    if (ft.medium) out.first_utm_medium = ft.medium;
+    if (ft.campaign) out.first_utm_campaign = ft.campaign;
+    return out;
+  } catch { return {}; }
+}
+
 // 첫 방문일(YYYY-MM-DD, 로컬 날짜만) 저장 후 경과 일수. 시각은 저장하지 않는다.
 export function getDaysSinceFirstVisit(now = new Date()) {
   try {

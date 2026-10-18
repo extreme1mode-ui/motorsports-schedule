@@ -51,6 +51,9 @@ export const RECORDS = {
   theme: { key: 'paddock.theme', scope: 'device', codec: text, fallback: () => 'dark' },
   // 첫 방문일 'YYYY-MM-DD'. 기기별 계측값이라 동기화하지 않는다.
   firstVisit: { key: 'paddock.firstVisit', scope: 'device', codec: text, fallback: () => null },
+  // 첫 유입 경로 { source, medium, campaign, date }. 처음 들어온 utm을 한 번만 저장하고 덮어쓰지 않는다.
+  // 기기별 계측값이라 동기화하지 않는다.
+  firstTouch: { key: 'gantry.firstTouch', scope: 'device', codec: json, fallback: () => null },
   // '현장에 가요'를 켠 경기 id 집합. 켠 경기는 주말 동안 홈 히어로에 현장 줄이 붙는다.
   attend: { key: 'gantry.attend', scope: 'account', codec: idSet, fallback: () => new Set() },
   // 라이브 서킷 맵(싱가포르 2026) 상태: 티켓·내 자리·담은 세션·레이어·내 위치. 지도 코어가 HOST.store로만 읽고 쓴다.

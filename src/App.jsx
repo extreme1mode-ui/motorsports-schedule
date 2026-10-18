@@ -10,7 +10,7 @@ import { Settings } from './settings.jsx';
 import { readTheme } from './preferences-options.js';
 import { FormatProvider } from './format-context.jsx';
 import { t, useT } from './i18n/index.js';
-import { track, getDaysSinceFirstVisit } from './analytics.js';
+import { track, getDaysSinceFirstVisit, recordFirstTouch, firstTouchProps } from './analytics.js';
 import { withViewTransition, useScrollMemory, useFocusViewTitle, usePresence } from './use-motion.js';
 import { storage } from './storage/index.js';
 import { CircuitMapProvider } from './circuit-map/CircuitMap.jsx';
@@ -38,7 +38,8 @@ export default function Root() {
     if (openedRef.current) return;
     openedRef.current = true;
     const { locale, timezone, onboarded } = prefs.preferences;
-    track('app_opened', { locale, timezone, onboarded, days_since_first: getDaysSinceFirstVisit() });
+    recordFirstTouch();   // 첫 유입이면 이번 주소의 utm을 한 번 저장한다
+    track('app_opened', { locale, timezone, onboarded, days_since_first: getDaysSinceFirstVisit(), ...firstTouchProps() });
   }, [prefs.preferences]);
 
   // 언어·시간대·국가는 preferences에서. 바꾸면 컨텍스트가 갱신돼 즉시 반영된다.
