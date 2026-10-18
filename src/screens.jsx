@@ -13,6 +13,7 @@ import { toggleAlarm, useAlarms } from './alarm.js';
 import { raceShareUrl } from './share-link.js';
 import { useRecommendationShown } from './use-analytics.js';
 import { CircuitMapSection } from './circuit-map/CircuitMap.jsx';
+import { RaceResultSection, PodiumLine, SubTabs, StandingsList } from './results/ResultsUI.jsx';
 
 // 정렬·그룹핑은 시작 시각(UTC)으로. 시간대와 무관하게 항상 옳다.
 const startMs = (r) => { const iso = getRaceStartUtc(r) || r.primaryStartUtc; return iso ? new Date(iso).getTime() : Number.MAX_SAFE_INTEGER; };
@@ -250,6 +251,10 @@ export function SeriesView({ theme, races, onOpenRace, initialCategory, seasonYe
   const tr = useT();
   const list = useMemo(() => races.filter(r => r.category === sel).sort(byStart), [races, sel]);
   const stats = getSeriesStats(list);
+  // F1만: 라운드 | 드라이버 순위. 기본은 지금처럼 라운드 목록.
+  const [view, setView] = useState('rounds');
+  const showDrivers = sel === 'F1' && view === 'drivers';
+  const onView = (v) => { if (v !== view) track('series_view_changed', { category: sel, view: v }); setView(v); };
   const roundsRef = useRef(null);
   useVisiblePrefetch(roundsRef, list);
 
@@ -289,9 +294,20 @@ export function SeriesView({ theme, races, onOpenRace, initialCategory, seasonYe
         </div>
       </div>
 
-      <div ref={roundsRef} style={{ padding: '0 18px', display: 'grid', gap: 8 }}>
-        {list.map((r, idx) => <RoundRow key={r.id} race={r} idx={idx} theme={theme} onOpen={() => onOpenRace(r)} />)}
-      </div>
+      {sel === 'F1' && (
+        <div style={{ padding: '0 18px', marginBottom: 14 }}>
+          <SubTabs theme={theme} value={view} onChange={onView}
+            items={[{ id: 'rounds', label: tr('series.view.rounds') }, { id: 'drivers', label: tr('series.view.drivers') }]} />
+        </div>
+      )}
+
+      {showDrivers ? (
+        <div style={{ padding: '0 18px' }}><StandingsList theme={theme} races={list} /></div>
+      ) : (
+        <div ref={roundsRef} style={{ padding: '0 18px', display: 'grid', gap: 8 }}>
+          {list.map((r, idx) => <RoundRow key={r.id} race={r} idx={idx} theme={theme} onOpen={() => onOpenRace(r)} />)}
+        </div>
+      )}
     </div>
   );
 }
@@ -337,6 +353,7 @@ function RoundRow({ race, idx, theme, onOpen }) {
           {L.shortName}
         </div>
         <div style={{ fontSize: 11, color: t.text3, marginTop: 1 }}>{L.circuit}</div>
+        {done && <PodiumLine race={race} theme={theme} />}
       </div>
       <div style={{ textAlign: 'right' }}>
         <Mono size={13} weight={600} color={t.text}>{start ? fmt.time(start) : 'TBA'}</Mono>
@@ -516,6 +533,9 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
           {race.cancellationNote}
         </div>
       )}
+
+      {/* 결과 · RESULT — 결과 데이터가 있는 F1 경기만 (results/ResultsUI.jsx) */}
+      <RaceResultSection race={race} theme={theme} />
 
       <section style={{ padding: '24px 18px 0' }}>
         <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.14em' }}>{tr('detail.sessions', { zone: fmt.zoneLabel })}</Mono>

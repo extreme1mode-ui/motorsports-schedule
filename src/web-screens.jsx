@@ -32,6 +32,7 @@ const weekMinHeight = (lanes, hasMore) =>
 import { PageHeader } from './web.jsx';
 import { SectionTitle } from './web.jsx';
 import { CircuitMapSection } from './circuit-map/CircuitMap.jsx';
+import { RaceResultSection, PodiumLine, SubTabs, StandingsList } from './results/ResultsUI.jsx';
 
 export function WebSchedule({ theme, races, onOpenRace, now, tier, seasonYear }) {
   const t = TOKENS[theme];
@@ -304,6 +305,10 @@ export function WebSeries({ theme, races, onOpenRace, initialCategory, tier, sea
   const roundsRef = useRef(null);
   useVisiblePrefetch(roundsRef, list);
   const { rounds: roundCount, done, cancelled, upcoming } = getSeriesStats(list);
+  // F1만: 라운드 | 드라이버 순위. 기본은 지금처럼 라운드 목록.
+  const [view, setView] = useState('rounds');
+  const showDrivers = sel === 'F1' && view === 'drivers';
+  const onView = (v) => { if (v !== view) track('series_view_changed', { category: sel, view: v }); setView(v); };
 
   return (
     <div>
@@ -360,15 +365,31 @@ export function WebSeries({ theme, races, onOpenRace, initialCategory, tier, sea
         </div>
       </section>
 
-      <SectionTitle theme={theme} kicker="ROUND LIST" title={tr('series.roundList')} />
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: tier === 'tablet' ? '1fr' : '1fr 1fr',
-        gap: 10,
-      }} ref={roundsRef}>
-        {list.map((r, idx) => <WebRoundRow key={r.id} race={r} idx={idx} theme={theme}
-          onOpen={() => onOpenRace(r)} total={list.length} />)}
-      </div>
+      {sel === 'F1' && (
+        <div style={{ marginBottom: 24 }}>
+          <SubTabs theme={theme} value={view} onChange={onView}
+            items={[{ id: 'rounds', label: tr('series.view.rounds') }, { id: 'drivers', label: tr('series.view.drivers') }]} />
+        </div>
+      )}
+
+      {showDrivers ? (
+        <>
+          <SectionTitle theme={theme} kicker={tr('standings.kicker')} title={tr('standings.title')} />
+          <StandingsList theme={theme} races={list} variant="desktop" />
+        </>
+      ) : (
+        <>
+          <SectionTitle theme={theme} kicker="ROUND LIST" title={tr('series.roundList')} />
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: tier === 'tablet' ? '1fr' : '1fr 1fr',
+            gap: 10,
+          }} ref={roundsRef}>
+            {list.map((r, idx) => <WebRoundRow key={r.id} race={r} idx={idx} theme={theme}
+              onOpen={() => onOpenRace(r)} total={list.length} />)}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -438,6 +459,7 @@ function WebRoundRow({ race, idx, theme, onOpen }) {
         <div style={{ fontSize: 11, color: t.text3, marginTop: 2,
           textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap',
         }}>{L.circuit}{L.country ? ` · ${L.country}` : ''}</div>
+        {done && <PodiumLine race={race} theme={theme} />}
       </div>
       <div style={{ textAlign: 'right' }}>
         <Mono size={14} weight={600} color={t.text}>{start ? fmt.time(start) : 'TBA'}</Mono>
@@ -751,6 +773,9 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
               {race.cancellationNote}
             </div>
           )}
+
+          {/* 결과 · RESULT — 결과 데이터가 있는 F1 경기만 (results/ResultsUI.jsx) */}
+          <RaceResultSection race={race} theme={theme} variant="drawer" />
 
           <section style={{ marginBottom: 24 }}>
             <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.16em', display: 'block', marginBottom: 12 }}>{tr('detail.sessions', { zone: fmt.zoneLabel })}</Mono>
