@@ -5,6 +5,7 @@ import { MODE_OPTIONS_WITH_OFF, countryIdFromValue, countryValueFromId } from '.
 import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
 import { GantrySymbol } from './Brand.jsx';
+import { useCalendarToken } from './account/calendar-token.js';
 
 // 언어 이름은 번역하지 않는다(각 언어의 자기 표기). raw: true → ChoiceGroup이 t()를 거치지 않음
 const LOCALE_OPTIONS = [
@@ -34,9 +35,13 @@ export function Settings({ theme, preferences, setSeriesMode, setCountry, setTim
   const { series: calSeries, level: calLevel, search } = calendarQuery(preferences);
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const host = typeof window !== 'undefined' ? window.location.host : '';
-  const calendarUrl = `${origin}/api/calendar.ics?${search}`;
-  const webcalUrl = `webcal://${host}/api/calendar.ics?${search}`;
-  const onSubscribe = (method) => track('calendar_subscribe_clicked', { method, series_count: calSeries.length, level: calLevel });
+  // 개인 주소가 있으면 그걸 쓴다. 설정을 바꿔도 주소는 그대로고 캘린더 내용이 따라 바뀐다.
+  // 없으면(원격 계층이 꺼졌거나 아직 토큰이 안 왔으면) 지금까지 쓰던 쿼리 주소로 떨어진다.
+  const calendarToken = useCalendarToken();
+  const calendarPath = calendarToken ? `/api/calendar.ics?u=${calendarToken}` : `/api/calendar.ics?${search}`;
+  const calendarUrl = `${origin}${calendarPath}`;
+  const webcalUrl = `webcal://${host}${calendarPath}`;
+  const onSubscribe = (method) => track('calendar_subscribe_clicked', { method, series_count: calSeries.length, level: calLevel, personal: Boolean(calendarToken) });
   const copyUrl = async () => {
     onSubscribe('copy');
     // 클립보드가 막힌 환경(권한 거부·비보안 컨텍스트)에서는 '복사됨'이라고 하지 않고, 위에 보이는 주소를 선택해 준다.
@@ -132,7 +137,7 @@ export function Settings({ theme, preferences, setSeriesMode, setCountry, setTim
               </button>
             </div>
           </div>
-          <div style={{ fontSize: 12, color: t.text3, lineHeight: 1.5, marginTop: 8 }}>{tr('settings.calendar.note')}</div>
+          <div style={{ fontSize: 12, color: t.text3, lineHeight: 1.5, marginTop: 8 }}>{tr(calendarToken ? 'settings.calendar.notePersonal' : 'settings.calendar.note')}</div>
         </section>
 
         <section>

@@ -150,6 +150,7 @@ export default {
   'settings.calendar.copy': '주소 복사',
   'settings.calendar.copied': '복사됨',
   'settings.calendar.note': '구독한 뒤 위 설정을 바꾸면 주소가 달라집니다. 바꾼 설정을 반영하려면 새 주소로 다시 등록해 주세요.',
+  'settings.calendar.notePersonal': '이 주소는 내 설정을 따라갑니다. 위에서 설정을 바꿔도 다시 등록할 필요가 없어요. 캘린더 앱에 반영되기까지 몇 시간에서 하루 정도 걸릴 수 있습니다.',
   'settings.onboarding.title': '온보딩 다시 보기',
   'settings.onboarding.sub': '처음 설정 과정을 다시 진행해요. 완료하면 지금 설정을 덮어써요.',
   'settings.onboarding.cta': '온보딩 다시 보기',

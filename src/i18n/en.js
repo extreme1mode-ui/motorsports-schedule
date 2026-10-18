@@ -142,6 +142,7 @@ export default {
   'settings.calendar.copy': 'Copy address',
   'settings.calendar.copied': 'Copied',
   'settings.calendar.note': 'The address changes when you change the settings above. Subscribe again with the new address to pick up those changes.',
+  'settings.calendar.notePersonal': "This address follows your settings. Change them above and your calendar updates by itself — no need to subscribe again. Calendar apps can take a few hours to a day to pick up changes.",
   'settings.onboarding.title': 'Redo onboarding',
   'settings.onboarding.sub': 'Go through setup again. Finishing overwrites your current settings.',
   'settings.onboarding.cta': 'Redo onboarding',

@@ -1,6 +1,7 @@
 // 캘린더 구독(.ics) — Vercel Function.
 //   구독:    GET /api/calendar.ics?series=F1,WEC&level=race&lang=ko&year=2026
 //   한 경기: GET /api/calendar.ics?race=<경기 id>&lang=ko  → 30분 전 VALARM이 붙은 파일 하나
+//   개인:    GET /api/calendar.ics?u=<calendar_token>[&year=YYYY]  → 그 사람의 설정을 따라가는 구독
 //
 // 시각은 데이터의 startUtc를 UTC 그대로 쓴다. 시간대 변환도, VTIMEZONE 블록도 만들지 않는다.
 // (구독자의 캘린더 앱이 자기 시간대로 보여준다.)
@@ -15,6 +16,8 @@ const SUPPORTED_SEASONS = Object.keys(SEASONS).map(Number).sort((a, b) => a - b)
 const SERIES = ['F1', 'WEC', 'IMSA', 'WRC', 'GTWC'];
 const LEVELS = ['all', 'race'];
 const LANGS = ['ko', 'en'];
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PROFILE_TIMEOUT_MS = 5000;
 const UID_DOMAIN = 'paddock.app';          // 호스트가 바뀌어도 UID가 흔들리지 않게 고정값
 const PRODID = '-//Gantry//Motorsport Schedule//KO';   // 연도를 넣지 않는다 — 한 코드가 여러 시즌을 낸다
 
@@ -162,11 +165,15 @@ function fileNameFor(race) {
 
 // ---------- 캘린더 본문 ----------
 
-export function buildCalendar({ series = null, level = 'race', lang = 'ko', year = SUPPORTED_SEASONS[0], race: raceId = null } = {}) {
+// levels가 오면 시리즈마다 다른 수준을 쓴다({ F1: 'all', WEC: 'race' }). 'off'이거나 없는 시리즈는 빠진다.
+// levels가 없으면 기존 그대로 — series 목록 + 단일 level. 기존 호출의 출력은 바이트 단위로 같다.
+export function buildCalendar({ series = null, level = 'race', lang = 'ko', year = SUPPORTED_SEASONS[0], race: raceId = null, levels = null } = {}) {
   // race가 오면 그 경기 하나만. 알람은 이 모드에서만 붙는다.
   const single = raceId ? findRace(raceId) : null;
   const season = single ? [single.race] : (SEASONS[Number(year)] || []);
   const wanted = single ? null : (series && series.length ? new Set(series) : null);
+  // 시리즈 → 수준. levels가 있으면 그걸 보고, 없으면 모든 시리즈가 같은 level을 쓴다.
+  const levelFor = (name) => (levels ? levels[name] : level);
   const lines = [
     'BEGIN:VCALENDAR',
     `PRODID:${PRODID}`,
@@ -180,6 +187,8 @@ export function buildCalendar({ series = null, level = 'race', lang = 'ko', year
 
   for (const race of season) {
     if (wanted && !wanted.has(race.series)) continue;
+    const raceLevel = single ? level : levelFor(race.series);
+    if (!single && raceLevel !== 'all' && raceLevel !== 'race') continue;   // 'off'이거나 설정에 없는 시리즈
     const sessions = Array.isArray(race.sessions) ? race.sessions : [];
     if (!sessions.length) continue;
 
@@ -192,7 +201,7 @@ export function buildCalendar({ series = null, level = 'race', lang = 'ko', year
     const used = new Map();   // 같은 라벨이 반복되는 세션(Pit Walk 등)을 UID에서 구분
     for (const session of sessions) {
       if (!session || !session.startUtc) continue;
-      if (level === 'race' && session.kind !== 'race' && session.kind !== 'finish') continue;
+      if (raceLevel === 'race' && session.kind !== 'race' && session.kind !== 'finish') continue;
 
       const base = `${race.id}-${slug(session.t)}`;
       const seen = used.get(base) || 0;
@@ -208,6 +217,38 @@ export function buildCalendar({ series = null, level = 'race', lang = 'ko', year
   return lines.map(fold).join('\r\n') + '\r\n';
 }
 
+// 개인 주소: 토큰으로 그 사람의 시리즈별 수준과 언어만 가져온다.
+// publishable 키만 쓴다(비밀 키는 쓰지 않는다). 못 가져오면 throw — 호출부가 503으로 돌려준다.
+// 빈 캘린더를 내보내면 구독자 캘린더의 일정이 전부 지워지므로, 실패를 성공처럼 다루지 않는다.
+async function fetchCalendarPreferences(token) {
+  const env = globalThis.process?.env || {};   // eslint 설정이 브라우저 전역이라 globalThis로 읽는다
+  const url = env.VITE_SUPABASE_URL;
+  const key = env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) throw new Error('supabase env missing');
+
+  const { createClient } = await import('@supabase/supabase-js');
+  const client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+
+  const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), PROFILE_TIMEOUT_MS));
+  const { data, error } = await Promise.race([client.rpc('calendar_preferences', { token }), timeout]);
+  if (error) throw error;
+  return data ?? null;   // null = 그런 토큰이 없다 → 404
+}
+
+// 프로필 값 → buildCalendar 인자. 'all'/'race'만 통과시키고 나머지는 빼 버린다.
+function levelsFromProfile(profile) {
+  const out = {};
+  const series = profile && typeof profile.series === 'object' ? profile.series : null;
+  if (series) {
+    for (const name of SERIES) {
+      const mode = series[name];
+      if (mode === 'all' || mode === 'race') out[name] = mode;
+    }
+  }
+  const lang = LANGS.includes(profile?.locale) ? profile.locale : 'ko';
+  return { levels: out, lang };
+}
+
 // 쿼리 파싱. 잘못된 값은 기본값으로 떨어뜨린다 (구독 URL이 조용히 깨지지 않게).
 export function parseQuery(url) {
   const params = new URL(url, 'http://localhost').searchParams;
@@ -221,21 +262,67 @@ export function parseQuery(url) {
   // race=<id>면 단일 경기 모드. 없는 id는 호출부가 404로 처리한다 (조용히 전체 일정을 주면 안 된다).
   const race = params.get('race') || null;
   const found = race ? findRace(race) : null;
+  // u=<calendar_token>이면 개인 주소 모드. UUID가 아니면 DB를 부르지 않는다.
+  const rawToken = params.get('u');
+  const token = rawToken && UUID_RE.test(rawToken) ? rawToken : null;
   return {
     series: series.length ? series : null, level, lang, race,
     raceFound: Boolean(found), raceName: found ? found.race.name : null,
     year, yearSupported: Number.isInteger(year) && Boolean(SEASONS[year]),
+    u: rawToken || null, token,
   };
 }
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.setHeader('Allow', 'GET, HEAD');
     res.status(405).send('Method Not Allowed');
     return;
   }
 
-  const { series, level, lang, race, raceFound, year, yearSupported } = parseQuery(req.url || '/api/calendar.ics');
+  const { series, level, lang, race, raceFound, year, yearSupported, u, token } = parseQuery(req.url || '/api/calendar.ics');
+
+  // 개인 주소. 설정을 서버에서 읽어 그 사람 기준으로 만든다. 여기 말고는 기존 경로 그대로다.
+  if (u) {
+    if (!token) {
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store');
+      res.status(404).send('Not found');
+      return;
+    }
+    if (!yearSupported) {
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store');
+      res.status(400).send(`Unsupported year: ${year}. Supported: ${SUPPORTED_SEASONS.join(', ')}`);
+      return;
+    }
+
+    let profile;
+    try {
+      profile = await fetchCalendarPreferences(token);
+    } catch {
+      // 못 읽었을 때 빈 캘린더를 주면 구독자 일정이 전부 지워진다. 503으로 "나중에 다시"라고 말한다.
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('Retry-After', '3600');
+      res.status(503).send('Calendar temporarily unavailable');
+      return;
+    }
+    if (!profile) {
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store');
+      res.status(404).send('Not found');
+      return;
+    }
+
+    const { levels, lang: userLang } = levelsFromProfile(profile);
+    const personal = buildCalendar({ levels, lang: userLang, year });
+    res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, s-maxage=600');
+    res.setHeader('Content-Disposition', 'inline; filename="gantry.ics"');
+    res.status(200).send(req.method === 'HEAD' ? '' : personal);
+    return;
+  }
 
   if (race && !raceFound) {
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');

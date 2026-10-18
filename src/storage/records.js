@@ -57,4 +57,8 @@ export const RECORDS = {
   circuitMap: { key: 'gantry.map.sgp26', scope: 'account', codec: json, fallback: () => ({}) },
   // 데모 빌드 전용 시계 {base, at, speed}. VITE_DEMO_CLOCK이 꺼진 빌드에서는 읽지 않는다.
   demoClock: { key: 'gantry.demoClock', scope: 'device', codec: json, fallback: () => null },
+  // Supabase 세션. supabase-js가 createClient의 storage 어댑터를 통해 직접 읽고 쓴다
+  // (앱 코드에서 storage.auth.read()를 부르지 않는다). 같은 접두로 'gantry.auth-code-verifier'
+  // 같은 키를 더 만들 수 있어 어댑터가 접두 전체를 드라이버로 넘긴다. 기기에 묶인 값이라 device다.
+  auth: { key: 'gantry.auth', scope: 'device', codec: text, fallback: () => null },
 };

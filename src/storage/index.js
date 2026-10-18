@@ -29,7 +29,23 @@ export function getStorageDriver() {
   return driver;
 }
 
-function createStore(record) {
+// account 값이 바뀌었다는 신호. 원격 계층(src/account/)이 듣는다.
+// 구독자가 던진 예외가 저장을 깨뜨리지 않게 한 겹 감싼다 (저장이 원본, 원격은 얹히는 계층).
+const subscribers = new Set();
+
+export function subscribe(fn) {
+  if (typeof fn !== 'function') return () => {};
+  subscribers.add(fn);
+  return () => { subscribers.delete(fn); };
+}
+
+function notify(name, value) {
+  for (const fn of subscribers) {
+    try { fn(name, value); } catch { /* 저장은 이미 끝났다 */ }
+  }
+}
+
+function createStore(record, name) {
   return {
     key: record.key,
     scope: record.scope,
@@ -40,7 +56,10 @@ function createStore(record) {
     write(value) {
       const raw = record.codec.encode(value);
       if (raw === null) return false;
-      return driver.set(record.key, raw);
+      const ok = driver.set(record.key, raw);
+      // account 값이 실제로 저장됐을 때만 알린다. 반환값과 기존 동작은 그대로다.
+      if (ok && record.scope === 'account') notify(name, value);
+      return ok;
     },
     clear() {
       return driver.remove(record.key);
@@ -50,7 +69,7 @@ function createStore(record) {
 
 export const storage = Object.freeze(
   Object.fromEntries(
-    Object.entries(RECORDS).map(([name, record]) => [name, Object.freeze(createStore(record))]),
+    Object.entries(RECORDS).map(([name, record]) => [name, Object.freeze(createStore(record, name))]),
   ),
 );
 
