@@ -603,7 +603,8 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
   const faved = favorites.has(race.id);
   const [favPop, onFavPopEnd] = usePop(faved);   // 저장될 때만 되튐
   // 공유: navigator.share가 있으면 시트, 없으면 클립보드 복사 후 '링크를 복사했어요'를 2초.
-  const [linkCopied, setLinkCopied] = useState(false);
+  // 클립보드까지 막혔으면(권한 거부·비보안 컨텍스트) 조용히 끝내지 않고 주소를 띄워 직접 복사하게 한다.
+  const [shareHint, setShareHint] = useState(null);   // { kind: 'copied' } | { kind: 'url', url }
   const onShare = async () => {
     const url = raceShareUrl(race);
     if (!url) return;
@@ -618,9 +619,12 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
     try {
       await navigator.clipboard.writeText(url);
       track('race_shared', { series: race.series, method: 'copy' });
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
-    } catch { /* 클립보드가 막힌 환경 — 조용히 넘어간다 */ }
+      setShareHint({ kind: 'copied' });
+      setTimeout(() => setShareHint(null), 2000);
+    } catch {
+      setShareHint({ kind: 'url', url });
+      setTimeout(() => setShareHint(null), 5000);
+    }
   };
   const width = tier === 'ultra' ? 560 : tier === 'desktop' ? 480 : 440;
   // 열리면 포커스를 드로어 안 첫 요소(닫기 버튼)로. 닫힌 뒤 원래 요소로 되돌리는 건 WebApp이 한다.
@@ -677,11 +681,14 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
               </svg>
             </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
-              {linkCopied && (
+              {shareHint && (
                 <span role="status" style={{
-                  whiteSpace: 'nowrap', padding: '5px 9px', borderRadius: 8,
+                  maxWidth: 300, padding: '5px 9px', borderRadius: 8,
                   background: 'rgba(0,0,0,0.72)', color: '#fff', fontSize: 11, fontWeight: 600,
-                }}>{tr('detail.linkCopied')}</span>
+                  ...(shareHint.kind === 'url'
+                    ? { userSelect: 'all', wordBreak: 'break-all', fontWeight: 500, lineHeight: 1.4 }
+                    : { whiteSpace: 'nowrap' }),
+                }}>{shareHint.kind === 'url' ? shareHint.url : tr('detail.linkCopied')}</span>
               )}
               <button onClick={() => toggleFav(race.id)} aria-label={tr('aria.save')} className="press-icon" style={{
                 width: 36, height: 36, borderRadius: 10, border: 0, cursor: 'pointer',

@@ -46,8 +46,18 @@ function titleFor(race) {
   return `${parts.join(' · ')} | Gantry`;
 }
 
+// 서킷과 도시가 같으면 한 번만 쓴다 (WRC는 '도요타, 도요타'처럼 같은 값이 들어온다).
+// 미리보기 문구에서만 합친다 — 앱 화면과 시즌 JSON은 그대로다.
+function placeOf(race) {
+  const circuit = circuitOf(race);
+  const city = cityOf(race);
+  if (circuit && city && circuit === city) return circuit;
+  return [circuit, city].filter(Boolean).join(', ');
+}
+
 function descriptionFor(race) {
-  const where = [circuitOf(race), cityOf(race)].filter(Boolean).join(', ');
+  const where = placeOf(race);
+  const cancelled = race.status === 'cancelled';
   const sessions = Array.isArray(race.sessions) ? race.sessions : [];
   const final = sessions.find((s) => s && s.kind === 'race');
 
@@ -58,14 +68,15 @@ function descriptionFor(race) {
     const label = formatSessionLabel(final.t, final.kind, 'ko');
     const when = [label, monthDayKo(kst[1], true), kst[2], '한국 시간'].filter(Boolean).join(' ');
     body = [when, where].filter(Boolean).join(' · ');
-    body += '. 세션 시간과 중계 정보는 Gantry에서.';
+    // 취소된 경기에는 "앞으로 반영하겠다"는 말을 붙이지 않는다.
+    body += cancelled ? '.' : '. 세션 시간과 중계 정보는 Gantry에서.';
   } else {
     const span = [monthDayKo(race.weekendStart), monthDayKo(race.weekendEnd)].filter(Boolean).join('~');
     const head = span ? `${span}(현지 날짜)` : null;
     body = [head, where].filter(Boolean).join(' · ');
-    body += '. 세션 시간이 발표되면 Gantry에 반영됩니다.';
+    body += cancelled ? '.' : '. 세션 시간이 발표되면 Gantry에 반영됩니다.';
   }
-  return race.status === 'cancelled' ? `취소된 경기 · ${body}` : body;
+  return cancelled ? `취소된 경기 · ${body}` : body;
 }
 
 // 템플릿에서 바꿔야 할 태그. 하나라도 못 찾으면 빌드를 실패시킨다 —
