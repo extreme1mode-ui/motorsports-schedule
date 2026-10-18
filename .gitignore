@@ -31,3 +31,6 @@ dist-ssr
 # 로컬 테스트용 디자인 시안 (커밋하지 않음)
 public/design/
 design/
+
+# 주간 카드 출력 (커밋하지 않음)
+out/

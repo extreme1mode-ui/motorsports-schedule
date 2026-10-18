@@ -19,6 +19,10 @@ const LANGS = ['ko', 'en'];
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PROFILE_TIMEOUT_MS = 5000;
 const UID_DOMAIN = 'paddock.app';          // 호스트가 바뀌어도 UID가 흔들리지 않게 고정값
+// 일정에서 경기 페이지로 돌아오는 통로. 요청 호스트와 무관하게 항상 새 도메인을 가리킨다 —
+// 예전 주소로 구독한 사람도 여기로 오게 하려는 것이다.
+const SITE_ORIGIN = 'https://www.gantryracing.com';
+const raceUrl = (race) => `${SITE_ORIGIN}/race/${encodeURIComponent(race.id)}?utm_source=ics&utm_medium=calendar`;
 const PRODID = '-//Gantry//Motorsport Schedule//KO';   // 연도를 넣지 않는다 — 한 코드가 여러 시즌을 낸다
 
 const CALNAME = {
@@ -127,11 +131,17 @@ function buildEvent(race, session, { finishAt, lang, labels, uid, dtstamp, alarm
   const location = [labels.circuit, labels.city].filter(Boolean).join(', ');
   if (location) lines.push(`LOCATION:${escapeText(location)}`);
 
+  const url = raceUrl(race);
+  lines.push(`URL:${url}`);
+
   const channels = Array.isArray(race.broadcast) ? race.broadcast.filter((b) => b && b.name) : [];
+  const link = `${lang === 'en' ? 'View on Gantry' : 'Gantry에서 보기'}: ${url}`;
   if (channels.length) {
     const head = lang === 'en' ? 'Where to watch' : '중계';
     const body = channels.map((b) => (b.url ? `${b.name} ${b.url}` : b.name)).join('\n');
-    lines.push(`DESCRIPTION:${escapeText(`${head}\n${body}`)}`);
+    lines.push(`DESCRIPTION:${escapeText(`${head}\n${body}\n\n${link}`)}`);
+  } else {
+    lines.push(`DESCRIPTION:${escapeText(link)}`);
   }
 
   if (race.status === 'cancelled') lines.push('STATUS:CANCELLED');
