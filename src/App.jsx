@@ -26,7 +26,7 @@ export default function Root() {
     storage.theme.write(theme);
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
-  // index.html의 lang/title은 언어 중립 기본값(en). 앱이 뜨면 사용자 locale로 바꾼다.
+  // index.html의 lang/title은 한국어 기본값(검색용). 앱이 뜨면 사용자 locale로 바꾼다.
   useEffect(() => {
     const locale = prefs.preferences.locale || 'ko';
     document.documentElement.lang = locale;

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="ko">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,9 +9,9 @@
     <!-- 사진 호스트. 상세를 처음 열 때 DNS→TCP→TLS를 그 자리에서 하지 않도록 미리 연결해 둔다. -->
     <link rel="preconnect" href="https://images.pexels.com" crossorigin />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css" />
-    <!-- 제목·lang은 언어 중립 기본값. 앱이 뜨면 사용자 locale에 맞춰 App.jsx(Root)에서 바꾼다. -->
-    <title>Gantry — Motorsport Schedule</title>
-    <meta name="description" content="2026 Formula 1, WEC, IMSA, WRC and GT World Challenge schedule in your time zone — session times, countdowns and where to watch." />
+    <!-- 제목·lang·description은 검색용 한국어 기본값. 앱이 뜨면 사용자 locale에 맞춰 App.jsx(Root)에서 lang·제목을 바꾼다. -->
+    <title>Gantry — F1·WEC·WRC·IMSA 경기 일정, 한국 시간으로</title>
+    <meta name="description" content="F1, WEC, IMSA, WRC, GT 월드 챌린지 경기 일정을 한국 시간으로. 세션 시각, 카운트다운, 중계 정보까지 한곳에서." />
     <meta name="theme-color" content="#07080B" />
 
     <!-- 브랜드 파일은 public/gantry/ (Gantry 브랜드 패키지와 같은 파일) -->
@@ -43,13 +43,15 @@
 
     <!-- 스플래시: 빔 → 불이 한 열씩 → 워드마크 → 불이 한꺼번에 꺼지며 걷힘.
          JS 번들보다 먼저 보여야 해서 index.html에 직접 넣는다. 앱 렌더링은 막지 않는다.
-         테마는 localStorage['paddock.theme']를 따르고(React가 data-theme을 붙이기 전이라), 한 세션에 한 번만 나온다. -->
+         테마는 localStorage['paddock.theme']를 따르고(React가 data-theme을 붙이기 전이라), 한 세션에 한 번만 나온다.
+         마크업은 꺼진 채(gs-gone)로 두고 아래 스크립트가 켠다 — JS 없이 읽는 크롤러에게 경기 페이지 본문을 덮지 않는다. -->
     <style>
       #gt-splash{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;background:#07080B;color:#F2F4F7;
         transition:opacity 260ms cubic-bezier(.2,.8,.25,1);-webkit-user-select:none;user-select:none;cursor:pointer}
       #gt-splash[data-tone="light"]{background:#F2F3F5;color:#14161C}
       #gt-splash.gs-hide{opacity:0;pointer-events:none}
       #gt-splash.gs-gone{display:none}
+      #gt-splash.gs-plain .gs-grid,#gt-splash.gs-plain .gs-mark,#gt-splash.gs-plain .gs-foot{opacity:0}
       #gt-splash .gs-grid{position:absolute;inset:0;background-image:radial-gradient(circle at center,currentColor 0 2.1px,transparent 2.6px);
         background-size:12px 12px;opacity:.05;
         -webkit-mask-image:radial-gradient(ellipse 60% 55% at 50% 48%,transparent 30%,#000 100%);
@@ -73,7 +75,7 @@
       #gt-splash .gs-cap.in{opacity:1}
       @media (prefers-reduced-motion: reduce){ #gt-splash *{transition:none!important;animation:none!important} }
     </style>
-    <div id="gt-splash" role="presentation" aria-hidden="true">
+    <div id="gt-splash" class="gs-gone" role="presentation" aria-hidden="true">
       <div class="gs-grid"></div>
       <div class="gs-mark">
         <svg class="gs-sym" viewBox="0 0 1330 708" fill="currentColor" aria-hidden="true" focusable="false">
@@ -107,7 +109,7 @@
           el.setAttribute('data-tone', t === 'light' ? 'light' : 'dark');
         }
         function reset() {
-          el.classList.remove('gs-run', 'gs-hide', 'gs-gone');
+          el.classList.remove('gs-run', 'gs-hide', 'gs-gone', 'gs-plain');
           cols.forEach(function (c) { c.classList.remove('on', 'out'); });
           word.classList.remove('in'); cap.classList.remove('in');
         }
@@ -148,7 +150,22 @@
         // 한 세션에 한 번만. 다시 보려면 __gantrySplash.play()를 부른다(온보딩 완료 등).
         var seen = false;
         try { seen = sessionStorage.getItem('gantry.splash') === '1'; } catch (e) { /* 무시 */ }
-        if (seen) { el.classList.add('gs-gone'); }
+        if (seen) {
+          // 경기 페이지는 #root에 정적 본문이 들어 있다(tools/build-race-pages.mjs). 스플래시를 건너뛸 때는
+          // 앱이 그 본문을 바꿀 때까지 무늬 없는 배경으로만 덮는다. 번들이 못 뜨면 4초 뒤 본문을 그대로 보여 준다.
+          var root = document.getElementById('root');
+          if (root && root.firstElementChild && window.MutationObserver) {
+            tone(); el.classList.remove('gs-gone'); el.classList.add('gs-plain');
+            var mo, uncover = function () {
+              mo.disconnect(); clearTimeout(guard);
+              if (busy) return;                     // 그 사이 play()가 불렸으면 스플래시에 맡긴다
+              el.classList.remove('gs-plain'); el.classList.add('gs-gone');
+            };
+            mo = new MutationObserver(uncover);
+            mo.observe(root, { childList: true });
+            var guard = setTimeout(uncover, 4000);
+          }
+        }
         else {
           try { sessionStorage.setItem('gantry.splash', '1'); } catch (e) { /* 무시 */ }
           play();

@@ -79,6 +79,88 @@ function descriptionFor(race) {
   return cancelled ? `취소된 경기 · ${body}` : body;
 }
 
+// 본문용 제목: '호주 그랑프리 · F1 2026'. <title>과 같은 조각에서 ' | Gantry'만 뺀다.
+function headingFor(race) {
+  return [nameOf(race), [race.series, seasonYearOf(race)].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+}
+
+// 서킷·도시·국가에서 같은 값은 한 번만 쓴다 (placeOf와 같은 규칙에 국가를 더한 것).
+function fullPlaceOf(race) {
+  const parts = [circuitOf(race), cityOf(race), text(race.countryKo) || text(race.country)].filter(Boolean);
+  return [...new Set(parts)].join(', ');
+}
+
+const ACCESS_KO = { paid: '유료', free: '무료' };
+const httpUrl = (v) => (typeof v === 'string' && /^https?:\/\//.test(v.trim()) ? v.trim() : null);
+const link = (url, label) => `<a href="${esc(url)}" style="color:inherit">${esc(label)}</a>`;
+
+// 경기 페이지 #root 안에 넣는 정적 본문. 네이버 로봇처럼 JS를 거의 실행하지 않는 크롤러가 읽는다.
+// 앱은 createRoot로 마운트하면서 이 내용을 통째로 바꾼다. 숨김 처리는 하지 않는다 —
+// 첫 방문에는 스플래시가 덮고, 다시 올 때는 앱 배경·글자색 위에 잠깐 보였다 바뀐다.
+function bodyFor(race) {
+  const out = [];
+  if (race.status === 'cancelled') out.push('<p><strong>취소된 경기</strong></p>');
+  out.push(`<h1>${esc(headingFor(race))}</h1>`);
+  const where = fullPlaceOf(race);
+  if (where) out.push(`<p>장소: ${esc(where)}</p>`);
+
+  const sessions = (Array.isArray(race.sessions) ? race.sessions : []).map((s) => {
+    if (!s) return null;
+    const label = formatSessionLabel(s.t, s.kind, 'ko');
+    const kst = text(s.kst);
+    const start = text(s.startUtc);
+    const when = kst ? (start ? `<time datetime="${esc(start)}">${esc(kst)}</time>` : esc(kst)) + ' 한국 시간' : null;
+    const line = [label ? esc(label) : null, when].filter(Boolean).join(' ');
+    return line ? `<li>${line}</li>` : null;
+  }).filter(Boolean);
+  if (sessions.length) {
+    out.push('<h2>일정</h2>', `<ul>${sessions.join('')}</ul>`);
+  } else {
+    const days = [race.weekendStart, race.weekendEnd].map(text).filter(Boolean)
+      .map((d) => `<time datetime="${esc(d)}">${esc(d)}</time>`);
+    if (days.length) out.push('<h2>일정</h2>', `<p>${[...new Set(days)].join('~')}(현지 날짜)</p>`);
+  }
+
+  const broadcasts = (Array.isArray(race.broadcast) ? race.broadcast : [])
+    .filter((b) => b && (b.region === 'KR' || b.region === 'global') && text(b.name))
+    .map((b) => {
+      const url = httpUrl(b.url);
+      const access = ACCESS_KO[b.access];
+      return `<li>${url ? link(url, b.name.trim()) : esc(b.name.trim())}${access ? ` · ${access}` : ''}</li>`;
+    });
+  if (broadcasts.length) out.push('<h2>중계</h2>', `<ul>${broadcasts.join('')}</ul>`);
+
+  const official = httpUrl(race.officialUrl);
+  if (official) out.push(`<p>${link(official, '공식 사이트')}</p>`);
+  out.push(`<p>${link('/', '전체 일정 보기')}</p>`);
+
+  return `<main style="max-width:640px;margin:0 auto;padding:32px 16px;color:var(--text);line-height:1.6">${out.join('')}</main>`;
+}
+
+// schema.org SportsEvent. 값이 없는 키는 넣지 않는다. '<'는 \u003c로 바꿔 </script>로 끊기지 않게 한다.
+function jsonLdFor(race, url) {
+  const final = (Array.isArray(race.sessions) ? race.sessions : []).find((s) => s && s.kind === 'race');
+  const address = Object.fromEntries(Object.entries({
+    addressLocality: text(race.city),
+    addressCountry: text(race.country),
+  }).filter(([, v]) => v));
+  const placeName = text(race.circuit);
+  const location = placeName || Object.keys(address).length
+    ? { '@type': 'Place', ...(placeName && { name: placeName }), ...(Object.keys(address).length && { address: { '@type': 'PostalAddress', ...address } }) }
+    : null;
+  const data = Object.fromEntries(Object.entries({
+    '@context': 'https://schema.org',
+    '@type': 'SportsEvent',
+    name: headingFor(race),
+    url,
+    startDate: text(final?.startUtc) || text(race.weekendStart),
+    endDate: text(race.weekendEnd),
+    eventStatus: race.status === 'cancelled' ? 'https://schema.org/EventCancelled' : 'https://schema.org/EventScheduled',
+    location,
+  }).filter(([, v]) => v));
+  return `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`;
+}
+
 // 템플릿에서 바꿔야 할 태그. 하나라도 못 찾으면 빌드를 실패시킨다 —
 // index.html이 바뀌었는데 공유 미리보기가 조용히 옛 값으로 나가면 안 된다.
 const SLOTS = [
@@ -105,9 +187,14 @@ if (missing.length) {
   console.error('[race-pages] 템플릿이 바뀌었다. tools/build-race-pages.mjs의 SLOTS를 맞춰야 한다.');
   process.exit(1);
 }
-// canonical을 넣을 자리도 있어야 한다.
+// canonical·JSON-LD를 넣을 자리와 본문을 넣을 빈 #root도 있어야 한다.
 if (!/<\/head>/.test(template)) {
   console.error('[race-pages] index.html에서 </head>를 찾지 못했다.');
+  process.exit(1);
+}
+const ROOT = '<div id="root"></div>';
+if (!template.includes(ROOT)) {
+  console.error(`[race-pages] index.html에서 ${ROOT}를 찾지 못했다.`);
   process.exit(1);
 }
 
@@ -124,7 +211,10 @@ for (const season of SEASONS) {
     };
     let html = template;
     for (const [, re, make, key] of SLOTS) html = html.replace(re, make(values[key]));
-    html = html.replace('</head>', `  <link rel="canonical" href="${values.url}" />\n  </head>`);
+    // 함수로 넘겨 본문·JSON에 든 '$'가 치환 패턴으로 읽히지 않게 한다.
+    const head = `  <link rel="canonical" href="${values.url}" />\n    ${jsonLdFor(race, `${ORIGIN}/race/${id}`)}\n  </head>`;
+    html = html.replace('</head>', () => head);
+    html = html.replace(ROOT, () => `<div id="root">${bodyFor(race)}</div>`);
 
     const dir = path.join(dist, 'race', id);
     fs.mkdirSync(dir, { recursive: true });
