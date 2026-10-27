@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && node tools/build-race-pages.mjs",
+    "dev:toss": "vite --mode toss",
+    "build:toss": "vite build --mode toss",
     "lint": "eslint .",
     "preview": "vite preview",
     "card": "node tools/weekly-card/index.mjs"

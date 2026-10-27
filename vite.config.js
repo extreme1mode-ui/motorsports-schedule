@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
@@ -29,7 +31,33 @@ const devApi = {
   },
 }
 
+// 토스(앱인토스) 빌드: --mode toss일 때만 붙는다. 입력 HTML은 toss.html, 결과는 dist-toss/index.html.
+// 개발 서버에서는 화면 요청을 toss.html로 돌리고, 빌드 뒤에는 toss.html을 index.html로 바꾼다.
+const TOSS_HTML = 'toss.html'
+const TOSS_OUT = 'dist-toss'
+const tossHtml = {
+  name: 'toss-html',
+  configureServer(server) {
+    server.middlewares.use((req, _res, next) => {
+      const [pathname, query] = (req.url || '').split('?')
+      // 화면 요청(/, /index.html, /race/<id> 같은 SPA 주소)만 바꾼다. 모듈·자산 요청은 그대로 둔다.
+      const page = pathname === '/' || pathname === '/index.html' || (!path.extname(pathname) && req.headers.accept?.includes('text/html'))
+      if (page) req.url = `/${TOSS_HTML}${query ? `?${query}` : ''}`
+      next()
+    })
+  },
+  writeBundle(options) {
+    const dir = options.dir || TOSS_OUT
+    fs.renameSync(path.join(dir, TOSS_HTML), path.join(dir, 'index.html'))
+  },
+}
+
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react(), devApi],
-})
+export default defineConfig(({ mode }) => mode === 'toss'
+  ? {
+    plugins: [react(), devApi, tossHtml],
+    build: { outDir: TOSS_OUT, rolldownOptions: { input: TOSS_HTML } },
+  }
+  : {
+    plugins: [react(), devApi],
+  })

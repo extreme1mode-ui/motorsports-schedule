@@ -4,10 +4,12 @@
 // - 개발 모드(import.meta.env.DEV): 전송하지 않고 console.debug만.
 // - 프로덕션: VITE_ANALYTICS_KEY가 있을 때만 전송. 없으면 아무것도 안 함.
 // - navigator.doNotTrack이 켜져 있으면 전송하지 않는다 (GDPR 고려).
+// - 토스 빌드: 전송하지 않는다 (PostHog를 불러오지 않는다). 개발 모드 콘솔 출력은 그대로.
 // - 이름·이메일 같은 식별 정보는 어디서도 넣지 않는다. 속성은 열거형 문자열·숫자·불리언·문자열 배열만 통과시키고 나머지는 버린다.
 // - 어떤 경우에도 앱을 죽이지 않는다 (전체 try/catch).
 
 import { storage } from './storage/index.js';
+import { IS_TOSS } from './platform.js';
 
 const KEY = import.meta.env.VITE_ANALYTICS_KEY;
 const DEV = Boolean(import.meta.env.DEV);
@@ -108,7 +110,7 @@ export function track(event, props = {}) {
     if (typeof event !== 'string' || !event) return;
     const clean = sanitize(props);
     if (DEV) { console.debug(`[analytics] ${event} ${JSON.stringify(clean)}`); return; }   // 한 줄 문자열: 콘솔·로그 수집기에서 그대로 읽히게
-    if (!KEY || doNotTrack()) return;
+    if (IS_TOSS || !KEY || doNotTrack()) return;
     send(event, clean);
   } catch {
     // 계측 실패는 앱 동작에 영향을 주면 안 된다.

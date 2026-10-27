@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { SUPPORTED_SERIES } from './constants.js';
 import { storage } from '../storage/index.js';
+import { IS_TOSS } from '../platform.js';
 
 const PREFERENCES_VERSION = 1;
 const FALLBACK_TIMEZONE = 'Asia/Seoul';
@@ -73,7 +74,8 @@ export function normalizePreferences(input) {
     // country는 온보딩에서 직접 묻는 값이라 "아직 모름"(null)을 허용한다.
     country: typeof stored.country === 'string' && stored.country ? stored.country : null,
     timezone: typeof stored.timezone === 'string' && stored.timezone ? stored.timezone : detectTimezone(),
-    locale: isLocale(stored.locale) ? stored.locale : detectLocale(),
+    // 토스 빌드는 저장값과 상관없이 한국어만 쓴다.
+    locale: IS_TOSS ? 'ko' : isLocale(stored.locale) ? stored.locale : detectLocale(),
     onboarded,
   };
 }

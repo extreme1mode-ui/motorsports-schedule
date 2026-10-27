@@ -17,6 +17,7 @@ import { storage } from './storage/index.js';
 import { setAppTitle } from './document-title.js';
 import { CircuitMapProvider } from './circuit-map/CircuitMap.jsx';
 import { DemoClockSheet } from './demo/DemoClockSheet.jsx';
+import { IS_TOSS } from './platform.js';
 
 export default function Root() {
   const prefs = usePreferences();
@@ -53,16 +54,19 @@ export default function Root() {
   // 언어·시간대·국가는 preferences에서. 바꾸면 컨텍스트가 갱신돼 즉시 반영된다.
   const screen = !prefs.preferences.onboarded && !shareFirst
     ? <Onboarding {...prefs} />
-    : isWeb
+    : isWeb && !IS_TOSS   // 토스는 화면 폭과 상관없이 모바일 셸
       ? <WebApp theme={theme} setTheme={setTheme} onShareLinkDone={onShareLinkDone} {...prefs} />
       : <App theme={theme} setTheme={setTheme} onShareLinkDone={onShareLinkDone} {...prefs} />;
   return (
     <FormatProvider locale={prefs.preferences.locale} timeZone={prefs.preferences.timezone} country={prefs.preferences.country}>
-      {/* 서킷 맵 레이어는 모바일·웹 셸 바깥에 둔다 — 창 크기로 셸이 바뀌어도 지도와 상태가 유지된다. */}
-      <CircuitMapProvider setTheme={setTheme}>
-        {screen}
-        <DemoClockSheet />
-      </CircuitMapProvider>
+      {/* 서킷 맵 레이어는 모바일·웹 셸 바깥에 둔다 — 창 크기로 셸이 바뀌어도 지도와 상태가 유지된다.
+          토스 빌드는 지도와 데모 시계를 쓰지 않는다. */}
+      {IS_TOSS ? screen : (
+        <CircuitMapProvider setTheme={setTheme}>
+          {screen}
+          <DemoClockSheet />
+        </CircuitMapProvider>
+      )}
     </FormatProvider>
   );
 }
@@ -178,12 +182,13 @@ function App({ theme, setTheme, onShareLinkDone, ...prefs }) {
 function TabBar({ theme, view, onGo, favCount }) {
   const t = TOKENS[theme];
   const tr = useT();
-  const tabs = [
+  const allTabs = [
     { id: 'home', label: tr('nav.home'), icon: 'home' },
     { id: 'schedule', label: tr('nav.schedule'), icon: 'cal' },
     { id: 'series', label: tr('nav.series'), icon: 'grid' },
     { id: 'fav', label: tr('nav.fav'), icon: 'heart' },
   ];
+  const tabs = IS_TOSS ? allTabs.filter((tab) => tab.id !== 'series') : allTabs;   // 토스: 홈·일정·저장 3개
   return (
     <div style={{
       position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 70, viewTransitionName: 'nav-chrome',

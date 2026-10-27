@@ -6,6 +6,7 @@ import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
 import { GantrySymbol } from './Brand.jsx';
 import { useCalendarToken } from './account/calendar-token.js';
+import { IS_TOSS } from './platform.js';
 
 // 언어 이름은 번역하지 않는다(각 언어의 자기 표기). raw: true → ChoiceGroup이 t()를 거치지 않음
 const LOCALE_OPTIONS = [
@@ -97,19 +98,20 @@ export function Settings({ theme, preferences, setSeriesMode, setCountry, setTim
           </div>
         </section>
 
-        <section style={{ marginBottom: 32 }}>
+        {/* 토스 빌드: 국가·언어·시간대·캘린더 구독을 쓰지 않는다 (시리즈 관심 수준과 온보딩 다시 하기만). */}
+        {!IS_TOSS && <section style={{ marginBottom: 32 }}>
           <SectionTitle theme={theme} title={tr('settings.country.title')} sub={tr('settings.country.sub')} />
           <CountryChoices theme={theme} value={countryIdFromValue(preferences.country)}
             onChange={(id) => setCountry(countryValueFromId(id))} />
-        </section>
+        </section>}
 
-        <section style={{ marginBottom: 32 }}>
+        {!IS_TOSS && <section style={{ marginBottom: 32 }}>
           <SectionTitle theme={theme} title={tr('settings.language.title')} sub={tr('settings.language.sub')} />
           <ChoiceGroup theme={theme} options={LOCALE_OPTIONS} value={preferences.locale || 'ko'} showSub={false}
             onChange={(id) => { if (id !== preferences.locale) track('locale_changed', { to: id }); setLocale(id); }} label={tr('settings.language.title')} />
-        </section>
+        </section>}
 
-        <section style={{ marginBottom: 32 }}>
+        {!IS_TOSS && <section style={{ marginBottom: 32 }}>
           <SectionTitle theme={theme} title={tr('settings.timezone.title')} sub={tr('settings.timezone.sub')} />
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 56,
@@ -118,9 +120,9 @@ export function Settings({ theme, preferences, setSeriesMode, setCountry, setTim
             <TimezoneLabel theme={theme} timezone={preferences.timezone} />
             <button type="button" onClick={() => { const tz = detectTimezone(); if (tz !== preferences.timezone) track('timezone_changed', { detected: true }); setTimezone(tz); }} style={secondaryButton}>{tr('settings.timezone.redetect')}</button>
           </div>
-        </section>
+        </section>}
 
-        <section style={{ marginBottom: 32 }}>
+        {!IS_TOSS && <section style={{ marginBottom: 32 }}>
           <SectionTitle theme={theme} title={tr('settings.calendar.title')} sub={tr('settings.calendar.sub')} />
           <div style={{ padding: '12px 16px', borderRadius: 14, background: t.surface, border: `1px solid ${t.line}` }}>
             <div ref={urlRef} style={{
@@ -138,7 +140,7 @@ export function Settings({ theme, preferences, setSeriesMode, setCountry, setTim
             </div>
           </div>
           <div style={{ fontSize: 12, color: t.text3, lineHeight: 1.5, marginTop: 8 }}>{tr(calendarToken ? 'settings.calendar.notePersonal' : 'settings.calendar.note')}</div>
-        </section>
+        </section>}
 
         <section>
           <SectionTitle theme={theme} title={tr('settings.onboarding.title')} sub={tr('settings.onboarding.sub')} />

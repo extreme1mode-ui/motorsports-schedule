@@ -14,6 +14,7 @@ import { toggleAlarm, useAlarms } from './alarm.js';
 import { raceShareUrl } from './share-link.js';
 import { useRecommendationShown } from './use-analytics.js';
 import { CircuitMapSection } from './circuit-map/CircuitMap.jsx';
+import { IS_TOSS } from './platform.js';
 import { RaceResultSection, PodiumLine, SubTabs, StandingsList } from './results/ResultsUI.jsx';
 
 // 정렬·그룹핑은 시작 시각(UTC)으로. 시간대와 무관하게 항상 옳다.
@@ -561,8 +562,8 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
         </div>
       </section>
 
-      {/* 현장 · ON SITE — 서킷 맵이 있는 경기만 (CircuitMap.jsx hasMap) */}
-      <CircuitMapSection race={race} />
+      {/* 현장 · ON SITE — 서킷 맵이 있는 경기만 (CircuitMap.jsx hasMap). 토스 빌드는 지도를 쓰지 않는다. */}
+      {!IS_TOSS && <CircuitMapSection race={race} />}
 
       <section style={{ padding: '20px 18px 0' }}>
         <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.14em' }}>WEEKEND</Mono>
@@ -601,7 +602,7 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
         <div style={{ marginTop: 8, fontSize: 11, color: t.text3 }}>{tr('detail.broadcastNote')}</div>
       </section>
 
-      {canAlarm && (
+      {canAlarm && !IS_TOSS && (
         <section style={{ padding: '20px 18px 0' }}>
           <div style={{ padding: '14px 16px', background: t.surface, border: `1px solid ${t.line}`, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <div>

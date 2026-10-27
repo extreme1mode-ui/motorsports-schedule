@@ -6,8 +6,10 @@ import { PageTitle, SeriesRow, ChoiceGroup, CountryChoices, TimezoneLabel } from
 import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
 import { GantryLockup } from './Brand.jsx';
+import { IS_TOSS } from './platform.js';
 
-const TOTAL_STEPS = 3;
+// 토스 빌드는 국가 단계(3단계)를 빼고 2단계로 끝낸다. 국가는 한국으로 넣는다.
+const TOTAL_STEPS = IS_TOSS ? 2 : 3;
 
 export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarded }) {
   const [theme] = useState(readTheme);
@@ -16,7 +18,7 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
   const [step, setStep] = useState(1);
   const [selected, setSelected] = useState(() => new Set());
   const [modes, setModes] = useState({});
-  const [countryId, setCountryId] = useState(() => guessCountryFromTimezone(preferences.timezone));
+  const [countryId, setCountryId] = useState(() => (IS_TOSS ? 'KR' : guessCountryFromTimezone(preferences.timezone)));
   const stepRef = useRef(null);
 
   // 스텝이 바뀌면 포커스를 스텝 컨테이너로 옮겨 탭 순서를 처음부터 시작한다.
@@ -82,7 +84,7 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
         maxWidth: 560, margin: '0 auto', padding: '20px 20px 32px',
         minHeight: '100dvh', display: 'flex', flexDirection: 'column',
       }}>
-        <div style={{ marginBottom: 28, color: t.text }}><GantryLockup height={14} /></div>
+        {!IS_TOSS && <div style={{ marginBottom: 28, color: t.text }}><GantryLockup height={14} /></div>}
 
         {/* 진행 표시 + 건너뛰기 */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
@@ -133,7 +135,7 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
             </>
           )}
 
-          {step === 3 && (
+          {step === 3 && !IS_TOSS && (
             <>
               <PageTitle theme={theme}
                 title={tr('ob.s3.title', { country: countryLabel })}

@@ -22,6 +22,7 @@ import { toggleAlarm, useAlarms } from '../alarm.js';
 import { HeroSiteRow } from '../circuit-map/CircuitMap.jsx';
 import { demoClock } from '../demo/clock.js';
 import { openDemoClock } from '../demo/demo-clock-events.js';
+import { IS_TOSS } from '../platform.js';
 
 const ORDER = ['F1', 'WEC', 'IMSA', 'GTWC', 'WRC'];
 const SERIES_VAR = { F1: '--f1', WEC: '--wec', IMSA: '--imsa', WRC: '--wrc', GTWC: '--gtwc' };
@@ -324,7 +325,7 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
       <div className="pagehead">
         <div className="pagehead-id">
           {/* 모바일에서만. 데스크톱은 사이드바에 로고가 있다. */}
-          <span className="pagehead-brand"><GantryLockup height={11} /></span>
+          {!IS_TOSS && <span className="pagehead-brand"><GantryLockup height={11} /></span>}
           {/* 제목은 화면에서만 숨긴다 — 화면 전환 포커스(data-view-title)와 화면 낭독기가 쓴다. */}
           <h1 className="ko vh" data-view-title tabIndex={-1} >{t('home.title')}</h1>
         </div>
@@ -335,7 +336,7 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
             : <span className="clock m">{fmt.zoneLabel} <Clock /></span>}
           <div className="mobtools">
             <button type="button" className="iconbtn" aria-label={t('nav.settings')} onClick={() => onGo('settings')}><Icon name="sliders" /></button>
-            <button type="button" className="iconbtn" aria-label={t('theme.toggle')} onClick={() => setTheme?.(theme === 'dark' ? 'light' : 'dark')}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /></button>
+            {!IS_TOSS && <button type="button" className="iconbtn" aria-label={t('theme.toggle')} onClick={() => setTheme?.(theme === 'dark' ? 'light' : 'dark')}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /></button>}
           </div>
         </div>
       </div>
@@ -385,14 +386,15 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
                       // "○○로 보기"는 중계처 랜딩으로 바로 나간다 (새 탭). 클릭 계측은 onClick, 이동은 브라우저 기본 동작.
                       ? <a className="cta" href={bcast[0].url} target="_blank" rel="noopener noreferrer" onClick={() => track('broadcast_clicked', { name: bcast[0].name, region: bcast[0].region, access: bcast[0].access, series: hero.series, source: 'home' })}>{t('home.watchOn', { channel: chans[0] })}</a>
                       : <button type="button" className="cta" onClick={openHero}>{t('home.watchOn', { channel: chans[0] })}</button>)
-                    : <button type="button" className="cta" onClick={() => toggleAlert(hero)}>{alertOn ? t('home.alertOn') : t('home.alertSet')}</button>}
+                    // 토스 빌드는 캘린더 알림을 쓰지 않는다 — 자리에 다른 버튼을 넣지 않는다.
+                    : !IS_TOSS && <button type="button" className="cta" onClick={() => toggleAlert(hero)}>{alertOn ? t('home.alertOn') : t('home.alertSet')}</button>}
                   <HeartButton on={!!faved} label={t('aria.save')} onClick={() => toggleFav?.(hero.id)} />
                   <button type="button" className="linkbtn" onClick={openHero}>{t('home.detail')}</button>
                 </div>
                 {chans.length > 0 && <div className="hero2-chans">{chans.join(' · ')}</div>}
               </div>
               {/* 현장 줄: '현장에 가요'를 켠 지도 있는 경기, 주말 동안만 */}
-              <HeroSiteRow race={hero.race} now={now} />
+              {!IS_TOSS && <HeroSiteRow race={hero.race} now={now} />}
             </div>
           </section>
         );
