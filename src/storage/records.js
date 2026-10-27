@@ -64,4 +64,6 @@ export const RECORDS = {
   // (앱 코드에서 storage.auth.read()를 부르지 않는다). 같은 접두로 'gantry.auth-code-verifier'
   // 같은 키를 더 만들 수 있어 어댑터가 접두 전체를 드라이버로 넘긴다. 기기에 묶인 값이라 device다.
   auth: { key: 'gantry.auth', scope: 'device', codec: text, fallback: () => null },
+  // 토스 익명 사용자 키(hash). 토스 빌드만 쓴다(src/toss/user-key.js). 로그에 찍거나 밖으로 보내지 않는다 — 서버 연동은 다음 단계.
+  tossUser: { key: 'gantry.tossUser', scope: 'device', codec: text, fallback: () => null },
 };

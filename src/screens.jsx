@@ -11,10 +11,10 @@ import { useImageLoaded } from './use-motion.js';
 import { prefetchHandlers, useVisiblePrefetch } from './photo-prefetch.js';
 import { PhotoCredit } from './photo-credit.jsx';
 import { toggleAlarm, useAlarms } from './alarm.js';
-import { raceShareUrl } from './share-link.js';
+import { raceShareUrl, racePathId } from './share-link.js';
 import { useRecommendationShown } from './use-analytics.js';
 import { CircuitMapSection } from './circuit-map/CircuitMap.jsx';
-import { IS_TOSS } from './platform.js';
+import { IS_TOSS, shareRace } from './platform.js';
 import { RaceResultSection, PodiumLine, SubTabs, StandingsList } from './results/ResultsUI.jsx';
 
 // 정렬·그룹핑은 시작 시각(UTC)으로. 시간대와 무관하게 항상 옳다.
@@ -430,6 +430,11 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
   // 클립보드까지 막혔으면(권한 거부·비보안 컨텍스트) 조용히 끝내지 않고 주소를 띄워 직접 복사하게 한다.
   const [shareHint, setShareHint] = useState(null);   // { kind: 'copied' } | { kind: 'url', url }
   const onShare = async () => {
+    // 토스: 토스 공유 링크 + 공유 시트(platform.shareRace). 토스 밖(일반 브라우저의 dev:toss)에서는 아래 웹 흐름.
+    if (IS_TOSS && await shareRace({ id: racePathId(race), title: fmt.race(race).name })) {
+      track('race_shared', { series: race.series, method: 'toss' });
+      return;
+    }
     const url = raceShareUrl(race);
     if (!url) return;
     const title = fmt.race(race).name;
@@ -450,7 +455,7 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
       setTimeout(() => setShareHint(null), 5000);
     }
   };
-  // 열리면 포커스를 시트 안 첫 요소(뒤로 버튼)로. 닫힌 뒤 원래 요소로 되돌리는 건 App이 한다.
+  // 열리면 포커스를 시트 안 첫 요소(뒤로 버튼, 토스는 저장 버튼)로. 닫힌 뒤 원래 요소로 되돌리는 건 App이 한다.
   const headerPhoto = photo(race, 'card');
   const headerLoaded = useImageLoaded(headerPhoto);
   const sheetRef = useRef(null);
@@ -474,13 +479,14 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
         <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -1, background: PHOTO_SCRIM }} />
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, position: 'relative' }}>
-          <button onClick={onClose} aria-label={tr('aria.back')} className="press-icon" style={ICON_HIT}>
+          {/* 토스는 내비게이션 바의 뒤로가기를 쓴다. 빈 자리를 남겨 오른쪽 버튼 위치는 그대로 둔다. */}
+          {IS_TOSS ? <span aria-hidden /> : <button onClick={onClose} aria-label={tr('aria.back')} className="press-icon" style={ICON_HIT}>
             <span style={{ width: 36, height: 36, borderRadius: 999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round">
                 <path d="M15 18l-6-6 6-6"/>
               </svg>
             </span>
-          </button>
+          </button>}
           <div style={{ display: 'flex', alignItems: 'center', gap: 2, position: 'relative' }}>
             <button onClick={() => toggleFav(race.id)} aria-label={tr('aria.save')} className="press-icon" style={ICON_HIT}>
               <span className={favPop} onAnimationEnd={onFavPopEnd} style={{ width: 36, height: 36, borderRadius: 999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center' }}>

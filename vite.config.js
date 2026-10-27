@@ -2,6 +2,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
+// 앱인토스 개발 도구(ait init이 넣었다): dev:toss에서 SDK를 mock으로 바꾸고 패널을 띄운다. 프로덕션 빌드에서는 꺼진다.
+import aitDevtools from '@apps-in-toss/devtools/unplugin'
 
 // 개발 서버에서 /api/*를 Vercel Function과 같은 방식으로 다룬다 (프로덕션은 Vercel이 직접 처리).
 // 이게 없으면 npm run dev에서 캘린더 구독 주소가 404가 된다.
@@ -55,7 +57,7 @@ const tossHtml = {
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => mode === 'toss'
   ? {
-    plugins: [react(), devApi, tossHtml],
+    plugins: [aitDevtools.vite(), react(), devApi, tossHtml],
     build: { outDir: TOSS_OUT, rolldownOptions: { input: TOSS_HTML } },
   }
   : {

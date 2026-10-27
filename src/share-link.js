@@ -2,14 +2,17 @@
 //   - 그 주소로 들어오면 일정 데이터가 준비된 뒤 그 경기 상세를 연다.
 //   - 앱 안에서 상세를 열고 닫을 때 주소를 맞춘다. pushState는 쓰지 않는다 —
 //     뒤로 가기 동작은 지금 그대로여야 하고, 서킷 맵이 history.state.gantryMap을 쓴다.
+//   - 토스: 경로 대신 진입 주소의 ?race=<id>로 들어온다. 앱인토스는 히스토리 조작을 막으므로 주소는 바꾸지 않는다.
 import { useEffect, useRef } from 'react';
 import { raceTitle } from './race-title.js';
 import { setRaceTitle } from './document-title.js';
+import { IS_TOSS, launchParam, clearLaunchParam } from './platform.js';
 
 const RACE_PATH = /^\/race\/([^/?#]+)\/?$/;
 
-// 주소의 경기 id. /race/<id> 또는 /race/<id>/ 만 본다.
+// 주소의 경기 id. /race/<id> 또는 /race/<id>/ 만 본다. 토스는 진입 주소의 ?race=<id>.
 export function raceIdFromPath() {
+  if (IS_TOSS) return launchParam('race');
   try {
     const m = RACE_PATH.exec(window.location.pathname);
     return m ? decodeURIComponent(m[1]) : null;
@@ -35,6 +38,8 @@ export function raceShareUrl(race) {
 
 // 경로만 바꾼다. 쿼리스트링·해시와 history.state는 그대로 둔다.
 function replacePath(pathname) {
+  // 토스: 주소는 그대로 두고, 상세를 닫았거나 없는 id였으면 진입 값만 잊는다(온보딩을 다시 해도 다시 열리지 않게).
+  if (IS_TOSS) { if (pathname === '/') clearLaunchParam('race'); return; }
   try {
     if (window.location.pathname === pathname) return;
     history.replaceState(history.state, '', pathname + window.location.search + window.location.hash);

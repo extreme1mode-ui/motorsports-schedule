@@ -6,7 +6,7 @@ import { PageTitle, SeriesRow, ChoiceGroup, CountryChoices, TimezoneLabel } from
 import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
 import { GantryLockup } from './Brand.jsx';
-import { IS_TOSS } from './platform.js';
+import { IS_TOSS, useSystemBack } from './platform.js';
 
 // 토스 빌드는 국가 단계(3단계)를 빼고 2단계로 끝낸다. 국가는 한국으로 넣는다.
 const TOTAL_STEPS = IS_TOSS ? 2 : 3;
@@ -46,6 +46,8 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
     else finish();
   };
   const goBack = () => setStep((s) => Math.max(1, s - 1));
+  // 토스 뒤로가기: 2단계 → 1단계. 1단계에서는 구독하지 않아 토스 기본 동작(미니앱 종료)이 된다.
+  useSystemBack(IS_TOSS && step > 1, goBack);
 
   // 커밋 순서 고정: 시리즈 → 국가 → onboarded(마지막).
   const finish = () => {

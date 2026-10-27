@@ -17,7 +17,7 @@ import { storage } from './storage/index.js';
 import { setAppTitle } from './document-title.js';
 import { CircuitMapProvider } from './circuit-map/CircuitMap.jsx';
 import { DemoClockSheet } from './demo/DemoClockSheet.jsx';
-import { IS_TOSS } from './platform.js';
+import { IS_TOSS, launchParam, clearLaunchParam, useSystemBack } from './platform.js';
 
 export default function Root() {
   const prefs = usePreferences();
@@ -73,7 +73,9 @@ export default function Root() {
 
 function App({ theme, setTheme, onShareLinkDone, ...prefs }) {
   const { preferences } = prefs;
-  const [view, setView] = useState('home');
+  // 토스: ?tab=schedule로 들어오면 일정 탭에서 시작한다(콘솔 '주요 기능' 주소). 온보딩 뒤에 이 셸이 처음 뜰 때 읽는다.
+  const [view, setView] = useState(() => (IS_TOSS && launchParam('tab') === 'schedule' ? 'schedule' : 'home'));
+  useEffect(() => { if (IS_TOSS) clearLaunchParam('tab'); }, []);   // 한 번만 — 온보딩을 다시 해도 일정 탭으로 튀지 않게
   const [categoryFilter, setCategoryFilter] = useState(null);
   const [openRaceId, setOpenRaceId] = useState(null);
   const [favorites, setFavorites] = useState(() => storage.favorites.read());
@@ -142,6 +144,13 @@ function App({ theme, setTheme, onShareLinkDone, ...prefs }) {
     else document.querySelector('[data-view-title]')?.focus({ preventScroll: true });
     openerRef.current = null;
   }, [detail.mounted]);
+
+  // 토스 뒤로가기: 상세 → 닫기, 설정·홈 아닌 탭 → 홈. 홈에서는 구독하지 않아 토스 기본 동작(미니앱 종료)이 된다.
+  const backTarget = !IS_TOSS ? null : openRace ? 'detail' : view !== 'home' ? 'home' : null;
+  useSystemBack(backTarget !== null, () => {
+    if (backTarget === 'detail') setOpenRaceId(null);
+    else if (backTarget === 'home') onGo('home');
+  });
 
   const t = TOKENS[theme];
   const mobileBottomNavSpace = 'calc(92px + env(safe-area-inset-bottom, 0px))';
