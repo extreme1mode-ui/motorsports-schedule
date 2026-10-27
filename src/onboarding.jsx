@@ -110,7 +110,7 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setLocale, 
     setLocale(id);
   };
 
-  const countryLabel =tr(COUNTRY_OPTIONS.find((c) => c.id === countryId)?.label ?? 'country.OTHER');
+  const countryLabel = tr(COUNTRY_OPTIONS.find((c) => c.id === countryId)?.label ?? 'country.OTHER');
 
   return (
     <div style={{
