@@ -9,7 +9,39 @@ import { GantryLockup } from './Brand.jsx';
 
 const TOTAL_STEPS = 3;
 
-export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarded }) {
+// 언어 이름은 번역하지 않는다(각 언어의 자기 표기). 설정의 LOCALE_OPTIONS와 같다.
+const LOCALES = [
+  { id: 'ko', label: '한국어' },
+  { id: 'en', label: 'English' },
+];
+
+// 보이는 알약은 28px, 버튼은 위아래로 8px씩 넘쳐 누르는 영역 44px.
+function LocaleSwitch({ theme, value, onChange, label }) {
+  const t = TOKENS[theme];
+  return (
+    <div role="group" aria-label={label} style={{
+      flex: 'none', display: 'flex', alignItems: 'center', height: 28, padding: '0 1px', boxSizing: 'border-box',
+      border: `1px solid ${t.line}`, borderRadius: 999,
+    }}>
+      {LOCALES.map(({ id, label: name }) => {
+        const on = id === value;
+        return (
+          <button key={id} type="button" lang={id} aria-pressed={on} onClick={() => onChange(id)} style={{
+            height: 44, minWidth: 44, margin: '-8px 0', padding: 0, background: 'none', border: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontFamily: 'inherit',
+          }}>
+            <span style={{
+              height: 24, lineHeight: '24px', padding: '0 10px', borderRadius: 999, fontSize: 12,
+              background: on ? t.surface2 : 'transparent', color: on ? t.text : t.text3, fontWeight: on ? 700 : 500,
+            }}>{name}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export function Onboarding({ preferences, setSeriesMode, setCountry, setLocale, setOnboarded }) {
   const [theme] = useState(readTheme);
   const t = TOKENS[theme];
   const tr = useT();
@@ -71,7 +103,14 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
     if (e.key === 'Enter' && e.target === stepRef.current) { e.preventDefault(); goNext(); }
   };
 
-  const countryLabel = tr(COUNTRY_OPTIONS.find((c) => c.id === countryId)?.label ?? 'country.OTHER');
+  // 자동 감지가 틀렸을 때 고치는 보조 전환. 단계와 고른 값은 이 컴포넌트 상태라 그대로 남는다.
+  const changeLocale = (id) => {
+    if (id === preferences.locale) return;
+    track('locale_changed', { to: id, source: 'onboarding' });
+    setLocale(id);
+  };
+
+  const countryLabel =tr(COUNTRY_OPTIONS.find((c) => c.id === countryId)?.label ?? 'country.OTHER');
 
   return (
     <div style={{
@@ -82,7 +121,10 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
         maxWidth: 560, margin: '0 auto', padding: '20px 20px 32px',
         minHeight: '100dvh', display: 'flex', flexDirection: 'column',
       }}>
-        <div style={{ marginBottom: 28, color: t.text }}><GantryLockup height={14} /></div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 28, color: t.text }}>
+          <GantryLockup height={14} />
+          <LocaleSwitch theme={theme} value={preferences.locale || 'ko'} onChange={changeLocale} label={tr('settings.language.title')} />
+        </div>
 
         {/* 진행 표시 + 건너뛰기 */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
