@@ -54,7 +54,7 @@ export function Schedule({ theme, races, onOpenRace, now, seasonYear }) {
 
   return (
     <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 110 }}>
-      <div style={{ padding: '64px 18px 12px' }}>
+      <div style={{ padding: IS_TOSS ? '20px 18px 12px' : '64px 18px 12px' }}>
         <Mono size={10} color={t.text3} style={{ letterSpacing: '0.14em' }}>{safeSeasonYear} SEASON</Mono>
         <div role="heading" aria-level={1} data-view-title tabIndex={-1} style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>{tr('schedule.title')}</div>
       </div>
@@ -262,7 +262,7 @@ export function SeriesView({ theme, races, onOpenRace, initialCategory, seasonYe
 
   return (
     <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 110 }}>
-      <div style={{ padding: '64px 18px 12px' }}>
+      <div style={{ padding: IS_TOSS ? '20px 18px 12px' : '64px 18px 12px' }}>
         <Mono size={10} color={t.text3} style={{ letterSpacing: '0.14em' }}>BY CATEGORY · {safeSeasonYear}</Mono>
         <div role="heading" aria-level={1} data-view-title tabIndex={-1} style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>{tr('series.title')}</div>
       </div>
@@ -373,7 +373,7 @@ export function Favorites({ theme, races, myRaces, favorites, onOpenRace, toggle
   useRecommendationShown(favList.length === 0 ? recs : []);
   return (
     <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 110 }}>
-      <div style={{ padding: '64px 18px 20px' }}>
+      <div style={{ padding: IS_TOSS ? '20px 18px 20px' : '64px 18px 20px' }}>
         <Mono size={10} color={t.text3} style={{ letterSpacing: '0.14em' }}>PINNED</Mono>
         <div role="heading" aria-level={1} data-view-title tabIndex={-1} style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>{tr('fav.title')}</div>
       </div>
@@ -465,7 +465,7 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
     <div ref={sheetRef} className={`detail-sheet${closing ? ' closing' : ''}`} onAnimationEnd={closing ? onExitEnd : undefined} style={{ position: 'absolute', inset: 0, background: t.bg, zIndex: 80, overflow: 'auto', paddingBottom: 40 }}>
       {/* 헤더 배경 = 경기 사진 (사진 → 중립 스크림 → 콘텐츠). 높이는 padding이 정한다.
           사진이 뜨기 전 바탕은 시리즈 색이 아니라 중립 surface2 — 로딩 순간에 색이 번쩍이지 않게. */}
-      <div style={{ padding: '60px 18px 22px', background: t.surface2, position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
+      <div style={{ padding: IS_TOSS ? '16px 18px 22px' : '60px 18px 22px', background: t.surface2, position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
         {/* 사진은 <img>로 둔다. CSS 배경은 스타일 적용 뒤에야 발견돼 우선순위를 줄 수 없다.
             로드 전에는 중립 바탕이 보이고, 로드되면 페이드로 올라온다(레이아웃 불변). */}
         <img

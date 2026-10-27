@@ -237,6 +237,13 @@ function Row({ ev, ts, dim, idx, onOpen }) {
 }
 
 // ---------- 홈 본체 ----------
+// 토스 홈 머리 한 줄 배치. home.css의 모바일 2줄 그리드(.pagehead grid, .pagehead-tools contents)를 인라인으로 덮는다.
+const TOSS_HEAD = {
+  row: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  brand: { margin: 0 },
+  tools: { display: 'flex' },
+};
+
 function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites, toggleFav, onOpenRace, onGo, setSeriesMode }) {
   const alerts = useAlarms();   // 상세에서 담아도 히어로가 바로 '담음'이 된다 (alarm.js가 알린다)
   const [, setExpiredTick] = useState(0);
@@ -322,14 +329,15 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
 
   return (
     <div className="home">
-      <div className="pagehead">
+      {/* 토스: 테마 버튼이 없어 남는 자리에 칩을 올려 한 줄로 둔다 — 왼쪽 로고, 오른쪽 국가 시간 칩·설정, 세로 가운데. */}
+      <div className="pagehead" style={IS_TOSS ? TOSS_HEAD.row : undefined}>
         <div className="pagehead-id">
           {/* 모바일에서만. 데스크톱은 사이드바에 로고가 있다. */}
-          {!IS_TOSS && <span className="pagehead-brand"><GantryLockup height={11} /></span>}
+          <span className="pagehead-brand" style={IS_TOSS ? TOSS_HEAD.brand : undefined}><GantryLockup height={11} /></span>
           {/* 제목은 화면에서만 숨긴다 — 화면 전환 포커스(data-view-title)와 화면 낭독기가 쓴다. */}
           <h1 className="ko vh" data-view-title tabIndex={-1} >{t('home.title')}</h1>
         </div>
-        <div className="pagehead-tools">
+        <div className="pagehead-tools" style={IS_TOSS ? TOSS_HEAD.tools : undefined}>
           {demoClock.enabled
             // 데모 빌드: 시계 칩이 데모 시계 시트를 연다.
             ? <button type="button" className="clock m clock--demo" aria-label={t('demo.open')} onClick={openDemoClock}>{fmt.zoneLabel} <Clock /><span className="dm">{t('demo.badge')}</span></button>

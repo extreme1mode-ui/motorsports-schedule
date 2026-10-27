@@ -80,13 +80,13 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setOnboarde
   return (
     <div style={{
       minHeight: '100dvh', background: t.bg, color: t.text,
-      paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      paddingTop: IS_TOSS ? 0 : 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)',
     }}>
       <div style={{
         maxWidth: 560, margin: '0 auto', padding: '20px 20px 32px',
         minHeight: '100dvh', display: 'flex', flexDirection: 'column',
       }}>
-        {!IS_TOSS && <div style={{ marginBottom: 28, color: t.text }}><GantryLockup height={14} /></div>}
+        <div style={{ marginBottom: 28, color: t.text }}><GantryLockup height={14} /></div>
 
         {/* 진행 표시 + 건너뛰기 */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>

@@ -162,7 +162,7 @@ function App({ theme, setTheme, onShareLinkDone, ...prefs }) {
       height: '100dvh',
       overflow: 'hidden',
       background: t.bg,
-      paddingTop: 'env(safe-area-inset-top, 0px)',
+      paddingTop: IS_TOSS ? 0 : 'env(safe-area-inset-top, 0px)',   // 토스: 내비게이션 바가 상태 표시줄 자리를 맡는다
     }}>
       {/* Scrollable content area — sits inside the fixed-height App shell */}
       <div ref={scrollRef} style={{
@@ -191,13 +191,12 @@ function App({ theme, setTheme, onShareLinkDone, ...prefs }) {
 function TabBar({ theme, view, onGo, favCount }) {
   const t = TOKENS[theme];
   const tr = useT();
-  const allTabs = [
+  const tabs = [
     { id: 'home', label: tr('nav.home'), icon: 'home' },
     { id: 'schedule', label: tr('nav.schedule'), icon: 'cal' },
     { id: 'series', label: tr('nav.series'), icon: 'grid' },
     { id: 'fav', label: tr('nav.fav'), icon: 'heart' },
   ];
-  const tabs = IS_TOSS ? allTabs.filter((tab) => tab.id !== 'series') : allTabs;   // 토스: 홈·일정·저장 3개
   return (
     <div style={{
       position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 70, viewTransitionName: 'nav-chrome',
