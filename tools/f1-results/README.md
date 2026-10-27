@@ -35,7 +35,8 @@
 - 파일: `public/drivers/f1-2026/<드라이버 코드>.webp` (예: `VER.webp`). © Formula 1 — 출처 줄에 `사진 Formula 1`이 붙는다.
 - 목록은 스크립트가 폴더를 보고 `photos.codes`에 적는다. 파일이 없는 드라이버는 코드 원(예: `TSU`)으로 그린다.
 - 새 드라이버 사진 넣기: OpenF1 `drivers`의 `headshot_url`(…`.transform/3col/image.png`, 319px)을 받아 WebP로 바꿔 넣고 스크립트를 다시 돌린다.
-  - F1 기본 실루엣(회색 사람 모양, 2~3KB)은 사진이 아니다. 넣지 않는다. 2026년 10월 기준 린드블라드(LIN)가 이 경우다.
+  - F1 기본 실루엣(회색 사람 모양, 2~3KB)은 사진이 아니다. 넣지 않는다. LIN은 OpenF1 headshot이 실루엣이라 F1 2026 전신 사진 https://media.formula1.com/image/upload/c_fill,w_720/q_auto/v1740000001/common/f1/2026/racingbulls/arvlin01/2026racingbullsarvlin01right.webp에서 (x 92, y 1, 539×539)를 잘라 319px로 줄여 넣었다.
+- 원본에서 얼굴이 가운데를 벗어난 사진은 `src/results/results.js`의 `PHOTO_FOCUS_X`에 얼굴 가운데 비율을 적는다.
 - 사진을 모두 내려야 하면: `public/drivers/f1-2026/`의 파일을 지우고 스크립트를 다시 돌린다 → 모두 코드 원으로 바뀐다.
 
 ## 다음 시즌

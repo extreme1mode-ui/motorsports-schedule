@@ -48,3 +48,8 @@ export function photoOf(data, code) {
   if (!p || !code || !p.codes.includes(code)) return null;
   return `${p.base}${code}${p.ext}`;
 }
+
+// 원형 사진에서 얼굴 가운데(가로, 사진 폭 대비). 원본에서 얼굴이 가운데를 벗어난 드라이버만 적는다. 없으면 0.5.
+// 319px 사진에서 얼굴 높이 구간 좌우 끝의 가운데를 잰 값(2026-10).
+const PHOTO_FOCUS_X = { HAD: 0.386, SAI: 0.414, ALO: 0.444, RUS: 0.445, COL: 0.603 };
+export const photoFocusX = (code) => PHOTO_FOCUS_X[code] ?? 0.5;

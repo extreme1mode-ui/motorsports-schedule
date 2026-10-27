@@ -7,7 +7,7 @@ import { useFormat } from '../use-format.js';
 import { useT } from '../i18n/index.js';
 import { track } from '../analytics.js';
 import { getRaceStartUtc } from '../schedule/index.js';
-import { useF1Results, resultOf, teamColor, raceKey, photoOf } from './results.js';
+import { useF1Results, resultOf, teamColor, raceKey, photoOf, photoFocusX } from './results.js';
 
 const MORE = 7;   // 포디움 아래 처음에 보여 줄 줄 수(4~10위). 나머지는 '전체 보기'로 편다.
 
@@ -35,7 +35,7 @@ export function Avatar({ src, code, size = 36, theme }) {
       background: t.surface3, display: 'grid', placeItems: 'center',
     }}>
       {src
-        ? <img src={src} alt="" decoding="async" loading="lazy" style={{ position: 'absolute', width: '150%', height: '150%', maxWidth: 'none', left: '-25%', top: '2%' }} />
+        ? <img src={src} alt="" decoding="async" loading="lazy" style={{ position: 'absolute', width: '150%', height: '150%', maxWidth: 'none', left: `${(0.5 - photoFocusX(code) * 1.5) * 100}%`, top: '2%' }} />
         : <Mono size={Math.max(8, Math.round(size * 0.3))} weight={700} color={t.text2}>{code}</Mono>}
     </span>
   );
