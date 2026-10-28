@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getFallbackScheduleData, hasSeasonData, loadScheduleData } from './service.js';
+import { getFallbackScheduleData, hasSeasonData, loadScheduleData, onSeasonDataChange } from './service.js';
 import { validateCurationKeys } from './highlights.js';
 
 export function getCurrentNow() {
@@ -41,10 +41,12 @@ export function useScheduleData(now = new Date()) {
 
   useEffect(() => {
     let cancelled = false;
+    let latest = 0;   // 늦게 끝난 옛 요청이 새 결과를 덮지 않게 한다
 
     async function refresh(force = false) {
+      const seq = ++latest;
       const nextState = await loadScheduleCached(seasonYear, { force });
-      if (cancelled) return;
+      if (cancelled || seq !== latest) return;
       checkCuration(seasonYear, nextState.races);
       if (nextState.error) {
         console.warn('[schedule] Falling back to local schedule data', nextState.error);
@@ -64,10 +66,13 @@ export function useScheduleData(now = new Date()) {
     // 데모 시계가 시각을 옮기면 상태(LIVE·NEXT)를 새 시각으로 다시 계산한다. 기본 빌드에서는 이 이벤트가 오지 않는다.
     const onClock = () => refresh(true);
     window.addEventListener('gantry:clock', onClock);
+    // 시즌 데이터가 바뀌면(토스 빌드의 데이터 갱신) 주기를 기다리지 않고 다시 불러온다. 웹에서는 오지 않는다.
+    const offSeason = onSeasonDataChange((year) => { if (year === seasonYear) refresh(true); });
     return () => {
       cancelled = true;
       window.clearInterval(intervalId);
       window.removeEventListener('gantry:clock', onClock);
+      offSeason();
     };
   }, [seasonYear]);
 

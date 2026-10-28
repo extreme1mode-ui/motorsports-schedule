@@ -4,16 +4,24 @@
 // - 드라이버 사진: public/drivers/f1-2026/<CODE>.webp (© Formula 1). 목록(photos.codes)에 없는 드라이버는 코드 원으로 그린다.
 import { useSyncExternalStore } from 'react';
 
+let bundled = null;    // 번들의 f1-2026.json
+let override = null;   // setF1Results로 끼운 데이터(토스 빌드만)
 let cache = null;
 let pending = null;
 const subs = new Set();
 
+// 사진 목록은 언제나 번들 값이다. 받아 온 데이터에 새 드라이버가 있어도 번들에 사진 파일이 없으면 코드 원으로 그린다.
+function publish() {
+  cache = override ? { ...override, photos: bundled.photos } : bundled;
+  subs.forEach((fn) => fn());
+}
+
 function load() {
-  if (cache || pending) return;
+  if (bundled || pending) return;
   pending = import('./f1-2026.json')
     .then((m) => {
-      cache = m.default || m;
-      subs.forEach((fn) => fn());
+      bundled = m.default || m;
+      publish();
     })
     .catch(() => { /* 결과가 없어도 화면은 지금처럼 그린다 */ })
     .finally(() => { pending = null; });
@@ -25,6 +33,13 @@ function subscribe(fn) {
   return () => { subs.delete(fn); };
 }
 const noSubscribe = () => () => {};
+
+// 결과 데이터를 바꿔 끼우는 자리. 토스 빌드가 받아 온 최신 결과를 넣는다(src/toss/data-feed.js). 웹은 부르지 않는다.
+export function setF1Results(data) {
+  override = data;
+  if (bundled) publish();
+  else load();
+}
 const snapshot = () => cache;
 
 // enabled가 false면 받지 않고 null을 돌려준다(F1이 아닌 경기 상세).

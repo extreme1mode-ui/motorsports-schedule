@@ -27,6 +27,23 @@ const SEASONS = {
 };
 export const SUPPORTED_SEASONS = Object.keys(SEASONS).map(Number).sort((a, b) => a - b);
 
+// 시즌 데이터를 바꿔 끼우는 자리. 토스 빌드가 받아 온 최신 일정을 넣는다(src/toss/data-feed.js). 웹은 부르지 않는다.
+// 번들에 있는 연도만 바꾼다 — 번들이 모르는 연도를 새로 열지 않는다.
+const seasonListeners = new Set();
+
+export function setSeasonData(year, races) {
+  const key = Number(year);
+  if (!hasSeasonData(key) || !Array.isArray(races)) return;
+  SEASONS[key] = races;
+  seasonListeners.forEach((fn) => fn(key));
+}
+
+// 바뀐 연도를 알린다. useScheduleData가 듣고 바로 다시 불러온다.
+export function onSeasonDataChange(fn) {
+  seasonListeners.add(fn);
+  return () => { seasonListeners.delete(fn); };
+}
+
 export function hasSeasonData(year) {
   return Array.isArray(SEASONS[Number(year)]);
 }

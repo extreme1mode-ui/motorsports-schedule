@@ -66,4 +66,6 @@ export const RECORDS = {
   auth: { key: 'gantry.auth', scope: 'device', codec: text, fallback: () => null },
   // 토스 익명 사용자 키(hash). 토스 빌드만 쓴다(src/toss/user-key.js). 로그에 찍거나 밖으로 보내지 않는다 — 서버 연동은 다음 단계.
   tossUser: { key: 'gantry.tossUser', scope: 'device', codec: text, fallback: () => null },
+  // 토스 빌드가 /data/v1/에서 받아 둔 일정·결과 { files: { <이름>: { sha256, data } } }. 다음 시작 때 렌더 전에 끼운다(src/toss/data-feed.js).
+  dataFeed: { key: 'gantry.dataFeed', scope: 'device', codec: json, fallback: () => null },
 };
