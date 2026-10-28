@@ -94,13 +94,16 @@
 .home .hero2::after{content:"";position:absolute;inset:0;z-index:-1;background:var(--h2scrim)}
 .home .hero2::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--h2scrim-x)}
 /* 사진 위 요소는 테마와 무관하게 흰 계열로 고정한다 (스크림이 중립 검정이라 라이트에서도 사진 위는 어둡다). */
-.home .hero2-wrap{padding:22px 20px;width:100%;display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;color:#fff}
+.home .hero2-wrap{padding:22px 20px;width:100%;display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;color:#fff;position:relative;z-index:1;pointer-events:none}
+/* 히어로 전체가 상세로 가는 덮개 버튼. 글자 층은 클릭을 통과시키고 그 안의 링크·버튼만 받는다. */
+.home .hero2-hit{position:absolute;inset:0;z-index:0;background:none;border:0;padding:0;cursor:pointer;border-radius:inherit}
+.home .hero2-hit:focus-visible{outline-offset:-3px}
+.home .hero2-wrap a,.home .hero2-wrap button{pointer-events:auto}
 .home .hero2 .rnd,.home .hero2 .tagpill{color:rgba(255,255,255,.66)}
 .home .hero2 .tagpill{border-color:rgba(255,255,255,.28)}
 .home .hero2 .sbadge{color:#fff}
 .home .hero2 .heart{color:rgba(255,255,255,.88);opacity:1}
 .home .hero2 .heart.on{color:#fff}
-.home .hero2 .linkbtn{color:rgba(255,255,255,.88)}
 @media(min-width:900px){.home .hero2-wrap{padding:32px 32px;gap:20px 40px}}
 .home .hero2-left{flex:1 1 320px;min-width:0}
 .home .hero2-right{flex:0 0 auto;min-width:200px}

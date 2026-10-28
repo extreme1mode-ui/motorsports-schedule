@@ -356,6 +356,7 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
         return (
           <section className="hero2">
             <HeroPhoto url={photo(hero, 'hero')} pos={photoPos(hero)} />
+            <button type="button" className="hero2-hit" onClick={openHero} aria-label={`${hero.fullName || hero.displayName} · ${t('home.detail')}`} />
             {credit && (
               <a className="hero2-credit" href={credit.url} target="_blank" rel="noopener noreferrer" title={t('photo.credit', credit)} aria-label={t('photo.credit', credit)}>
                 <span className="by">{t('photo.by', credit)}</span><span className="lic">&nbsp;· {credit.license}</span>
@@ -387,7 +388,6 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
                       : <button type="button" className="cta" onClick={openHero}>{t('home.watchOn', { channel: chans[0] })}</button>)
                     : <button type="button" className="cta" onClick={() => toggleAlert(hero)}>{alertOn ? t('home.alertOn') : t('home.alertSet')}</button>}
                   <HeartButton on={!!faved} label={t('aria.save')} onClick={() => toggleFav?.(hero.id)} />
-                  <button type="button" className="linkbtn" onClick={openHero}>{t('home.detail')}</button>
                 </div>
                 {chans.length > 0 && <div className="hero2-chans">{chans.join(' · ')}</div>}
               </div>
