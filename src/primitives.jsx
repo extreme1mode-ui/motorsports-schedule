@@ -57,22 +57,6 @@ export function seriesGlow(accent, theme) {
   return accent ? `radial-gradient(120% 140% at 100% 0%, ${accent}${theme === 'dark' ? '33' : '1C'} 0%, transparent 55%)` : 'none';
 }
 
-// 라운드 코드: 'R1', 'R19', 데이터에 묶음 라벨이 있으면 그대로('R9-10'). 0을 채우지 않는다.
-export function getRoundDisplay(race, fallbackIndex) {
-  if (race?.roundLabel) return race.roundLabel;
-  const roundNumber = race?.round ?? race?.plannedRound ?? fallbackIndex;
-  if (!Number.isFinite(roundNumber)) return '';
-  return `R${roundNumber}`;
-}
-
-// 문장 속 라운드: '19라운드' / 'Round 19'. 라운드가 없으면 빈 문자열(예전 'EVENT' 대신 비운다).
-export function getRoundDescriptor(race, tr, fallbackIndex) {
-  if (race?.roundLabel) return race.roundLabel;
-  const roundNumber = race?.round ?? race?.plannedRound ?? fallbackIndex;
-  if (!Number.isFinite(roundNumber)) return '';
-  return tr ? tr('round.n', { n: roundNumber }) : `R${roundNumber}`;
-}
-
 // 이벤트 표시(스프린트 주말 등): 글자만. 상자·대문자 없음.
 export function EventBadge({ label, onPhoto }) {
   if (!label) return null;
