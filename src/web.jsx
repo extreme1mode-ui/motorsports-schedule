@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { flushSync } from 'react-dom';
-import { TOKENS, Mono, SeriesTag, FONT_DATA } from './primitives.jsx';
+import { TOKENS } from './primitives.jsx';
 import { GantryLockup, GantrySymbol } from './Brand.jsx';
 import { getCurrentNow, useScheduleData, filterRacesByPreferences } from './schedule/index.js';
 import { Home } from './home/Home.jsx';
 import { WebSchedule, WebSeries, WebFavorites, RaceDrawer } from './web-screens.jsx';
 import { Settings } from './settings.jsx';
-import { useFormat } from './use-format.js';
 import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
 import { useRaceLink } from './share-link.js';
@@ -27,7 +26,7 @@ export function useViewport() {
   return { w, tier, isWeb: w >= 900 };
 }
 
-export function WebApp({ theme, setTheme, onShareLinkDone, ...prefs }) {
+export function WebApp({ theme, setTheme, themePref, onShareLinkDone, ...prefs }) {
   const { preferences } = prefs;
   const [view, setView] = useState('home');
   const [categoryFilter, setCategoryFilter] = useState(null);
@@ -108,20 +107,18 @@ export function WebApp({ theme, setTheme, onShareLinkDone, ...prefs }) {
     openerRef.current = null;
   }, [drawer.mounted]);
 
-  const t = TOKENS[theme];
   const sidebarWidth = tier === 'tablet' ? 76 : 240;
   const gutter = tier === 'ultra' ? 48 : tier === 'desktop' ? 36 : 24;
   const maxMain = tier === 'ultra' ? 1480 : tier === 'desktop' ? 1200 : 1000;
 
   return (
     <div style={{
-      minHeight: '100vh', background: t.bg, color: t.text,
+      minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)',
       fontFamily: '"Pretendard Variable", "Pretendard", -apple-system, "Apple SD Gothic Neo", system-ui, sans-serif',
       display: 'grid', gridTemplateColumns: `${sidebarWidth}px 1fr`,
       position: 'relative',
     }}>
-      <Sidebar theme={theme} view={view} onGo={onGo} favCount={favorites.size}
-        collapsed={tier === 'tablet'} tier={tier} setTheme={setTheme} />
+      <Sidebar view={view} onGo={onGo} collapsed={tier === 'tablet'} />
 
       <main style={{ padding: `${gutter + 8}px ${gutter}px ${gutter * 2}px`, maxWidth: '100%', minWidth: 0 }}>
         <div style={{ maxWidth: maxMain, margin: '0 auto' }}>
@@ -133,7 +130,7 @@ export function WebApp({ theme, setTheme, onShareLinkDone, ...prefs }) {
             onOpenRace={openFromSeries} initialCategory={categoryFilter || 'F1'} tier={tier} seasonYear={safeSeasonYear} />}
           {view === 'fav' && <WebFavorites theme={theme} races={raceList} myRaces={myRaces}
             favorites={favorites} onOpenRace={openFromSaved} toggleFav={toggleFav} tier={tier} />}
-          {view === 'settings' && <Settings theme={theme} onGo={onGo} {...prefs} />}
+          {view === 'settings' && <Settings theme={theme} themePref={themePref} setTheme={setTheme} onGo={onGo} {...prefs} />}
         </div>
       </main>
 
@@ -145,206 +142,70 @@ export function WebApp({ theme, setTheme, onShareLinkDone, ...prefs }) {
   );
 }
 
-function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
-  const t = TOKENS[theme];
-  const fmt = useFormat();
+// 사이드바: 아이콘 20 + 한글 15/600 한 줄. 고른 메뉴는 면 하나(왼쪽 막대 없음).
+// 예전의 영문 보조 라벨(HOME·SCHEDULE…), '2026 · SEASON', 즐겨찾기 개수 배지, 'LIVE TIMING' 상자는 걷어 냈다(N1·K6).
+// 테마는 설정 화면으로, 시간대는 일정 제목 아래 한 줄로 옮겼다.
+function Sidebar({ view, onGo, collapsed }) {
   const tr = useT();
   const items = [
-    { id: 'home',     label: tr('nav.home'),     sub: 'HOME',     icon: 'home' },
-    { id: 'schedule', label: tr('nav.schedule'), sub: 'SCHEDULE', icon: 'cal' },
-    { id: 'series',   label: tr('nav.series'),   sub: 'SERIES',   icon: 'grid' },
-    { id: 'fav',      label: tr('nav.fav'),      sub: 'PINNED',   icon: 'heart' },
+    { id: 'home',     label: tr('nav.home'),     icon: 'home' },
+    { id: 'schedule', label: tr('nav.schedule'), icon: 'cal' },
+    { id: 'series',   label: tr('nav.series'),   icon: 'grid' },
+    { id: 'fav',      label: tr('nav.fav'),      icon: 'heart' },
   ];
+  const navBtn = (it) => {
+    const active = view === it.id;
+    return (
+      <button key={it.id} onClick={() => onGo(it.id)} title={it.label} aria-current={active ? 'page' : undefined} style={{
+        display: 'flex', alignItems: 'center', minHeight: 44,
+        gap: collapsed ? 0 : 12, justifyContent: collapsed ? 'center' : 'flex-start',
+        padding: collapsed ? '10px 0' : '10px 12px',
+        borderRadius: 10, border: 0, cursor: 'pointer', background: 'transparent',
+        color: active ? 'var(--text)' : 'var(--text2)',
+        fontFamily: 'inherit', position: 'relative', isolation: 'isolate',
+      }}>
+        {/* 선택 면 전용 레이어 (아이콘·라벨 제외). 전환 이름은 여기에만. */}
+        {active && <span aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -1, borderRadius: 10, background: 'var(--surface2)', viewTransitionName: 'nav-pill' }} />}
+        {/* 아이콘·라벨은 자체 그룹. 면보다 나중에 그려져 전환 중에도 면 위에 남는다. */}
+        <span style={{ display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 12, viewTransitionName: `rail-${it.id}` }}>
+          <SideIcon type={it.icon} stroke="currentColor" />
+          {!collapsed && <span style={{ fontSize: 15, fontWeight: 600 }}>{it.label}</span>}
+        </span>
+      </button>
+    );
+  };
 
   return (
     <aside style={{
       viewTransitionName: 'nav-chrome',
-      borderRight: `1px solid ${t.line}`,
-      background: t.bg,
+      boxShadow: 'inset -1px 0 0 var(--line)',
+      background: 'var(--bg)',
       position: 'sticky', top: 0, height: '100vh',
       display: 'flex', flexDirection: 'column',
-      padding: collapsed ? '20px 14px' : '22px 18px',
+      padding: collapsed ? '20px 14px' : '28px 16px',
       gap: 4, overflowY: 'auto',
     }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        padding: collapsed ? '8px 4px 16px' : '6px 6px 22px',
-        borderBottom: `1px solid ${t.line}`,
-        marginBottom: 10, justifyContent: collapsed ? 'center' : 'flex-start',
-      }}>
-        {collapsed ? (
-          <span style={{ color: t.text, display: 'grid', placeItems: 'center', height: 32 }}>
-            <GantrySymbol size={16} title="Gantry" />
-          </span>
-        ) : (
-          <div style={{ color: t.text, display: 'flex', flexDirection: 'column', gap: 9, padding: '5px 0 0 2px' }}>
-            <GantryLockup height={14} />
-            <Mono size={9} color={t.text3} style={{ letterSpacing: '0.18em', display: 'block' }}>2026 · SEASON</Mono>
-          </div>
-        )}
+      <div style={{ display: 'flex', alignItems: 'center', height: 32, padding: collapsed ? '0' : '0 12px', marginBottom: 20, justifyContent: collapsed ? 'center' : 'flex-start', color: 'var(--text)' }}>
+        {collapsed ? <GantrySymbol size={16} title="Gantry" /> : <GantryLockup height={16} />}
       </div>
 
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {items.map(it => {
-          const active = view === it.id;
-          return (
-            <button key={it.id} onClick={() => onGo(it.id)} title={it.label} style={{
-              display: 'flex', alignItems: 'center',
-              gap: collapsed ? 0 : 12, justifyContent: collapsed ? 'center' : 'flex-start',
-              padding: collapsed ? '12px 0' : '11px 12px',
-              borderRadius: 12, border: 0, cursor: 'pointer',
-              background: 'transparent',
-              color: active ? t.text : t.text2,
-              fontFamily: 'inherit', position: 'relative', isolation: 'isolate',
-            }}>
-              {/* 알약 배경 전용 레이어 (아이콘·라벨 제외). 이름은 여기에만. */}
-              {active && <span aria-hidden style={{
-                position: 'absolute', inset: 0, zIndex: -1, borderRadius: 12,
-                background: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-                viewTransitionName: 'nav-pill',
-              }} />}
-              {active && <span aria-hidden style={{
-                position: 'absolute', left: collapsed ? 6 : 0, top: 10, bottom: 10, width: 3,
-                background: t.text, borderRadius: 2, viewTransitionName: 'nav-bar',
-              }} />}
-              {/* 아이콘·라벨은 자체 그룹. 알약보다 나중에 그려져 전환 중에도 알약 위에 남는다. */}
-              <span style={{
-                display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 12,
-                viewTransitionName: `rail-${it.id}`,
-              }}>
-                <SideIcon type={it.icon} stroke={active ? t.text : t.text2} />
-                {!collapsed && (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.005em' }}>{it.label}</span>
-                    <Mono size={9} color={t.text3} style={{ letterSpacing: '0.14em' }}>{it.sub}</Mono>
-                  </div>
-                )}
-              </span>
-              {it.id === 'fav' && favCount > 0 && !collapsed && (
-                <span style={{
-                  marginLeft: 'auto',
-                  background: t.brand, color: t.onbrand, borderRadius: 999,
-                  fontSize: 9, fontWeight: 700, padding: '2px 6px', minWidth: 16, textAlign: 'center',
-                  ...FONT_DATA,
-                }}>{favCount}</span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>{items.map(navBtn)}</nav>
 
       <div style={{ flex: 1 }} />
 
-      <button onClick={() => onGo('settings')} title={tr('nav.settings')} style={{
-        display: 'flex', alignItems: 'center',
-        gap: collapsed ? 0 : 12, justifyContent: collapsed ? 'center' : 'flex-start',
-        padding: collapsed ? '12px 0' : '11px 12px', marginBottom: 10,
-        borderRadius: 12, border: 0, cursor: 'pointer',
-        background: 'transparent',
-        color: view === 'settings' ? t.text : t.text2,
-        fontFamily: 'inherit', position: 'relative', isolation: 'isolate',
-      }}>
-        {/* 알약 배경 전용 레이어 (아이콘·라벨 제외). 이름은 여기에만. */}
-        {view === 'settings' && <span aria-hidden style={{
-          position: 'absolute', inset: 0, zIndex: -1, borderRadius: 12,
-          background: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-          viewTransitionName: 'nav-pill',
-        }} />}
-        {view === 'settings' && <span aria-hidden style={{
-          position: 'absolute', left: collapsed ? 6 : 0, top: 10, bottom: 10, width: 3,
-          background: t.text, borderRadius: 2, viewTransitionName: 'nav-bar',
-        }} />}
-        {/* 아이콘·라벨은 자체 그룹. 알약보다 나중에 그려져 전환 중에도 알약 위에 남는다. */}
-        <span style={{
-          display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 12,
-          viewTransitionName: 'rail-settings',
-        }}>
-          <SideIcon type="gear" stroke={view === 'settings' ? t.text : t.text2} />
-          {!collapsed && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.005em' }}>{tr('nav.settings')}</span>
-              <Mono size={9} color={t.text3} style={{ letterSpacing: '0.14em' }}>SETTINGS</Mono>
-            </div>
-          )}
-        </span>
-      </button>
-
-      {!collapsed ? (
-        <div style={{
-          padding: '12px 12px',
-          background: theme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
-          borderRadius: 'var(--r-card)', border: `1px solid ${t.line}`,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: t.text2 }} />
-            <Mono size={9} color={t.text3} style={{ letterSpacing: '0.14em' }}>LIVE TIMING · {fmt.zoneLabel}</Mono>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-            {['dark', 'light'].map(m => (
-              <button key={m} onClick={() => setTheme(m)} style={{
-                padding: '6px 0', borderRadius: 8, fontSize: 11, fontWeight: 600,
-                border: `1px solid ${theme === m ? t.text : t.line}`,
-                background: theme === m ? t.text : 'transparent',
-                color: theme === m ? t.bg : t.text2,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}>{m === 'dark' ? tr('theme.dark') : tr('theme.light')}</button>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} style={{
-          width: 40, height: 40, borderRadius: 10, margin: '0 auto',
-          border: `1px solid ${t.line}`, background: 'transparent',
-          color: t.text2, cursor: 'pointer', display: 'grid', placeItems: 'center',
-        }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="12" r="4"/>
-            <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-          </svg>
-        </button>
-      )}
+      {navBtn({ id: 'settings', label: tr('nav.settings'), icon: 'gear' })}
     </aside>
   );
 }
 
 function SideIcon({ type, stroke }) {
-  const common = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke, strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' };
+  const common = { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke, strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' };
   if (type === 'home') return <svg {...common}><path d="M3 10l9-7 9 7v11a2 2 0 01-2 2h-4v-7h-6v7H5a2 2 0 01-2-2V10z"/></svg>;
   if (type === 'cal') return <svg {...common}><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>;
   if (type === 'grid') return <svg {...common}><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>;
   if (type === 'heart') return <svg {...common}><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>;
   if (type === 'gear') return <svg {...common}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>;
   return null;
-}
-
-// web-home.jsx에서 그대로 옮김 (web-screens.jsx가 쓴다).
-export function SectionTitle({ theme, kicker, title, inline }) {
-  const t = TOKENS[theme];
-  return (
-    <div style={{ display: inline ? 'flex' : 'block', alignItems: 'baseline', gap: 12, marginBottom: inline ? 0 : 14 }}>
-      <Mono size={11} weight={700} color={t.text3} style={{ letterSpacing: '0.18em', display: 'block' }}>{kicker}</Mono>
-      <div style={{ fontSize: 17, fontWeight: 700, color: t.text, letterSpacing: '-0.01em', marginTop: 4 }}>{title}</div>
-    </div>
-  );
-}
-
-export function PageHeader({ theme, kicker, title, subtitle, right }) {
-  const t = TOKENS[theme];
-  return (
-    <header style={{
-      display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24,
-      paddingBottom: 22, marginBottom: 24, borderBottom: `1px solid ${t.line}`,
-    }}>
-      <div>
-        <Mono size={11} color={t.text3} style={{ letterSpacing: '0.18em', display: 'block', marginBottom: 8 }}>{kicker}</Mono>
-        <h1 data-view-title tabIndex={-1} style={{ margin: 0, fontSize: 28, fontWeight: 800, letterSpacing: '-0.025em', color: t.text, lineHeight: 1 }}>
-          {title}
-        </h1>
-        {subtitle && <div style={{ marginTop: 8, fontSize: 14, color: t.text2 }}>{subtitle}</div>}
-      </div>
-      {right && <div style={{ flex: 'none' }}>{right}</div>}
-    </header>
-  );
 }
 
 function WebTweaks({ theme, setTheme }) {
@@ -358,8 +219,7 @@ function WebTweaks({ theme, setTheme }) {
       padding: 14, width: 240,
       boxShadow: '0 20px 40px rgba(0,0,0,0.35)',
     }}>
-      <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.14em' }}>TWEAKS</Mono>
-      <div style={{ marginTop: 10 }}>
+      <div>
         <div style={{ fontSize: 12, color: t.text2, marginBottom: 6 }}>{tr('theme.label')}</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
           {['dark', 'light'].map(m => (
