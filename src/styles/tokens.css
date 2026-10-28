@@ -12,6 +12,11 @@
   --scrim:rgba(0,0,0,.6);
   --grid:rgba(255,255,255,.04);
   --cal-sun:#FF6B7A; --cal-sat:#6BA3FF;   /* 달력 일·토 숫자(한국 관례, 결정 11) */
+  /* 칩·보조 버튼 면, 세그먼트에서 고른 칸 (AI 티 정리 2026-10-29) */
+  --fill:#1C2029; --seg-on:#2C313C; --seg-on-shadow:none;
+  /* 떠 있는 탭 바: 불투명 면 + 옅은 그림자(흐림·그라데이션 없음), 고른 탭은 한 단계 밝은 면 */
+  --tabbar:#181B22; --tabbar-shadow:0 8px 24px rgba(0,0,0,.45); --tab-on:#2A2E38;
+  --cal-tint:24%;   /* 데스크톱 달력 막대: 시리즈 색을 이만큼만 섞은 면 */
   --heroscrim:linear-gradient(100deg,rgba(0,0,0,.72) 0%,rgba(0,0,0,.40) 48%,rgba(0,0,0,.18) 100%);
   --heroscrim-m:linear-gradient(180deg,rgba(0,0,0,.18) 0%,rgba(0,0,0,.45) 46%,rgba(0,0,0,.80) 80%);
   /* 숫자·라벨용 스택. 서체는 Pretendard 하나로 통일하고 숫자만 tnum으로 고정폭을 얻는다. */
@@ -27,6 +32,9 @@
   --f1:#C10500; --wec:#1C5FD1; --imsa:#00926A; --wrc:#C06400; --gtwc:#6F45CC;
   --scrim:rgba(20,22,28,.35);
   --grid:rgba(0,0,0,.04);
+  --fill:#E6E8EC; --seg-on:#FFFFFF; --seg-on-shadow:0 1px 2px rgba(16,18,24,.12);
+  --tabbar:#FFFFFF; --tabbar-shadow:0 6px 20px rgba(16,18,24,.12); --tab-on:#ECEEF1;
+  --cal-tint:15%;
   /* 사진 위 스크림은 테마와 무관하게 같은 값(:root 정의)을 쓴다 — 라이트에서 흰 그라데이션은 사진을 날린다. */
 }
 
@@ -44,16 +52,17 @@
   --r-sm:8px;      /* 36px 이하 작은 컨트롤, 순위 칸 */
   --r-chip:10px;   /* 칩 꼴 컨트롤·아이콘 타일·시계 칩 */
   --r-btn:12px;    /* 버튼·세그먼트 */
-  --r-card:14px;   /* 카드·그룹 (테두리 1px line) */
+  --r-card:14px;   /* 묶음 그릇 (면만, 테두리 없음 — 결정 1 개정) */
   --r-sheet:18px;  /* 시트·히어로·떠 있는 탭 바 */
   --r-pill:999px;
-  /* 글자 크기: 브랜드 08.5 + 08.12. 0.5px 단위는 쓰지 않는다 */
-  --fs-tag:9px; --fs-label:10px; --fs-meta:11px; --fs-caption:12px; --fs-data:13px; --fs-row:14px;
-  --fs-card:16px; --fs-time:17px; --fs-title:24px; --fs-screen:28px;
-  --fs-hero:33px; --fs-hero-d:46px; --fs-clock:46px; --fs-clock-d:62px;
-  --fs-display:128px;   /* 결산 같은 스토리 화면의 큰 숫자 한 개 */
-  /* 라벨: 라틴 대문자만 자간 +8%, 한글은 0 (Mono가 자동으로 나눈다) */
-  --track-label:.08em;
+  /* 글자 크기: 7단계 12·13·15·17·20·28·40 (AI 티 정리 2026-10-29, ds-decisions 결정 3 개정).
+     최소 12px — 사진 출처 11px만 예외. 0.5px 단위는 쓰지 않는다. 옛 이름은 새 단계로 이어 둔다. */
+  --fs-caption:12px; --fs-meta:13px; --fs-body:15px; --fs-row:17px; --fs-section:20px; --fs-screen:28px; --fs-display:40px;
+  --fs-credit:11px;
+  --fs-tag:12px; --fs-label:12px; --fs-data:13px; --fs-card:17px; --fs-time:17px; --fs-title:20px;
+  --fs-hero:28px; --fs-hero-d:40px; --fs-clock:20px; --fs-clock-d:20px;
+  /* 자간: 0. 큰 제목만 -0.02em. 대문자 라벨에 자간을 더하지 않는다 (결정 7 개정) */
+  --track-label:0;
   /* 흐림: 지난 경기·취소·관심 밖 행은 이 값 하나 */
   --dim:.65;
 }
