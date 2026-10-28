@@ -47,8 +47,11 @@ export const RECORDS = {
   favorites: { key: 'paddock.fav', scope: 'account', codec: idSet, fallback: () => new Set() },
   // 알림 켠 경기 id 집합.
   alerts: { key: 'paddock.alerts', scope: 'account', codec: idSet, fallback: () => new Set() },
-  // 'dark' | 'light'. 같은 계정이라도 기기마다 다를 수 있어 동기화 대상이 아니다.
-  theme: { key: 'paddock.theme', scope: 'device', codec: text, fallback: () => 'dark' },
+  // 테마 선택 'system'(기기 설정을 따름) | 'dark' | 'light'. 사용자가 고를 때만 저장한다(AI 티 정리 K5, 2026-10-29).
+  // 같은 계정이라도 기기마다 다를 수 있어 동기화 대상이 아니다.
+  theme: { key: 'gantry.theme', scope: 'device', codec: text, fallback: () => null },
+  // 예전 테마 키 'dark' | 'light'. 예전 앱은 고르지 않아도 'dark'를 써 두었다 — 그래서 'light'만 고른 값으로 이어받는다(preferences-options.readTheme).
+  legacyTheme: { key: 'paddock.theme', scope: 'device', codec: text, fallback: () => null },
   // 첫 방문일 'YYYY-MM-DD'. 기기별 계측값이라 동기화하지 않는다.
   firstVisit: { key: 'paddock.firstVisit', scope: 'device', codec: text, fallback: () => null },
   // 첫 유입 경로 { source, medium, campaign, date }. 처음 들어온 utm을 한 번만 저장하고 덮어쓰지 않는다.
