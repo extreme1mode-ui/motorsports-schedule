@@ -1,0 +1,133 @@
+# 경기 뒤 F1 결과 자동 갱신. tools/f1-results/README.md '경기 뒤 갱신' 1~4를 대신한다.
+# update.mjs → guard.mjs → main에 커밋·푸시 → 배포(/data/v1/manifest.json)에 들어갔는지 확인.
+# 실패하면 GitHub이 메일을 보낸다. 다음 실행이 다시 한다(rebase·force push 하지 않음).
+name: F1 results
+
+on:
+  schedule:
+    - cron: '23 */3 * * 0,1,2'   # 일·월·화(UTC) 3시간마다: 결승 뒤
+    - cron: '23 6 * * 3-6'       # 수~토(UTC) 하루 한 번: 늦게 나온 페널티 정정
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: '파일을 고치지 않고 무엇이 바뀌는지만 본다 (--dry)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: f1-results
+  cancel-in-progress: false
+
+env:
+  SEASON: '2026'   # 꼭 적는다. 없으면 update.mjs가 올해 연도로 찾아 2027년 1월부터 매번 실패한다.
+  RESULTS_FILE: src/results/f1-2026.json
+  # main의 기존 커밋과 같은 작성자. Vercel Hobby는 소유자가 아닌 작성자의 커밋을 배포하지 않을 수 있다.
+  GIT_AUTHOR_NAME: 송연우
+  GIT_AUTHOR_EMAIL: extreme1mode@gmail.com
+  GIT_COMMITTER_NAME: 송연우
+  GIT_COMMITTER_EMAIL: extreme1mode@gmail.com
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      # package.json에 engines가 없어 22. npm install은 하지 않는다(스크립트는 Node 기본 기능만 쓴다).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 결과 받기 (update.mjs)
+        id: update
+        env:
+          DRY: ${{ inputs.dry && '--dry' || '' }}
+        run: |
+          set +e
+          node tools/f1-results/update.mjs --season "$SEASON" $DRY > update.log 2>&1
+          code=$?
+          set -e
+          cat update.log
+          {
+            echo '### update.mjs'
+            echo '```'
+            cat update.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$code" -ne 0 ]; then
+            # 마지막 'FAIL N건' 줄을 뺀 FAIL이 'Jolpica가 갱신 중' 하나뿐이면 다음 실행에 맡긴다.
+            fails=$(grep '^FAIL ' update.log | grep -vE '^FAIL [0-9]+건' || true)
+            if [ -n "$fails" ] && [ "$(printf '%s\n' "$fails" | wc -l)" -eq 1 ] && printf '%s' "$fails" | grep -q 'Jolpica가 갱신 중'; then
+              echo 'Jolpica 갱신 중 — 다음 실행에서 다시' >> "$GITHUB_STEP_SUMMARY"
+              echo 'changed=false' >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            exit 1
+          fi
+          if git diff --quiet -- "$RESULTS_FILE"; then
+            echo '바뀐 파일 없음' >> "$GITHUB_STEP_SUMMARY"
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 안전 검사 (guard.mjs)
+        if: steps.update.outputs.changed == 'true'
+        run: |
+          if ! node tools/f1-results/guard.mjs --season "$SEASON" | tee guard.log; then
+            git checkout -- "$RESULTS_FILE"
+            { echo '### guard.mjs — 올리지 않음'; echo '```'; cat guard.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+      - name: 커밋·푸시
+        id: push
+        if: steps.update.outputs.changed == 'true'
+        run: |
+          new=$(sed -n 's/^· 새 경기: //p' update.log | head -n 1)
+          changed=$(sed -n 's/^· 값이 바뀐 기존 경기: //p' update.log | head -n 1)
+          if [ -n "$new" ] && [ "$new" != '없음' ]; then
+            title="결과: F1 $(printf '%s' "$new" | sed 's/ (+스프린트)//g') (자동)"
+          elif [ -n "$changed" ]; then
+            rounds=$(printf '%s' "${changed%% — *}" | grep -oE '[0-9]+R' | paste -sd ' ' - | sed 's/ /, /g' || true)
+            title="결과: F1 정정 ${rounds} (자동)"
+          else
+            title='결과: F1 갱신 (자동)'
+          fi
+          { echo "$title"; echo; grep '^· ' update.log; } > commit-msg.txt
+          git add "$RESULTS_FILE"
+          git commit -F commit-msg.txt
+          # 그 사이 main이 움직였으면 거절된다 → 실패로 끝내고 다음 실행에 맡긴다.
+          git push origin HEAD:main
+          sha=$(git rev-parse HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "file_sha256=$(sha256sum "$RESULTS_FILE" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "푸시: \`$sha\` — $title" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 배포 확인 (/data/v1/manifest.json)
+        if: steps.push.outputs.sha != ''
+        env:
+          SHA: ${{ steps.push.outputs.sha }}
+          FILE_SHA256: ${{ steps.push.outputs.file_sha256 }}
+        run: |
+          url="https://www.gantryracing.com/data/v1/manifest.json?v=$SHA"
+          name=$(basename "$RESULTS_FILE")
+          for i in $(seq 1 30); do
+            body=$(curl -fsS --max-time 20 "$url" || true)
+            commit=$(printf '%s' "$body" | jq -r '.commit // empty' 2>/dev/null || true)
+            got=$(printf '%s' "$body" | jq -r --arg n "$name" '.files[$n].sha256 // empty' 2>/dev/null || true)
+            if [ "$commit" = "$SHA" ] && [ "$got" = "$FILE_SHA256" ]; then
+              echo "배포 확인: commit $SHA, $name $got" | tee -a "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "$i/30 아직: commit=${commit:-?}"
+            sleep 30
+          done
+          echo '15분 안에 배포가 확인되지 않았다 (배포가 막혔거나 빌드가 실패했을 수 있다)' | tee -a "$GITHUB_STEP_SUMMARY"
+          exit 1
