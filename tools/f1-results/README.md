@@ -16,6 +16,7 @@
 3. `npm run build`
 4. 커밋·푸시: `git commit -am "결과: F1 18R 미국 GP"` → `git push origin main` (Vercel이 자동 배포)
 5. 배포 뒤 `URL=https://www.gantryracing.com node design/f1-results/qa/results.cjs` (저장소에 design/이 있을 때)
+6. main에 푸시하면 토스판도 /data/v1/로 받아 간다(D2 반영 뒤).
 
 스프린트 주말은 결승 뒤 한 번만 갱신하면 스프린트까지 같이 들어온다.
 
