@@ -8,7 +8,8 @@ export const EVENT_SERIES = {
 
 export const CATEGORY_META = {
   F1: { id: 'F1', name: 'Formula 1', short: 'F1', accent: '#E10600', tint: '#FFE0E3', dark: '#2A0408' },
-  ENDURANCE: { id: 'ENDURANCE', name: 'Endurance', short: 'END', accent: '#00A6A6', tint: '#D8F7F5', dark: '#03292A' },
+  // END는 WEC·IMSA 묶음이라 자기 색이 없다(결정 12). 칩은 무채색 반전, 머리 카드는 막대·빛 없이.
+  ENDURANCE: { id: 'ENDURANCE', name: 'Endurance', short: 'END', accent: null, tint: null, dark: null },
   WRC: { id: 'WRC', name: 'World Rally Championship', short: 'WRC', accent: '#FF8A00', tint: '#FFE8CC', dark: '#311600' },
   GTWC: { id: 'GTWC', name: 'GT World Challenge', short: 'GTWC', accent: '#A77BFF', tint: '#EAE0FF', dark: '#1A0F2E' },
 };

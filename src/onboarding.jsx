@@ -189,15 +189,15 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setLocale, 
         <div style={{ display: 'flex', gap: 8, marginTop: 28 }}>
           {step > 1 && (
             <button type="button" onClick={goBack} style={{
-              flex: '0 0 auto', minWidth: 88, height: 52, borderRadius: 14, cursor: 'pointer',
+              flex: '0 0 auto', minWidth: 88, height: 52, borderRadius: 'var(--r-btn)', cursor: 'pointer',
               background: 'transparent', border: `1px solid ${t.line2}`, color: t.text2,
-              fontSize: 15, fontWeight: 600, fontFamily: 'inherit',
+              fontSize: 14, fontWeight: 600, fontFamily: 'inherit',
             }}>{tr('ob.back')}</button>
           )}
           <button type="button" onClick={goNext} disabled={!canNext} style={{
-            flex: 1, height: 52, borderRadius: 14, border: 0, cursor: canNext ? 'pointer' : 'default',
+            flex: 1, height: 52, borderRadius: 'var(--r-btn)', border: 0, cursor: canNext ? 'pointer' : 'default',
             background: t.text, color: t.bg, opacity: canNext ? 1 : 0.35,
-            fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
+            fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
           }}>{step < TOTAL_STEPS ? tr('ob.next') : tr('ob.start')}</button>
         </div>
       </div>

@@ -215,7 +215,7 @@ function Card2({ ev, ts, onOpen, small, idx }) {
       {!small && (
         <span className="side">
           <TimeStat ts={ts} />
-          <span style={{ fontSize: 10.5, color: 'var(--text3)' }}>{fmt.broadcast(ev.broadcast)[0]?.name || ''}</span>
+          <span style={{ fontSize: 10, color: 'var(--text3)' }}>{fmt.broadcast(ev.broadcast)[0]?.name || ''}</span>
         </span>
       )}
     </button>
@@ -366,7 +366,7 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
               <div className="hero2-left">
                 <span className={`hero2-reason${reason.urgent ? '' : ' calm'}`}><LightRow lit={reason.lit} tone={reason.urgent ? 'signal' : 'default'} size={5} gap={3} />{reason.text}</span>
                 {/* 발견 카드의 이유 줄과 같은 치수. 색만 사진 위 흰 글자 계조(.hero2-official/.hero2-chans와 동일). */}
-                {curation && <div className="ko" style={{ marginTop: 8, fontSize: 11.5, color: 'rgba(255,255,255,0.62)', lineHeight: 1.45 }}>{curation.text}</div>}
+                {curation && <div className="ko" style={{ marginTop: 8, fontSize: 11, color: 'rgba(255,255,255,0.62)', lineHeight: 1.45 }}>{curation.text}</div>}
                 <div className="hero2-meta">
                   <SeriesBadge series={hero.series} /><span className="rnd">{roundText(hero)}</span>
                   {hero.isSprint && <span className="tagpill">{t('home.sprintWeekend')}</span>}
@@ -428,7 +428,7 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
             <p className="ko">{t('home.discover.body', { desc: t(SERIES_DESCRIPTION_KEYS[discSeries]) })}</p>
             <Card2 ev={disc} ts={ts(disc)} onOpen={openDiscover} small />
             {discReasons.length > 0 && (
-              <div className="ko" style={{ marginTop: 8, fontSize: 11.5, color: 'var(--text3)', lineHeight: 1.45 }}>
+              <div className="ko" style={{ marginTop: 8, fontSize: 11, color: 'var(--text3)', lineHeight: 1.45 }}>
                 {discReasons.join(' · ')}
               </div>
             )}

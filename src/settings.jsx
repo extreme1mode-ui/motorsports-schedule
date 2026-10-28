@@ -142,7 +142,7 @@ export function Settings({ theme, preferences, setSeriesMode, setCountry, setTim
 
         <section>
           <SectionTitle theme={theme} title={tr('settings.onboarding.title')} sub={tr('settings.onboarding.sub')} />
-          <button type="button" onClick={() => setOnboarded(false)} style={{ ...secondaryButton, width: '100%', height: 52, borderRadius: 14 }}>
+          <button type="button" onClick={() => setOnboarded(false)} style={{ ...secondaryButton, width: '100%', height: 52, borderRadius: 'var(--r-btn)' }}>
             {tr('settings.onboarding.cta')}
           </button>
         </section>
@@ -154,7 +154,7 @@ export function Settings({ theme, preferences, setSeriesMode, setCountry, setTim
         }}>
           <span style={{ color: t.text }}><GantrySymbol size={20} title="Gantry" /></span>
           {/* 대문자 전용 자형(case)으로 무게중심을 맞춘다. */}
-          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', fontFeatureSettings: '"case"' }}>
+          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: 'var(--track-label)', textTransform: 'uppercase', fontFeatureSettings: '"case"' }}>
             Know when it’s lights out.
           </span>
           <span style={{ fontSize: 12, color: t.text3, fontFeatureSettings: '"tnum"' }}>Gantry · 2026 Season</span>

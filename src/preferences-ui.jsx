@@ -82,7 +82,7 @@ export function ChoiceGroup({ theme, options, value, onChange, label, columns = 
         return (
           <button key={opt.id} type="button" role="radio" aria-checked={on} onClick={() => onChange(opt.id)}
             style={{ ...base, ...(on ? sel : null), flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: 2, padding: '10px 14px' }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: on ? t.text : t.text2 }}>{opt.raw ? opt.label : tr(opt.label)}</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: on ? t.text : t.text2 }}>{opt.raw ? opt.label : tr(opt.label)}</span>
             {showSub && opt.sub && <span style={{ fontSize: 12, color: t.text3 }}>{tr(opt.sub)}</span>}
           </button>
         );

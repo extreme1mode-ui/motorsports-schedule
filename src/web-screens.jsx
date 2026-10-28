@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { TOKENS, Mono, SeriesTag, AccessBadge, ExternalIcon, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay, FONT_DATA } from './primitives.jsx';
+import { TOKENS, Mono, SeriesTag, AccessBadge, ExternalIcon, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay, FONT_DATA, seriesGlow } from './primitives.jsx';
 import { CATEGORIES, SERIES, getVisibleSessions, getSeriesStats, getRaceStartUtc, buildRaceWeekBars } from './schedule/index.js';
 import { useFormat } from './use-format.js';
 import { useT } from './i18n/index.js';
@@ -98,7 +98,7 @@ export function WebSchedule({ theme, races, onOpenRace, now, tier, seasonYear })
           <div ref={monthListRef} style={{ display: 'grid', gap: 8 }}>
             {sortedMonth.length === 0 && (
               <div style={{
-                padding: 24, borderRadius: 12, border: `1px dashed ${t.line2}`,
+                padding: 24, borderRadius: 'var(--r-card)', border: `1px dashed ${t.line2}`,
                 color: t.text3, fontSize: 13, textAlign: 'center',
               }}>{tr('schedule.emptyMonth')}</div>
             )}
@@ -132,13 +132,13 @@ function BigMonthGrid({ theme, month, races, onOpen, now, seasonYear }) {
 
   return (
     <div style={{
-      background: theme === 'dark' ? '#0E1014' : '#fff',
-      border: `1px solid ${t.line}`, borderRadius: 16, padding: 14,
+      background: t.surface,
+      border: `1px solid ${t.line}`, borderRadius: 'var(--r-card)', padding: 14,
     }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', marginBottom: 8 }}>
         {fmt.weekdayNames.map((d, i) => (
           <Mono key={d} size={10}
-            color={i === 0 ? '#FF6B7A' : i === 6 ? '#6BA3FF' : t.text3}
+            color={i === 0 ? 'var(--cal-sun)' : i === 6 ? 'var(--cal-sat)' : t.text3}
             style={{ textAlign: 'center', letterSpacing: '0.12em', padding: '8px 0' }}>
             {d}
           </Mono>
@@ -164,13 +164,13 @@ function BigMonthGrid({ theme, month, races, onOpen, now, seasonYear }) {
                   return (
                     <div key={i} className={dayRaces.length ? 'press-chip' : undefined} {...(dayRaces.length ? prefetchHandlers(dayRaces[0]) : null)} onClick={() => dayRaces[0] && onOpen(dayRaces[0])} style={{
                       minHeight, minWidth: 0, borderRadius: 10, padding: 8,
-                      background: isToday ? (theme === 'dark' ? '#fff' : '#111') : 'transparent',
+                      background: isToday ? t.text : 'transparent',
                       border: `1px solid ${isToday ? 'transparent' : t.line}`,
                       cursor: dayRaces.length ? 'pointer' : 'default',
                       display: 'flex', flexDirection: 'column',
                     }}>
                       <Mono size={13} weight={isToday ? 700 : 500}
-                        color={isToday ? (theme === 'dark' ? '#111' : '#fff') : isSun ? '#FF6B7A' : isSat ? '#6BA3FF' : t.text}
+                        color={isToday ? t.bg : isSun ? 'var(--cal-sun)' : isSat ? 'var(--cal-sat)' : t.text}
                         style={{ display: 'block' }}>
                         {d}
                       </Mono>
@@ -204,10 +204,10 @@ function BigMonthGrid({ theme, month, races, onOpen, now, seasonYear }) {
                         fontSize: 10, fontWeight: 600, letterSpacing: '-0.005em', lineHeight: '12px',
                         padding: '3px 5px', background: SERIES[r.series].accent, color: '#fff',
                         // 이어지는 쪽은 각지게 + 칸 끝까지. 실제 시작·끝만 둥글게 하고 안쪽으로 들인다.
-                        borderRadius: `${seg.roundStart ? 4 : 0}px ${seg.roundEnd ? 4 : 0}px ${seg.roundEnd ? 4 : 0}px ${seg.roundStart ? 4 : 0}px`,
+                        borderRadius: `${seg.roundStart ? 3 : 0}px ${seg.roundEnd ? 3 : 0}px ${seg.roundEnd ? 3 : 0}px ${seg.roundStart ? 3 : 0}px`,
                         marginLeft: seg.roundStart ? 4 : 0, marginRight: seg.roundEnd ? 4 : 0,
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                        opacity: r.status === 'cancelled' ? 0.45 : 1,
+                        opacity: r.status === 'cancelled' ? 'var(--dim)' : 1,
                         textDecoration: r.status === 'cancelled' ? 'line-through' : 'none',
                         pointerEvents: 'auto', cursor: 'pointer',
                       }}>{fmt.race(r).shortName}</div>
@@ -234,12 +234,12 @@ function WebScheduleRow({ race, idx, theme, onOpen }) {
     <div className="press-row" role="button" tabIndex={0} data-prefetch-index={idx} {...prefetchHandlers(race)} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }} style={{
       display: 'grid', gridTemplateColumns: '52px 1fr auto', gap: 14, alignItems: 'center',
       padding: '14px 16px', background: t.surface, border: `1px solid ${t.line}`,
-      borderRadius: 12, cursor: 'pointer', opacity: race.status === 'cancelled' ? 0.5 : 1,
+      borderRadius: 'var(--r-card)', cursor: 'pointer', opacity: race.status === 'cancelled' ? 'var(--dim)' : 1,
     }}
     onMouseEnter={e => { e.currentTarget.style.borderColor = s.accent + '40'; }}
     onMouseLeave={e => { e.currentTarget.style.borderColor = t.line; }}>
       <div style={{ textAlign: 'center', borderRight: `1px solid ${t.line}`, paddingRight: 12 }}>
-        <Mono size={20} weight={700} color={t.text} style={{ display: 'block', lineHeight: 1 }}>
+        <Mono size={17} weight={700} color={t.text} style={{ display: 'block', lineHeight: 1 }}>
           {p?.day || '--'}
         </Mono>
         <Mono size={10} color={t.text3} style={{ display: 'block', marginTop: 4, letterSpacing: '0.1em' }}>{dow}</Mono>
@@ -255,7 +255,7 @@ function WebScheduleRow({ race, idx, theme, onOpen }) {
           {race.status === 'completed' && <StatusPill status="completed" theme={theme} />}
         </div>
         <div style={{
-          fontSize: 15, fontWeight: 600, color: t.text, letterSpacing: '-0.005em',
+          fontSize: 14, fontWeight: 600, color: t.text, letterSpacing: '-0.005em',
           textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap',
           textDecoration: race.status === 'cancelled' ? 'line-through' : 'none',
         }}>{L.shortName}</div>
@@ -283,9 +283,9 @@ function CategoryFilterBar({ theme, value, onChange }) {
         const active = value === s.id;
         return (
           <button key={s.id} onClick={() => onChange(s.id)} style={{
-            padding: '6px 12px', borderRadius: 7, border: 0,
-            background: active ? (s.id === 'ALL' ? t.text : s.accent) : 'transparent',
-            color: active ? (s.id === 'ALL' ? t.bg : '#fff') : t.text2,
+            padding: '6px 12px', borderRadius: 'var(--r-sm)', border: 0,
+            background: active ? (s.id === 'ALL' || !s.accent ? t.text : s.accent) : 'transparent',
+            color: active ? (s.id === 'ALL' || !s.accent ? t.bg : '#fff') : t.text2,
             fontSize: 11, fontWeight: 700, letterSpacing: '-0.005em',
             cursor: 'pointer', fontFamily: 'inherit',
           }}>{s.short}</button>
@@ -322,9 +322,9 @@ export function WebSeries({ theme, races, onOpenRace, initialCategory, tier, sea
             {Object.values(CATEGORIES).map(ss => (
               <button key={ss.id} onClick={() => { if (ss.id !== sel) track('series_tab_changed', { category: ss.id }); setSel(ss.id); }} style={{
                 padding: '9px 14px', borderRadius: 999, fontFamily: 'inherit',
-                border: `1px solid ${sel === ss.id ? ss.accent : t.line}`,
-                background: sel === ss.id ? ss.accent : 'transparent',
-                color: sel === ss.id ? '#fff' : t.text2,
+                border: `1px solid ${sel === ss.id ? (ss.accent || t.text) : t.line}`,
+                background: sel === ss.id ? (ss.accent || t.text) : 'transparent',
+                color: sel === ss.id ? (ss.accent ? '#fff' : t.bg) : t.text2,
                 fontSize: 12, fontWeight: 700, cursor: 'pointer', letterSpacing: '-0.005em',
               }}>{ss.short}</button>
             ))}
@@ -333,35 +333,28 @@ export function WebSeries({ theme, races, onOpenRace, initialCategory, tier, sea
 
       <section style={{
         padding: tier === 'ultra' ? '36px 36px' : '28px 28px',
-        background: theme === 'dark' ? s.dark : s.tint,
-        border: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)'}`,
-        borderRadius: 20, marginBottom: 28, position: 'relative', overflow: 'hidden',
+        backgroundColor: t.surface, backgroundImage: seriesGlow(s.accent, theme),
+        border: `1px solid ${t.line}`,
+        borderRadius: 'var(--r-card)', marginBottom: 28, position: 'relative', overflow: 'hidden',
       }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: s.accent }} />
-        <svg style={{ position: 'absolute', top: 0, right: 0, opacity: 0.45, pointerEvents: 'none' }}
-          width="500" height="100%" viewBox="0 0 500 240" preserveAspectRatio="none">
-          {Array.from({ length: 12 }, (_, i) => (
-            <line key={i} x1={i * 50 - 80} y1={0} x2={i * 50 + 160} y2={240}
-              stroke={s.accent} strokeOpacity="0.2" strokeWidth="2" />
-          ))}
-        </svg>
+        {s.accent && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: s.accent }} />}
 
         <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
           <div>
-            <Mono size={11} color={theme === 'dark' ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.55)'} style={{ letterSpacing: '0.18em' }}>
+            <Mono size={11} color={t.text3} style={{ letterSpacing: '0.18em' }}>
               {s.short} · {safeSeasonYear} SEASON
             </Mono>
             <div style={{
-              fontSize: tier === 'ultra' ? 56 : 44, fontWeight: 800, letterSpacing: '-0.025em',
-              color: theme === 'dark' ? '#fff' : '#111', marginTop: 8, lineHeight: 1,
+              fontSize: 46, fontWeight: 800, letterSpacing: '-0.025em',
+              color: t.text, marginTop: 8, lineHeight: 1,
             }}>{s.name}</div>
           </div>
 
           <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
-            <BigStat label="ROUNDS" value={String(roundCount).padStart(2, '0')} dark={theme === 'dark'} />
-            <BigStat label="DONE" value={String(done).padStart(2, '0')} dark={theme === 'dark'} />
-            <BigStat label="UPCOMING" value={String(upcoming).padStart(2, '0')} dark={theme === 'dark'} accent={s.accent} />
-            {cancelled > 0 && <BigStat label="CANCELLED" value={String(cancelled).padStart(2, '0')} dark={theme === 'dark'} />}
+            <BigStat label="ROUNDS" value={String(roundCount).padStart(2, '0')} t={t} />
+            <BigStat label="DONE" value={String(done).padStart(2, '0')} t={t} />
+            <BigStat label="UPCOMING" value={String(upcoming).padStart(2, '0')} t={t} />
+            {cancelled > 0 && <BigStat label="CANCELLED" value={String(cancelled).padStart(2, '0')} t={t} />}
           </div>
         </div>
       </section>
@@ -395,12 +388,12 @@ export function WebSeries({ theme, races, onOpenRace, initialCategory, tier, sea
   );
 }
 
-function BigStat({ label, value, dark, accent }) {
+function BigStat({ label, value, t }) {
   return (
     <div>
-      <Mono size={10} color={dark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.55)'} style={{ letterSpacing: '0.18em', display: 'block' }}>{label}</Mono>
-      <Mono size={32} weight={700}
-        color={accent || (dark ? '#fff' : '#111')}
+      <Mono size={10} color={t.text3} style={{ letterSpacing: '0.18em', display: 'block' }}>{label}</Mono>
+      <Mono size={33} weight={700}
+        color={t.text}
         style={{ display: 'block', marginTop: 6, lineHeight: 1 }}>{value}</Mono>
     </div>
   );
@@ -420,7 +413,7 @@ function WebRoundRow({ race, idx, theme, onOpen }) {
     <div className="press-row" role="button" tabIndex={0} data-prefetch-index={idx} {...prefetchHandlers(race)} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }} style={{
       display: 'grid', gridTemplateColumns: '54px 1fr auto', gap: 14, alignItems: 'center',
       padding: '14px 16px', background: t.surface, border: `1px solid ${t.line}`,
-      borderRadius: 12, cursor: 'pointer', opacity: cancelled ? 0.45 : 1,
+      borderRadius: 'var(--r-card)', cursor: 'pointer', opacity: cancelled ? 'var(--dim)' : 1,
       position: 'relative', overflow: 'hidden',
     }}
     onMouseEnter={e => { e.currentTarget.style.borderColor = s.accent + '44'; }}
@@ -431,7 +424,7 @@ function WebRoundRow({ race, idx, theme, onOpen }) {
         borderRight: `1px solid ${t.line}`, paddingRight: 8,
       }}>
         <Mono size={9} color={t.text3} style={{ letterSpacing: '0.12em' }}>RND</Mono>
-        <Mono size={18} weight={700} color={done ? t.text3 : t.text} style={{
+        <Mono size={17} weight={700} color={done ? t.text3 : t.text} style={{
           lineHeight: 1, marginTop: 4, textDecoration: cancelled ? 'line-through' : 'none',
         }}>
           {getRoundDisplay(race, idx + 1)}
@@ -451,11 +444,12 @@ function WebRoundRow({ race, idx, theme, onOpen }) {
               color: t.text2, ...FONT_DATA,
             }}>SPRINT</span>
           )}
-          <Mono size={10} color={t.text3}>{p ? `${fmt.monthDay(start || race.primaryStartUtc)} · ${p.weekdayName}` : ''}</Mono>
+          <Mono size={10} color={t.text3}>{p ? fmt.shortDate(start || race.primaryStartUtc) : ''}</Mono>
         </div>
         <div style={{
-          fontSize: 15, fontWeight: 600, color: t.text, letterSpacing: '-0.005em',
+          fontSize: 14, fontWeight: 600, color: t.text, letterSpacing: '-0.005em',
           textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap',
+          textDecoration: cancelled ? 'line-through' : 'none',
         }}>{L.shortName}</div>
         <div style={{ fontSize: 11, color: t.text3, marginTop: 2,
           textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap',
@@ -490,7 +484,7 @@ export function WebFavorites({ theme, races, myRaces, favorites, onOpenRace, tog
       {favList.length === 0 ? (
         <div style={{
           padding: '80px 40px', textAlign: 'center',
-          background: t.surface, border: `1px dashed ${t.line2}`, borderRadius: 16,
+          background: t.surface, border: `1px dashed ${t.line2}`, borderRadius: 'var(--r-card)',
         }}>
           <div style={{
             width: 72, height: 72, borderRadius: 999, margin: '0 auto 18px',
@@ -500,13 +494,13 @@ export function WebFavorites({ theme, races, myRaces, favorites, onOpenRace, tog
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
             </svg>
           </div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: t.text, marginBottom: 8 }}>{tr('fav.emptyTitle')}</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: t.text, marginBottom: 8 }}>{tr('fav.emptyTitle')}</div>
           <div style={{ fontSize: 13, color: t.text3, lineHeight: 1.6, maxWidth: 360, margin: '0 auto' }}>
             {tr('fav.emptyBody')}
           </div>
           {recs.length > 0 && (
             <div style={{ marginTop: 32, textAlign: 'left', maxWidth: 720, marginLeft: 'auto', marginRight: 'auto' }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: t.text, marginBottom: 12 }}>{tr('fav.suggest')}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 12 }}>{tr('fav.suggest')}</div>
               <div style={{ display: 'grid', gap: 10 }}>
                 {recs.map((r, i) => <WebRecommendRow key={r.id} race={r} theme={theme} onOpen={() => { track('recommendation_clicked', { series: r.series, position: i }); onOpenRace(r, 'recommendation'); }} onSave={() => toggleFav(r.id)} />)}
               </div>
@@ -531,21 +525,21 @@ function WebRecommendRow({ race, theme, onOpen, onSave }) {
   const L = fmt.race(race);
   const s = SERIES[race.series];
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: theme === 'dark' ? '#0E1014' : '#fff', border: `1px solid ${t.line}`, borderRadius: 12 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: t.surface, border: `1px solid ${t.line}`, borderRadius: 'var(--r-card)' }}>
       <div style={{ width: 4, height: 44, background: s.accent, borderRadius: 3, flex: 'none' }} />
       <button className="press-row" onClick={onOpen} style={{ flex: 1, minWidth: 0, background: 'none', border: 0, padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
           <SeriesTag series={race.series} theme={theme} variant="ghost" />
           <Mono size={10} color={t.text3}>{getRoundDisplay(race)}</Mono>
         </div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: t.text, letterSpacing: '-0.01em', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{L.shortName}</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: t.text, letterSpacing: '-0.01em', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{L.shortName}</div>
         <div style={{ fontSize: 12, color: t.text3, marginTop: 2 }}>{L.circuit}</div>
       </button>
       <div style={{ textAlign: 'right', flex: 'none' }}>
-        <Mono size={11} color={t.text3} style={{ display: 'block' }}>{fmt.monthDay(getRaceStartUtc(race) || race.primaryStartUtc)}</Mono>
+        <Mono size={11} color={t.text3} style={{ display: 'block' }}>{fmt.monthDayShort(getRaceStartUtc(race) || race.primaryStartUtc)}</Mono>
         <Mono size={13} weight={600} color={t.text} style={{ display: 'block', marginTop: 2 }}>{getRaceStartUtc(race) ? fmt.time(getRaceStartUtc(race)) : 'TBA'}</Mono>
       </div>
-      <button onClick={onSave} style={{ flex: 'none', minHeight: 44, padding: '0 14px', borderRadius: 10, border: `1px solid ${t.line2}`, background: 'transparent', color: t.text, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{tr('fav.save')}</button>
+      <button onClick={onSave} style={{ flex: 'none', minHeight: 44, padding: '0 14px', borderRadius: 'var(--r-btn)', border: `1px solid ${t.line2}`, background: 'transparent', color: t.text, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{tr('fav.save')}</button>
     </div>
   );
 }
@@ -563,7 +557,7 @@ function FavCard({ race, idx, theme, onOpen, toggleFav }) {
     <div className="press-row" role="button" tabIndex={0} data-prefetch-index={idx} {...prefetchHandlers(race)} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }} style={{
       padding: 18, borderRadius: 14, cursor: 'pointer',
       background: t.surface, border: `1px solid ${t.line}`,
-      position: 'relative', overflow: 'hidden', opacity: cancelled ? 0.5 : 1,
+      position: 'relative', overflow: 'hidden', opacity: cancelled ? 'var(--dim)' : 1,
     }}>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: s.accent }} />
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -571,7 +565,7 @@ function FavCard({ race, idx, theme, onOpen, toggleFav }) {
         {race.specialBadge && <EventBadge label={race.specialBadge} tone={race.specialBadgeTone} theme={theme} />}
         {race.isNextRace && <StatusPill status="next" theme={theme} />}
         <button onClick={e => { e.stopPropagation(); toggleFav(race.id); }} className="press-icon" style={{
-          background: 'none', border: 0, padding: 0, cursor: 'pointer', color: s.accent,
+          background: 'none', border: 0, padding: 0, cursor: 'pointer', color: t.text,
         }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2">
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
@@ -579,7 +573,7 @@ function FavCard({ race, idx, theme, onOpen, toggleFav }) {
         </button>
       </div>
       <div style={{
-        fontSize: 18, fontWeight: 700, color: t.text, letterSpacing: '-0.01em',
+        fontSize: 17, fontWeight: 700, color: t.text, letterSpacing: '-0.01em',
         lineHeight: 1.2, marginBottom: 4,
         textDecoration: cancelled ? 'line-through' : 'none',
       }}>{L.name}</div>
@@ -591,14 +585,14 @@ function FavCard({ race, idx, theme, onOpen, toggleFav }) {
       }}>
         <div>
           <Mono size={9} color={t.text3} style={{ letterSpacing: '0.14em', display: 'block' }}>RACE DAY</Mono>
-          <Mono size={18} weight={700} color={t.text} style={{ display: 'block', marginTop: 4 }}>
+          <Mono size={17} weight={700} color={t.text} style={{ display: 'block', marginTop: 4 }}>
             {p ? `${p.month}.${p.day}` : '--.--'}
           </Mono>
           <Mono size={10} color={t.text3} style={{ display: 'block', marginTop: 2 }}>{p?.weekdayName || ''}</Mono>
         </div>
         <div style={{ textAlign: 'right' }}>
           <Mono size={9} color={t.text3} style={{ letterSpacing: '0.14em', display: 'block' }}>LIGHTS OUT</Mono>
-          <Mono size={18} weight={700} color={t.text} style={{ display: 'block', marginTop: 4 }}>{start ? fmt.time(start) : 'TBA'}</Mono>
+          <Mono size={17} weight={700} color={t.text} style={{ display: 'block', marginTop: 4 }}>{start ? fmt.time(start) : 'TBA'}</Mono>
         </div>
       </div>
     </div>
@@ -740,7 +734,7 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
               <Mono size={11} color="rgba(255,255,255,0.72)" style={{ letterSpacing: '0.14em' }}>
                 {getRoundDescriptor(race)}
               </Mono>
-              {race.specialBadge && <EventBadge label={race.specialBadge} tone={race.specialBadgeTone} theme={theme} />}
+              {race.specialBadge && <EventBadge label={race.specialBadge} tone={race.specialBadgeTone} theme={theme} onPhoto />}
               {race.isSprint && (
                 <span style={{
                   padding: '3px 7px', fontSize: 10, fontWeight: 800, letterSpacing: '0.1em',
@@ -748,14 +742,14 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
                   ...FONT_DATA,
                 }}>SPRINT</span>
               )}
-              {race.isNextRace && <StatusPill status="next" theme={theme} />}
-              {race.status === 'live' && <StatusPill status="live" theme={theme} />}
-              {race.status === 'cancelled' && <StatusPill status="cancelled" theme={theme} />}
-              {race.status === 'completed' && <StatusPill status="completed" theme={theme} />}
+              {race.isNextRace && <StatusPill status="next" theme={theme} onPhoto />}
+              {race.status === 'live' && <StatusPill status="live" theme={theme} onPhoto />}
+              {race.status === 'cancelled' && <StatusPill status="cancelled" theme={theme} onPhoto />}
+              {race.status === 'completed' && <StatusPill status="completed" theme={theme} onPhoto />}
             </div>
             <div style={{
-              fontSize: 32, fontWeight: 800, letterSpacing: '-0.025em', lineHeight: 1.05,
-              color: '#fff', marginBottom: 6,
+              fontSize: 33, fontWeight: 800, letterSpacing: '-0.025em', lineHeight: 1.05,
+              color: '#fff', marginBottom: 6, wordBreak: 'keep-all', overflowWrap: 'break-word',
             }}>{L.name}</div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.80)' }}>
               {L.circuit}{L.city ? ` · ${L.city}` : ''} · {L.country}
@@ -767,11 +761,11 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
         <div style={{ padding: '24px 28px 40px' }}>
           {race.cancellationNote && (
             <div style={{
-              padding: 14, borderRadius: 12, marginBottom: 24,
-              background: 'rgba(255,77,95,0.08)', border: '1px solid rgba(255,77,95,0.25)',
-              fontSize: 13, color: '#FF6B7A', lineHeight: 1.5,
+              padding: 14, borderRadius: 'var(--r-card)', marginBottom: 24,
+              background: t.surface, border: `1px solid ${t.line2}`,
+              fontSize: 13, color: t.text2, lineHeight: 1.5,
             }}>
-              <Mono size={10} weight={700} style={{ letterSpacing: '0.14em', display: 'block', marginBottom: 4 }}>NOTICE</Mono>
+              <Mono size={10} weight={700} color={t.text} style={{ letterSpacing: '0.14em', display: 'block', marginBottom: 4 }}>NOTICE</Mono>
               {race.cancellationNote}
             </div>
           )}
@@ -781,7 +775,7 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
 
           <section style={{ marginBottom: 24 }}>
             <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.16em', display: 'block', marginBottom: 12 }}>{tr('detail.sessions', { zone: fmt.zoneLabel })}</Mono>
-            <div style={{ background: t.surface, border: `1px solid ${t.line}`, borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ background: t.surface, border: `1px solid ${t.line}`, borderRadius: 'var(--r-card)', overflow: 'hidden' }}>
               {sessions.map((sess, i) => (
                 <div key={i} style={{
                   display: 'grid', gridTemplateColumns: '80px 1fr auto', gap: 10, alignItems: 'center',
@@ -790,12 +784,12 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
                 }}>
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    padding: '4px 8px', borderRadius: 4,
+                    padding: '4px 8px', borderRadius: 'var(--r-tag)',
                     background: sess.kind === 'race' ? s.accent : (theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'),
                     color: sess.kind === 'race' ? '#fff' : t.text,
                     fontSize: 11, fontWeight: 700,
                   }}>{fmt.sessionLabel(sess)}</span>
-                  <Mono size={13} color={t.text2}>{sess.startUtc ? fmt.dateTimeKey(sess.startUtc) : tr('detail.timeTba')}</Mono>
+                  <Mono size={13} color={t.text2}>{sess.startUtc ? fmt.shortDateTime(sess.startUtc) : tr('detail.timeTba')}</Mono>
                   <Mono size={10} color={t.text3} style={{ letterSpacing: '0.02em' }}>{sess.startUtc && sess.local && sess.local !== 'TBA' ? tr('detail.local', { time: sess.local.slice(11, 16) }) : ''}</Mono>
                 </div>
               ))}
@@ -825,15 +819,15 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
                   onClick={() => track('broadcast_clicked', { name: b.name, region: b.region, access: b.access, series: race.series, source: 'detail' })}
                   style={{
                     padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`,
-                    borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    borderRadius: 'var(--r-card)', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     cursor: 'pointer', textDecoration: 'none', color: 'inherit',
                   }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
                     <div style={{
-                      flex: 'none', width: 30, height: 30, borderRadius: 6, background: s.accent,
-                      display: 'grid', placeItems: 'center',
+                      flex: 'none', width: 30, height: 30, borderRadius: 'var(--r-sm)', background: t.surface3,
+                      display: 'grid', placeItems: 'center', color: t.text,
                     }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>{b.name}</div>
@@ -853,7 +847,7 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
             <section style={{ marginBottom: 24 }}>
               <div style={{
                 padding: '14px 16px', background: t.surface, border: `1px solid ${t.line}`,
-                borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                borderRadius: 'var(--r-card)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
               }}>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>{tr('detail.alarmTitle')}</div>
@@ -864,7 +858,7 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
                     style={{ minHeight: 44, minWidth: 72, padding: '0 16px', borderRadius: 999, flex: 'none', cursor: 'pointer',
                       fontFamily: 'inherit', fontSize: 13, fontWeight: 700, letterSpacing: '-0.005em',
                       border: alarmOn ? `1px solid ${t.line2}` : 0,
-                      background: alarmOn ? 'transparent' : s.accent, color: alarmOn ? t.text2 : '#fff' }}>
+                      background: alarmOn ? 'transparent' : t.brand, color: alarmOn ? t.text2 : t.onbrand }}>
                     {alarmOn ? tr('detail.alarmAdded') : tr('detail.alarmAdd')}
               </button>
               </div>
@@ -877,10 +871,9 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
               <a href={ticketUrl || officialUrl} target="_blank" rel="noopener noreferrer"
                 onClick={() => linkTrack(ticketUrl ? 'ticket_clicked' : 'official_site_clicked')}
                 style={{
-                  width: '100%', boxSizing: 'border-box', padding: '16px', borderRadius: 12, border: 0,
-                  background: s.accent, color: '#fff', fontSize: 15, fontWeight: 700,
+                  width: '100%', boxSizing: 'border-box', padding: '16px', borderRadius: 'var(--r-btn)', border: 0,
+                  background: t.brand, color: t.onbrand, fontSize: 14, fontWeight: 700,
                   letterSpacing: '-0.005em', cursor: 'pointer', fontFamily: 'inherit',
-                  boxShadow: `0 10px 24px ${s.accent}33`,
                   display: 'grid', placeItems: 'center', textDecoration: 'none',
                 }}>
                 {ticketUrl ? tr('detail.buyTickets') : tr('detail.openOfficialSite')}
@@ -903,7 +896,7 @@ export function RaceDrawer({ race, theme, onClose, favorites, toggleFav, tier, p
 function DrawerCell({ theme, label, value }) {
   const t = TOKENS[theme];
   return (
-    <div style={{ padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`, borderRadius: 10 }}>
+    <div style={{ padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`, borderRadius: 'var(--r-card)' }}>
       <Mono size={9} color={t.text3} style={{ letterSpacing: '0.16em', display: 'block' }}>{label}</Mono>
       <div style={{ fontSize: 13, fontWeight: 600, color: t.text, marginTop: 4 }}>{value}</div>
     </div>

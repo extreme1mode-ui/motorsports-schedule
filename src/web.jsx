@@ -160,7 +160,7 @@ function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
     <aside style={{
       viewTransitionName: 'nav-chrome',
       borderRight: `1px solid ${t.line}`,
-      background: theme === 'dark' ? '#07080B' : '#FAFAFD',
+      background: t.bg,
       position: 'sticky', top: 0, height: '100vh',
       display: 'flex', flexDirection: 'column',
       padding: collapsed ? '20px 14px' : '22px 18px',
@@ -223,7 +223,7 @@ function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
               {it.id === 'fav' && favCount > 0 && !collapsed && (
                 <span style={{
                   marginLeft: 'auto',
-                  background: '#FF6B7A', color: '#fff', borderRadius: 999,
+                  background: t.brand, color: t.onbrand, borderRadius: 999,
                   fontSize: 9, fontWeight: 700, padding: '2px 6px', minWidth: 16, textAlign: 'center',
                   ...FONT_DATA,
                 }}>{favCount}</span>
@@ -273,10 +273,10 @@ function Sidebar({ theme, view, onGo, favCount, collapsed, tier, setTheme }) {
         <div style={{
           padding: '12px 12px',
           background: theme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
-          borderRadius: 12, border: `1px solid ${t.line}`,
+          borderRadius: 'var(--r-card)', border: `1px solid ${t.line}`,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22D77E', boxShadow: '0 0 8px #22D77E' }} />
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: t.text2 }} />
             <Mono size={9} color={t.text3} style={{ letterSpacing: '0.14em' }}>LIVE TIMING · {fmt.zoneLabel}</Mono>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
@@ -323,7 +323,7 @@ export function SectionTitle({ theme, kicker, title, inline }) {
   return (
     <div style={{ display: inline ? 'flex' : 'block', alignItems: 'baseline', gap: 12, marginBottom: inline ? 0 : 14 }}>
       <Mono size={11} weight={700} color={t.text3} style={{ letterSpacing: '0.18em', display: 'block' }}>{kicker}</Mono>
-      <div style={{ fontSize: 18, fontWeight: 700, color: t.text, letterSpacing: '-0.01em', marginTop: 4 }}>{title}</div>
+      <div style={{ fontSize: 17, fontWeight: 700, color: t.text, letterSpacing: '-0.01em', marginTop: 4 }}>{title}</div>
     </div>
   );
 }
@@ -337,7 +337,7 @@ export function PageHeader({ theme, kicker, title, subtitle, right }) {
     }}>
       <div>
         <Mono size={11} color={t.text3} style={{ letterSpacing: '0.18em', display: 'block', marginBottom: 8 }}>{kicker}</Mono>
-        <h1 data-view-title tabIndex={-1} style={{ margin: 0, fontSize: 38, fontWeight: 800, letterSpacing: '-0.025em', color: t.text, lineHeight: 1 }}>
+        <h1 data-view-title tabIndex={-1} style={{ margin: 0, fontSize: 28, fontWeight: 800, letterSpacing: '-0.025em', color: t.text, lineHeight: 1 }}>
           {title}
         </h1>
         {subtitle && <div style={{ marginTop: 8, fontSize: 14, color: t.text2 }}>{subtitle}</div>}
@@ -353,8 +353,8 @@ function WebTweaks({ theme, setTheme }) {
   return (
     <div style={{
       position: 'fixed', left: 24, bottom: 24, zIndex: 90,
-      background: theme === 'dark' ? '#14161B' : '#fff',
-      border: `1px solid ${t.line2}`, borderRadius: 16,
+      background: theme === 'dark' ? t.surface2 : t.surface,
+      border: `1px solid ${t.line2}`, borderRadius: 'var(--r-sheet)',
       padding: 14, width: 240,
       boxShadow: '0 20px 40px rgba(0,0,0,0.35)',
     }}>

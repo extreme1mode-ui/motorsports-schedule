@@ -198,7 +198,7 @@ function TabBar({ theme, view, onGo, favCount }) {
       <div style={{
         display: 'grid', gridTemplateColumns: `repeat(${tabs.length}, 1fr)`, gap: 4,
         background: theme === 'dark' ? 'rgba(20,22,27,0.9)' : 'rgba(255,255,255,0.9)',
-        border: `1px solid ${t.line}`, borderRadius: 20, padding: 5,
+        border: `1px solid ${t.line}`, borderRadius: 'var(--r-sheet)', padding: 5,
         pointerEvents: 'auto',
       }}>
         {tabs.map(tab => {
@@ -229,7 +229,7 @@ function TabBar({ theme, view, onGo, favCount }) {
               {tab.id === 'fav' && favCount > 0 && !active && (
                 <span style={{
                   position: 'absolute', top: 5, right: 12,
-                  background: '#FF6B7A', color: '#fff', borderRadius: 999,
+                  background: t.brand, color: t.onbrand, borderRadius: 999,
                   fontSize: 9, fontWeight: 700, padding: '1px 5px', minWidth: 14, textAlign: 'center',
                   ...FONT_DATA,
                 }}>{favCount}</span>
@@ -274,8 +274,8 @@ function TweaksPanel({ theme, setTheme, onClose }) {
   return (
     <div style={{
       position: 'absolute', right: 12, bottom: 100, zIndex: 90,
-      background: theme === 'dark' ? '#14161B' : '#fff',
-      border: `1px solid ${t.line2}`, borderRadius: 16,
+      background: theme === 'dark' ? t.surface2 : t.surface,
+      border: `1px solid ${t.line2}`, borderRadius: 'var(--r-sheet)',
       padding: 14, width: 220,
       boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
     }}>

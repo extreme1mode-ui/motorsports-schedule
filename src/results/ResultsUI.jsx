@@ -70,12 +70,12 @@ function Podium({ rows, data, theme, size = 'sm', metric }) {
             <div style={{ position: 'relative', height: i === 0 ? tall : tall - 20, background: t.surface3, overflow: 'hidden', display: 'grid', placeItems: 'center' }}>
               {src
                 ? <img src={src} alt="" decoding="async" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: size === 'lg' ? 'contain' : 'cover', objectPosition: size === 'lg' ? '50% 100%' : '50% 0%' }} />
-                : <Mono size={22} weight={700} color={t.text3}>{r.code}</Mono>}
-              <Mono size={{ sm: 18, md: 22, lg: 28 }[size]} weight={700} color={t.text} style={{ position: 'absolute', left: size === 'lg' ? 14 : 9, top: size === 'lg' ? 10 : 6 }}>{r.pt}</Mono>
+                : <Mono size={24} weight={700} color={t.text3}>{r.code}</Mono>}
+              <Mono size={{ sm: 17, md: 24, lg: 28 }[size]} weight={700} color={t.text} style={{ position: 'absolute', left: size === 'lg' ? 14 : 9, top: size === 'lg' ? 10 : 6 }}>{r.pt}</Mono>
               <span aria-hidden style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: teamColor(r.c) }} />
             </div>
             <div style={{ padding: size === 'lg' ? '12px 16px 14px' : wide ? '10px 12px 12px' : '9px 10px 10px' }}>
-              <div style={{ fontSize: size === 'lg' ? 17 : wide ? 15 : 14, fontWeight: 700, color: t.text, letterSpacing: '-0.01em', ...ellipsis }}>{r.family}</div>
+              <div style={{ fontSize: size === 'lg' ? 17 : 14, fontWeight: 700, color: t.text, letterSpacing: '-0.01em', ...ellipsis }}>{r.family}</div>
               <div style={{ fontSize: 11, color: t.text3, marginTop: 1, ...ellipsis }}>{r.team || (r.teams || []).join(' / ')}</div>
               <div style={{ marginTop: 6 }}>{metric(r)}</div>
             </div>
@@ -116,7 +116,7 @@ function Segment({ items, value, onChange, theme }) {
         const on = it.id === value;
         return (
           <button key={it.id} type="button" role="tab" aria-selected={on} onClick={() => onChange(it.id)} style={{
-            minHeight: 36, padding: '0 16px', border: 0, borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
+            minHeight: 36, padding: '0 16px', border: 0, borderRadius: 'var(--r-chip)', cursor: 'pointer', fontFamily: 'inherit',
             fontSize: 13, fontWeight: on ? 700 : 600, letterSpacing: '-0.005em',
             background: on ? t.surface : 'transparent', color: on ? t.text : t.text2,
             boxShadow: on ? (theme === 'dark' ? '0 1px 2px rgba(0,0,0,0.5)' : '0 1px 2px rgba(16,18,24,0.12)') : 'none',
@@ -168,7 +168,7 @@ export function RaceResultSection({ race, theme, variant = 'sheet' }) {
         )} />
       </div>
       {rest.length > 0 && (
-        <div style={{ marginTop: 8, background: t.surface, border: `1px solid ${t.line}`, borderRadius: drawer ? 12 : 14, overflow: 'hidden' }}>
+        <div style={{ marginTop: 8, background: t.surface, border: `1px solid ${t.line}`, borderRadius: 'var(--r-card)', overflow: 'hidden' }}>
           {shown.map((row, i) => <ResultRow key={row.n + '-' + i} row={row} data={data} theme={theme} tr={tr} desktop={drawer} last={i === shown.length - 1 && rest.length <= MORE} />)}
           {rest.length > MORE && (
             <button type="button" onClick={() => { setAll((v) => !v); if (!all) track('race_results_expanded', { kind, race_id: race.id }); }} style={{
@@ -205,7 +205,7 @@ export function PodiumLine({ race, theme, size = 11 }) {
 }
 
 // 시리즈 탭의 하위 탭(글자 탭): 라운드 | 드라이버 순위
-export function SubTabs({ items, value, onChange, theme, size = 15 }) {
+export function SubTabs({ items, value, onChange, theme, size = 14 }) {
   const t = TOKENS[theme];
   return (
     <div role="tablist" style={{ display: 'flex', gap: 20, borderBottom: `1px solid ${t.line}` }}>
@@ -244,10 +244,10 @@ export function StandingsList({ theme, races, variant = 'mobile' }) {
       <Podium rows={st.rows} data={data} theme={theme} size={desk ? 'lg' : 'sm'} metric={(r) => (
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 }}>
           <Mono size={desk ? 12 : 11} weight={600} color={t.text3} style={{ whiteSpace: 'nowrap' }}>{r.wins !== '0' ? tr('standings.wins', { n: r.wins }) : ''}</Mono>
-          <Pts v={r.pts} t={t} size={desk ? 20 : 15} />
+          <Pts v={r.pts} t={t} size={desk ? 17 : 14} />
         </div>
       )} />
-      <div style={{ marginTop: 8, background: t.surface, border: `1px solid ${t.line}`, borderRadius: desk ? 12 : 14, overflow: 'hidden' }}>
+      <div style={{ marginTop: 8, background: t.surface, border: `1px solid ${t.line}`, borderRadius: 'var(--r-card)', overflow: 'hidden' }}>
         {desk && (
           <div style={{ display: 'grid', gridTemplateColumns: cols, columnGap: 12, alignItems: 'center', padding: '10px 16px', borderBottom: `1px solid ${t.line}` }}>
             {['POS', '', '', 'DRIVER', 'TEAM', 'WINS', 'PTS'].map((h, i) => (
@@ -261,18 +261,18 @@ export function StandingsList({ theme, races, variant = 'mobile' }) {
             minHeight: 60, padding: desk ? '6px 16px' : '6px 14px 6px 10px',
             borderBottom: i === rest.length - 1 ? 'none' : `1px solid ${t.line}`,
           }}>
-            <Mono size={desk ? 16 : 15} weight={700} color={t.text} style={{ textAlign: 'center' }}>{r.pt}</Mono>
+            <Mono size={desk ? 16 : 14} weight={700} color={t.text} style={{ textAlign: 'center' }}>{r.pt}</Mono>
             <Bar c={r.c} />
             <Avatar src={photoOf(data, r.code)} code={r.code} size={36} theme={theme} />
             <div style={{ minWidth: 0 }}>
-              <DriverName row={r} t={t} size={desk ? 15 : 14} />
+              <DriverName row={r} t={t} size={14} />
               {!desk && <div style={{ fontSize: 11, color: t.text3, marginTop: 2, ...ellipsis }}>{r.teams.join(' / ')}</div>}
             </div>
             {desk
               ? <div style={{ fontSize: 13, color: t.text2, ...ellipsis }}>{r.teams.join(' / ')}</div>
               : <Mono size={11} weight={600} color={t.text3} style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>{r.wins !== '0' ? tr('standings.wins', { n: r.wins }) : ''}</Mono>}
             {desk && <Mono size={14} weight={600} color={r.wins === '0' ? t.text3 : t.text2} style={{ textAlign: 'right' }}>{r.wins}</Mono>}
-            <Mono size={desk ? 16 : 15} weight={700} color={t.text} style={{ textAlign: 'right' }}>{r.pts}</Mono>
+            <Mono size={desk ? 16 : 14} weight={700} color={t.text} style={{ textAlign: 'right' }}>{r.pts}</Mono>
           </div>
         ))}
       </div>

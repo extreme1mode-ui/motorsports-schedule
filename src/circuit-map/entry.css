@@ -23,7 +23,7 @@ html.cm-open,html.cm-open body{overflow:hidden}
 .cme-mini-c{fill:none;stroke:var(--surface2);stroke-width:4.5;stroke-linejoin:round;vector-effect:non-scaling-stroke}
 .cme-mini-t{fill:none;stroke:var(--text);stroke-width:1.75;stroke-linejoin:round;vector-effect:non-scaling-stroke}
 .cme-tx{min-width:0;display:flex;flex-direction:column;gap:3px}
-.cme-tx b{font-size:15px;font-weight:700;letter-spacing:-.01em;color:var(--text)}
+.cme-tx b{font-size:14px;font-weight:700;letter-spacing:-.01em;color:var(--text)}
 .cme-tx span{font-size:12px;color:var(--text2);line-height:1.45}
 .cme-act{display:flex;gap:8px;margin-top:14px}
 .cme-btn{flex:1;min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:0 14px;border-radius:12px;
@@ -33,7 +33,7 @@ html.cm-open,html.cm-open body{overflow:hidden}
 .cme-btn--fill{background:var(--brand);color:var(--onbrand)}
 .cme-btn--line{background:transparent;color:var(--text);box-shadow:inset 0 0 0 1px var(--line2)}
 .cme-btn--line[aria-pressed="true"]{background:var(--surface2);color:var(--text)}
-.cme-note{margin:10px 0 0;font-size:11.5px;color:var(--text3);line-height:1.5}
+.cme-note{margin:10px 0 0;font-size:11px;color:var(--text3);line-height:1.5}
 @media (hover:hover){ .cme-btn:hover{opacity:.9} }
 
 /* ---- 홈 히어로 › 현장 줄 (사진 위: 흰 글자 계조, 테마 무관) ---- */
