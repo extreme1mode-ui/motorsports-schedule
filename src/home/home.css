@@ -1,163 +1,130 @@
-/* 홈 전용 스타일. 값은 design/paddock-home.html에서 그대로 가져왔고, 다른 화면(인라인 TOKENS)에 새지 않도록 .home 아래로 한정한다.
-   토큰(--bg, --signal …)은 src/styles/tokens.css. */
+/* 홈 전용 스타일. .home 아래로 한정한다. 토큰(--bg, --signal …)은 src/styles/tokens.css.
+   AI 티 정리(2026-10-29): 글자 7단계(12·13·15·17·20·28·40), 자간 0, 테두리 없는 묶음 그릇(.g-group/.g-row, index.css),
+   줄마다 색 막대 대신 시리즈 점, 히어로 4층, 큰 숫자는 1시간 안 카운트다운만. */
 
-.home{background:var(--bg);color:var(--text);padding:20px 16px 24px;width:100%;min-width:0}
+.home{background:var(--bg);color:var(--text);padding:8px 16px 24px;width:100%;min-width:0}
 @media(min-width:900px){.home{padding:0;max-width:1160px;margin:0 auto}}
 .home h1,.home h2,.home h3,.home p{margin:0}
 .home button{font-family:inherit;cursor:pointer;color:inherit}
 .home .ko{word-break:keep-all;overflow-wrap:break-word}
-.home .m{font-family:var(--mono);font-feature-settings:"tnum";font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 
-.home .pagehead{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:18px}
-.home .pagehead h1{font-size:21px;font-weight:800;letter-spacing:-.02em}
-@media(min-width:900px){.home .pagehead h1{font-size:24px}}
-.home .pagehead .sub{color:var(--text3);font-size:11.5px;margin-top:5px}
-.home .clock{font-family:var(--mono);font-feature-settings:"tnum";font-size:11.5px;color:var(--text2);border:1px solid var(--line);
-  border-radius:9px;padding:7px 10px;white-space:nowrap}
+/* ---------- 머리: 모바일은 로고 + 설정 버튼 하나. 시계 칩·테마 버튼 없음(N2) ---------- */
+.home .pagehead{position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 14px;min-height:56px;margin-bottom:4px}
+@media(min-width:900px){.home .pagehead{min-height:0;margin-bottom:0}}
+.home .vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.home .pagehead-id{display:flex;align-items:center}
+.home .pagehead-brand{display:block;color:var(--text);padding-left:4px}
+@media(min-width:900px){ .home .pagehead-brand{display:none} }
+.home .pagehead-tools{display:flex;gap:6px;align-items:center;margin-right:-8px}
+.home .mobtools{display:flex}
+@media(min-width:900px){.home .mobtools{display:none}.home .pagehead-tools{margin:0 0 16px}}
+.home .iconbtn{width:44px;height:44px;border:0;background:none;display:grid;place-items:center;color:var(--text2);border-radius:12px}
+/* 데모 빌드 전용: 데모 시계 시트 열기 */
+.home .clock{font-size:13px;font-weight:500;color:var(--text2);background:var(--fill);border:0;border-radius:var(--r-chip);
+  min-height:36px;padding:0 12px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .home .clock b{color:var(--text);font-weight:600}
-.home .sechead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:26px 0 10px}
-.home .sechead h2{font-size:14px;font-weight:700;letter-spacing:-.01em}
-.home .sechead .meta{font-family:var(--mono);font-feature-settings:"tnum";font-size:10px;color:var(--text3);letter-spacing:.05em}
-.home .sechead .lnk{background:none;border:0;color:var(--text3);font-size:11.5px;font-weight:600;
-  min-height:44px;min-width:44px;padding:13px 8px;margin:-13px -8px}
+.home .clock .dm{margin-left:6px;color:var(--text3)}
 
-.home .sbadge{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-feature-settings:"tnum";font-size:9.5px;font-weight:700;
-  letter-spacing:.07em;color:var(--text2)}
-.home .sbadge i{width:6px;height:6px;border-radius:50%;display:block}
-.home .rnd{font-family:var(--mono);font-feature-settings:"tnum";font-size:9.5px;color:var(--text3);letter-spacing:.07em;font-weight:600}
-.home .tagpill{font-size:9.5px;color:var(--text3);border:1px solid var(--line2);border-radius:4px;padding:2px 5px;font-weight:600}
-.home .heart{background:none;border:0;color:var(--text2);opacity:.75;width:44px;height:44px;display:grid;place-items:center;
-  border-radius:9px;flex:0 0 44px}
-.home .heart.on{color:var(--brand);opacity:1}
-/* .cta: 버튼 상자는 44px(히트영역), 보이는 면은 ::before가 그린다(세로 2.5px씩 안쪽 = 기존 39px). */
-.home .cta{position:relative;isolation:isolate;display:block;width:100%;background:none;color:var(--onbrand);border:0;
-  min-height:44px;padding:12px;font-size:12.5px;font-weight:800}
-.home .cta::before{content:"";position:absolute;inset:2.5px 0;z-index:-1;background:var(--brand);border-radius:10px}
-.home a.cta{text-decoration:none;text-align:center;box-sizing:border-box}
-.home .cta.ghost{color:var(--text2)}
-.home .cta.ghost::before{background:none;border:1px solid var(--line2)}
-.home .linkbtn{background:none;border:0;color:var(--text2);font-size:12px;font-weight:700;min-height:44px;min-width:44px;padding:10px 8px;
-  text-decoration:underline;text-underline-offset:3px}
+/* ---------- 섹션 머리 20/700 ---------- */
+.home .sechead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:28px 0 10px;padding:0 4px}
+.home .sechead h2{font-size:20px;line-height:1.4;font-weight:700;letter-spacing:-.01em}
 
-.home .time{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-feature-settings:"tnum";font-size:12.5px;font-weight:600;white-space:nowrap}
-.home .time .z{font-size:9px;color:var(--text3);letter-spacing:.08em}
-.home .time--tba{color:var(--text3);font-weight:500}
+/* 시리즈 표시: 8px 점 + 코드 글자 */
+.home .sbadge{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-variant-numeric:tabular-nums}
+.home .sbadge i{width:8px;height:8px;border-radius:50%;display:block;flex:none}
+
+/* ---------- 줄 (그릇 안) ---------- */
+.home .hrow{min-height:64px}
+.home .hrow .main{flex:1;min-width:0;display:flex;flex-direction:column}
+.home .hrow .nm{font-size:17px;line-height:1.4;font-weight:600;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.home .hrow .meta{margin-top:2px;font-size:13px;line-height:1.4;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.home .hrow .cap{margin-top:2px;font-size:12px;line-height:1.35;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.home .hrow .dt{flex:0 0 52px;align-self:flex-start;margin-top:2px;font-size:13px;line-height:18px;font-weight:600;color:var(--text2);font-variant-numeric:tabular-nums}
+.home .hrow .dt small{display:block;font-size:12px;line-height:16px;font-weight:500;color:var(--text3)}
+.home .time-col{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:right}
+.home .time{font-size:17px;line-height:1.4;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.home .time--tba{color:var(--text2)}
 .home .time--soon{color:var(--signal-ink)}
-.home .time--live{color:#14161C;background:var(--signal);border-radius:5px;padding:3px 7px;font-size:10px;letter-spacing:.06em}
-.home .time--done{color:var(--text3);opacity:.65}
-.home .time--cancelled{color:var(--text3);text-decoration:line-through;opacity:.6}
-.home .nightmark{font-size:9px;font-weight:700;color:var(--signal-ink);border:1px solid var(--signal-line);
-  border-radius:3px;padding:1px 4px;letter-spacing:.02em;font-family:"Pretendard Variable","Pretendard",sans-serif}
+.home .time-sub{display:inline-flex;align-items:center;gap:5px;font-size:12px;line-height:16px;font-weight:500;color:var(--text3);white-space:nowrap}
+.home .time-sub--live{color:var(--text);font-weight:600}
+.home .livedot{width:6px;height:6px;border-radius:50%;background:var(--signal);display:inline-block;flex:none}
 
-.home .card2{display:flex;gap:13px;align-items:center;border:1px solid var(--line);border-radius:14px;
-  background:var(--surface);padding:14px 16px;margin-top:9px;width:100%;text-align:left}
-.home .card2 .ind{width:4px;align-self:stretch;border-radius:3px;min-height:46px;flex:0 0 4px}
-.home .card2 .ttl{font-size:16px;font-weight:700;letter-spacing:-.015em;margin-top:4px}
-.home .card2 .sub{color:var(--text3);font-size:11px;margin-top:4px}
-.home .card2 .side{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:7px}
+/* 빈 상태 · 새로 볼만한 것 */
+.home .empty{padding:28px 20px;text-align:center}
+.home .empty h3{font-size:17px;font-weight:700}
+.home .empty p{color:var(--text2);font-size:15px;line-height:1.6;margin-top:6px}
+.home .empty .btn2{max-width:240px;margin:16px auto 0}
+.home .panel{padding:16px}
+.home .panel h3{font-size:17px;line-height:1.4;font-weight:700}
+.home .panel p{color:var(--text2);font-size:15px;line-height:1.6;margin-top:6px}
+.home .panel-pick{margin:12px -16px 0;box-shadow:inset 0 1px 0 var(--line),inset 0 -1px 0 var(--line)}
+.home .panel-why{margin-top:10px;font-size:13px;line-height:1.5;color:var(--text3)}
+.home .btn2{display:flex;align-items:center;justify-content:center;width:100%;min-height:44px;margin-top:12px;border:0;border-radius:var(--r-btn);
+  background:var(--fill);color:var(--text);font-size:15px;font-weight:600}
 
-.home .rows{border-top:1px solid var(--line)}
-.home .rowitem{display:flex;align-items:center;gap:11px;padding:0 2px;border-bottom:1px solid var(--line);
-  background:none;border-left:0;border-right:0;border-top:0;width:100%;text-align:left;min-height:48px}
-.home .rowitem .dt{font-family:var(--mono);font-feature-settings:"tnum";font-size:11px;color:var(--text2);flex:0 0 68px}
-.home .rowitem .dt em{font-style:normal;color:var(--text3)}
-.home .rowitem .ind{width:3px;height:26px;border-radius:2px;flex:0 0 3px}
-.home .rowitem .nm{font-size:13px;font-weight:600;letter-spacing:-.01em;min-width:0;overflow:hidden;
-  text-overflow:ellipsis;white-space:nowrap}
-.home .rowitem .rd{font-family:var(--mono);font-feature-settings:"tnum";font-size:9.5px;color:var(--text3);white-space:nowrap;word-spacing:.3em}
-.home .rowitem .side{margin-left:auto;display:flex;align-items:center;gap:8px;flex:0 0 auto}
-.home .rowitem.dim{opacity:.42}
-
-.home .panel{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:16px}
-.home .panel h3{font-size:13px;font-weight:700}
-.home .panel p{color:var(--text3);font-size:11.5px;line-height:1.65;margin-top:6px}
-.home .empty{border:1px dashed var(--line2);border-radius:14px;padding:26px 18px;text-align:center}
-.home .empty h3{font-size:14px;font-weight:700}
-.home .empty p{color:var(--text3);font-size:12px;line-height:1.6;margin-top:7px}
-
-.home .mobtools{display:flex;gap:0}
-@media(min-width:900px){.home .mobtools{display:none}}
-/* .iconbtn: 버튼 상자 44px(히트영역), 보이는 38px 상자는 ::before. */
-.home .iconbtn{position:relative;isolation:isolate;width:44px;height:44px;border:0;background:none;
-  display:grid;place-items:center;color:var(--text2)}
-.home .iconbtn::before{content:"";position:absolute;inset:3px;z-index:-1;border-radius:10px;border:1px solid var(--line);background:var(--surface2)}
-
-/* ---------- HERO v2 : 화면에서 가장 큰 것 = 가장 급한 것 ---------- */
-.home .hero2{position:relative;isolation:isolate;border-radius:18px;overflow:hidden;border:1px solid var(--line2);
-  min-height:452px;display:flex;align-items:flex-end;
-  /* 사진이 없을 때 드러나는 바탕: 신호등 점 패턴(12px 간격). 사진이 뜨면 그 위로 덮인다. */
-  background-color:var(--surface);
-  background-image:radial-gradient(circle at center,rgba(242,244,247,.07) 0 2.1px,transparent 2.6px);background-size:12px 12px}
-[data-theme="light"] .home .hero2{background-image:radial-gradient(circle at center,rgba(20,22,28,.07) 0 2.1px,transparent 2.6px)}
+/* ---------- HERO: 4층 (① 이유 ② 제목 ③ 시리즈·서킷 ④ 시각·행동·중계) ---------- */
+.home .hero2{position:relative;isolation:isolate;border-radius:var(--r-sheet);overflow:hidden;min-height:420px;display:flex;align-items:flex-end;
+  background-color:var(--surface2)}   /* 사진이 뜨기 전 바탕: 중립 면(점무늬 없음) */
 @media(min-width:900px){.home .hero2{min-height:430px}}
 .home .hero2-photo{position:absolute;inset:0;z-index:-3;background-size:cover;background-position:center 42%}
 .home .hero2::after{content:"";position:absolute;inset:0;z-index:-1;background:var(--h2scrim)}
 .home .hero2::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--h2scrim-x)}
+/* 히어로 전체를 덮는 상세 버튼. 글자·버튼은 그 위(z-index 1)에 놓이고, 글자 영역은 눌림을 통과시킨다. */
+.home .hero2-hit{position:absolute;inset:0;z-index:0;border:0;padding:0;margin:0;background:transparent;border-radius:inherit}
+.home .hero2-hit:focus-visible{outline:2px solid #fff;outline-offset:-4px}
 /* 사진 위 요소는 테마와 무관하게 흰 계열로 고정한다 (스크림이 중립 검정이라 라이트에서도 사진 위는 어둡다). */
-.home .hero2-wrap{padding:22px 20px;width:100%;display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;color:#fff}
-.home .hero2 .rnd,.home .hero2 .tagpill{color:rgba(255,255,255,.66)}
-.home .hero2 .tagpill{border-color:rgba(255,255,255,.28)}
-.home .hero2 .sbadge{color:#fff}
-.home .hero2 .heart{color:rgba(255,255,255,.88);opacity:1}
-.home .hero2 .heart.on{color:#fff}
-.home .hero2 .linkbtn{color:rgba(255,255,255,.88)}
-@media(min-width:900px){.home .hero2-wrap{padding:32px 32px;gap:20px 40px}}
+.home .hero2-wrap{position:relative;z-index:1;pointer-events:none;padding:20px;width:100%;display:flex;flex-wrap:wrap;gap:16px 40px;align-items:flex-end;color:#fff}
+.home .hero2-wrap a,.home .hero2-wrap button{pointer-events:auto}
+@media(min-width:900px){.home .hero2-wrap{padding:32px}}
 .home .hero2-left{flex:1 1 320px;min-width:0}
 .home .hero2-right{flex:0 0 auto;min-width:200px}
 @media(min-width:900px){.home .hero2-right{text-align:right}}
-.home .hero2-reason{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:800;letter-spacing:-.01em;
-  color:var(--signal);border:1px solid rgba(255,212,0,.32);border-radius:999px;padding:6px 12px;background:rgba(255,212,0,.10)}
-.home .hero2-reason.calm{color:rgba(255,255,255,.82);border-color:rgba(255,255,255,.28);background:transparent;font-weight:700}
-.home .hero2-reason i{width:6px;height:6px;border-radius:50%;background:var(--signal);display:block}
-.home .hero2-meta{margin-top:15px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-.home .hero2-title{font-size:33px;font-weight:800;letter-spacing:-.032em;line-height:1.14;margin-top:9px;
+
+.home .hero2-reason{display:flex;align-items:center;gap:8px;font-size:13px;line-height:18px;font-weight:600;color:rgba(255,255,255,.85)}
+@media(min-width:900px){.home .hero2-reason{font-size:15px;line-height:22px}}
+.home .hero2-reason.urgent{color:var(--signal)}
+.home .hero2-curation{margin-top:6px;font-size:13px;line-height:1.45;color:rgba(255,255,255,.7)}
+.home .hero2-title{margin-top:8px;font-size:28px;line-height:34px;font-weight:700;letter-spacing:-.02em;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
-@media(min-width:900px){.home .hero2-title{font-size:46px}}
-.home .hero2-official{font-family:var(--mono);font-feature-settings:"tnum";font-size:10.5px;color:rgba(255,255,255,.62);margin-top:8px}
-.home .hero2-place{color:rgba(255,255,255,.80);font-size:13px;margin-top:9px}
-.home .hero2-clock{font-family:var(--mono);font-feature-settings:"tnum";font-size:46px;font-weight:700;letter-spacing:-.045em;line-height:1;white-space:nowrap}
-@media(min-width:900px){.home .hero2-clock{font-size:62px}}
-.home .hero2-clock.urgent{color:var(--signal)}
-.home .hero2-when{font-family:var(--mono);font-feature-settings:"tnum";font-size:11.5px;color:rgba(255,255,255,.80);margin-top:9px}
+@media(min-width:900px){.home .hero2-title{font-size:40px;line-height:46px}}
+.home .hero2-official{margin-top:4px;font-size:13px;line-height:18px;color:rgba(255,255,255,.62)}
+.home .hero2-place{margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-size:13px;line-height:18px;color:rgba(255,255,255,.75)}
+@media(min-width:900px){.home .hero2-place{font-size:15px;line-height:22px}}
+.home .hero2-place .sbadge{color:#fff}
+.home .hero2-tag{color:rgba(255,255,255,.75)}
+.home .hero2-circuit{min-width:0}
+
+.home .hero2-time{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 8px;font-variant-numeric:tabular-nums}
+@media(min-width:900px){.home .hero2-time{flex-direction:column;align-items:flex-end;gap:2px}}
+.home .hero2-time b{display:inline-flex;align-items:center;gap:8px;font-size:20px;line-height:26px;font-weight:700;white-space:nowrap}
+.home .hero2-time span{font-size:15px;line-height:22px;color:rgba(255,255,255,.75)}
+.home .hero2-time.urgent b{color:var(--signal)}
+/* 시작 1시간 안: 카운트다운만 큰 숫자(40) */
+.home .hero2-time--count b{font-size:40px;line-height:46px;letter-spacing:-.02em}
+.home .hero2-time .livedot{width:8px;height:8px}
 .home .hero2-act{margin-top:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 @media(min-width:900px){.home .hero2-act{justify-content:flex-end}}
-.home .hero2-act .cta{width:auto;padding:12px 18px}
-.home .hero2-chans{margin-top:11px;font-family:var(--mono);font-feature-settings:"tnum";font-size:10.5px;color:rgba(255,255,255,.62);letter-spacing:.02em}
-.home .hero2-credit{position:absolute;right:10px;top:10px;font-family:var(--mono);font-feature-settings:"tnum";font-size:8.5px;letter-spacing:.08em;
-  color:var(--text3);background:var(--surface2);border:1px solid var(--line);border-radius:4px;padding:2px 6px;opacity:.75;z-index:2;
-  display:flex;max-width:calc(100% - 20px);white-space:nowrap;text-decoration:none}
+.home .cta{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border:0;border-radius:var(--r-btn);
+  background:#fff;color:#0B0C10;font-size:15px;font-weight:600;white-space:nowrap;text-decoration:none}
+.home .heart{width:44px;height:44px;flex:0 0 44px;border:0;border-radius:var(--r-btn);display:grid;place-items:center;
+  background:rgba(255,255,255,.18);color:#fff}
+.home .hero2-chans{margin-top:12px;font-size:13px;line-height:18px;color:rgba(255,255,255,.7)}
+/* 사진 출처: 칩 없이 11px 글자(글자 단계의 유일한 예외) */
+.home .hero2-credit{position:absolute;right:14px;top:12px;z-index:2;display:flex;max-width:calc(100% - 28px);white-space:nowrap;
+  font-size:11px;line-height:14px;color:rgba(255,255,255,.6);text-decoration:none}
 /* 작가 이름이 길면 이름만 줄임표로 줄이고 라이선스는 항상 보인다. 전체 문장은 title·aria-label. */
 .home .hero2-credit .by{overflow:hidden;text-overflow:ellipsis;min-width:0}
 .home .hero2-credit .lic{flex:none}
 
 /* ---------- 누름 피드백 (홈). 전역 button:active(.96) 위에 크기별로 덮는다. ---------- */
 .home .iconbtn:active,.home .heart:active{transform:scale(.90)}
-.home .rowitem,.home .card2{transition:transform var(--dur-press) var(--ease-out),background var(--dur-press) var(--ease-out),opacity var(--dur-press) var(--ease-out)}
-.home .rowitem:active,.home .card2:active{transform:scale(.985);background:var(--surface2)}
+.home .hrow{transition:background var(--dur-press) var(--ease-out)}
+.home .hrow:active{transform:none;background:var(--surface2)}
+.home .hero2-hit:active{transform:none}
 @media (hover:hover){
-  .home .rowitem:hover,.home .card2:hover{background:var(--surface2);opacity:1}
-  .home .iconbtn:hover,.home .heart:hover{opacity:.8}
+  .home .hrow:hover{background:var(--surface2)}
+  .home .iconbtn:hover,.home .heart:hover{opacity:.85}
 }
-/* 히어로 사진: 미리 로드해 onload에 opacity 0 → 1. 로드 전에는 .hero2의 var(--surface) 배경이 보인다. */
+/* 히어로 사진: 미리 로드해 onload에 opacity 0 → 1. 로드 전에는 .hero2의 중립 면이 보인다. */
 .home .hero2-photo{opacity:0;transition:opacity var(--dur-move) var(--ease-out)}
 .home .hero2-photo.loaded{opacity:1}
-
-/* 홈 머리: 제목은 시각적으로만 숨기고 국가 시간 칩만 왼쪽에 둔다.
-   900px 미만은 1줄 로고 + 도구, 2줄 칩. 900px 이상은 칩 하나만 왼쪽(히어로 왼쪽 끝과 맞춤). */
-.home .pagehead{position:relative}
-.home .vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-.home .pagehead-tools{display:flex;gap:5px;align-items:center}
-@media(min-width:900px){
-  .home .pagehead{justify-content:flex-start}
-  .home .pagehead-id{display:contents}
-}
-@media(max-width:899px){
-  .home .pagehead{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 12px;align-items:start}
-  .home .pagehead-tools{display:contents}
-  .home .pagehead .mobtools{grid-column:2;grid-row:1}
-  .home .pagehead .clock{grid-column:1 / -1;grid-row:2;justify-self:start}
-}
-
-/* 모바일 홈 머리 락업. 900px 이상은 사이드바 로고가 있어 숨긴다. */
-.home .pagehead-brand{display:block;margin:2px 0 14px;color:var(--text)}
-@media(min-width:900px){ .home .pagehead-brand{display:none} }

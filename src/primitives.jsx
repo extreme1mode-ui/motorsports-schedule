@@ -1,18 +1,15 @@
 import { SERIES } from './schedule/index.js';
+import { useT } from './i18n/index.js';
 
-// bg/surface 계열·line·text3는 src/styles/tokens.css와 같은 값 (QA R1). 값을 바꿀 땐 두 곳을 같이.
-export const TOKENS = {
-  dark: {
-    bg: '#07080B', surface: '#0E1015', surface2: '#14171E', surface3: '#1C2029',
-    line: 'rgba(255,255,255,0.07)', line2: 'rgba(255,255,255,0.13)',
-    text: '#F3F4F6', text2: '#B4B7C0', text3: '#7C818E', grid: 'rgba(255,255,255,0.04)',
-  },
-  light: {
-    bg: '#F2F3F5', surface: '#FFFFFF', surface2: '#F7F8FA', surface3: '#EBEDF1',
-    line: 'rgba(16,18,24,0.09)', line2: 'rgba(16,18,24,0.16)',
-    text: '#17181A', text2: '#5A5B63', text3: '#6A6E78', grid: 'rgba(0,0,0,0.04)',
-  },
+// 색은 src/styles/tokens.css 한 곳에서 온다. 테마는 <html data-theme>가 바꾸므로 dark/light가 같은 변수를 가리킨다.
+// (예전에는 여기 hex를 따로 두어 tokens.css와 본문·보조 글자색이 달랐다.)
+const VARS = {
+  bg: 'var(--bg)', surface: 'var(--surface)', surface2: 'var(--surface2)', surface3: 'var(--surface3)',
+  line: 'var(--line)', line2: 'var(--line2)',
+  text: 'var(--text)', text2: 'var(--text2)', text3: 'var(--text3)', grid: 'var(--grid)',
+  brand: 'var(--brand)', onbrand: 'var(--onbrand)',
 };
+export const TOKENS = { dark: VARS, light: VARS };
 
 // 숫자·영문 라벨용 글꼴. 서체는 Pretendard 하나로 통일하고 숫자만 tnum으로 고정폭을 얻는다.
 // 인라인 스타일에서 같은 문자열을 반복하지 말고 이 상수를 가져다 쓴다.
@@ -21,155 +18,90 @@ export const FONT_DATA = {
   fontFeatureSettings: '"tnum"',
 };
 
-// 대문자 라벨 자간 규칙: 0.1em 이상으로 넘어온 값은 0.08em으로 줄인다.
-function capLetterSpacing(value) {
-  if (typeof value !== 'string') return value;
-  const m = value.match(/^(-?[\d.]+)em$/);
-  return m && Number(m[1]) >= 0.1 ? '0.08em' : value;
-}
-
 // 날짜·시간 표기는 useFormat()(사용자 시간대) 또는 schedule/format.js를 쓴다. KST 고정 래퍼는 제거됨.
 
-export function Mono({ children, size = 14, weight = 500, color, style }) {
+// 숫자 글자. 자간은 더하지 않는다 — 넘어온 양수 자간은 0으로 (AI 티 정리: 대문자 라벨 자간 금지).
+export function Mono({ children, size = 13, weight = 500, color, style }) {
+  const ls = style?.letterSpacing;
+  const positive = typeof ls === 'string' ? parseFloat(ls) > 0 : typeof ls === 'number' && ls > 0;
   return (
     <span style={{
       ...FONT_DATA,
-      fontSize: size, fontWeight: weight, color,
+      fontSize: Math.max(12, size), fontWeight: weight, color,
       fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em',
       ...style,
-      ...(style?.letterSpacing ? { letterSpacing: capLetterSpacing(style.letterSpacing) } : null),
+      ...(positive ? { letterSpacing: 0 } : null),
+      ...(style?.textTransform ? { textTransform: 'none' } : null),
     }}>{children}</span>
   );
 }
 
-export function SeriesTag({ series, theme = 'dark', variant = 'solid' }) {
+// 시리즈 표시: 색 점 하나 + 코드 글자(F1·WEC…). 색만으로 구분하지 않는다. 면·알약·대문자 자간 없음.
+// round를 주면 같은 줄에 'R19'처럼 붙인다. onPhoto(사진 위)는 테마와 무관하게 흰 계조.
+export function SeriesTag({ series, round, onPhoto, size = 13, style }) {
   const s = SERIES[series];
-  if (variant === 'ghost') {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6, flex: 'none',
+      fontSize: size, lineHeight: 1.4, fontWeight: 600,
+      color: onPhoto ? 'rgba(255,255,255,0.88)' : 'var(--text2)', ...FONT_DATA, ...style,
+    }}>
+      <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: s?.accent || 'currentColor', flex: 'none' }} />
+      {s?.short || series}{round ? <span style={{ fontWeight: 500 }}>{round}</span> : null}
+    </span>
+  );
+}
+
+// 시리즈 머리 카드의 빛 한 점(오른쪽 위). 시리즈 색이 면에 닿는 유일한 자리 — 다크 20% · 라이트 11%.
+export function seriesGlow(accent, theme) {
+  return accent ? `radial-gradient(120% 140% at 100% 0%, ${accent}${theme === 'dark' ? '33' : '1C'} 0%, transparent 55%)` : 'none';
+}
+
+// 이벤트 표시(스프린트 주말 등): 글자만. 상자·대문자 없음.
+export function EventBadge({ label, onPhoto }) {
+  if (!label) return null;
+  return <span style={{ fontSize: 12, lineHeight: 1.4, fontWeight: 500, color: onPhoto ? 'rgba(255,255,255,0.75)' : 'var(--text3)', whiteSpace: 'nowrap' }}>{label}</span>;
+}
+
+// 경기 상태: 한국어 글자로. 알약·면·대문자 없음.
+//   종료·취소 = 흐린 글자, 다음 경기 = 본문색 600, 진행 중 = 노랑 점 + 글자(결정 10). 색은 진행 중에만.
+export function StatusPill({ status, onPhoto }) {
+  const tr = useT();
+  const label = { completed: tr('status.done'), cancelled: tr('status.cancelled'), next: tr('status.next'), live: tr('status.live') }[status];
+  if (!label) return null;
+  const base = { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, lineHeight: 1.4, whiteSpace: 'nowrap' };
+  if (status === 'live') {
     return (
-      <span style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        padding: '3px 7px 3px 5px', borderRadius: 4,
-        background: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
-        fontSize: 10, fontWeight: 700, letterSpacing: '0.04em',
-        color: s.accent, textTransform: 'uppercase', ...FONT_DATA,
-      }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.accent }} />
-        {s.short}
+      <span style={{ ...base, fontWeight: 600, color: onPhoto ? '#fff' : 'var(--text)' }}>
+        <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--signal)' }} />{label}
       </span>
     );
   }
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center',
-      padding: '3px 7px', borderRadius: 4,
-      background: s.accent, color: '#fff',
-      fontSize: 10, fontWeight: 800, letterSpacing: '0.04em',
-      textTransform: 'uppercase', ...FONT_DATA,
-    }}>{s.short}</span>
-  );
+  if (status === 'next') return <span style={{ ...base, fontWeight: 600, color: onPhoto ? '#fff' : 'var(--text)' }}>{label}</span>;
+  return <span style={{ ...base, fontWeight: 500, color: onPhoto ? 'rgba(255,255,255,0.75)' : 'var(--text3)' }}>{label}</span>;
 }
 
-export function getRoundDisplay(race, fallbackIndex) {
-  if (race?.roundLabel) return race.roundLabel;
-  const roundNumber = race?.round ?? race?.plannedRound ?? fallbackIndex;
-  if (!Number.isFinite(roundNumber)) return 'TBA';
-  return `R${String(roundNumber).padStart(2, '0')}`;
-}
-
-export function getRoundDescriptor(race, fallbackIndex) {
-  if (race?.roundLabel) {
-    return race?.roundDescriptor || `FEATURE ${race.roundLabel}`;
-  }
-  const roundNumber = race?.round ?? race?.plannedRound ?? fallbackIndex;
-  if (!Number.isFinite(roundNumber)) return 'EVENT';
-  return `ROUND ${String(roundNumber).padStart(2, '0')}`;
-}
-
-export function EventBadge({ label, tone = 'accent', theme = 'dark' }) {
-  const t = TOKENS[theme];
-  const tones = {
-    accent: {
-      background: 'rgba(255,255,255,0.12)',
-      color: theme === 'dark' ? '#fff' : t.text,
-    },
-    endurance: {
-      background: theme === 'dark' ? 'rgba(255,196,77,0.18)' : 'rgba(185,126,12,0.12)',
-      color: theme === 'dark' ? '#FFD36A' : '#8B6200',
-    },
-    neutral: {
-      background: theme === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)',
-      color: t.text2,
-    },
-  };
-  const colors = tones[tone] || tones.accent;
-  return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      padding: '2px 6px',
-      fontSize: 9,
-      fontWeight: 800,
-      letterSpacing: '0.08em',
-      borderRadius: 3,
-      background: colors.background,
-      color: colors.color,
-      ...FONT_DATA,
-      textTransform: 'uppercase',
-    }}>{label}</span>
-  );
-}
-
-export function StatusPill({ status, theme = 'dark' }) {
-  const t = TOKENS[theme];
-  if (status === 'next') return (
-    <span style={{
-      padding: '2px 6px', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
-      borderRadius: 3, background: 'rgba(46,125,255,0.15)', color: '#6BA3FF',
-      ...FONT_DATA, textTransform: 'uppercase',
-    }}>NEXT</span>
-  );
-  if (status === 'live') return (
-    <span style={{
-      padding: '2px 6px', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
-      borderRadius: 3, background: 'rgba(20,209,155,0.16)', color: '#22D77E',
-      ...FONT_DATA, textTransform: 'uppercase',
-    }}>LIVE</span>
-  );
-  if (status === 'cancelled') return (
-    <span style={{
-      padding: '2px 6px', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
-      borderRadius: 3, background: 'rgba(255,77,95,0.15)', color: '#FF6B7A',
-      ...FONT_DATA, textTransform: 'uppercase',
-    }}>CANCELLED</span>
-  );
-  if (status === 'completed') return (
-    <span style={{
-      padding: '2px 6px', fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
-      borderRadius: 3, background: theme === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)',
-      color: t.text3, ...FONT_DATA, textTransform: 'uppercase',
-    }}>DONE</span>
-  );
-  return null;
-}
-
-// 중계처 무료/유료 배지. 색은 TOKENS만 — 무료는 반전(text/bg)으로 눈에 띄게, 유료는 외곽선만.
-export function AccessBadge({ access, theme, label }) {
+// 중계처 무료/유료: 글자만. 무료는 본문색으로 조금 세게, 유료는 흐리게.
+export function AccessBadge({ access, label }) {
   if (!access) return null;
-  const t = TOKENS[theme];
   const free = access === 'free';
-  return (
-    <span style={{
-      flex: 'none', fontSize: 10, fontWeight: 700, lineHeight: 1.4, padding: '1px 6px', borderRadius: 999, letterSpacing: '0.02em',
-      background: free ? t.text : 'transparent', color: free ? t.bg : t.text3, border: `1px solid ${free ? t.text : t.line2}`,
-    }}>{label}</span>
-  );
+  return <span style={{ flex: 'none', fontSize: 13, lineHeight: 1.4, fontWeight: free ? 600 : 500, color: free ? 'var(--text)' : 'var(--text3)' }}>{label}</span>;
 }
 
 // 외부로 나가는 링크 표시(↗). 텍스트 대체는 호출부의 숨김 텍스트로.
-export function ExternalIcon({ color, size = 11 }) {
+export function ExternalIcon({ color = 'currentColor', size = 16 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: 'none' }}>
-      <path d="M7 17L17 7M9 7h8v8" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: 'none' }}>
+      <path d="M14 5h5v5M19 5l-8 8M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" />
+    </svg>
+  );
+}
+
+// 꺾쇠(›). '전체 일정' 같은 이동 링크 뒤에 — 글자 화살표(→) 대신.
+export function Chevron({ size = 16, color = 'currentColor', dir = 'right' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: 'none' }}>
+      <path d={dir === 'left' ? 'M15 6l-6 6 6 6' : 'M9 6l6 6-6 6'} />
     </svg>
   );
 }

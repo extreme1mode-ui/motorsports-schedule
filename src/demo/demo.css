@@ -2,7 +2,7 @@
 .dmc{position:fixed;inset:0;z-index:120;display:flex;align-items:flex-end;justify-content:center}
 .dmc-scrim{position:absolute;inset:0;background:var(--scrim);animation:dmc-fade var(--dur-state) var(--ease-out) both}
 .dmc-panel{position:relative;width:100%;max-width:440px;max-height:calc(100dvh - 40px);overflow:auto;background:var(--surface);color:var(--text);
-  border:1px solid var(--line);border-bottom:0;border-radius:18px 18px 0 0;padding:18px 18px calc(20px + env(safe-area-inset-bottom,0px));
+  border-radius:18px 18px 0 0;padding:18px 18px calc(20px + env(safe-area-inset-bottom,0px));
   animation:dmc-up var(--dur-sheet) var(--ease-out) both;font-family:"Pretendard Variable","Pretendard",-apple-system,"Apple SD Gothic Neo",system-ui,sans-serif}
 @media (min-width:900px){
   .dmc{align-items:center}
@@ -12,30 +12,30 @@
 @keyframes dmc-up{from{transform:translateY(100%)}to{transform:none}}
 .dmc-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 .dmc-lbl{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:4px;background:var(--surface3);color:var(--text2);
-  font-size:9px;font-weight:700;letter-spacing:.08em}
-.dmc-hd h2{margin:8px 0 0;font-size:20px;font-weight:800;letter-spacing:-.02em}
+  font-size:12px;font-weight:600;letter-spacing:0}
+.dmc-hd h2{margin:8px 0 0;font-size:20px;font-weight:700;letter-spacing:-.02em}
 .dmc-x{position:relative;width:44px;height:44px;margin:-4px -6px 0 0;display:grid;place-items:center;border:0;background:none;color:var(--text2);cursor:pointer;flex:none}
 .dmc-x::before{content:"";position:absolute;width:38px;height:38px;border-radius:10px;background:var(--surface2);box-shadow:inset 0 0 0 1px var(--line)}
 .dmc-x svg{position:relative}
-.dmc-sub{margin:6px 0 0;font-size:12.5px;color:var(--text2);line-height:1.55}
+.dmc-sub{margin:6px 0 0;font-size:13px;color:var(--text2);line-height:1.55}
 .dmc-now{display:flex;align-items:flex-start;gap:8px;margin-top:16px;font-feature-settings:"tnum","case"}
 .dmc-now .t{font-size:40px;font-weight:700;letter-spacing:-.02em;line-height:1}
-.dmc-now .z{font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--text3);margin-top:4px}
+.dmc-now .z{font-size:12px;font-weight:600;letter-spacing:0;color:var(--text3);margin-top:4px}
 .dmc-now .d{margin-left:auto;align-self:flex-end;font-size:12px;color:var(--text2)}
-.dmc-list{margin-top:16px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)}
+.dmc-list{margin-top:16px;border-radius:14px;overflow:hidden;background:var(--surface2)}
 .dmc-row{width:100%;min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 16px;
   border:0;border-bottom:1px solid var(--line);background:none;color:var(--text);font-family:inherit;text-align:left;cursor:pointer}
 .dmc-row:last-child{border-bottom:0}
-.dmc-row b{font-size:14px;font-weight:600}
+.dmc-row b{font-size:15px;font-weight:600}
 .dmc-row span{font-size:12px;color:var(--text3);font-feature-settings:"tnum"}
 .dmc-row[aria-current]{background:var(--surface2)}
 .dmc-row[aria-current] b::after{content:"";display:inline-block;width:6px;height:6px;margin:0 0 2px 8px;border-radius:50%;background:var(--signal)}
 .dmc-real{display:block;margin:6px auto 0;min-height:44px;padding:0 10px;border:0;background:none;color:var(--text2);font-family:inherit;
-  font-size:12.5px;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+  font-size:13px;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 /* 홈 시계 칩(데모 빌드): 같은 칩 + DEMO 표시. 누르면 시트. */
 .home .clock--demo{display:inline-flex;align-items:center;gap:6px;background:none;cursor:pointer;position:relative;
   transition:transform var(--dur-press) var(--ease-std)}
 .home .clock--demo::after{content:"";position:absolute;inset:-6px -2px}
 .home .clock--demo:active{transform:scale(.96)}
-.home .clock--demo .dm{display:inline-flex;align-items:center;height:16px;padding:0 5px;margin-right:-4px;border-radius:4px;
-  background:var(--surface3);color:var(--text2);font-size:8.5px;font-weight:700;letter-spacing:.08em}
+.home .clock--demo .dm{display:inline-flex;align-items:center;height:20px;padding:0 5px;margin-right:-4px;border-radius:4px;
+  background:var(--surface3);color:var(--text2);font-size:12px;font-weight:600;letter-spacing:0}

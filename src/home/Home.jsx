@@ -1,5 +1,6 @@
 // 홈 — 반응형 단일 컴포넌트. 레이아웃 분기는 home.css의 900px 미디어쿼리가 한다.
-// 규칙·판정은 design/HOME-SPEC.md, 픽셀·여백·타이포·색은 design/paddock-home.html을 따른다.
+// 규칙·판정은 design/HOME-SPEC.md. 표현은 AI 티 정리(2026-10-29) 기준: 히어로 4층(H1), 큰 숫자는 1시간 안 카운트다운만(H2),
+// 줄마다 색 막대 대신 시리즈 점(K1), 시계 칩·테마 버튼 없음(N2), 가운뎃점 한 줄에 하나(D3), D-day 기준을 말로(D6).
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './home.css';
 import { LightRow } from '../Brand.jsx';
@@ -13,6 +14,7 @@ import { useT } from '../i18n/index.js';
 import { zonedDateFromKey } from '../schedule/format.js';
 import { formatSessionLabel } from '../schedule/utils.js';
 import { getRecommendations } from '../schedule/recommendations.js';
+import { Group, MoreLink } from '../ui.jsx';
 import { getHighlights, getHighlightNote, getRaceWeight } from '../schedule/highlights.js';
 import { track } from '../analytics.js';
 import { prefetchRacePhoto, prefetchHandlers, useVisiblePrefetch } from '../photo-prefetch.js';
@@ -26,6 +28,7 @@ import { IS_TOSS } from '../platform.js';
 
 const ORDER = ['F1', 'WEC', 'IMSA', 'GTWC', 'WRC'];
 const SERIES_VAR = { F1: '--f1', WEC: '--wec', IMSA: '--imsa', WRC: '--wrc', GTWC: '--gtwc' };
+const HOUR_MS = 3600000;
 
 // ---------- 작은 순수 헬퍼 ----------
 const modeOf = (preferences, series) => preferences?.series?.[series] || 'off';
@@ -42,17 +45,22 @@ function josa(word, withBatchim, noBatchim) {
   return (c - 0xac00) % 28 ? withBatchim : noBatchim;
 }
 
+// 라운드 코드 'R19'(0을 채우지 않는다). 라운드가 없으면 데이터 라벨 그대로(대문자로 바꾸지 않는다), 그것도 없으면 비운다.
 function roundText(ev) {
-  if (ev.label && !ev.round) return String(ev.label).toUpperCase();
   const r = ev.round || ev.plannedRound;
-  return r ? `R${String(r).padStart(2, '0')}` : 'EVENT';
+  if (r) return `R${r}`;
+  return ev.label ? String(ev.label) : '';
+}
+// 문장 속 라운드: '19라운드'
+function roundWords(ev, t) {
+  const r = ev.round || ev.plannedRound;
+  if (r) return t('round.n', { n: r });
+  return ev.label ? String(ev.label) : '';
 }
 
 // 시청자 시간대 기준 '09.26' / '토' — format.getParts에서 직접 (문자열 슬라이싱 금지)
 const md = (fmt, date) => fmt.monthDayShort(date);                 // '09.26' / en 'Sep 26'
 const dow = (fmt, date) => fmt.parts(date)?.weekdayName || '';
-// 리스트 행 요일: ko '토' / en '(Sat)' — 영어는 'Oct 3 (Sat)' 꼴
-const dowInList = (fmt, date) => { const w = dow(fmt, date); return fmt.locale === 'ko' ? w : `(${w})`; };
 
 function heroReason(ev, ts, kind, now, fmt, t, phase) {
   // 주말 진행 상황이 먼저다. 본경기 시작 시각만 보면 연습·예선이 달리는 중에도 'D-2'가 뜬다.
@@ -87,19 +95,27 @@ function heroReason(ev, ts, kind, now, fmt, t, phase) {
     return { text: `${fmt.isNight(ts.start) ? t('home.tonight') : t('home.today')} · ${h >= 1 ? t('home.startsInHours', { h }) : t('home.startsInMinutes', { m })}`, urgent: true, lit: 5 };
   }
   if (kind === 'today') return { text: t('home.reason.today'), urgent: false, lit: 5 };
-  // D-day: 시작 시각이 있으면 시청자 시간대의 날짜 차이, 없으면 서킷 현지 주말 마지막 날 기준
+  // D-day: 시작 시각이 있으면 시청자 시간대의 날짜 차이, 없으면 서킷 현지 주말 마지막 날 기준.
+  // 무엇까지인지 말로 붙인다(D6): '결승까지 6일' — 시각이 없으면 '다음 레이스 · 6일 후'.
   const ref = ts.start || zonedDateFromKey(ev.weekendEnd, '12:00', ev.timezone || 'UTC');
   const d = Math.max(0, fmt.dayDiff(ref, now) ?? 0);
-  return { text: t('home.reason.weekend', { d }), urgent: false, lit: Math.max(0, Math.min(5, 5 - d)) };
+  const lit = Math.max(0, Math.min(5, 5 - d));
+  const what = ts.start && ev.primarySession ? fmt.sessionLabel(ev.primarySession) : '';
+  if (what) return { text: d === 0 ? t('home.reason.untilToday', { label: what }) : t('home.reason.until', { label: what, d }), urgent: false, lit };
+  return { text: d === 0 ? t('home.reason.weekendToday') : t('home.reason.weekend', { d }), urgent: false, lit };
 }
 
-function heroClock(ev, ts, kind, fmt, t) {
+// 히어로 시각 줄. 날짜·시각은 문장 크기(20)로, 큰 숫자(40)는 시작 1시간 안 카운트다운에만 쓴다(H2).
+//   big: 굵은 한 줄, countdown: 카운트다운 대상(있으면 big 대신), note: 옆에 붙는 설명('결승 · 새벽').
+function heroClock(ev, ts, kind, now, fmt, t) {
   const st = ts.start;
-  if (kind === 'live') return { big: 'LIVE', urgent: true, sub: t('home.clock.live') };
-  if (kind === 'soon') return { big: null, countdown: st, urgent: true, sub: `${fmt.shortDateTime(st)}${fmt.isNight(st) ? ` · ${t('home.night')}` : ''}` };
+  const night = st && fmt.isNight(st) ? t('home.night') : null;
+  const what = ev.primarySession ? fmt.sessionLabel(ev.primarySession) : '';
+  if (kind === 'live') return { big: t('home.clock.live'), live: true, note: what || null };
+  if (kind === 'soon' && st - now <= HOUR_MS) return { countdown: st, note: [fmt.shortDateTime(st), night].filter(Boolean).join(' · ') };
   // 주말 기간은 이벤트 고유 정보 — 서킷 현지 날짜 그대로
-  if (kind === 'today' || !st) return { big: `${fmt.plainMonthDay(ev.weekendStart)} – ${fmt.plainMonthDay(ev.weekendEnd)}`, urgent: false, sub: t('home.clock.tba') };
-  return { big: md(fmt, st), urgent: false, sub: `${t('home.weekdayTime', { weekday: dow(fmt, st), time: fmt.time(st) })}${fmt.isNight(st) ? ` · ${t('home.night')}` : ''}` };
+  if (kind === 'today' || !st) return { big: `${fmt.plainMonthDay(ev.weekendStart)} – ${fmt.plainMonthDay(ev.weekendEnd)}`, note: t('home.clock.tba') };
+  return { big: fmt.shortDateTime(st), soon: kind === 'soon', note: [what, night].filter(Boolean).join(' · ') || null };
 }
 
 // 히어로 큐레이션 줄. heroReason(시간·주말 진행 상태)이 못 담는 '왜 하필 이 경기인가'를 한 줄로 붙인다.
@@ -126,11 +142,11 @@ function HeroPhoto({ url, pos }) {
 function HeartButton({ on, label, onClick }) {
   const [popClass, onAnimationEnd] = usePop(on);
   return (
-    <button type="button" className={`heart${on ? ' on' : ''}`} aria-label={label} onClick={onClick}>
+    <button type="button" className={`heart${on ? ' on' : ''}`} aria-label={label} aria-pressed={on} onClick={onClick}>
       <span className={`heart-ic${popClass}`} onAnimationEnd={onAnimationEnd} style={{ display: 'grid', placeItems: 'center' }}>
         {on
-          ? <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
-          : <Icon name="heart" size={16} />}
+          ? <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
+          : <Icon name="heart" size={24} />}
       </span>
     </button>
   );
@@ -173,78 +189,75 @@ function Icon({ name, size = 17 }) {
     heart: <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />,
   };
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {paths[name]}
     </svg>
   );
 }
 
-function SeriesBadge({ series }) {
-  return <span className="sbadge"><i style={{ background: `var(${SERIES_VAR[series]})` }} />{series}</span>;
+// 시리즈 표시: 8px 점 + 코드(+ 라운드) 한 번. 예전 막대·대문자·자간 없음.
+function SeriesBadge({ series, round }) {
+  return <span className="sbadge"><i style={{ background: `var(${SERIES_VAR[series]})` }} />{series}{round ? ` ${round}` : ''}</span>;
 }
 
-function TimeStat({ ts, dateless }) {
+// 줄 오른쪽: 시각(17/600) + 아래 12px 한 줄(상태·'새벽'·날짜). 예전 LIVE 노랑 알약·'심야' 상자 대신 글자.
+function TimeStat({ ts, withDate }) {
   const fmt = useFormat();
   const t = useT();
   const { state, start } = ts;
-  if (state === 'cancelled') return <span className="time time--cancelled">{t('time.cancelled')}</span>;
-  if (state === 'live') return <span className="time time--live">LIVE</span>;
-  if (state === 'tba') return <span className="time time--tba">{t('time.tba')}</span>;
-  if (state === 'done') return <span className="time time--done">{t('time.done')}</span>;
+  const sub = (txt, cls = '') => <span className={`time-sub${cls}`}>{txt}</span>;
+  if (state === 'cancelled') return <span className="time-col"><span className="time time--tba">{t('time.tba')}</span>{sub(t('time.cancelled'))}</span>;
+  if (state === 'tba') return <span className="time-col"><span className="time time--tba">{t('time.tba')}</span></span>;
+  const live = state === 'live';
   return (
-    <span className={`time${state === 'soon' ? ' time--soon' : ''}`}>
-      {fmt.isNight(start) && <span className="nightmark">{t('home.night')}</span>}
-      {dateless ? '' : `${fmt.shortDate(start)} `}{fmt.time(start)}
+    <span className="time-col">
+      <span className={`time${state === 'soon' ? ' time--soon' : ''}`}>{fmt.time(start)}</span>
+      {live && sub(<><i className="livedot" />{t('home.clock.live')}</>, ' time-sub--live')}
+      {state === 'done' && sub(t('time.done'))}
+      {!live && state !== 'done' && (withDate ? sub(fmt.shortDate(start)) : fmt.isNight(start) ? sub(t('home.night')) : null)}
     </span>
   );
 }
 
+// 같은 주말 줄 / 새로 볼만한 것 줄: 이름 · '● F1 R19 · 서킷' · 중계 한 줄 …… 시각 + 날짜.
 function Card2({ ev, ts, onOpen, small, idx }) {
   const fmt = useFormat();
+  const t = useT();
+  const chans = fmt.broadcast(ev.broadcast).map((b) => b.name);
   return (
-    <button type="button" className="card2" data-prefetch-index={idx} {...prefetchHandlers(ev.race)} style={small ? undefined : { marginTop: 0 }} onClick={() => onOpen(ev.race)}>
-      <span className="ind" style={{ background: `var(${SERIES_VAR[ev.series]})` }} />
-      <span style={{ minWidth: 0 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><SeriesBadge series={ev.series} /><span className="rnd">{roundText(ev)}</span></span>
-        <span className="ttl ko" style={{ display: 'block', fontSize: small ? 14 : undefined }}>{ev.displayName}</span>
-        <span className="sub ko" style={{ display: 'block' }}>
+    <button type="button" className="g-row g-tap hrow hrow--card" data-prefetch-index={idx} {...prefetchHandlers(ev.race)} onClick={() => onOpen(ev.race)}>
+      <span className="main">
+        <span className="nm ko">{ev.displayName}</span>
+        <span className="meta ko"><SeriesBadge series={ev.series} round={roundText(ev)} />
           {small
-            ? `${ev.city || ''} · ${fmt.plainShortDate(ev.weekendStart)} — ${fmt.plainShortDate(ev.weekendEnd)}`
-            : ev.circuit || ''}
+            ? ` · ${[ev.city, `${fmt.plainShortDate(ev.weekendStart)} – ${fmt.plainShortDate(ev.weekendEnd)}`].filter(Boolean).join(', ')}`
+            : ev.circuit ? ` · ${ev.circuit}` : ''}
         </span>
+        {!small && chans.length > 0 && <span className="cap ko">{t('home.broadcastOn', { channels: chans.join(', ') })}</span>}
       </span>
-      {!small && (
-        <span className="side">
-          <TimeStat ts={ts} />
-          <span style={{ fontSize: 10.5, color: 'var(--text3)' }}>{fmt.broadcast(ev.broadcast)[0]?.name || ''}</span>
-        </span>
-      )}
+      {!small && <TimeStat ts={ts} withDate />}
     </button>
   );
 }
 
+// 이후 일정 줄: 날짜 칸(11.08 / 일) · 이름 + '● WEC R8' …… 시각 + '새벽'.
 function Row({ ev, ts, dim, idx, onOpen }) {
   const fmt = useFormat();
   const d = dateOf(ev);
   return (
-    <button type="button" className={`rowitem${dim ? ' dim' : ''}`} data-prefetch-index={idx} {...prefetchHandlers(ev.race)} onClick={() => onOpen(ev.race)}>
-      <span className="dt">{md(fmt, d)} <em>{dowInList(fmt, d)}</em></span>
-      <span className="ind" style={{ background: `var(${SERIES_VAR[ev.series]})` }} />
-      <span className="nm ko">{ev.displayName}</span>
-      <span className="side"><span className="rd">{ev.series} {roundText(ev)}</span><TimeStat ts={ts} dateless /></span>
+    <button type="button" className={`g-row g-tap hrow${dim ? ' g-dim' : ''}`} data-prefetch-index={idx} {...prefetchHandlers(ev.race)} onClick={() => onOpen(ev.race)}>
+      <span className="dt">{md(fmt, d)}<small>{dow(fmt, d)}</small></span>
+      <span className="main">
+        <span className="nm ko">{ev.displayName}</span>
+        <span className="meta"><SeriesBadge series={ev.series} round={roundText(ev)} /></span>
+      </span>
+      <TimeStat ts={ts} />
     </button>
   );
 }
 
 // ---------- 홈 본체 ----------
-// 토스 홈 머리 한 줄 배치. home.css의 모바일 2줄 그리드(.pagehead grid, .pagehead-tools contents)를 인라인으로 덮는다.
-const TOSS_HEAD = {
-  row: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
-  brand: { margin: 0 },
-  tools: { display: 'flex' },
-};
-
-function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites, toggleFav, onOpenRace, onGo, setSeriesMode }) {
+function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOpenRace, onGo, setSeriesMode }) {
   const alerts = useAlarms();   // 상세에서 담아도 히어로가 바로 '담음'이 된다 (alarm.js가 알린다)
   const [, setExpiredTick] = useState(0);
   const onExpire = useCallback(() => setExpiredTick((n) => n + 1), []);
@@ -329,22 +342,19 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
 
   return (
     <div className="home">
-      {/* 토스: 테마 버튼이 없어 남는 자리에 칩을 올려 한 줄로 둔다 — 왼쪽 로고, 오른쪽 국가 시간 칩·설정, 세로 가운데. */}
-      <div className="pagehead" style={IS_TOSS ? TOSS_HEAD.row : undefined}>
+      <div className="pagehead">
         <div className="pagehead-id">
           {/* 모바일에서만. 데스크톱은 사이드바에 로고가 있다. */}
-          <span className="pagehead-brand" style={IS_TOSS ? TOSS_HEAD.brand : undefined}><GantryLockup height={11} /></span>
+          <span className="pagehead-brand"><GantryLockup height={14} /></span>
           {/* 제목은 화면에서만 숨긴다 — 화면 전환 포커스(data-view-title)와 화면 낭독기가 쓴다. */}
           <h1 className="ko vh" data-view-title tabIndex={-1} >{t('home.title')}</h1>
         </div>
-        <div className="pagehead-tools" style={IS_TOSS ? TOSS_HEAD.tools : undefined}>
-          {demoClock.enabled
-            // 데모 빌드: 시계 칩이 데모 시계 시트를 연다.
-            ? <button type="button" className="clock m clock--demo" aria-label={t('demo.open')} onClick={openDemoClock}>{fmt.zoneLabel} <Clock /><span className="dm">{t('demo.badge')}</span></button>
-            : <span className="clock m">{fmt.zoneLabel} <Clock /></span>}
+        <div className="pagehead-tools">
+          {/* 시계 칩은 없앴다(N2) — 시간 기준은 일정 제목 아래 한 줄. 데모 빌드에서만 데모 시계 시트를 여는 버튼이 남는다. */}
+          {demoClock.enabled && <button type="button" className="clock clock--demo" aria-label={t('demo.open')} onClick={openDemoClock}>{fmt.zoneLabel} <Clock /><span className="dm">{t('demo.badge')}</span></button>}
+          {/* 테마 버튼은 설정으로 옮겼다(K5). */}
           <div className="mobtools">
-            <button type="button" className="iconbtn" aria-label={t('nav.settings')} onClick={() => onGo('settings')}><Icon name="sliders" /></button>
-            {!IS_TOSS && <button type="button" className="iconbtn" aria-label={t('theme.toggle')} onClick={() => setTheme?.(theme === 'dark' ? 'light' : 'dark')}><Icon name={theme === 'dark' ? 'sun' : 'moon'} /></button>}
+            <button type="button" className="iconbtn" aria-label={t('nav.settings')} onClick={() => onGo('settings')}><Icon name="sliders" size={24} /></button>
           </div>
         </div>
       </div>
@@ -355,16 +365,21 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
         const reason = heroReason(hero, hts, kind, at, fmt, t, phase);
         const curation = heroCuration(hero.race, fmt.locale, t);
         const openHero = () => onOpenRace(hero.race, 'home', { hero_phase: phase.phase, hero_curation: curation?.kind ?? null });
-        const clock = heroClock(hero, hts, kind, fmt, t);
+        const clock = heroClock(hero, hts, kind, at, fmt, t);
         const bcast = fmt.broadcast(hero.broadcast);
         const chans = bcast.map((b) => b.name);
         const urgent = kind === 'live' || kind === 'soon';
         const faved = favorites?.has(hero.id);
         const alertOn = alerts.has(hero.id);
         const credit = photoCredit(hero);
+        const title = hero.fullName || hero.displayName;
+        // 영문 공식명(스폰서 포함)은 영어 화면에서만 부제로 둔다 — 한국어 화면에서는 같은 경기를 두 번 쓰는 셈이다(H1).
+        const official = fmt.locale !== 'ko' && hero.officialName && hero.officialName !== title ? hero.officialName : null;
         return (
           <section className="hero2">
             <HeroPhoto url={photo(hero, 'hero')} pos={photoPos(hero)} />
+            {/* 히어로 전체가 상세로 가는 버튼이다('상세' 링크 대신, H1). 안쪽 버튼·링크는 이 위에 따로 눌린다. */}
+            <button type="button" className="hero2-hit" aria-label={t('home.openDetail', { name: title })} onClick={openHero} />
             {credit && (
               <a className="hero2-credit" href={credit.url} target="_blank" rel="noopener noreferrer" title={t('photo.credit', credit)} aria-label={t('photo.credit', credit)}>
                 <span className="by">{t('photo.by', credit)}</span><span className="lic">&nbsp;· {credit.license}</span>
@@ -372,34 +387,36 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
             )}
             <div className="hero2-wrap">
               <div className="hero2-left">
-                <span className={`hero2-reason${reason.urgent ? '' : ' calm'}`}><LightRow lit={reason.lit} tone={reason.urgent ? 'signal' : 'default'} size={5} gap={3} />{reason.text}</span>
-                {/* 발견 카드의 이유 줄과 같은 치수. 색만 사진 위 흰 글자 계조(.hero2-official/.hero2-chans와 동일). */}
-                {curation && <div className="ko" style={{ marginTop: 8, fontSize: 11.5, color: 'rgba(255,255,255,0.62)', lineHeight: 1.45 }}>{curation.text}</div>}
-                <div className="hero2-meta">
-                  <SeriesBadge series={hero.series} /><span className="rnd">{roundText(hero)}</span>
-                  {hero.isSprint && <span className="tagpill">{t('home.sprintWeekend')}</span>}
+                {/* ① 신호등 줄 + 이유 한 줄 (알약 없음). 노랑은 진행 중·24시간 안일 때만(K3). */}
+                <div className={`hero2-reason${reason.urgent ? ' urgent' : ''}`}><LightRow lit={reason.lit} tone={reason.urgent ? 'signal' : 'default'} size={6} gap={3} />{reason.text}</div>
+                {curation && <div className="hero2-curation ko">{curation.text}</div>}
+                {/* ② 제목 */}
+                <h2 className="hero2-title ko">{title}</h2>
+                {official && <div className="hero2-official">{official}</div>}
+                {/* ③ '● F1 19라운드' + 서킷 */}
+                <div className="hero2-place ko">
+                  <span className="sbadge"><i style={{ background: `var(${SERIES_VAR[hero.series]})` }} />{[hero.series, roundWords(hero, t)].filter(Boolean).join(' ')}</span>
+                  {hero.isSprint && <span className="hero2-tag">{t('home.sprintWeekend')}</span>}
+                  <span className="hero2-circuit">{[hero.circuit, hero.city].filter(Boolean).join(', ')}</span>
                 </div>
-                <h2 className="hero2-title ko">{hero.fullName || hero.displayName}</h2>
-                {hero.officialName && hero.officialName !== (hero.fullName || hero.displayName) && <div className="hero2-official">{hero.officialName}</div>}
-                <div className="hero2-place ko">{hero.circuit || ''}{hero.city ? ` · ${hero.city}` : ''}{hero.country ? `, ${hero.country}` : ''}</div>
               </div>
               <div className="hero2-right">
-                <div className={`hero2-clock${clock.urgent ? ' urgent' : ''}`}>
-                  {clock.countdown ? <Countdown target={clock.countdown} onExpire={onExpire} /> : clock.big}
+                {/* ④ 시각 + 행동 + 중계 */}
+                <div className={`hero2-time${clock.countdown ? ' hero2-time--count' : ''}${clock.live || clock.countdown || clock.soon ? ' urgent' : ''}`}>
+                  <b>{clock.countdown ? <Countdown target={clock.countdown} onExpire={onExpire} /> : <>{clock.live && <i className="livedot" />}{clock.big}</>}</b>
+                  {clock.note && <span className="ko">{clock.note}</span>}
                 </div>
-                <div className="hero2-when ko">{clock.sub}</div>
                 <div className="hero2-act">
                   {urgent && chans.length
                     ? (bcast[0].url
-                      // "○○로 보기"는 중계처 랜딩으로 바로 나간다 (새 탭). 클릭 계측은 onClick, 이동은 브라우저 기본 동작.
+                      // "○○에서 보기"는 중계처 랜딩으로 바로 나간다 (새 탭). 클릭 계측은 onClick, 이동은 브라우저 기본 동작.
                       ? <a className="cta" href={bcast[0].url} target="_blank" rel="noopener noreferrer" onClick={() => track('broadcast_clicked', { name: bcast[0].name, region: bcast[0].region, access: bcast[0].access, series: hero.series, source: 'home' })}>{t('home.watchOn', { channel: chans[0] })}</a>
                       : <button type="button" className="cta" onClick={openHero}>{t('home.watchOn', { channel: chans[0] })}</button>)
                     // 토스 빌드는 캘린더 알림을 쓰지 않는다 — 자리에 다른 버튼을 넣지 않는다.
-                    : !IS_TOSS && <button type="button" className="cta" onClick={() => toggleAlert(hero)}>{alertOn ? t('home.alertOn') : t('home.alertSet')}</button>}
+                    : !IS_TOSS && <button type="button" className="cta" aria-pressed={alertOn} onClick={() => toggleAlert(hero)}>{alertOn ? t('home.alertOn') : t('home.alertSet')}</button>}
                   <HeartButton on={!!faved} label={t('aria.save')} onClick={() => toggleFav?.(hero.id)} />
-                  <button type="button" className="linkbtn" onClick={openHero}>{t('home.detail')}</button>
                 </div>
-                {chans.length > 0 && <div className="hero2-chans">{chans.join(' · ')}</div>}
+                {chans.length > 0 && <div className="hero2-chans ko">{t('home.broadcastOn', { channels: chans.join(', ') })}</div>}
               </div>
               {/* 현장 줄: '현장에 가요'를 켠 지도 있는 경기, 주말 동안만 */}
               {!IS_TOSS && <HeroSiteRow race={hero.race} now={now} />}
@@ -407,25 +424,26 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
           </section>
         );
       })() : (
-        <div className="empty">
+        <Group className="g-group empty">
           <h3 className="ko">{t('home.empty.title')}</h3>
           <p className="ko">{t('home.empty.body')}</p>
-          <button type="button" className="cta ghost" style={{ maxWidth: 220, margin: '14px auto 0' }} onClick={() => onGo('schedule')}>{t('home.empty.cta')}</button>
-        </div>
+          <button type="button" className="btn2" onClick={() => onGo('schedule')}>{t('home.empty.cta')}</button>
+        </Group>
       )}
 
       {mates.length > 0 && (
         <>
-          <div className="sechead"><h2 className="ko">{t('home.sameWeekend')}</h2><span className="meta">{t('home.raceCount', { n: mates.length })}</span></div>
-          {mates.map((ev, i) => <Card2 key={ev.id} ev={ev} idx={i} ts={ts(ev)} onOpen={onOpenRace} />)}
+          <div className="sechead"><h2 className="ko">{t('home.sameWeekend')}</h2></div>
+          <Group>{mates.map((ev, i) => <Card2 key={ev.id} ev={ev} idx={i} ts={ts(ev)} onOpen={onOpenRace} />)}</Group>
         </>
       )}
 
       {later.length > 0 && (
         <>
-          <div className="sechead"><h2 className="ko">{t('home.upNext')}</h2><button type="button" className="lnk" onClick={() => onGo('schedule')}>{t('schedule.viewAll')}</button></div>
-          <div className="rows" ref={rowsRef}>
-            {later.map((ev, i) => <Row key={ev.id} ev={ev} idx={i} ts={ts(ev)} dim={interest(ev) === 0} onOpen={onOpenRace} />)}
+          <div className="sechead"><h2 className="ko">{t('home.upNext')}</h2><MoreLink onClick={() => onGo('schedule')}>{t('schedule.viewAll')}</MoreLink></div>
+          {/* 구분선은 이름 시작점(16 + 날짜 칸 52 + 간격 12 = 80)부터 */}
+          <div ref={rowsRef}>
+            <Group inset={80}>{later.map((ev, i) => <Row key={ev.id} ev={ev} idx={i} ts={ts(ev)} dim={interest(ev) === 0} onOpen={onOpenRace} />)}</Group>
           </div>
         </>
       )}
@@ -433,17 +451,13 @@ function HomeView({ theme, setTheme, now, races, myRaces, preferences, favorites
       {disc && (
         <>
           <div className="sechead"><h2 className="ko">{t('home.discover')}</h2></div>
-          <div className="panel">
+          <Group className="g-group panel">
             <h3 className="ko">{t('home.discover.title', { name: t(`series.${discSeries}.name`), josa: josa(t(`series.${discSeries}.name`), '은', '는') })}</h3>
             <p className="ko">{t('home.discover.body', { desc: t(SERIES_DESCRIPTION_KEYS[discSeries]) })}</p>
-            <Card2 ev={disc} ts={ts(disc)} onOpen={openDiscover} small />
-            {discReasons.length > 0 && (
-              <div className="ko" style={{ marginTop: 8, fontSize: 11.5, color: 'var(--text3)', lineHeight: 1.45 }}>
-                {discReasons.join(' · ')}
-              </div>
-            )}
-            <button type="button" className="cta ghost" style={{ marginTop: 11 }} onClick={() => { track('series_mode_changed', { series: discSeries, from: modeOf(preferences, discSeries), to: 'race' }); setSeriesMode?.(discSeries, 'race'); }}>{t('home.discover.add', { series: discSeries })}</button>
-          </div>
+            <div className="panel-pick"><Card2 ev={disc} ts={ts(disc)} onOpen={openDiscover} small /></div>
+            {discReasons.length > 0 && <div className="panel-why ko">{discReasons.join(', ')}</div>}
+            <button type="button" className="btn2" onClick={() => { track('series_mode_changed', { series: discSeries, from: modeOf(preferences, discSeries), to: 'race' }); setSeriesMode?.(discSeries, 'race'); }}>{t('home.discover.add', { series: discSeries })}</button>
+          </Group>
         </>
       )}
     </div>

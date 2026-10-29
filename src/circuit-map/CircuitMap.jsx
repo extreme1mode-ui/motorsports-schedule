@@ -1,5 +1,5 @@
 // 라이브 서킷 맵 — 한 경기의 전체 화면 모드. 탭이 아니다.
-//   진입: 경기 상세의 '현장 · ON SITE' 카드, 홈 히어로 아래 현장 줄('현장에 가요'를 켠 경기, 주말 동안만).
+//   진입: 경기 상세의 '현장' 카드, 홈 히어로 아래 현장 줄('현장에 가요'를 켠 경기, 주말 동안만).
 //   나가기: 뒤로 버튼(모바일 캡슐 왼쪽 / 데스크톱 패널 맨 위) · Esc(지도 안 레이어가 없을 때) · 브라우저 뒤로.
 //   나오면 들어오기 직전 화면 그대로(상세·스크롤 유지), 포커스는 누른 버튼으로.
 // 시계·테마는 앱 것 하나를 같이 쓴다. 지도 상태는 storage.circuitMap(레지스트리)에만 저장한다.
@@ -191,7 +191,7 @@ function useMapPreload(show, venueId) {
 // 버튼에 포인터·포커스가 닿는 순간에도 받는다 — 누를 때는 대개 이미 와 있다.
 const preloadOn = (venueId) => ({ onPointerEnter: () => preloadMapChunk(venueId), onFocus: () => preloadMapChunk(venueId) });
 
-// ---------- 진입점 1: 경기 상세의 '현장 · ON SITE' 카드 ----------
+// ---------- 진입점 1: 경기 상세의 '현장' 카드 ----------
 export function CircuitMapSection({ race, variant = 'sheet' }) {
   const ctx = useCircuitMap();
   const tr = useT();
@@ -203,7 +203,7 @@ export function CircuitMapSection({ race, variant = 'sheet' }) {
   const tk = ctx.ticketOf(race);
   return (
     <section className={`cme cme--${variant}`}>
-      <span className="cme-lbl">{tr('cm.section')}</span>
+      <h2 className="cme-lbl">{tr('cm.section')}</h2>
       <div className="cme-card">
         <div className="cme-top">
           <MiniCircuit mini={v.mini} />

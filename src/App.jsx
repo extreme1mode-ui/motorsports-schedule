@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { getCurrentNow, useScheduleData, usePreferences, filterRacesByPreferences } from './schedule/index.js';
-import { TOKENS, Mono, FONT_DATA } from './primitives.jsx';
+import { TOKENS } from './primitives.jsx';
 import { Home } from './home/Home.jsx';
 import { Schedule, SeriesView, Favorites, RaceDetail } from './screens.jsx';
 import { WebApp, useViewport } from './web.jsx';
 import { Onboarding } from './onboarding.jsx';
 import { Settings } from './settings.jsx';
-import { readTheme } from './preferences-options.js';
+import { readTheme, systemTheme } from './preferences-options.js';
 import { FormatProvider } from './format-context.jsx';
 import { t, useT } from './i18n/index.js';
 import { track, getDaysSinceFirstVisit, recordFirstTouch, firstTouchProps } from './analytics.js';
@@ -22,11 +22,23 @@ import { IS_TOSS, launchParam, clearLaunchParam, useSystemBack } from './platfor
 export default function Root() {
   const prefs = usePreferences();
   const { isWeb } = useViewport();
-  // 테마는 여기서만 관리한다. 저장 키 paddock.theme, 초기값 readTheme()는 기존 그대로.
-  const [theme, setTheme] = useState(readTheme);
+  // 테마는 여기서만 관리한다. 저장 키 gantry.theme(예전 paddock.theme에서 이어받음 — readTheme).
+  // themePref = 사용자가 고른 값('system' | 'dark' | 'light', 처음에는 system), theme = 지금 그리는 값('dark' | 'light').
+  const [themePref, setThemePref] = useState(readTheme);
+  const [sysTheme, setSysTheme] = useState(systemTheme);
   useEffect(() => {
-    storage.theme.write(theme);
+    let mq;
+    try { mq = window.matchMedia('(prefers-color-scheme: light)'); } catch { return undefined; }
+    const on = () => setSysTheme(mq.matches ? 'light' : 'dark');
+    mq.addEventListener?.('change', on);
+    return () => mq.removeEventListener?.('change', on);
+  }, []);
+  const theme = themePref === 'system' ? sysTheme : themePref;
+  // 고른 값만 저장한다(처음 뜰 때는 쓰지 않는다). 지도·설정이 'system'/'dark'/'light'를 직접 넘긴다.
+  const setTheme = useCallback((v) => { setThemePref(v); storage.theme.write(v); }, []);
+  useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', theme === 'light' ? '#F2F3F5' : '#07080B'));
   }, [theme]);
   // index.html의 lang/title은 한국어 기본값(검색용). 앱이 뜨면 사용자 locale로 바꾼다.
   // 경기 상세가 걸려 있는 동안은 경기 제목이 이긴다(document-title.js).
@@ -55,8 +67,8 @@ export default function Root() {
   const screen = !prefs.preferences.onboarded && !shareFirst
     ? <Onboarding {...prefs} />
     : isWeb && !IS_TOSS   // 토스는 화면 폭과 상관없이 모바일 셸
-      ? <WebApp theme={theme} setTheme={setTheme} onShareLinkDone={onShareLinkDone} {...prefs} />
-      : <App theme={theme} setTheme={setTheme} onShareLinkDone={onShareLinkDone} {...prefs} />;
+      ? <WebApp theme={theme} setTheme={setTheme} themePref={themePref} onShareLinkDone={onShareLinkDone} {...prefs} />
+      : <App theme={theme} setTheme={setTheme} themePref={themePref} onShareLinkDone={onShareLinkDone} {...prefs} />;
   return (
     <FormatProvider locale={prefs.preferences.locale} timeZone={prefs.preferences.timezone} country={prefs.preferences.country}>
       {/* 서킷 맵 레이어는 모바일·웹 셸 바깥에 둔다 — 창 크기로 셸이 바뀌어도 지도와 상태가 유지된다.
@@ -71,7 +83,7 @@ export default function Root() {
   );
 }
 
-function App({ theme, setTheme, onShareLinkDone, ...prefs }) {
+function App({ theme, setTheme, themePref, onShareLinkDone, ...prefs }) {
   const { preferences } = prefs;
   // 토스: ?tab=schedule로 들어오면 일정 탭에서 시작한다(콘솔 '주요 기능' 주소). 온보딩 뒤에 이 셸이 처음 뜰 때 읽는다.
   const [view, setView] = useState(() => (IS_TOSS && launchParam('tab') === 'schedule' ? 'schedule' : 'home'));
@@ -152,7 +164,6 @@ function App({ theme, setTheme, onShareLinkDone, ...prefs }) {
     else if (backTarget === 'home') onGo('home');
   });
 
-  const t = TOKENS[theme];
   const mobileBottomNavSpace = 'calc(92px + env(safe-area-inset-bottom, 0px))';
 
   return (
@@ -161,7 +172,7 @@ function App({ theme, setTheme, onShareLinkDone, ...prefs }) {
       width: '100%',
       height: '100dvh',
       overflow: 'hidden',
-      background: t.bg,
+      background: 'var(--bg)',
       paddingTop: IS_TOSS ? 0 : 'env(safe-area-inset-top, 0px)',   // 토스: 내비게이션 바가 상태 표시줄 자리를 맡는다
     }}>
       {/* Scrollable content area — sits inside the fixed-height App shell */}
@@ -175,21 +186,22 @@ function App({ theme, setTheme, onShareLinkDone, ...prefs }) {
         {view === 'schedule' && <Schedule theme={theme} races={raceList} onOpenRace={openFromSchedule} now={now} seasonYear={safeSeasonYear} />}
         {view === 'series' && <SeriesView theme={theme} races={raceList} onOpenRace={openFromSeries} initialCategory={categoryFilter || 'F1'} seasonYear={safeSeasonYear} />}
         {view === 'fav' && <Favorites theme={theme} races={raceList} myRaces={myRaces} favorites={favorites} onOpenRace={openFromSaved} toggleFav={toggleFav} />}
-        {view === 'settings' && <Settings theme={theme} onGo={onGo} {...prefs} />}
+        {view === 'settings' && <Settings theme={theme} themePref={themePref} setTheme={setTheme} onGo={onGo} {...prefs} />}
       </div>
 
       {/* Overlays and chrome are outside the scroll wrapper so they stay fixed */}
       {detail.mounted && shownRace && <RaceDetail race={shownRace} theme={theme} onClose={() => setOpenRaceId(null)} favorites={favorites} toggleFav={toggleFav} preferences={preferences} closing={detail.closing} onExitEnd={detail.onExitEnd} />}
 
-      <TabBar theme={theme} view={view} onGo={onGo} favCount={favorites.size} />
+      <TabBar view={view} onGo={onGo} />
 
       {tweaks && <TweaksPanel theme={theme} setTheme={setTheme} onClose={() => setTweaks(false)} />}
     </div>
   );
 }
 
-function TabBar({ theme, view, onGo, favCount }) {
-  const t = TOKENS[theme];
+// 떠 있는 탭 바(결정 6의 캡슐 모양은 그대로). AI 티 정리(K4·K6, 2026-10-29):
+// 흐림·그라데이션 대신 불투명 면 + 옅은 그림자, 고른 탭은 흰·검 알약 대신 한 단계 밝은 면, 즐겨찾기 개수 배지 없음, 아이콘 24 · 글자 12.
+function TabBar({ view, onGo }) {
   const tr = useT();
   const tabs = [
     { id: 'home', label: tr('nav.home'), icon: 'home' },
@@ -198,86 +210,51 @@ function TabBar({ theme, view, onGo, favCount }) {
     { id: 'fav', label: tr('nav.fav'), icon: 'heart' },
   ];
   return (
-    <div style={{
+    <nav style={{
       position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 70, viewTransitionName: 'nav-chrome',
-      padding: '10px 14px calc(16px + env(safe-area-inset-bottom, 0px))',
-      background: theme === 'dark'
-        ? 'linear-gradient(180deg, rgba(10,11,14,0) 0%, rgba(10,11,14,0.92) 30%)'
-        : 'linear-gradient(180deg, rgba(242,242,245,0) 0%, rgba(242,242,245,0.95) 30%)',
-      backdropFilter: 'blur(12px)',
-      WebkitBackdropFilter: 'blur(12px)',
+      padding: '8px 14px calc(12px + env(safe-area-inset-bottom, 0px))',
       pointerEvents: 'none',
     }}>
       <div style={{
         display: 'grid', gridTemplateColumns: `repeat(${tabs.length}, 1fr)`, gap: 4,
-        background: theme === 'dark' ? 'rgba(20,22,27,0.9)' : 'rgba(255,255,255,0.9)',
-        border: `1px solid ${t.line}`, borderRadius: 20, padding: 5,
+        background: 'var(--tabbar)', boxShadow: 'var(--tabbar-shadow)', borderRadius: 'var(--r-sheet)', padding: 4,
         pointerEvents: 'auto',
       }}>
         {tabs.map(tab => {
           const active = view === tab.id;
           return (
-            <button key={tab.id} onClick={() => onGo(tab.id)} style={{
-              background: 'transparent',
-              color: active ? (theme === 'dark' ? '#111' : '#fff') : t.text3,
-              border: 0, borderRadius: 14, padding: '10px 4px',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+            <button key={tab.id} onClick={() => onGo(tab.id)} aria-current={active ? 'page' : undefined} style={{
+              background: 'transparent', color: active ? 'var(--text)' : 'var(--text3)',
+              border: 0, borderRadius: 14, padding: '7px 4px 6px', minHeight: 52,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
               cursor: 'pointer', fontFamily: 'inherit', position: 'relative', isolation: 'isolate',
             }}>
-              {/* 알약 배경만 담당하는 레이어. view-transition-name이 여기에만 붙어 아이콘·글자는 스냅샷에 안 잡힌다.
-                  z-index -1 + 부모 isolation으로 콘텐츠 뒤, 버튼 배경 위에 그린다 (레이아웃·색은 그대로). */}
-              {active && <span aria-hidden style={{
-                position: 'absolute', inset: 0, zIndex: -1, borderRadius: 14,
-                background: theme === 'dark' ? '#fff' : '#111',
-                viewTransitionName: 'nav-pill',
-              }} />}
-              {/* 아이콘·라벨은 자체 그룹으로 캡처한다. 알약(nav-pill)보다 나중에 그려져 전환 중에도 알약 위에 남는다. */}
-              <span style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-                viewTransitionName: `tab-${tab.id}`,
-              }}>
+              {/* 선택 면만 담당하는 레이어. view-transition-name이 여기에만 붙어 아이콘·글자는 스냅샷에 안 잡힌다. */}
+              {active && <span aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -1, borderRadius: 14, background: 'var(--tab-on)', viewTransitionName: 'nav-pill' }} />}
+              {/* 아이콘·라벨은 자체 그룹으로 캡처한다. 선택 면보다 나중에 그려져 전환 중에도 위에 남는다. */}
+              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, viewTransitionName: `tab-${tab.id}` }}>
                 <TabIcon type={tab.icon} />
-                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '-0.005em' }}>{tab.label}</span>
+                <span style={{ fontSize: 12, fontWeight: active ? 700 : 600 }}>{tab.label}</span>
               </span>
-              {tab.id === 'fav' && favCount > 0 && !active && (
-                <span style={{
-                  position: 'absolute', top: 5, right: 12,
-                  background: '#FF6B7A', color: '#fff', borderRadius: 999,
-                  fontSize: 9, fontWeight: 700, padding: '1px 5px', minWidth: 14, textAlign: 'center',
-                  ...FONT_DATA,
-                }}>{favCount}</span>
-              )}
             </button>
           );
         })}
       </div>
-    </div>
+    </nav>
   );
 }
 
 function TabIcon({ type }) {
-  const stroke = 'currentColor';
-  if (type === 'home') return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 10l9-7 9 7v11a2 2 0 01-2 2h-4v-7h-6v7H5a2 2 0 01-2-2V10z"/>
-    </svg>
-  );
-  if (type === 'cal') return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>
-    </svg>
-  );
+  const p = { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true };
+  if (type === 'home') return <svg {...p}><path d="M3 10l9-7 9 7v11a2 2 0 01-2 2h-4v-7h-6v7H5a2 2 0 01-2-2V10z"/></svg>;
+  if (type === 'cal') return <svg {...p}><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>;
   if (type === 'grid') return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg {...p}>
       <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
       <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
     </svg>
   );
-  if (type === 'heart') return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-    </svg>
-  );
+  if (type === 'heart') return <svg {...p}><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>;
   return null;
 }
 
@@ -287,13 +264,12 @@ function TweaksPanel({ theme, setTheme, onClose }) {
   return (
     <div style={{
       position: 'absolute', right: 12, bottom: 100, zIndex: 90,
-      background: theme === 'dark' ? '#14161B' : '#fff',
-      border: `1px solid ${t.line2}`, borderRadius: 16,
+      background: theme === 'dark' ? t.surface2 : t.surface,
+      border: `1px solid ${t.line2}`, borderRadius: 'var(--r-sheet)',
       padding: 14, width: 220,
       boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
     }}>
-      <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.14em' }}>TWEAKS</Mono>
-      <div style={{ marginTop: 10 }}>
+      <div>
         <div style={{ fontSize: 12, color: t.text2, marginBottom: 6 }}>{tr('theme.label')}</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
           {['dark', 'light'].map(m => (

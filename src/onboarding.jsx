@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { TOKENS, Mono, SeriesTag } from './primitives.jsx';
+import { SeriesTag } from './primitives.jsx';
+import { Group, Segmented } from './ui.jsx';
 import { SERIES, SUPPORTED_SERIES } from './schedule/index.js';
-import { MODE_OPTIONS, COUNTRY_OPTIONS, guessCountryFromTimezone, countryValueFromId, readTheme } from './preferences-options.js';
-import { PageTitle, SeriesRow, ChoiceGroup, CountryChoices, TimezoneLabel } from './preferences-ui.jsx';
+import { MODE_OPTIONS, COUNTRY_OPTIONS, guessCountryFromTimezone, countryValueFromId } from './preferences-options.js';
+import { PageTitle, SeriesRow, ChoiceGroup, CountryChoices } from './preferences-ui.jsx';
+import { getTimeZoneLabel } from './schedule/format.js';
 import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
 import { GantryLockup } from './Brand.jsx';
@@ -17,35 +19,13 @@ const LOCALES = [
   { id: 'en', label: 'English' },
 ];
 
-// 보이는 알약은 28px, 버튼은 위아래로 8px씩 넘쳐 누르는 영역 44px.
-function LocaleSwitch({ theme, value, onChange, label }) {
-  const t = TOKENS[theme];
-  return (
-    <div role="group" aria-label={label} style={{
-      flex: 'none', display: 'flex', alignItems: 'center', height: 28, padding: '0 1px', boxSizing: 'border-box',
-      border: `1px solid ${t.line}`, borderRadius: 999,
-    }}>
-      {LOCALES.map(({ id, label: name }) => {
-        const on = id === value;
-        return (
-          <button key={id} type="button" lang={id} aria-pressed={on} onClick={() => onChange(id)} style={{
-            height: 44, minWidth: 44, margin: '-8px 0', padding: 0, background: 'none', border: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontFamily: 'inherit',
-          }}>
-            <span style={{
-              height: 24, lineHeight: '24px', padding: '0 10px', borderRadius: 999, fontSize: 12,
-              background: on ? t.surface2 : 'transparent', color: on ? t.text : t.text3, fontWeight: on ? 700 : 500,
-            }}>{name}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
+// 언어 전환: 작은 세그먼트(테두리 알약 대신). 누르는 영역은 Segmented가 44px로 잡는다.
+function LocaleSwitch({ value, onChange, label }) {
+  return <Segmented size="sm" label={label} value={value} onChange={onChange} style={{ width: 150, flex: 'none' }}
+    options={LOCALES.map(({ id, label: name }) => ({ id, label: <span lang={id}>{name}</span> }))} />;
 }
 
 export function Onboarding({ preferences, setSeriesMode, setCountry, setLocale, setOnboarded }) {
-  const [theme] = useState(readTheme);
-  const t = TOKENS[theme];
   const tr = useT();
   const [step, setStep] = useState(1);
   const [selected, setSelected] = useState(() => new Set());
@@ -116,75 +96,76 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setLocale, 
 
   const countryLabel = tr(COUNTRY_OPTIONS.find((c) => c.id === countryId)?.label ?? 'country.OTHER');
 
+  const bottomBtn = { height: 52, borderRadius: 'var(--r-btn)', border: 0, fontSize: 17, fontWeight: 600, fontFamily: 'inherit' };
+
+  // AI 티 정리(C5·B2·D1, 2026-10-29): 선택 카드 → 그릇 하나 안의 줄 + 오른쪽 체크, 관심 수준은 세그먼트,
+  // 시간대는 사람 말, 비활성 '다음'은 면색만 낮춘다(흐림 없음). 단계 수 숫자(1/3)는 막대만으로.
   return (
     <div style={{
-      minHeight: '100dvh', background: t.bg, color: t.text,
+      minHeight: '100dvh', background: 'var(--bg)', color: 'var(--text)',
       paddingTop: IS_TOSS ? 0 : 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)',
     }}>
       <div style={{
-        maxWidth: 560, margin: '0 auto', padding: '20px 20px 32px',
+        maxWidth: 560, margin: '0 auto', padding: '6px 16px 24px',
         minHeight: '100dvh', display: 'flex', flexDirection: 'column',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 28, color: t.text }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 50, padding: '0 0 0 4px', color: 'var(--text)' }}>
           <GantryLockup height={14} />
-          {!IS_TOSS && <LocaleSwitch theme={theme} value={preferences.locale || 'ko'} onChange={changeLocale} label={tr('settings.language.title')} />}
+          {!IS_TOSS && <LocaleSwitch value={preferences.locale || 'ko'} onChange={changeLocale} label={tr('settings.language.title')} />}
         </div>
 
         {/* 진행 표시 + 건너뛰기 */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ display: 'flex', gap: 4 }} aria-hidden>
-              {Array.from({ length: TOTAL_STEPS }, (_, i) => (
-                <span key={i} style={{ width: 20, height: 3, borderRadius: 2, background: i < step ? t.text : t.line2 }} />
-              ))}
-            </div>
-            <Mono size={12} color={t.text3}>{step}/{TOTAL_STEPS}</Mono>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 4px 0' }}>
+          <div style={{ display: 'flex', gap: 4 }} role="img" aria-label={tr('ob.stepAria', { step })}>
+            {Array.from({ length: TOTAL_STEPS }, (_, i) => (
+              <span key={i} style={{ width: 20, height: 3, borderRadius: 2, background: i < step ? 'var(--text)' : 'var(--surface3)' }} />
+            ))}
           </div>
           <button type="button" onClick={skip} style={{
-            background: 'none', border: 0, minHeight: 44, minWidth: 44, padding: '8px 0 8px 12px', margin: '-6px 0', color: t.text3,
-            fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            background: 'none', border: 0, minHeight: 44, minWidth: 44, padding: '8px 0 8px 12px', margin: '-6px 0', color: 'var(--text2)',
+            fontSize: 15, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
           }}>{tr('ob.skip')}</button>
         </div>
 
         {/* 스텝 본문 */}
-        <div ref={stepRef} tabIndex={-1} onKeyDown={onKeyDown} style={{ outline: 'none', flex: 1 }}
+        <div ref={stepRef} tabIndex={-1} onKeyDown={onKeyDown} style={{ outline: 'none', flex: 1, paddingTop: 24 }}
           aria-label={tr('ob.stepAria', { step })}>
           {step === 1 && (
             <>
-              <PageTitle theme={theme} title={tr('ob.s1.title')} sub={tr('ob.s1.sub')} />
-              <div style={{ display: 'grid', gap: 8 }} role="group" aria-label={tr('ob.s1.aria')}>
+              <div style={{ padding: '0 4px' }}><PageTitle title={tr('ob.s1.title')} sub={tr('ob.s1.sub')} /></div>
+              <Group role="group" aria-label={tr('ob.s1.aria')}>
                 {SUPPORTED_SERIES.map((id) => (
-                  <SeriesRow key={id} seriesId={id} theme={theme} selected={selected.has(id)} onToggle={() => toggleSeries(id)} />
+                  <SeriesRow key={id} seriesId={id} selected={selected.has(id)} onToggle={() => toggleSeries(id)} />
                 ))}
-              </div>
+              </Group>
             </>
           )}
 
           {step === 2 && (
             <>
-              <PageTitle theme={theme} title={tr('ob.s2.title')} sub={tr('ob.s2.sub')} />
-              <div style={{ display: 'grid', gap: 20 }}>
+              <div style={{ padding: '0 4px' }}><PageTitle title={tr('ob.s2.title')} sub={tr('ob.s2.sub')} /></div>
+              <Group>
                 {selectedList.map((id) => (
-                  <div key={id}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                      <SeriesTag series={id} theme={theme} />
-                      <span style={{ fontSize: 14, fontWeight: 600, color: t.text2 }}>{SERIES[id].name}</span>
+                  <div key={id} className="g-row" style={{ display: 'block', padding: '14px 16px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                      <SeriesTag series={id} size={15} style={{ color: 'var(--text)', fontWeight: 700 }} />
+                      <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text3)' }}>{SERIES[id].name}</span>
                     </div>
-                    <ChoiceGroup theme={theme} options={MODE_OPTIONS} value={modes[id] || 'all'}
+                    <ChoiceGroup options={MODE_OPTIONS} value={modes[id] || 'all'}
                       onChange={(mode) => setModes((prev) => ({ ...prev, [id]: mode }))}
                       label={tr('ob.levelAria', { series: SERIES[id].name })} />
                   </div>
                 ))}
-              </div>
+              </Group>
             </>
           )}
 
           {step === 3 && !IS_TOSS && (
             <>
-              <PageTitle theme={theme}
-                title={tr('ob.s3.title', { country: countryLabel })}
-                sub={<>{tr('ob.s3.subBefore')}<TimezoneLabel theme={theme} timezone={preferences.timezone} />{tr('ob.s3.subAfter')}</>} />
-              <CountryChoices theme={theme} value={countryId} onChange={setCountryId} />
+              <div style={{ padding: '0 4px' }}>
+                <PageTitle title={tr('ob.s3.title', { country: countryLabel })} sub={tr('ob.s3.sub', { zone: getTimeZoneLabel(preferences.timezone, preferences.locale || 'ko') })} />
+              </div>
+              <CountryChoices value={countryId} onChange={setCountryId} />
             </>
           )}
         </div>
@@ -192,16 +173,11 @@ export function Onboarding({ preferences, setSeriesMode, setCountry, setLocale, 
         {/* 하단 액션 */}
         <div style={{ display: 'flex', gap: 8, marginTop: 28 }}>
           {step > 1 && (
-            <button type="button" onClick={goBack} style={{
-              flex: '0 0 auto', minWidth: 88, height: 52, borderRadius: 14, cursor: 'pointer',
-              background: 'transparent', border: `1px solid ${t.line2}`, color: t.text2,
-              fontSize: 15, fontWeight: 600, fontFamily: 'inherit',
-            }}>{tr('ob.back')}</button>
+            <button type="button" onClick={goBack} style={{ ...bottomBtn, flex: '0 0 96px', cursor: 'pointer', background: 'var(--surface2)', color: 'var(--text)' }}>{tr('ob.back')}</button>
           )}
           <button type="button" onClick={goNext} disabled={!canNext} style={{
-            flex: 1, height: 52, borderRadius: 14, border: 0, cursor: canNext ? 'pointer' : 'default',
-            background: t.text, color: t.bg, opacity: canNext ? 1 : 0.35,
-            fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
+            ...bottomBtn, flex: 1, cursor: canNext ? 'pointer' : 'default',
+            background: canNext ? 'var(--text)' : 'var(--surface2)', color: canNext ? 'var(--bg)' : 'var(--text3)',
           }}>{step < TOTAL_STEPS ? tr('ob.next') : tr('ob.start')}</button>
         </div>
       </div>

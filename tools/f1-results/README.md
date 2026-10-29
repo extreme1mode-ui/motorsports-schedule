@@ -3,6 +3,17 @@
 `src/results/f1-2026.json`은 경기 결과·스프린트 결과·드라이버 순위의 스냅샷이다. 앱은 이 파일만 읽는다(실행 중에 외부 API를 부르지 않는다).
 경기가 끝나면 아래 순서로 갱신한다. 5분 안팎.
 
+## 자동 갱신
+
+GitHub Actions(`.github/workflows/f1-results.yml`)가 아래 '경기 뒤 갱신' 1~4를 대신한다. 검토 없이 main에 바로 올리고, 웹(Vercel)과 토스판(/data/v1/)에 반영된다.
+- 언제: 한국 시간 일 09:23 ~ 수 06:23 동안 3시간마다(UTC 일·월·화), 그리고 수~토 15:23 하루 한 번(늦게 나온 페널티 정정). GitHub 예약 실행은 몇 분~수십 분 늦을 수 있다.
+- 하는 일: `update.mjs --season 2026` → 안전 검사 `guard.mjs`(경기 수·순위 기준 라운드가 줄거나 순위가 비면 올리지 않는다) → main에 커밋·푸시 → `/data/v1/manifest.json`에 새 커밋과 파일이 들어갔는지 15분까지 확인.
+- Jolpica가 갱신 중일 때('순위 기준 …R와 마지막 결과 …R가 다르다')는 성공으로 끝내고 다음 실행에서 다시 한다.
+- 실패하면 GitHub이 메일을 보낸다. 알림은 그것뿐이다. 실행 요약에 update.mjs 출력 전체가 남는다. 그때는 아래 '경기 뒤 갱신'을 손으로 한다.
+- 손으로 돌리기: GitHub 저장소 › Actions › F1 results › Run workflow (`dry`를 켜면 파일을 고치지 않고 무엇이 바뀌는지만 본다)
+- 끄기: Actions › F1 results › `…` › Disable workflow
+- 다음 시즌: 워크플로의 `SEASON`·`RESULTS_FILE`을 2027로 바꾼다.
+
 ## 경기 뒤 갱신
 
 1. 결승이 끝나고 몇 시간 뒤(Jolpica 반영 후) 저장소 루트에서

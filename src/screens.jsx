@@ -1,44 +1,36 @@
+// 모바일 화면: 일정 · 시리즈 · 즐겨찾기 · 경기 상세.
+// AI 티 정리(2026-10-29): 영문 머리말·0 채운 숫자·줄마다 카드·시리즈 색 막대·영어 상태 알약을 걷어 냈다.
+// 구성·순서·기능·계측은 그대로다. 공용 계산은 list-parts.jsx, 상세 본문은 detail-parts.jsx.
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { CATEGORIES, SERIES, getVisibleSessions, getSeriesStats, getRaceStartUtc, buildRaceWeekBars } from './schedule/index.js';
-import { TOKENS, Mono, SeriesTag, AccessBadge, ExternalIcon, StatusPill, EventBadge, getRoundDescriptor, getRoundDisplay, FONT_DATA } from './primitives.jsx';
+import { CATEGORIES, getVisibleSessions, getSeriesStats, getRaceStartUtc, buildRaceWeekBars } from './schedule/index.js';
+import { StatusPill } from './primitives.jsx';
+import { ScreenTitle, SectionHead, Group, DayHead, Chip } from './ui.jsx';
+import { SeriesDot, SeriesSummary, MonthTabs } from './list-parts.jsx';
+import { byStart, viewerParts, catLabel, raceStatus, seriesRound, groupByViewerDay, getRoundDisplay } from './list-utils.js';
+import { DetailTagLine, DetailNotice, DetailSessions, DetailWeekend, DetailBroadcast, DetailAlarm, DetailLinks } from './detail-parts.jsx';
+import { placeLine, canAddAlarm, hasDetailLinks } from './detail-utils.js';
 import { useFormat } from './use-format.js';
 import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
-import { SR_ONLY, PHOTO_SCRIM } from './a11y.js';
-import { usePop } from './use-motion.js';
+import { PHOTO_SCRIM } from './a11y.js';
+import { usePop, useImageLoaded } from './use-motion.js';
 import { photo, photoPos } from './home/photos.js';
-import { useImageLoaded } from './use-motion.js';
 import { prefetchHandlers, useVisiblePrefetch } from './photo-prefetch.js';
 import { PhotoCredit } from './photo-credit.jsx';
-import { toggleAlarm, useAlarms } from './alarm.js';
 import { raceShareUrl, racePathId } from './share-link.js';
 import { useRecommendationShown } from './use-analytics.js';
 import { CircuitMapSection } from './circuit-map/CircuitMap.jsx';
 import { IS_TOSS, shareRace } from './platform.js';
 import { RaceResultSection, PodiumLine, SubTabs, StandingsList } from './results/ResultsUI.jsx';
 
-// 정렬·그룹핑은 시작 시각(UTC)으로. 시간대와 무관하게 항상 옳다.
-const startMs = (r) => { const iso = getRaceStartUtc(r) || r.primaryStartUtc; return iso ? new Date(iso).getTime() : Number.MAX_SAFE_INTEGER; };
-const byStart = (a, b) => startMs(a) - startMs(b);
-// 시청자 달력 기준 파트 (시작 시각 → 사용자 시간대). 시작 미정이면 primaryStartUtc(주말 시작)로.
-const viewerParts = (fmt, r) => fmt.parts(getRaceStartUtc(r) || r.primaryStartUtc);
-
-// 달력 막대 치수. 오버레이 grid가 날짜 칸 grid와 열이 정확히 겹쳐야 해서 gap을 공유한다.
-// CAL_BAR_TOP = 칸 위 패딩(5) + 날짜 숫자 줄(≈13) + 숫자와 막대 사이(3)
-const CAL_GAP = 3;
-const CAL_BAR_H = 4;
-const CAL_BAR_GAP = 2;
-const CAL_BAR_TOP = 21;
-const CAL_LANES = 3;
-
-// 터치 타깃 44px (QA R4). 버튼 상자는 투명 44px, 보이는 상자는 안쪽 span이 그린다.
-const CHIP_HIT = { minHeight: 44, minWidth: 44, padding: 0, border: 0, background: 'none', cursor: 'pointer', flex: 'none', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' };
-// 알약이 44px보다 좁은 짧은 라벨(F1)은 버튼이 넓어진 만큼 좌우 음수 마진으로 칩 간격(6px)을 유지한다.
-const chipHit = (pillWidth) => (pillWidth < 44 ? { ...CHIP_HIT, margin: `0 ${(pillWidth - 44) / 2}px` } : CHIP_HIT);
 const ICON_HIT = { width: 44, height: 44, margin: -4, padding: 0, border: 0, background: 'none', cursor: 'pointer', display: 'grid', placeItems: 'center' };
+const PAD_X = 18;
+// 토스는 내비게이션 바가 위를 맡아 화면 제목을 20px만 내린다.
+const SCREEN_TOP = { padding: `${IS_TOSS ? 20 : 64}px ${PAD_X}px 12px` };
+const CHIP_ROW = { display: 'flex', gap: 8, padding: `6px ${PAD_X}px`, overflowX: 'auto', scrollbarWidth: 'none' };
+const onKeyActivate = (fn) => (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } };
 
-export function Schedule({ theme, races, onOpenRace, now, seasonYear }) {
-  const t = TOKENS[theme];
+export function Schedule({ races, onOpenRace, now, seasonYear }) {
   const fmt = useFormat();
   const tr = useT();
   const safeSeasonYear = Number.isFinite(seasonYear) ? seasonYear : 2026;
@@ -51,62 +43,32 @@ export function Schedule({ theme, races, onOpenRace, now, seasonYear }) {
     const m = Number(viewerParts(fmt, r)?.month || 1) - 1;
     (byMonth[m] = byMonth[m] || []).push(r);
   }
+  const monthRaces = byMonth[month] || [];
+  // 제목 아래 한 줄: '10월 8경기 · 대한민국 시간 기준' (월 칩 개수·영문 머리말 대신)
+  const sub = `${tr('schedule.monthCount', { month: fmt.monthNames[month], n: monthRaces.length })} · ${tr('schedule.zoneNote', { zone: fmt.zoneLabel })}`;
 
   return (
-    <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 110 }}>
-      <div style={{ padding: IS_TOSS ? '20px 18px 12px' : '64px 18px 12px' }}>
-        <Mono size={10} color={t.text3} style={{ letterSpacing: '0.14em' }}>{safeSeasonYear} SEASON</Mono>
-        <div role="heading" aria-level={1} data-view-title tabIndex={-1} style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>{tr('schedule.title')}</div>
+    <div style={{ background: 'var(--bg)', minHeight: '100%', paddingBottom: 110 }}>
+      <ScreenTitle title={tr('schedule.title')} sub={sub} style={SCREEN_TOP} />
+
+      <div style={CHIP_ROW}>
+        {[{ id: 'ALL', short: 'ALL' }, ...Object.values(CATEGORIES)].map((item) => (
+          <Chip key={item.id} on={item.id === category} onClick={() => setCategory(item.id)}>{catLabel(tr, item)}</Chip>
+        ))}
       </div>
 
-      {/* 칩 행: 버튼은 44px 히트영역, 보이는 알약(33px)은 안쪽 span. 행 높이가 변하지 않게 컨테이너를 위·아래 5.5px씩 당긴다 (QA R4). */}
-      <div style={{ display: 'flex', gap: 6, padding: '0 18px 6.5px', marginTop: -5.5, overflowX: 'auto' }}>
-        {[{ id: 'ALL', short: 'ALL', accent: t.text }, ...Object.values(CATEGORIES)].map((item) => {
-          const active = item.id === category;
-          return (
-            <button key={item.id} onClick={() => setCategory(item.id)} style={chipHit(item.short.length <= 2 ? 38 : 44)}>
-              <span style={{
-                display: 'inline-block', padding: '8px 12px', borderRadius: 999,
-                border: `1px solid ${active ? (item.id === 'ALL' ? t.text : item.accent) : t.line}`,
-                background: active ? (item.id === 'ALL' ? t.text : item.accent) : 'transparent',
-                color: active ? (item.id === 'ALL' ? t.bg : '#fff') : t.text2,
-                fontSize: 12, fontWeight: 700, lineHeight: 'normal',
-              }}>{item.short}</span>
-            </button>
-          );
-        })}
-      </div>
+      <MonthTabs names={fmt.monthNames} value={month} style={{ padding: `2px ${PAD_X - 8}px 0` }}
+        onChange={(m) => { if (m !== month) track('schedule_month_changed', { direction: m > month ? 'next' : 'prev' }); setMonth(m); }} />
 
-      <div style={{ display: 'flex', gap: 6, padding: '0 18px 4.5px', marginTop: -5.5, overflowX: 'auto' }}>
-        {Array.from({length:12}, (_, i) => i).map(m => {
-          const count = (byMonth[m] || []).length;
-          const active = m === month;
-          return (
-            <button key={m} onClick={() => { if (m !== month) track('schedule_month_changed', { direction: m > month ? 'next' : 'prev' }); setMonth(m); }} style={CHIP_HIT}>
-              <span style={{
-                padding: '8px 12px', borderRadius: 999, border: `1px solid ${active ? t.text : t.line}`,
-                background: active ? t.text : 'transparent', color: active ? t.bg : t.text2,
-                fontSize: 12, fontWeight: 600, lineHeight: 'normal',
-                display: 'flex', alignItems: 'center', gap: 6,
-              }}>
-                {fmt.monthNames[m]}
-                <Mono size={10} color={active ? (theme === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)') : t.text3}>
-                  {String(count).padStart(2,'0')}
-                </Mono>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      <MonthGrid month={month} races={byMonth[month] || []} theme={theme} onOpen={onOpenRace} now={now} seasonYear={safeSeasonYear} />
+      <MonthGrid month={month} races={monthRaces} onOpen={onOpenRace} now={now} seasonYear={safeSeasonYear} />
     </div>
   );
 }
 
-function MonthGrid({ month, races, theme, onOpen, now, seasonYear }) {
-  const t = TOKENS[theme];
+// 달력: 날짜 칸마다 테두리 상자를 그리지 않는다. 그릇 하나 안에 날짜 숫자(오늘만 채운 원)와 그날 경기 점(최대 4개, 취소는 빈 점).
+function MonthGrid({ month, races, onOpen, now, seasonYear }) {
   const fmt = useFormat();
+  const tr = useT();
   const year = seasonYear;
   // 화면에 보이는 앞쪽 3개만 낮은 우선순위로 미리 받아둔다 (전부 받으면 모바일에서 낭비가 크다).
   const listRef = useRef(null);
@@ -115,9 +77,8 @@ function MonthGrid({ month, races, theme, onOpen, now, seasonYear }) {
   // 달력 모양은 시간대와 무관한 달력 산술 (UTC로 계산해 로컬 TZ 영향 제거)
   const firstDow = new Date(Date.UTC(year, month, 1)).getUTCDay();
   const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-
-  // 레이스 위크 전체를 잇는 막대. 세션 시각을 시청자 시간대로 옮겨 만든다 (서킷 현지 주말 날짜가 아니다).
-  const { weeks: barWeeks } = buildRaceWeekBars(races, { parts: fmt.parts, year, month, firstDow, daysInMonth, maxLanes: CAL_LANES });
+  // 경기 주말이 걸친 날짜. 세션 시각을 시청자 시간대로 옮겨 만든다 (서킷 현지 주말 날짜가 아니다).
+  const { weeks } = buildRaceWeekBars(races, { parts: fmt.parts, year, month, firstDow, daysInMonth, maxLanes: 3 });
 
   const cells = [];
   for (let i = 0; i < firstDow; i++) cells.push(null);
@@ -125,132 +86,113 @@ function MonthGrid({ month, races, theme, onOpen, now, seasonYear }) {
   while (cells.length % 7) cells.push(null);
   const weekRows = [];
   for (let i = 0; i < cells.length; i += 7) weekRows.push(cells.slice(i, i + 7));
-
   const todayStr = fmt.dateKey(now);
+  const groups = groupByViewerDay(fmt, tr, monthList);
+  let rowIndex = 0;
 
   return (
-    <div style={{ padding: '8px 14px 0' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', padding: '0 4px 8px' }}>
-        {fmt.weekdayNames.map((d, i) => (
-          <Mono key={d} size={10} color={i === 0 ? '#FF6B7A' : (i === 6 ? '#6BA3FF' : t.text3)} style={{ textAlign: 'center', letterSpacing: '0.08em' }}>
-            {d}
-          </Mono>
-        ))}
-      </div>
-
-      {/* 주마다 컨테이너 하나. 그 위에 같은 열 구조의 오버레이를 얹어 칸을 넘어가는 막대를 그린다. */}
-      <div style={{ display: 'grid', gap: CAL_GAP }}>
+    <div style={{ padding: `8px ${PAD_X}px 0` }}>
+      <Group style={{ padding: '10px 6px 6px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', paddingBottom: 4 }}>
+          {fmt.weekdayNames.map((d, i) => (
+            <span key={d} style={{ textAlign: 'center', fontSize: 12, fontWeight: 500, lineHeight: '20px', color: i === 0 ? 'var(--cal-sun)' : (i === 6 ? 'var(--cal-sat)' : 'var(--text3)') }}>{d}</span>
+          ))}
+        </div>
         {weekRows.map((row, w) => {
-          const week = barWeeks[w] || { segments: [], overflow: {}, byDay: {} };
+          const byDay = weeks[w]?.byDay || {};
           return (
-            <div key={w} style={{ position: 'relative' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: CAL_GAP }}>
-                {row.map((d, i) => {
-                  if (!d) return <div key={i} style={{ aspectRatio: '1/1.05' }} />;
-                  const dayRaces = week.byDay[d] || [];
-                  const more = week.overflow[d] || 0;
-                  const dateKey = `${seasonYear}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                  const isToday = dateKey === todayStr;
-                  const isSun = i % 7 === 0; const isSat = i % 7 === 6;
-                  return (
-                    <div key={i} className={dayRaces.length ? 'press-chip' : undefined} {...(dayRaces.length ? prefetchHandlers(dayRaces[0]) : null)} onClick={() => dayRaces.length && onOpen(dayRaces[0])} style={{
-                      aspectRatio: '1/1.05', borderRadius: 8,
-                      background: isToday ? t.text : t.surface, border: `1px solid ${t.line}`,
-                      padding: '5px 5px 4px', display: 'flex', flexDirection: 'column',
-                      cursor: dayRaces.length ? 'pointer' : 'default', overflow: 'hidden',
-                    }}>
-                      <Mono size={11} weight={isToday ? 700 : 500} color={isToday ? t.bg : (isSun ? '#FF6B7A' : isSat ? '#6BA3FF' : t.text)}>
-                        {d}
-                      </Mono>
-                      <div style={{ flex: 1 }} />
-                      {more > 0 && (
-                        <Mono size={9} color={isToday ? t.bg : t.text3} style={{ letterSpacing: '0.08em' }}>+{more}</Mono>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* 막대 오버레이. 빈 곳은 pointer-events로 통과시켜 날짜 칸 클릭을 막지 않는다. */}
-              <div style={{
-                position: 'absolute', inset: 0, display: 'grid',
-                gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-                columnGap: CAL_GAP, rowGap: CAL_BAR_GAP, gridAutoRows: CAL_BAR_H,
-                alignContent: 'start', paddingTop: CAL_BAR_TOP, pointerEvents: 'none',
-              }}>
-                {week.segments.map((seg, j) => (
-                  <div key={j} className="press-chip" title={fmt.race(seg.race).name}
-                    {...prefetchHandlers(seg.race)} onClick={() => onOpen(seg.race)}
-                    style={{
-                      gridColumn: `${seg.startCol + 1} / ${seg.endCol + 2}`, gridRow: seg.lane + 1,
-                      height: CAL_BAR_H, background: SERIES[seg.race.series].accent,
-                      // 이어지는 쪽은 각지게 + 칸 끝까지. 실제 시작·끝만 둥글게 하고 안쪽으로 들인다.
-                      borderRadius: `${seg.roundStart ? 2 : 0}px ${seg.roundEnd ? 2 : 0}px ${seg.roundEnd ? 2 : 0}px ${seg.roundStart ? 2 : 0}px`,
-                      marginLeft: seg.roundStart ? 4 : 0, marginRight: seg.roundEnd ? 4 : 0,
-                      pointerEvents: 'auto', cursor: 'pointer',
-                    }} />
-                ))}
-              </div>
+            <div key={w} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
+              {row.map((d, i) => {
+                if (!d) return <div key={i} style={{ height: 46 }} />;
+                const dayRaces = byDay[d] || [];
+                const dateKey = `${seasonYear}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const isToday = dateKey === todayStr;
+                const color = isToday ? 'var(--bg)' : (i === 0 ? 'var(--cal-sun)' : i === 6 ? 'var(--cal-sat)' : 'var(--text)');
+                return (
+                  <div key={i} className={dayRaces.length ? 'press-chip' : undefined} {...(dayRaces.length ? prefetchHandlers(dayRaces[0]) : null)}
+                    onClick={() => dayRaces.length && onOpen(dayRaces[0])}
+                    style={{ height: 46, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, cursor: dayRaces.length ? 'pointer' : 'default' }}>
+                    <span style={{
+                      width: 28, height: 28, borderRadius: '50%', display: 'grid', placeItems: 'center',
+                      background: isToday ? 'var(--text)' : 'transparent', color,
+                      fontSize: 15, fontWeight: isToday ? 700 : 500, fontVariantNumeric: 'tabular-nums',
+                    }}>{d}</span>
+                    {/* 그날 경기 점 최대 4개. 넘치면 점 3개 + '+N'(예전 막대의 '+N'과 같은 뜻). */}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 3, height: 6 }}>
+                      {dayRaces.slice(0, dayRaces.length > 4 ? 3 : 4).map((r) => <SeriesDot key={r.id} series={r.series} size={5} hollow={r.status === 'cancelled'} />)}
+                      {dayRaces.length > 4 && <span style={{ fontSize: 12, lineHeight: '6px', fontWeight: 500, color: isToday ? 'var(--text2)' : 'var(--text3)' }}>+{dayRaces.length - 3}</span>}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           );
         })}
-      </div>
+      </Group>
 
-      <div ref={listRef} style={{ marginTop: 20, display: 'grid', gap: 8 }}>
-        {monthList.map((r, i) => (
-          <ScheduleRow key={r.id} race={r} idx={i} theme={theme} onOpen={() => onOpen(r)} />
+      {/* 날짜마다 그릇 하나. 줄 사이 구분선은 경기 이름 시작점(16 + 점 8 + 간격 12 = 36)부터. */}
+      <div ref={listRef} style={{ marginTop: 4 }}>
+        {groups.map((g) => (
+          <section key={g.key}>
+            <DayHead>{g.label}</DayHead>
+            <Group inset={36}>
+              {g.races.map((r) => { const idx = rowIndex++; return <ScheduleRow key={r.id} race={r} idx={idx} onOpen={() => onOpen(r)} />; })}
+            </Group>
+          </section>
         ))}
       </div>
     </div>
   );
 }
 
-export function ScheduleRow({ race, idx, theme, onOpen }) {
-  const t = TOKENS[theme];
+// 일정 줄: ● 경기 이름 / 'F1 R19 · 서킷, 나라'  ……  시각 + 상태 글자.
+// 예정 = 시각만, 종료 = 시각 아래 '종료' + 줄 흐림, 취소 = 취소선 + '취소', 시각 미정 = '미정'.
+export function ScheduleRow({ race, idx, onOpen }) {
   const fmt = useFormat();
   const L = fmt.race(race);
   const start = getRaceStartUtc(race);
-  const p = viewerParts(fmt, race);
-  const dow = p?.weekdayName || '';
+  const status = raceStatus(race);
+  const cancelled = status === 'cancelled';
+  const dim = cancelled || status === 'completed';
+  const meta = [[seriesRound(race), race.specialBadge].filter(Boolean).join(' '), [L.circuit, L.country].filter(Boolean).join(', ')].filter(Boolean).join(' · ');
   return (
-    <div className="press-row" role="button" tabIndex={0} data-prefetch-index={idx} {...prefetchHandlers(race)} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }} style={{
-      display: 'grid', gridTemplateColumns: '48px 1fr auto', gap: 12, alignItems: 'center',
-      padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`,
-      borderRadius: 12, cursor: 'pointer', opacity: race.status === 'cancelled' ? 0.55 : 1,
-    }}>
-      <div style={{ textAlign: 'center', borderRight: `1px solid ${t.line}`, paddingRight: 12 }}>
-        <Mono size={18} weight={700} color={t.text} style={{ display: 'block', lineHeight: 1 }}>
-          {p?.day || '--'}
-        </Mono>
-        <Mono size={10} color={t.text3} style={{ display: 'block', marginTop: 3 }}>{dow}</Mono>
-      </div>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-          <SeriesTag series={race.series} theme={theme} variant="ghost" />
-          <Mono size={10} color={t.text3}>{getRoundDisplay(race)}</Mono>
-          {race.specialBadge && <EventBadge label={race.specialBadge} tone={race.specialBadgeTone} theme={theme} />}
-          {race.isNextRace && <StatusPill status="next" theme={theme} />}
-          {race.status === 'live' && <StatusPill status="live" theme={theme} />}
-          {race.status === 'cancelled' && <StatusPill status="cancelled" theme={theme} />}
-          {race.status === 'completed' && <StatusPill status="completed" theme={theme} />}
-        </div>
-        <div style={{ fontSize: 14, fontWeight: 600, color: t.text, letterSpacing: '-0.005em', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', textDecoration: race.status === 'cancelled' ? 'line-through' : 'none' }}>
-          {L.shortName}
-        </div>
-        <div style={{ fontSize: 11, color: t.text3, marginTop: 1 }}>{L.circuit} · {L.country}</div>
-      </div>
-      <Mono size={12} color={t.text2}>{start ? fmt.time(start) : 'TBA'}</Mono>
+    <div className={`g-row g-tap press-row${dim ? ' g-dim' : ''}`} role="button" tabIndex={0} data-prefetch-index={idx} {...prefetchHandlers(race)}
+      onClick={onOpen} onKeyDown={onKeyActivate(onOpen)} style={{ minHeight: 64 }}>
+      <SeriesDot series={race.series} style={{ alignSelf: 'flex-start', marginTop: 8 }} />
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{
+          display: 'block', fontSize: 17, lineHeight: 1.35, fontWeight: 600, letterSpacing: '-0.01em', color: 'var(--text)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: cancelled ? 'line-through' : 'none',
+        }}>{L.shortName}</span>
+        <span style={{ display: 'block', marginTop: 2, fontSize: 13, lineHeight: 1.4, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meta}</span>
+      </span>
+      <RowSide start={start} status={status} />
     </div>
   );
 }
 
-export function SeriesView({ theme, races, onOpenRace, initialCategory, seasonYear }) {
-  const t = TOKENS[theme];
+// 줄 오른쪽: 시각(17/600) + 그 아래 상태 글자(12). 취소는 시각 자리에 '미정', 그 아래 '취소'.
+export function RowSide({ start, status, size = 17 }) {
+  const fmt = useFormat();
+  const tr = useT();
+  const cancelled = status === 'cancelled';
+  const known = start && !cancelled;
+  return (
+    <span style={{ flex: 'none', textAlign: 'right', display: 'grid', justifyItems: 'end', gap: 2 }}>
+      <span style={{ fontSize: size, lineHeight: 1.35, fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: known ? 'var(--text)' : 'var(--text2)' }}>
+        {known ? fmt.time(start) : tr('time.tba')}
+      </span>
+      {status && <StatusPill status={status} />}
+    </span>
+  );
+}
+
+export function SeriesView({ races, onOpenRace, initialCategory, seasonYear }) {
+  const tr = useT();
   const safeSeasonYear = Number.isFinite(seasonYear) ? seasonYear : 2026;
   const [sel, setSel] = useState(initialCategory || 'F1');
   useEffect(() => { if (initialCategory) setSel(initialCategory); }, [initialCategory]);
   const s = CATEGORIES[sel];
-  const tr = useT();
   const list = useMemo(() => races.filter(r => r.category === sel).sort(byStart), [races, sel]);
   const stats = getSeriesStats(list);
   // F1만: 라운드 | 드라이버 순위. 기본은 지금처럼 라운드 목록.
@@ -261,170 +203,122 @@ export function SeriesView({ theme, races, onOpenRace, initialCategory, seasonYe
   useVisiblePrefetch(roundsRef, list);
 
   return (
-    <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 110 }}>
-      <div style={{ padding: IS_TOSS ? '20px 18px 12px' : '64px 18px 12px' }}>
-        <Mono size={10} color={t.text3} style={{ letterSpacing: '0.14em' }}>BY CATEGORY · {safeSeasonYear}</Mono>
-        <div role="heading" aria-level={1} data-view-title tabIndex={-1} style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>{tr('series.title')}</div>
-      </div>
+    <div style={{ background: 'var(--bg)', minHeight: '100%', paddingBottom: 110 }}>
+      <ScreenTitle title={tr('series.title')} sub={tr('series.subtitle', { n: Object.keys(CATEGORIES).length })} style={SCREEN_TOP} />
 
-      <div style={{ display: 'flex', gap: 6, padding: '0 18px 8.5px', marginTop: -5.5, overflowX: 'auto' }}>
+      <div style={CHIP_ROW}>
         {Object.values(CATEGORIES).map(ss => (
-          <button key={ss.id} onClick={() => { if (ss.id !== sel) track('series_tab_changed', { category: ss.id }); setSel(ss.id); }} style={chipHit(ss.short.length <= 2 ? 42 : 44)}>
-            <span style={{
-              display: 'inline-block', padding: '8px 14px', borderRadius: 999,
-              border: `1px solid ${sel === ss.id ? ss.accent : t.line}`,
-              background: sel === ss.id ? ss.accent : 'transparent',
-              color: sel === ss.id ? '#fff' : t.text2,
-              fontSize: 12, fontWeight: 700, letterSpacing: '-0.005em', lineHeight: 'normal',
-            }}>
-              {ss.short}
-            </span>
-          </button>
+          <Chip key={ss.id} on={sel === ss.id} onClick={() => { if (ss.id !== sel) track('series_tab_changed', { category: ss.id }); setSel(ss.id); }}>{catLabel(tr, ss)}</Chip>
         ))}
       </div>
 
-      <div style={{ margin: '0 18px 14px', padding: '18px', borderRadius: 16, background: theme === 'dark' ? s.dark : s.tint, border: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)'}`, position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, height: 3, right: 0, background: s.accent }} />
-        <div style={{ fontSize: 22, fontWeight: 800, color: theme === 'dark' ? '#fff' : '#111', letterSpacing: '-0.02em', marginTop: 8 }}>
-          {s.name}
-        </div>
-        <div style={{ display: 'flex', gap: 18, marginTop: 12 }}>
-          <Stat label="ROUNDS" val={String(stats.rounds).padStart(2,'0')} dark={theme === 'dark'} />
-          <Stat label="DONE" val={String(stats.done).padStart(2,'0')} dark={theme === 'dark'} />
-          <Stat label="UPCOMING" val={String(stats.upcoming).padStart(2,'0')} dark={theme === 'dark'} />
-          {stats.cancelled > 0 && <Stat label="CANCELLED" val={String(stats.cancelled).padStart(2,'0')} dark={theme === 'dark'} />}
-        </div>
-      </div>
+      <SeriesSummary cat={s} stats={stats} year={safeSeasonYear} style={{ padding: `20px ${PAD_X + 2}px 0` }} />
 
       {sel === 'F1' && (
-        <div style={{ padding: '0 18px', marginBottom: 14 }}>
-          <SubTabs theme={theme} value={view} onChange={onView}
+        <div style={{ padding: `20px ${PAD_X}px 0` }}>
+          <SubTabs size={17} value={view} onChange={onView}
             items={[{ id: 'rounds', label: tr('series.view.rounds') }, { id: 'drivers', label: tr('series.view.drivers') }]} />
         </div>
       )}
 
-      {showDrivers ? (
-        <div style={{ padding: '0 18px' }}><StandingsList theme={theme} races={list} /></div>
-      ) : (
-        <div ref={roundsRef} style={{ padding: '0 18px', display: 'grid', gap: 8 }}>
-          {list.map((r, idx) => <RoundRow key={r.id} race={r} idx={idx} theme={theme} onOpen={() => onOpenRace(r)} />)}
-        </div>
-      )}
+      <div style={{ padding: `16px ${PAD_X}px 0` }}>
+        {showDrivers ? <StandingsList races={list} /> : (
+          // 구분선은 경기 이름 시작점(16 + 라운드 칸 30 + 간격 12 = 58)부터.
+          <div ref={roundsRef}>
+            <Group inset={58}>
+              {list.map((r, idx) => <RoundRow key={r.id} race={r} idx={idx} onOpen={() => onOpenRace(r)} />)}
+            </Group>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-function Stat({ label, val, dark }) {
-  return (
-    <div>
-      <Mono size={9} color={dark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)'} style={{ letterSpacing: '0.14em', display: 'block' }}>{label}</Mono>
-      <Mono size={18} weight={700} color={dark ? '#fff' : '#111'} style={{ display: 'block', marginTop: 3 }}>{val}</Mono>
-    </div>
-  );
-}
-
-function RoundRow({ race, idx, theme, onOpen }) {
-  const t = TOKENS[theme];
+// 라운드 줄: 'R19' | 경기 이름 / '10.03 (토) · 서킷' (+ 끝난 경기는 포디움 한 줄) …… 시각 + 상태.
+// 'R9-10' 같은 묶음 라벨은 칸(30)보다 길어 이름 쪽으로 넘치지 않게 글자 폭만큼 칸이 늘어난다(flex: none + 최소 30).
+function RoundRow({ race, idx, onOpen }) {
   const fmt = useFormat();
   const L = fmt.race(race);
-  const done = race.status === 'completed';
-  const cancelled = race.status === 'cancelled';
+  const status = raceStatus(race);
+  const cancelled = status === 'cancelled';
+  const done = status === 'completed';
   const start = getRaceStartUtc(race);
-  const p = viewerParts(fmt, race);
+  const date = fmt.shortDate(start || race.primaryStartUtc);
   return (
-    <div className="press-row" role="button" tabIndex={0} data-prefetch-index={idx} {...prefetchHandlers(race)} onClick={onOpen} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }} style={{
-      display: 'grid', gridTemplateColumns: '36px 1fr auto', gap: 12, alignItems: 'center',
-      padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`,
-      borderRadius: 12, cursor: 'pointer', opacity: cancelled ? 0.45 : 1,
-    }}>
-      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <Mono size={9} color={t.text3} style={{ letterSpacing: '0.08em' }}>RND</Mono>
-        <Mono size={16} weight={700} color={done ? t.text3 : t.text} style={{ lineHeight: 1, marginTop: 2, textDecoration: cancelled ? 'line-through' : 'none' }}>
-          {getRoundDisplay(race, idx + 1)}
-        </Mono>
-      </div>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 2 }}>
-          {done && <StatusPill status="completed" theme={theme} />}
-          {race.status === 'live' && <StatusPill status="live" theme={theme} />}
-          {race.isNextRace && <StatusPill status="next" theme={theme} />}
-          {cancelled && <StatusPill status="cancelled" theme={theme} />}
-          <Mono size={10} color={t.text3}>{p ? `${fmt.monthDay(start || race.primaryStartUtc)} · ${p.weekdayName}` : ''}</Mono>
-        </div>
-        <div style={{ fontSize: 14, fontWeight: 600, color: t.text, letterSpacing: '-0.005em', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-          {L.shortName}
-        </div>
-        <div style={{ fontSize: 11, color: t.text3, marginTop: 1 }}>{L.circuit}</div>
-        {done && <PodiumLine race={race} theme={theme} />}
-      </div>
-      <div style={{ textAlign: 'right' }}>
-        <Mono size={13} weight={600} color={t.text}>{start ? fmt.time(start) : 'TBA'}</Mono>
-      </div>
+    <div className={`g-row g-tap press-row${done || cancelled ? ' g-dim' : ''}`} role="button" tabIndex={0} data-prefetch-index={idx} {...prefetchHandlers(race)}
+      onClick={onOpen} onKeyDown={onKeyActivate(onOpen)} style={{ minHeight: 64, alignItems: 'flex-start' }}>
+      <span style={{ minWidth: 30, flex: 'none', marginTop: 2, fontSize: 13, lineHeight: '20px', fontWeight: 600, color: 'var(--text3)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+        {getRoundDisplay(race, idx + 1)}
+      </span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{
+          display: 'block', fontSize: 17, lineHeight: 1.35, fontWeight: 600, letterSpacing: '-0.01em', color: 'var(--text)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: cancelled ? 'line-through' : 'none',
+        }}>{L.shortName}</span>
+        <span style={{ display: 'block', marginTop: 2, fontSize: 13, lineHeight: 1.4, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {[date, L.circuit].filter(Boolean).join(' · ')}
+        </span>
+        {done && <PodiumLine race={race} />}
+      </span>
+      <RowSide start={start} status={status} />
     </div>
   );
 }
 
-export function Favorites({ theme, races, myRaces, favorites, onOpenRace, toggleFav }) {
-  const t = TOKENS[theme];
+export function Favorites({ races, myRaces, favorites, onOpenRace, toggleFav }) {
+  const fmt = useFormat();
   const tr = useT();
   const favList = races.filter(r => favorites.has(r.id)).sort(byStart);
   // 빈 상태 추천: 다가오는 관심 경기 3개 (프로토타입 저장 화면과 같은 규칙)
   const recs = (Array.isArray(myRaces) ? myRaces : races).filter(r => r.status === 'upcoming' || r.status === 'live').slice(0, 3);
   useRecommendationShown(favList.length === 0 ? recs : []);
+  let rowIndex = 0;
   return (
-    <div style={{ background: t.bg, minHeight: '100%', paddingBottom: 110 }}>
-      <div style={{ padding: IS_TOSS ? '20px 18px 20px' : '64px 18px 20px' }}>
-        <Mono size={10} color={t.text3} style={{ letterSpacing: '0.14em' }}>PINNED</Mono>
-        <div role="heading" aria-level={1} data-view-title tabIndex={-1} style={{ fontSize: 28, fontWeight: 800, color: t.text, letterSpacing: '-0.02em', marginTop: 4 }}>{tr('fav.title')}</div>
-      </div>
+    <div style={{ background: 'var(--bg)', minHeight: '100%', paddingBottom: 110 }}>
+      <ScreenTitle title={tr('fav.title')} style={{ ...SCREEN_TOP, paddingBottom: 8 }} />
       {favList.length === 0 ? (
-        <div style={{ padding: '40px 40px', textAlign: 'center' }}>
-          <div style={{ width: 56, height: 56, borderRadius: 999, margin: '0 auto 16px', background: t.surface2, display: 'grid', placeItems: 'center' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={t.text3} strokeWidth="1.8">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-            </svg>
-          </div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: t.text, marginBottom: 6 }}>{tr('fav.emptyTitle')}</div>
-          <div style={{ fontSize: 13, color: t.text3, lineHeight: 1.5 }}>
-            {tr('fav.emptyBody')}
+        <div style={{ padding: `32px ${PAD_X}px` }}>
+          <div style={{ textAlign: 'center', padding: '0 22px' }}>
+            <div style={{ width: 56, height: 56, borderRadius: 999, margin: '0 auto 16px', background: 'var(--surface2)', display: 'grid', placeItems: 'center' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="1.8" aria-hidden="true">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+            </div>
+            <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>{tr('fav.emptyTitle')}</div>
+            <div style={{ fontSize: 15, color: 'var(--text2)', lineHeight: 1.5 }}>{tr('fav.emptyBody')}</div>
           </div>
           {recs.length > 0 && (
-            <div style={{ marginTop: 28, textAlign: 'left' }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: t.text, marginBottom: 10 }}>{tr('fav.suggest')}</div>
-              <div style={{ display: 'grid', gap: 8 }}>
-                {recs.map((r, i) => <RecommendRow key={r.id} race={r} theme={theme} onOpen={() => { track('recommendation_clicked', { series: r.series, position: i }); onOpenRace(r, 'recommendation'); }} onSave={() => toggleFav(r.id)} />)}
-              </div>
+            <div style={{ marginTop: 32 }}>
+              <SectionHead title={tr('fav.suggest')} size={17} />
+              <Group inset={36}>
+                {recs.map((r, i) => <RecommendRow key={r.id} race={r} onOpen={() => { track('recommendation_clicked', { series: r.series, position: i }); onOpenRace(r, 'recommendation'); }} onSave={() => toggleFav(r.id)} />)}
+              </Group>
             </div>
           )}
         </div>
       ) : (
-        <div style={{ padding: '0 18px', display: 'grid', gap: 8 }}>
-          {favList.map((r, i) => <ScheduleRow key={r.id} race={r} idx={i} theme={theme} onOpen={() => onOpenRace(r)} />)}
+        <div style={{ padding: `0 ${PAD_X}px` }}>
+          {groupByViewerDay(fmt, tr, favList).map((g) => (
+            <section key={g.key}>
+              <DayHead>{g.label}</DayHead>
+              <Group inset={36}>
+                {g.races.map((r) => { const idx = rowIndex++; return <ScheduleRow key={r.id} race={r} idx={idx} onOpen={() => onOpenRace(r)} />; })}
+              </Group>
+            </section>
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-export function RaceDetail({ race, theme, onClose, favorites, toggleFav, preferences, closing = false, onExitEnd }) {
-  const t = TOKENS[theme];
+export function RaceDetail({ race, onClose, favorites, toggleFav, preferences, closing = false, onExitEnd }) {
   const fmt = useFormat();
   const tr = useT();
   const L = fmt.race(race);
-  const s = SERIES[race.series];
   const sessions = getVisibleSessions(race, preferences?.series?.[race.series]);
   const faved = favorites.has(race.id);
-  // 티켓은 아직 안 끝나고 안 취소된 경기에만. 공식 사이트는 언제나.
-  const ticketUrl = (race.status !== 'completed' && race.status !== 'cancelled' && race.ticketUrl) || null;
-  const officialUrl = race.officialUrl || null;
-  const linkTrack = (event) => track(event, { series: race.series, race_id: race.id, source: 'detail' });
-  // 캘린더 담기. 히어로와 같은 함수·같은 저장소를 쓴다(alarm.js).
-  // 끝났거나 취소됐거나 시각이 확정된 세션이 하나도 없으면 담을 게 없어서 행 자체를 그리지 않는다.
-  const alarms = useAlarms();
-  const alarmOn = alarms.has(race.id);
-  const canAlarm = race.status !== 'completed' && race.status !== 'cancelled'
-    && (Array.isArray(race.sessions) ? race.sessions : []).some((x) => x.startUtc);
-  const onAlarm = () => toggleAlarm(race, { source: 'detail', preferences, locale: fmt.locale });
   const [favPop, onFavPopEnd] = usePop(faved);   // 저장될 때만 되튐
   // 공유: navigator.share가 있으면 시트, 없으면 클립보드 복사 후 '링크를 복사했어요'를 2초.
   // 클립보드까지 막혔으면(권한 거부·비보안 컨텍스트) 조용히 끝내지 않고 주소를 띄워 직접 복사하게 한다.
@@ -460,14 +354,14 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
   const headerLoaded = useImageLoaded(headerPhoto);
   const sheetRef = useRef(null);
   useEffect(() => { sheetRef.current?.querySelector('button')?.focus({ preventScroll: true }); }, []);
+  const section = { padding: `28px ${PAD_X}px 0` };
 
   return (
-    <div ref={sheetRef} className={`detail-sheet${closing ? ' closing' : ''}`} onAnimationEnd={closing ? onExitEnd : undefined} style={{ position: 'absolute', inset: 0, background: t.bg, zIndex: 80, overflow: 'auto', paddingBottom: 40 }}>
+    <div ref={sheetRef} className={`detail-sheet${closing ? ' closing' : ''}`} onAnimationEnd={closing ? onExitEnd : undefined} style={{ position: 'absolute', inset: 0, background: 'var(--bg)', zIndex: 80, overflow: 'auto', paddingBottom: 40 }}>
       {/* 헤더 배경 = 경기 사진 (사진 → 중립 스크림 → 콘텐츠). 높이는 padding이 정한다.
           사진이 뜨기 전 바탕은 시리즈 색이 아니라 중립 surface2 — 로딩 순간에 색이 번쩍이지 않게. */}
-      <div style={{ padding: IS_TOSS ? '16px 18px 22px' : '60px 18px 22px', background: t.surface2, position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
-        {/* 사진은 <img>로 둔다. CSS 배경은 스타일 적용 뒤에야 발견돼 우선순위를 줄 수 없다.
-            로드 전에는 중립 바탕이 보이고, 로드되면 페이드로 올라온다(레이아웃 불변). */}
+      <div style={{ padding: `${IS_TOSS ? 16 : 60}px ${PAD_X}px 26px`, background: 'var(--surface2)', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
+        {/* 사진은 <img>로 둔다. CSS 배경은 스타일 적용 뒤에야 발견돼 우선순위를 줄 수 없다. */}
         <img
           src={headerPhoto} alt="" aria-hidden="true" fetchPriority="high" decoding="async"
           style={{
@@ -478,33 +372,29 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
         />
         <div aria-hidden style={{ position: 'absolute', inset: 0, zIndex: -1, background: PHOTO_SCRIM }} />
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, position: 'relative' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, position: 'relative' }}>
           {/* 토스는 내비게이션 바의 뒤로가기를 쓴다. 빈 자리를 남겨 오른쪽 버튼 위치는 그대로 둔다. */}
           {IS_TOSS ? <span aria-hidden /> : <button onClick={onClose} aria-label={tr('aria.back')} className="press-icon" style={ICON_HIT}>
-            <span style={{ width: 36, height: 36, borderRadius: 999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round">
-                <path d="M15 18l-6-6 6-6"/>
-              </svg>
+            <span style={PHOTO_BTN}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
             </span>
           </button>}
           <div style={{ display: 'flex', alignItems: 'center', gap: 2, position: 'relative' }}>
-            <button onClick={() => toggleFav(race.id)} aria-label={tr('aria.save')} className="press-icon" style={ICON_HIT}>
-              <span className={favPop} onAnimationEnd={onFavPopEnd} style={{ width: 36, height: 36, borderRadius: 999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill={faved ? '#fff' : 'none'} stroke="#fff" strokeWidth="2">
+            <button onClick={() => toggleFav(race.id)} aria-label={tr('aria.save')} aria-pressed={faved} className="press-icon" style={ICON_HIT}>
+              <span className={favPop} onAnimationEnd={onFavPopEnd} style={PHOTO_BTN}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill={faved ? '#fff' : 'none'} stroke="#fff" strokeWidth="2" aria-hidden="true">
                   <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                 </svg>
               </span>
             </button>
             <button onClick={onShare} aria-label={tr('aria.share')} className="press-icon" style={ICON_HIT}>
-              <span style={{ width: 36, height: 36, borderRadius: 999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center' }}>
-                <ShareIcon />
-              </span>
+              <span style={PHOTO_BTN}><ShareIcon /></span>
             </button>
             {shareHint && (
               <span role="status" style={{
                 position: 'absolute', top: '100%', right: 0, marginTop: 6,
-                maxWidth: 260, padding: '5px 9px', borderRadius: 8, background: 'rgba(0,0,0,0.72)',
-                color: '#fff', fontSize: 11, fontWeight: 600,
+                maxWidth: 260, padding: '6px 10px', borderRadius: 8, background: 'rgba(0,0,0,0.72)',
+                color: '#fff', fontSize: 12, fontWeight: 600,
                 ...(shareHint.kind === 'url'
                   ? { userSelect: 'all', wordBreak: 'break-all', fontWeight: 500, lineHeight: 1.4 }
                   : { whiteSpace: 'nowrap' }),
@@ -514,169 +404,52 @@ export function RaceDetail({ race, theme, onClose, favorites, toggleFav, prefere
         </div>
 
         <div style={{ position: 'relative' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <SeriesTag series={race.series} theme={theme} />
-            <Mono size={10} color="rgba(255,255,255,0.72)" style={{ letterSpacing: '0.12em' }}>
-              {getRoundDescriptor(race)}
-            </Mono>
-            {race.specialBadge && <EventBadge label={race.specialBadge} tone={race.specialBadgeTone} theme={theme} />}
-            {race.isSprint && <span style={{ padding: '2px 6px', fontSize: 9, fontWeight: 800, letterSpacing: '0.08em', borderRadius: 3, background: 'rgba(255,255,255,0.18)', color: '#fff', ...FONT_DATA }}>SPRINT</span>}
-            {race.isNextRace && <StatusPill status="next" theme={theme} />}
-            {race.status === 'live' && <StatusPill status="live" theme={theme} />}
-            {race.status === 'cancelled' && <StatusPill status="cancelled" theme={theme} />}
-            {race.status === 'completed' && <StatusPill status="completed" theme={theme} />}
-          </div>
-          <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1, color: '#fff', marginBottom: 6 }}>
-            {L.name}
-          </div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.80)' }}>
-            {L.circuit}{L.city ? ` · ${L.city}` : ''} · {L.country}
-          </div>
+          <DetailTagLine race={race} />
+          <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.25, color: '#fff', marginBottom: 6 }}>{L.name}</div>
+          <div style={{ fontSize: 15, lineHeight: 1.45, color: 'rgba(255,255,255,0.80)' }}>{placeLine(L)}</div>
         </div>
         <PhotoCredit race={race} inset={10} />
       </div>
 
-      {race.cancellationNote && (
-        <div style={{ margin: '16px 18px 0', padding: 14, borderRadius: 12, background: 'rgba(255,77,95,0.08)', border: '1px solid rgba(255,77,95,0.25)', fontSize: 12, color: '#FF6B7A', lineHeight: 1.5 }}>
-          <Mono size={10} weight={700} style={{ letterSpacing: '0.12em', display: 'block', marginBottom: 4 }}>NOTICE</Mono>
-          {race.cancellationNote}
-        </div>
-      )}
+      {race.cancellationNote && <section style={{ padding: `16px ${PAD_X}px 0` }}><DetailNotice race={race} /></section>}
 
-      {/* 결과 · RESULT — 결과 데이터가 있는 F1 경기만 (results/ResultsUI.jsx) */}
-      <RaceResultSection race={race} theme={theme} />
+      {/* 결과 — 결과 데이터가 있는 F1 경기만 (results/ResultsUI.jsx) */}
+      <RaceResultSection race={race} />
 
-      <section style={{ padding: '24px 18px 0' }}>
-        <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.14em' }}>{tr('detail.sessions', { zone: fmt.zoneLabel })}</Mono>
-        <div style={{ marginTop: 12, background: t.surface, border: `1px solid ${t.line}`, borderRadius: 14, overflow: 'hidden' }}>
-          {sessions.map((sess, i) => (
-            <div key={i} style={{
-              display: 'grid', gridTemplateColumns: '80px 1fr auto', gap: 10, alignItems: 'center',
-              padding: '14px 16px', borderBottom: i === sessions.length - 1 ? 'none' : `1px solid ${t.line}`,
-            }}>
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                padding: '4px 8px', borderRadius: 4,
-                background: sess.kind === 'race' ? s.accent : (theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'),
-                color: sess.kind === 'race' ? '#fff' : t.text,
-                fontSize: 11, fontWeight: 700, letterSpacing: '-0.005em',
-              }}>{fmt.sessionLabel(sess)}</div>
-              <Mono size={13} color={t.text2}>{sess.startUtc ? fmt.dateTimeKey(sess.startUtc) : tr('detail.timeTba')}</Mono>
-              <Mono size={10} color={t.text3} style={{ letterSpacing: '0.02em' }}>{sess.startUtc && sess.local && sess.local !== 'TBA' ? tr('detail.local', { time: sess.local.slice(11, 16) }) : ''}</Mono>
-            </div>
-          ))}
-        </div>
-      </section>
+      {sessions.length > 0 && <section style={section}><DetailSessions sessions={sessions} /></section>}
 
-      {/* 현장 · ON SITE — 서킷 맵이 있는 경기만 (CircuitMap.jsx hasMap). 토스 빌드는 지도를 쓰지 않는다. */}
+      {/* 현장 — 서킷 맵이 있는 경기만 (CircuitMap.jsx hasMap). 토스 빌드는 지도를 쓰지 않는다. */}
       {!IS_TOSS && <CircuitMapSection race={race} />}
 
-      <section style={{ padding: '20px 18px 0' }}>
-        <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.14em' }}>WEEKEND</Mono>
-        <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <InfoCell label={tr('detail.start')} value={fmt.plainDateFull(race.weekendStart)} theme={theme} />
-          <InfoCell label={tr('detail.end')} value={fmt.plainDateFull(race.weekendEnd)} theme={theme} />
-          <InfoCell label={tr('detail.localTime')} value={race.localTime || 'TBA'} theme={theme} />
-          <InfoCell label="TIMEZONE" value={race.timezone || 'TBA'} theme={theme} />
-          {race.durationLabel && <InfoCell label="DURATION" value={race.durationLabel} theme={theme} />}
-        </div>
-      </section>
-
-      <section style={{ padding: '20px 18px 0' }}>
-        <Mono size={10} weight={700} color={t.text3} style={{ letterSpacing: '0.14em' }}>{tr('detail.broadcast')}</Mono>
-        <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
-          {fmt.broadcast(race.broadcast).map((b, i) => (
-            // 실제 링크(<a>): 가운데 클릭·Cmd 클릭·새 탭이 되고 스크린리더가 링크로 읽는다. 시각은 기존 div와 동일.
-            <a key={i} className="press-row" href={b.url ?? undefined} target="_blank" rel="noopener noreferrer"
-              onClick={() => track('broadcast_clicked', { name: b.name, region: b.region, access: b.access, series: race.series, source: 'detail' })}
-              style={{ padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                <div style={{ flex: 'none', width: 28, height: 28, borderRadius: 6, background: s.accent, display: 'grid', placeItems: 'center', color: '#fff' }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>{b.name}</div>
-                  <AccessBadge access={b.access} theme={theme} label={b.access ? tr(`detail.access.${b.access}`) : ''} />
-                  <ExternalIcon color={t.text3} />
-                  <span style={SR_ONLY}>{tr('aria.external')}</span>
-                </div>
-              </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={t.text3} strokeWidth="2"><path d="M9 6l6 6-6 6"/></svg>
-            </a>
-          ))}
-        </div>
-        <div style={{ marginTop: 8, fontSize: 11, color: t.text3 }}>{tr('detail.broadcastNote')}</div>
-      </section>
-
-      {canAlarm && !IS_TOSS && (
-        <section style={{ padding: '20px 18px 0' }}>
-          <div style={{ padding: '14px 16px', background: t.surface, border: `1px solid ${t.line}`, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: t.text }}>{tr('detail.alarmTitle')}</div>
-              <div style={{ fontSize: 11, color: t.text3, marginTop: 2 }}>{tr('detail.alarmSub')}</div>
-            </div>
-            {/* 스위치가 아니라 버튼이다 — 꺼도 캘린더에서 지워지지 않으니 스위치는 거짓말이 된다. */}
-            <button type="button" onClick={onAlarm} aria-pressed={alarmOn}
-                style={{ minHeight: 44, minWidth: 72, padding: '0 16px', borderRadius: 999, flex: 'none', cursor: 'pointer',
-                  fontFamily: 'inherit', fontSize: 13, fontWeight: 700, letterSpacing: '-0.005em',
-                  border: alarmOn ? `1px solid ${t.line2}` : 0,
-                  background: alarmOn ? 'transparent' : s.accent, color: alarmOn ? t.text2 : '#fff' }}>
-                {alarmOn ? tr('detail.alarmAdded') : tr('detail.alarmAdd')}
-              </button>
-          </div>
-        </section>
-      )}
-
-      {(ticketUrl || officialUrl) && (
-        <section style={{ padding: '24px 18px 0' }}>
-          {/* 방송 링크와 같은 방식의 실제 <a>. 가운데·Cmd 클릭이 되고 스크린리더가 링크로 읽는다. */}
-          <a href={ticketUrl || officialUrl} target="_blank" rel="noopener noreferrer"
-            onClick={() => linkTrack(ticketUrl ? 'ticket_clicked' : 'official_site_clicked')}
-            style={{ width: '100%', boxSizing: 'border-box', padding: '16px', borderRadius: 14, border: 0, background: s.accent, color: '#fff', fontSize: 15, fontWeight: 700, letterSpacing: '-0.005em', cursor: 'pointer', fontFamily: 'inherit', boxShadow: `0 10px 24px ${s.accent}33`, display: 'grid', placeItems: 'center', textDecoration: 'none' }}>
-            {ticketUrl ? tr('detail.buyTickets') : tr('detail.openOfficialSite')}
-          </a>
-          {ticketUrl && officialUrl && (
-            <a href={officialUrl} target="_blank" rel="noopener noreferrer"
-              onClick={() => linkTrack('official_site_clicked')}
-              style={{ display: 'grid', placeItems: 'center', minHeight: 44, marginTop: 4, fontSize: 13, fontWeight: 600, color: t.text2, textDecoration: 'underline', textUnderlineOffset: 3 }}>
-              {tr('detail.officialSite')}
-            </a>
-          )}
-        </section>
-      )}
+      <section style={section}><DetailWeekend race={race} /></section>
+      <section style={section}><DetailBroadcast race={race} /></section>
+      {canAddAlarm(race) && !IS_TOSS && <section style={{ ...section, paddingTop: 20 }}><DetailAlarm race={race} preferences={preferences} /></section>}
+      {hasDetailLinks(race) && <section style={section}><DetailLinks race={race} /></section>}
     </div>
   );
 }
 
-// 즐겨찾기 빈 상태 추천 행: 열기 + 바로 저장
-function RecommendRow({ race, theme, onOpen, onSave }) {
-  const t = TOKENS[theme];
+// 사진 위 아이콘 버튼: 면 40 · 아이콘 24 (앱인토스 UX 가이드의 아이콘 24–40px)
+const PHOTO_BTN = { width: 40, height: 40, borderRadius: 999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center' };
+
+// 즐겨찾기 빈 상태 추천 줄: 열기 + 바로 저장. 시리즈 색 막대 대신 점.
+function RecommendRow({ race, onOpen, onSave }) {
   const fmt = useFormat();
   const tr = useT();
   const L = fmt.race(race);
-  const s = SERIES[race.series];
+  const start = getRaceStartUtc(race);
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`, borderRadius: 12 }}>
-      <div style={{ width: 3, height: 40, background: s.accent, borderRadius: 2, flex: 'none' }} />
-      <button className="press-row" onClick={onOpen} style={{ flex: 1, minWidth: 0, background: 'none', border: 0, padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-          <SeriesTag series={race.series} theme={theme} variant="ghost" />
-          <Mono size={10} color={t.text3}>{getRoundDisplay(race)}</Mono>
-        </div>
-        <div style={{ fontSize: 14, fontWeight: 600, color: t.text, letterSpacing: '-0.005em', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{L.shortName}</div>
-        <div style={{ fontSize: 11, color: t.text3, marginTop: 1 }}>{fmt.monthDay(getRaceStartUtc(race) || race.primaryStartUtc)} · {getRaceStartUtc(race) ? fmt.time(getRaceStartUtc(race)) : 'TBA'}</div>
+    <div className="g-row">
+      <SeriesDot series={race.series} />
+      <button className="press-row" onClick={onOpen} style={{ flex: 1, minWidth: 0, background: 'none', border: 0, padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', color: 'inherit' }}>
+        <span style={{ display: 'block', fontSize: 17, lineHeight: 1.35, fontWeight: 600, letterSpacing: '-0.01em', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{L.shortName}</span>
+        <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: 'var(--text2)' }}>
+          {[seriesRound(race), start ? fmt.shortDateTime(start) : `${fmt.shortDate(race.primaryStartUtc)} ${tr('time.tba')}`].join(' · ')}
+        </span>
       </button>
-      <button onClick={onSave} style={{ flex: 'none', minHeight: 44, padding: '0 12px', borderRadius: 10, border: `1px solid ${t.line2}`, background: 'transparent', color: t.text, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{tr('fav.save')}</button>
-    </div>
-  );
-}
-
-function InfoCell({ label, value, theme }) {
-  const t = TOKENS[theme];
-  return (
-    <div style={{ padding: '12px 14px', background: t.surface, border: `1px solid ${t.line}`, borderRadius: 10 }}>
-      <Mono size={9} color={t.text3} style={{ letterSpacing: '0.14em', display: 'block' }}>{label}</Mono>
-      <div style={{ fontSize: 13, fontWeight: 600, color: t.text, marginTop: 4 }}>{value}</div>
+      <button type="button" onClick={onSave} style={{ flex: 'none', minHeight: 44, padding: 0, border: 0, background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+        <span style={{ display: 'inline-grid', placeItems: 'center', height: 34, padding: '0 14px', borderRadius: 10, background: 'var(--fill)', color: 'var(--text)', fontSize: 13, fontWeight: 600 }}>{tr('fav.save')}</span>
+      </button>
     </div>
   );
 }
@@ -684,7 +457,7 @@ function InfoCell({ label, value, theme }) {
 // 공유 아이콘. 하트 버튼과 같은 크기 안에 들어간다.
 function ShareIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 3v13M12 3l-4 4M12 3l4 4M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
     </svg>
   );

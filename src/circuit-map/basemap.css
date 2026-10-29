@@ -71,25 +71,25 @@
 #cm #mapwrap[data-lod="0"] .m-bldg{stroke:none}
 #cm #mapwrap[data-lod="1"] .rd.r-path,#cm #mapwrap[data-lod="1"] .rd.r-step,#cm #mapwrap[data-lod="1"] .m-exits,#cm #mapwrap[data-lod="1"] .m-plat{display:none}
 /* 화면 좌표 오버레이: 도로 이름 · 임시 육교 */
-#cm .ov-rd{font-size:9.5px;font-weight:600;letter-spacing:.08em;fill:var(--bm-rdlab);text-anchor:middle;dominant-baseline:central;paint-order:stroke;stroke:var(--land);stroke-width:3px;stroke-linejoin:round;font-feature-settings:"case"}
+#cm .ov-rd{font-size:10px;font-weight:600;letter-spacing:.08em;fill:var(--bm-rdlab);text-anchor:middle;dominant-baseline:central;paint-order:stroke;stroke:var(--land);stroke-width:3px;stroke-linejoin:round;font-feature-settings:"case"}
 #cm .ov-op{fill:var(--bm-op);stroke:var(--bm-opline);stroke-width:1.5px;stroke-linejoin:round}
 /* 핀: 구역 이름 · 공식 맵에만 있는 관람석 · 휠체어 관람대 */
 #cm .pin.k-zn,#cm .pin.k-stl{pointer-events:none}
-#cm .pin.k-zn .lb{position:static;transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;letter-spacing:.12em;color:var(--text3);font-feature-settings:"case"}
+#cm .pin.k-zn .lb{position:static;transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;letter-spacing:0;color:var(--text3)}
 #cm .pin.k-zn .lb .ico{width:10px;height:10px}
-#cm .pin.k-stl .lb{position:static;transform:translate(-50%,-50%);font-size:10px;font-weight:600;letter-spacing:0;color:var(--text3)}
-#cm .pin.k-gate .lb .gn{display:inline-grid;place-items:center;min-width:16px;height:16px;padding:0 3px;margin-right:5px;border-radius:3px;background:var(--text);color:var(--bg);font-size:9.5px;font-weight:800;letter-spacing:0;text-shadow:none;vertical-align:1px}
-#cm #cm-attr{position:absolute;right:10px;bottom:6px;font-size:9px;font-weight:500;color:var(--text3);opacity:.8;pointer-events:none;text-shadow:0 0 3px var(--halo)}
+#cm .pin.k-stl .lb{position:static;transform:translate(-50%,-50%);font-size:12px;font-weight:600;letter-spacing:0;color:var(--text3)}
+#cm .pin.k-gate .lb .gn{display:inline-grid;place-items:center;min-width:16px;height:16px;padding:0 3px;margin-right:5px;border-radius:3px;background:var(--text);color:var(--bg);font-size:12px;font-weight:700;letter-spacing:0;text-shadow:none;vertical-align:1px}
+#cm #cm-attr{position:absolute;right:10px;bottom:6px;font-size:12px;font-weight:500;color:var(--text3);opacity:.8;pointer-events:none;text-shadow:0 0 3px var(--halo)}
 /* 라이트 그리드(브랜드 점 격자)는 전체 보기에서만 바탕 질감으로 — 거리 단계에서는 지도 정보에 자리를 내준다 */
 #cm #m-dots{transition:opacity var(--dur-move) var(--ease-std)}
 #cm #mapwrap[data-lod="1"] #m-dots{opacity:.45}
 #cm #mapwrap[data-lod="2"] #m-dots{opacity:0}
 /* 편의시설(공식 서킷 파크 맵 분류): 거리 단계에서만, 무채색 칩 + 16px 선 아이콘. 누를 수 없는 표시라 손가락 크기 규칙 밖 */
 #cm .pin.k-am{pointer-events:none}
-#cm .pin.k-am .b{width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:7px;background:var(--surface2);box-shadow:0 0 0 1px var(--line2),0 0 0 3px var(--land);display:grid;place-items:center;color:var(--text2)}
+#cm .pin.k-am .b{width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:var(--r-sm);background:var(--surface2);box-shadow:0 0 0 1px var(--line2),0 0 0 3px var(--land);display:grid;place-items:center;color:var(--text2)}
 #cm .pin.k-am .b .ico{width:16px;height:16px}
 #cm .pin.k-am.am-aid .b,#cm .pin.k-am.am-info .b{color:var(--text)}
 #cm .am-lg{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;margin:2px 4px 6px;padding:8px 6px 2px;box-shadow:inset 0 1px 0 var(--line)}
-#cm .am-lg span{display:flex;align-items:center;gap:6px;min-height:22px;font-size:11px;font-weight:500;color:var(--text2);white-space:nowrap}
+#cm .am-lg span{display:flex;align-items:center;gap:6px;min-height:22px;font-size:12px;font-weight:500;color:var(--text2);white-space:nowrap}
 #cm .am-lg .ico{width:16px;height:16px;flex:none;color:var(--text3)}
-#cm .am-lg p{grid-column:1/-1;margin:0 0 4px;font-size:11px;color:var(--text3)}
+#cm .am-lg p{grid-column:1/-1;margin:0 0 4px;font-size:12px;color:var(--text3)}

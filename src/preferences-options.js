@@ -54,21 +54,17 @@ export function countryValueFromId(id) {
   return COUNTRY_OPTIONS.find((c) => c.id === id)?.value ?? null;
 }
 
+// 저장된 테마 선택: 'system' | 'dark' | 'light'. 아직 고른 적이 없으면 system.
+// 예전 키(paddock.theme)는 'light'만 이어받는다 — 'dark'는 예전 앱이 기본값으로 써 둔 것과 구분할 수 없어서 기기 설정으로 돌린다.
 // 토스 빌드는 라이트 테마만 쓴다.
 export function readTheme() {
   if (IS_TOSS) return 'light';
-  return storage.theme.read();
+  const v = storage.theme.read();
+  if (v === 'system' || v === 'dark' || v === 'light') return v;
+  return storage.legacyTheme.read() === 'light' ? 'light' : 'system';
 }
 
-// 온보딩·설정 공용 선택 항목 스타일. 터치 영역 최소 56px.
-export function optionStyles(t) {
-  return {
-    base: {
-      display: 'flex', alignItems: 'center', gap: 14, width: '100%', minHeight: 56,
-      padding: '14px 16px', borderRadius: 14, textAlign: 'left', cursor: 'pointer',
-      fontFamily: 'inherit', color: t.text, background: t.surface,
-      borderWidth: 1, borderStyle: 'solid', borderColor: t.line,
-    },
-    selected: { background: t.surface2, borderColor: t.line2 },
-  };
+// 기기 밝기 모드. 'system'일 때만 쓴다.
+export function systemTheme() {
+  try { return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'; } catch { return 'dark'; }
 }

@@ -131,7 +131,8 @@ SPOTS.forEach(sp => {
 
 /* ════════ TIME ════════ */
 const H = 36e5, M = 6e4;
-const TZ = VN.tz.off, TZA = VN.tz.abbr;
+// TZA: 시각 뒤에 붙는 현지 표시. 예전에는 'CST' 같은 약어(구현 값)를 그대로 보였다 — 사람 말 '현지'로(D1, 2026-10-29).
+const TZ = VN.tz.off, TZA = '현지';
 const DAY0 = Date.UTC(VN.day0[0], VN.day0[1], VN.day0[2]) - TZ*H;   // first day, 00:00 local
 const DAYS = VN.days, ND = DAYS.length, DIDX = DAYS.map((_,i)=>i);
 const tm = (day, hhmm) => { const [h,m]=hhmm.split(':').map(Number); return DAY0 + day*864e5 + (h*60+m)*M; };
@@ -431,13 +432,13 @@ function buildPins(){
   });
   if(S.layers.spot) SPOTS.forEach(sp => {
     const sel = selKey==='spot:'+sp.id, lk = lockOf(sp), seat = S.seat===sp.id;
-    mk('spot', sp, `<span class="b"></span><span class="lb">${seat?'<span class="me-tag">MY SEAT</span>':''}${esc(sp.name)}</span>`, seat?85:sel?99:58, {cls:(sel?'sel ':'')+(lk?'lock ':'')+(seat?'seat':''), minK: seat||sel ? 0 : .45, aria:sp.name+' '+(sp.kind||'그랜드스탠드')+(sp.zone!=null?', '+zName(sp.zone):'')+(seat?', 내 자리':'')});
+    mk('spot', sp, `<span class="b"></span><span class="lb">${seat?'<span class="me-tag">내 좌석</span>':''}${esc(sp.name)}</span>`, seat?85:sel?99:58, {cls:(sel?'sel ':'')+(lk?'lock ':'')+(seat?'seat':''), minK: seat||sel ? 0 : .45, aria:sp.name+' '+(sp.kind||'그랜드스탠드')+(sp.zone!=null?', '+zName(sp.zone):'')+(seat?', 내 자리':'')});
   });
   if(S.layers.stage) STAGES.forEach(sg => {
     const sel = selKey==='stage:'+sg.id, lk = lockOf(sg);
     const la = liveAct(sg.id, t), na = !la && nextAct(sg.id, t, 30*M);
     let lab;
-    if(la) lab = `<span class="tg tl">LIVE</span><b>${esc(la.title)}</b><small>${esc(sg.short||sg.name)}</small>`;
+    if(la) lab = `<span class="tg tl">진행 중</span><b>${esc(la.title)}</b><small>${esc(sg.short||sg.name)}</small>`;
     else if(na) lab = `<span class="tg tn">${hm(na.s)}</span>${esc(na.title)}<small>${esc(sg.short||sg.name)}</small>`;
     else lab = `${esc(sg.short||sg.name)}`;
     mk('stage', sg, `<span class="b">${ico('music')}${lk?lockI:''}</span><span class="lb">${lab}</span>`, la?90:na?70:55, {cls:(sel?'sel ':'')+(lk?'lock ':'')+(la?'live':''), aria:(sg.name)+(la?', 지금 '+la.title+' 공연 중':na?', '+hm(na.s)+' '+TZA+' '+na.title:'')});
@@ -690,7 +691,7 @@ $('#b-zin').onclick = () => { const a=visArea(); zoomAt(1.8,(a.x0+a.x1)/2,(a.y0+
 $('#b-zout').onclick = () => { const a=visArea(); zoomAt(1/1.8,(a.x0+a.x1)/2,(a.y0+a.y1)/2,true); };
 $('#b-fit').onclick = () => fit(true);
 $('#b-me').onclick = () => { if(!S.me) startPlacing(); else { focusOn(S.me.x, S.me.y, Math.max(V.k,1.1), true); toastMe(); } };
-function toastMe(){ toast('locate', `<span class="lbl">My location</span><b>내 위치</b><span>도보 시간을 이 위치 기준으로 계산해요</span>`, `<button class="btn sm ghost" data-act="place">다시 지정</button>`); }
+function toastMe(){ toast('locate', `<b>내 위치</b><span>도보 시간을 이 위치 기준으로 계산해요</span>`, `<button class="btn sm ghost" data-act="place">다시 지정</button>`); }
 
 /* ── placing "my location" ── */
 function updatePlaceCross(){ const a=visArea(); const c=$('#cross'); c.style.left=((a.x0+a.x1)/2)+'px'; c.style.top=((a.y0+a.y1)/2)+'px'; }
@@ -867,7 +868,7 @@ const starBtn = id => `<button class="star" data-act="save" data-id="${id}" aria
 const tzT = (ms, zone) => `<span class="tz">${hm(ms)}<small>${zone||TZA}</small></span>`;
 const lockedAct = it => it.kind==='act' && canEnter(BYID['stage:'+it.stage].zone)===false;
 const isLightsOut = it => it.kind==='track' && /스프린트$|결승/.test(it.title);
-const WEEKDAY_EN = DAYS.map(d => d.en);
+const dayFull = i => DAYS[i] ? `${DAYS[i].d} (${DAYS[i].w})` : '';   // '10.30 (금)' — 예전 'FRI · 10.30'
 
 /* mini circuit — the whole lap in miniature, with the part that matters lit */
 const MT_VB = (() => { const p=60; return `${(BB.x0-p).toFixed(0)} ${(BB.y0-p).toFixed(0)} ${(BB.x1-BB.x0+p*2).toFixed(0)} ${(BB.y1-BB.y0+p*2).toFixed(0)}`; })();
@@ -894,7 +895,7 @@ function heroState(t){
     return {state:'soon', it:nx, on:5, mode:'soon', text:`${same?'오늘 ':''}${until(nx.s,t)} · ${nx.title}`};
   }
   const dl = dayOf(nx.s) - dayOf(t);
-  return {state:'upcoming', it:nx, on:clamp(5-dl,0,5), mode:'', text:`다음 레이싱 위켄드 · D-${dl}`};
+  return {state:'upcoming', it:nx, on:clamp(5-dl,0,5), mode:'', text:`첫 세션까지 ${dl}일`};
 }
 
 /* session row (08.10): bar · title · meta · time on the right edge */
@@ -906,7 +907,7 @@ function row(it, t, o){
   let meta = o.meta != null ? o.meta : esc(placeName(it));
   if(lk && !o.noLock) meta = `${ico('lock','s')} ${meta} · ${zName(BYID['stage:'+it.stage].zone)} 필요`;
   else if(w && o.meta == null) meta += ` · 도보 ${w.m}분`;
-  const sub = s==='live' ? `<span class="tlive">LIVE</span>` : it.open ? `<small>${o.showDay?dayTag(it.day)+' · ':''}시작</small>` : `<small>${o.showDay?dayTag(it.day)+' · ':''}${it.approx?'약 ':''}–${it.endMax?'최대 ':''}${hm(it.e)}</small>`;
+  const sub = s==='live' ? `<span class="tlive">진행 중</span>` : it.open ? `<small>${o.showDay?dayTag(it.day)+' · ':''}시작</small>` : `<small>${o.showDay?dayTag(it.day)+' · ':''}${it.approx?'약 ':''}–${it.endMax?'최대 ':''}${hm(it.e)}</small>`;
   const bar = it.kind==='track' ? it.series : '';
   return `<div class="row ${cls}"><button class="main" data-act="item" data-id="${it.id}" aria-label="${esc(it.title)}, ${hm(it.s)} ${TZA}${s==='live'?', 진행 중':s==='past'?', 종료':''}">
       <span class="bar ${bar}"></span>
@@ -921,11 +922,10 @@ function vNow(t){
   if(t < EV_START){
     const first = TRACK[0]; const dl = dayOf(first.s) - dayOf(t);
     return `<div class="sec"><div class="hero">
-        <div class="top">${lightRow(clamp(5-dl,0,5),'','m')}<span style="font-size:13px;font-weight:600;color:var(--text2)">다음 레이싱 위켄드 · D-${dl}</span></div>
+        <div class="top">${lightRow(clamp(5-dl,0,5),'','m')}<span style="font-size:13px;font-weight:600;color:var(--text2)">첫 세션까지 ${dl}일</span></div>
         <div class="ttl">${esc(VN.title)}</div>
-        <div class="en">${esc(VN.heroEn)}</div>
-        <div class="main"><div><span class="lbl">First session</span>${tzT(first.s)}</div>${miniTrack({})}</div>
-        <div class="stats" style="--n:2">${stat('날짜', dLabel(0))}${stat('한국 시간', kst(first.s), 'KST')}</div>
+        <div class="main"><div><span class="lbl">첫 세션</span>${tzT(first.s)}</div>${miniTrack({})}</div>
+        <div class="stats" style="--n:2">${stat('날짜', dLabel(0))}${stat('한국 시간', kst(first.s))}</div>
         <button class="hint" data-act="demo">${ico('clock')}<span>레이싱 위켄드가 시작되면 트랙과 무대 상황을 지도에 바로 보여드려요. <b>데모 시계로 미리 보기</b></span>${ico('next')}</button>
       </div></div>` + upNext(t, true);
   }
@@ -938,12 +938,12 @@ function vNow(t){
   if(lt && !isQuiet(lt)){
     const p = (t-lt.s)/(lt.e-lt.s)*100;
     h += `<div class="sec"><div class="hero live">
-      <div class="top">${stag(lt)}<span class="st live">LIVE</span></div>
+      <div class="top">${stag(lt)}<span class="st live">진행 중</span></div>
       <div class="ttl">${esc(lt.title)}</div>
       ${lt.note?`<div class="en">${esc(lt.note)}</div>`:''}
       <div class="main"><div><span class="lbl">종료까지</span><span class="tz">${dur((lt.e-t)/M)}</span></div>${miniTrack({live:true, arcs:seatArc, dot: seat})}</div>
       <div class="prog" role="progressbar" aria-label="세션 진행" aria-valuenow="${Math.round(p)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${p.toFixed(1)}%"></i></div>
-      <div class="stats" style="--n:2">${stat('진행 시간', `${hm(lt.s)}–${hm(lt.e)}`, TZA)}${stat('한국 시간', `${kst(lt.s)}–${kst(lt.e)}`, 'KST')}</div>
+      <div class="stats" style="--n:2">${stat('진행 시간', `${hm(lt.s)}–${hm(lt.e)}`, TZA)}${stat('한국 시간', `${kst(lt.s)}–${kst(lt.e)}`)}</div>
       ${seat ? `<div class="hint">${ico('eye')}<span>내 자리 <b>${esc(seat.name)}</b>에서는 ${seat.turns.map(n=>n+'번').join('·')} 코너가 보여요</span></div>` : seatCta}
     </div></div>`;
   } else if(nt){
@@ -958,11 +958,11 @@ function vNow(t){
     } else if(!seat && today) hint = seatCta;
     const saved = S.saved.has(nt.id);
     h += `<div class="sec"><div class="hero">
-      <div class="top">${stag(nt)}<span class="st next">NEXT</span><span class="sp"></span>${today?'':`<span class="lbl" style="color:var(--text3)">${WEEKDAY_EN[nt.day]} · ${DAYS[nt.day].d}</span>`}</div>
+      <div class="top">${stag(nt)}<span class="st next">다음</span><span class="sp"></span>${today?'':`<span class="lbl" style="color:var(--text3)">${dayFull(nt.day)}</span>`}</div>
       <div class="ttl">${esc(nt.title)}</div>
       ${nt.note?`<div class="en">${esc(nt.note)}</div>`:''}
-      <div class="main"><div><span class="lbl">${isLightsOut(nt)?'Lights out':'Session start'}</span>${tzT(nt.s)}</div>${miniTrack({arcs:seatArc, dot:seat})}</div>
-      <div class="stats" style="--n:2">${stat('시작까지', until(nt.s,t).replace(' 뒤',''))}${stat('한국 시간', kst(nt.s), 'KST')}</div>
+      <div class="main"><div><span class="lbl">${isLightsOut(nt)?'레이스 시작':'세션 시작'}</span>${tzT(nt.s)}</div>${miniTrack({arcs:seatArc, dot:seat})}</div>
+      <div class="stats" style="--n:2">${stat('시작까지', until(nt.s,t).replace(' 뒤',''))}${stat('한국 시간', kst(nt.s))}</div>
       ${hint}
       <div class="acts"><button class="btn ${saved?'':'pri'} flex" data-act="save" data-id="${nt.id}" aria-pressed="${saved}">${ico(saved?'check':'bell')}${saved?'담았어요 · 30분 전 알림':'내 계획에 담기 · 30분 전 알림'}</button><button class="link" data-act="item" data-id="${nt.id}">상세</button></div>
     </div></div>`;
@@ -984,7 +984,7 @@ function vNow(t){
     h += `<div class="hs" data-keep="live">` + live.map(it => {
       const sgd = BYID['stage:'+it.stage]; const lk = lockedAct(it); const w = meW(it); const p = (t-it.s)/(it.e-it.s)*100;
       return `<button class="lv${lk?' lock':''}" data-act="sel" data-type="stage" data-id="${it.stage}">
-        <div class="hd">${lk?`<span class="zb no">${ico('lock')}${zBadge(sgd.zone)}</span>`:`<span class="st live">LIVE</span>`}<span class="sp"></span><span>${esc(sgd.short||sgd.name)}</span></div>
+        <div class="hd">${lk?`<span class="zb no">${ico('lock')}${zBadge(sgd.zone)}</span>`:`<span class="st live">진행 중</span>`}<span class="sp"></span><span>${esc(sgd.short||sgd.name)}</span></div>
         <div class="ar">${esc(it.title)}</div>
         <div class="prog"><i style="width:${p.toFixed(1)}%"></i></div>
         <div class="ft"><span>종료까지 ${dur((it.e-t)/M)}</span><span class="sp"></span>${!lk && w ? `${ico('walk','s')} ${w.m}분` : ''}</div></button>`;
@@ -1001,7 +1001,7 @@ function upNext(t, pre, skip){
   const from = pre ? EV_START : t;
   const ups = ITEMS.filter(x => x.s > from && x.s <= from + (pre ? 864e5 : 2*H) && !(skip||[]).includes(x.id)).slice(0, 6);
   if(!ups.length) return '';
-  return `<div class="sec">${sh(pre?'첫날 일정':'2시간 안에 시작', TZA+' 현지 시각')}<div class="grp">${ups.map(x => row(x,t,{nextId:ups[0].id})).join('')}
+  return `<div class="sec">${sh(pre?'첫날 일정':'2시간 안에 시작', '현지 시각')}<div class="grp">${ups.map(x => row(x,t,{nextId:ups[0].id})).join('')}
     <button class="more" data-act="tab" data-id="sched">전체 일정 보기 ${ico('next','s')}</button></div></div>`;
 }
 
@@ -1031,7 +1031,7 @@ function vSched(t){
       const s = st(it,t), a = mins(it.s), b = it.open ? Math.min(TL1, a + openSpan(it)) : it.e > tm(day,'23:59') ? TL1 : mins(it.e);
       const w = Math.max(6, (b-a)*PPM - 4), sv = S.saved.has(it.id);
       h += `<button class="blk ${it.kind==='track'?it.series:''} ${sv?'saved':''} ${s} ${lk?'lock':''}" style="left:${x(a)+2}px;width:${w}px" data-act="item" data-id="${it.id}" aria-label="${esc(it.title)} ${it.open?hm(it.s)+' 시작, 끝나는 시각 미발표':hm(it.s)+'부터 '+hm(it.e)+'까지'} ${TZA}${s==='live'?', 진행 중':''}${sv?', 내 계획에 담음':''}">
-        ${sv?`<svg class="sv" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-star"/></svg>`:''}<span class="bi"><b>${esc(it.title)}</b><span class="m">${s==='live'?'LIVE · ':''}${it.open?hm(it.s)+' 시작':(it.approx?'약 ':'')+hm(it.s)+'–'+hm(it.e)}</span></span></button>`;
+        ${sv?`<svg class="sv" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-star"/></svg>`:''}<span class="bi"><b>${esc(it.title)}</b><span class="m">${s==='live'?'진행 중 · ':''}${it.open?hm(it.s)+' 시작':(it.approx?'약 ':'')+hm(it.s)+'–'+hm(it.e)}</span></span></button>`;
     });
     rowsH += h + `</div>`;
   });
@@ -1039,7 +1039,7 @@ function vSched(t){
   if(dayOf(t)===day){ const m = mins(t); if(m>=TL0 && m<=TL1) nowl = `<span class="nowl" data-t="${hm(t)}" style="left:${x(m)}px"></span>`; }
   return `${daySeg(day,'sday')}
     <div class="tl"><div class="tl-sc" data-keep="tl"><div class="tl-in" style="width:${LABW+W+24}px">${hd}<div style="position:relative">${rowsH}${nowl}</div></div></div></div>
-    ${TBAS.map(b => `<p class="note"><b>${esc(b.name)}</b> · ${b.acts.join(', ')} · ${b.days} · 시작 시각 미정 · 확정되면 알려드립니다</p>`).join('')}
+    ${TBAS.map(b => `<p class="note"><b>${esc(b.name)}</b> · ${b.acts.join(', ')} · ${b.days} · 시작 시각 미정, 확정되면 알려 드릴게요</p>`).join('')}
 `;
 }
 
@@ -1054,7 +1054,7 @@ const INTENTS = [
 ].filter(i => !(i.id==='stage' && !STAGES.length) && !(i.id==='mrt' && !MRTS.length)); // 무대·정류장이 없는 경기는 그 칩을 숨긴다
 function seatCard(seat){
   return `<button class="seat-card" data-act="sel" data-type="spot" data-id="${seat.id}">${miniTrack({arcs:seat.cov, dot:seat})}
-    <span class="tx"><span class="lbl">My seat</span><b>${esc(seat.name)} ${zb(seat.zone)}</b><span class="m">${seat.turns.map(n=>n+'번').join('·')} 코너 · 약 ${seat.covLen}m 구간이 보여요</span></span>${ico('next')}</button>`;
+    <span class="tx"><span class="lbl">내 좌석</span><b>${esc(seat.name)} ${zb(seat.zone)}</b><span class="m">${seat.turns.map(n=>n+'번').join('·')} 코너 · 약 ${seat.covLen}m 구간이 보여요</span></span>${ico('next')}</button>`;
 }
 function vGuide(t){
   const it = INTENTS.find(i=>i.id===S.intent) || INTENTS[0];
@@ -1071,7 +1071,7 @@ function vGuide(t){
     if(it.id==='stage'){ const n=nearest(sp, STAGES)[0]; why = `<b>${esc(n.o.short||n.o.name)} 도보 ${n.w.m}분</b> · `; }
     else if(it.id==='mrt'){ const n=nearest(sp, MRTS)[0]; why = `<b>${esc(n.o.name)}${TR.suffix} 도보 ${n.w.m}분</b> · `; }
     return `<button class="spot${lk?' lock':''}" data-act="sel" data-type="spot" data-id="${sp.id}">${miniTrack({arcs:sp.cov, dot:sp})}
-      <span class="tx"><span class="nm">${esc(sp.name)} ${zb(sp.zone)}${S.seat===sp.id?'<span class="st next">MY SEAT</span>':''}</span><p>${why}${esc(sp.desc)}</p></span>
+      <span class="tx"><span class="nm">${esc(sp.name)} ${zb(sp.zone)}${S.seat===sp.id?'<span class="st next">내 좌석</span>':''}</span><p>${why}${esc(sp.desc)}</p></span>
       ${w?`<span class="rt"><b>${w.m}분</b>도보</span>`:`<span class="rt tns" aria-label="${sp.turns.map(n=>n+'번').join(', ')} 코너">${sp.turns.map(n=>`<i>${n}</i>`).join('')}</span>`}</button>`;
   }).join('') + `</div></div>`;
   if(!S.me) h += `<button class="hint" style="margin-top:12px" data-act="place">${ico('locate')}<span><b>내 위치 지정하기</b> · 관람석까지 도보 시간을 함께 보여드려요</span>${ico('next')}</button>`;
@@ -1082,7 +1082,7 @@ function vGuide(t){
 function vPlan(t){
   const day = S.planDay==null ? curDay() : S.planDay;
   const seat = S.seat && BYID['spot:'+S.seat];
-  let h = `<div class="sec">${seat ? seatCard(seat) : `<div class="seat-card"><span class="ic">${ico('ticket')}</span><span class="tx"><span class="lbl">My ticket</span><b>${tk()?esc(tk().name):'티켓 미선택'}</b><span class="m">${tk()&&tk().zones?'지정석 없음 · '+(tk().zones.every(z=>typeof z==='number') ? 'Zone '+tk().zones.join('·') : tk().zones.map(zName).join('·')):tk()&&tk().planSub?esc(tk().planSub):'티켓을 고르면 들어갈 수 있는 곳을 표시해요'}</span></span><button class="btn sm ghost" data-act="ticket">변경</button></div>`}</div>`;
+  let h = `<div class="sec">${seat ? seatCard(seat) : `<div class="seat-card"><span class="ic">${ico('ticket')}</span><span class="tx"><span class="lbl">내 티켓</span><b>${tk()?esc(tk().name):'티켓 미선택'}</b><span class="m">${tk()&&tk().zones?'지정석 없음 · '+(tk().zones.every(z=>typeof z==='number') ? 'Zone '+tk().zones.join('·') : tk().zones.map(zName).join('·')):tk()&&tk().planSub?esc(tk().planSub):'티켓을 고르면 들어갈 수 있는 곳을 표시해요'}</span></span><button class="btn sm ghost" data-act="ticket">변경</button></div>`}</div>`;
   h += `<div class="sec" style="margin-top:18px">${daySeg(day,'pday')}</div>`;
   const items = ITEMS.filter(x => x.day===day && S.saved.has(x.id));
   if(!items.length){
@@ -1090,7 +1090,7 @@ function vPlan(t){
     return h + `<div class="sec" style="margin-top:18px"><div class="empty">${sym()}<b>${dLabel(day)}에 담은 일정이 없어요</b>☆를 눌러 담으면 이동 시간과<br>겹치는 일정을 함께 챙겨드려요.
       <div class="acts">${anyF1?'<button class="btn pri" data-act="saveF1">F1 세션 모두 담기</button>':''}<button class="btn" data-act="tab" data-id="sched">일정 보기</button></div></div></div>`;
   }
-  h += `<div class="sec" style="margin-top:22px">${sh(`${items.length}개 일정`, TZA+' 현지 시각')}<div class="grp">`;
+  h += `<div class="sec" style="margin-top:22px">${sh(`${items.length}개 일정`, '현지 시각')}<div class="grp">`;
   const nid = nextIdOf(items, t);
   items.forEach((it,i) => {
     if(i>0){
@@ -1140,7 +1140,7 @@ function vDetail(d, t){
 }
 function dSpot(sp, t){
   const isSeat = S.seat===sp.id, lt = liveTrack(t);
-  let h = `<div class="pc-hd"><div class="kicker">${ico('seat','s')}${sp.kind||'그랜드스탠드'}${sp.zone!=null?' · '+zb(sp.zone):''}${isSeat?'<span class="st next">MY SEAT</span>':''}</div><h3>${esc(sp.name)}</h3>${xBtn}</div>`;
+  let h = `<div class="pc-hd"><div class="kicker">${ico('seat','s')}${sp.kind||'그랜드스탠드'}${sp.zone!=null?' · '+zb(sp.zone):''}${isSeat?'<span class="st next">내 좌석</span>':''}</div><h3>${esc(sp.name)}</h3>${xBtn}</div>`;
   h += `<div class="tiles" style="--n:2">${walkTile(sp)}<button class="tile" data-act="${isSeat?'unseat':'seat'}" data-id="${sp.id}" aria-pressed="${isSeat}">${ico(isSeat?'check':'seat')}${isSeat?'내 자리':'내 자리로'}<small>${isSeat?'눌러서 해제':'출발 시각 계산'}</small></button></div>`;
   h += accLine(sp.zone, '이 구역에 입장');
   h += `<div class="pc-map">${miniTrack({arcs:sp.cov, dot:sp, live: !!(lt && !isQuiet(lt))})}<div class="tx"><span class="lbl">보이는 구간 · 추정</span><b>약 ${sp.covLen}m</b><div class="tcs">${sp.turns.map(n=>`<button class="tchip" data-act="sel" data-type="turn" data-id="${n}" aria-label="${n}번 코너 보기">T${n}</button>`).join('')}</div></div></div>`;
@@ -1151,13 +1151,13 @@ function dSpot(sp, t){
 }
 function dStage(sgd, t){
   const la = liveAct(sgd.id, t);
-  let h = `<div class="pc-hd"><div class="kicker">${ico('music','s')}무대${sgd.zone!=null?' · '+zb(sgd.zone):''}${la?'<span class="st live">LIVE</span>':''}</div><h3>${esc(sgd.name)}</h3>${xBtn}</div>`;
+  let h = `<div class="pc-hd"><div class="kicker">${ico('music','s')}무대${sgd.zone!=null?' · '+zb(sgd.zone):''}${la?'<span class="st live">진행 중</span>':''}</div><h3>${esc(sgd.name)}</h3>${xBtn}</div>`;
   h += `<div class="tiles">${walkTile(sgd)}${GATES.length?nearTile(sgd, GATES, 'gate', '게이트'):''}${MRTS.length?nearTile(sgd, MRTS, 'mrt', TR.short):''}</div>`;
   h += accLine(sgd.zone);
   if(sgd.desc) h += `<p class="desc">${esc(sgd.desc)}</p>`;
   const TBA = tbaOf(sgd.id);
   if(TBA){
-    h += `<div class="sec" style="margin-top:22px">${sh('라인업',TBA.days)}<div class="grp">${TBA.acts.map(a=>`<div class="row"><div class="main" style="min-height:54px"><span class="bar"></span><span class="tx"><b>${esc(a)}</b><span class="m">${esc(TBA.name)}</span></span><span class="tm" style="font-size:12px;font-weight:600;color:var(--text3)">시작 시각 미정</span></div></div>`).join('')}</div><p class="note">시작 시각이 확정되면 알려드립니다.</p></div>`;
+    h += `<div class="sec" style="margin-top:22px">${sh('라인업',TBA.days)}<div class="grp">${TBA.acts.map(a=>`<div class="row"><div class="main" style="min-height:54px"><span class="bar"></span><span class="tx"><b>${esc(a)}</b><span class="m">${esc(TBA.name)}</span></span><span class="tm" style="font-size:12px;font-weight:600;color:var(--text3)">시작 시각 미정</span></div></div>`).join('')}</div><p class="note">시작 시각이 확정되면 알려 드릴게요.</p></div>`;
   }
   if(!TBA || ITEMS.some(x=>x.kind==='act'&&x.stage===sgd.id)){
     const acts = ITEMS.filter(x=>x.kind==='act'&&x.stage===sgd.id);
@@ -1165,7 +1165,7 @@ function dStage(sgd, t){
     const td = dayOf(t); const order = td<0||td>ND-1 ? DIDX : [td].concat(DIDX.filter(x=>x>td), DIDX.filter(x=>x<td));
     order.forEach(dd => {
       const a = acts.filter(x=>x.day===dd); if(!a.length) return;
-      h += `<div class="sec" style="margin-top:22px">${sh(dLabel(dd), dd===td ? '오늘 · '+TZA : dd<td ? '지난 공연' : TZA)}<div class="grp">${a.map(x=>row(x,t,{meta: st(x,t)==='live' ? `종료까지 ${dur((x.e-t)/M)}` : x.open ? '끝나는 시각 미발표' : (x.approx?'약 ':'')+dur((x.e-x.s)/M), nextId:nid, noWalk:true, noLock:true})).join('')}</div></div>`;
+      h += `<div class="sec" style="margin-top:22px">${sh(dLabel(dd), dd===td ? '오늘, 현지 시각' : dd<td ? '지난 공연' : '현지 시각')}<div class="grp">${a.map(x=>row(x,t,{meta: st(x,t)==='live' ? `종료까지 ${dur((x.e-t)/M)}` : x.open ? '끝나는 시각 미발표' : (x.approx?'약 ':'')+dur((x.e-x.s)/M), nextId:nid, noWalk:true, noLock:true})).join('')}</div></div>`;
     });
   }
   return h + approx;
@@ -1195,7 +1195,7 @@ function dVillage(v, t){
 }
 function dTurn(tn, t){
   const spots = SPOTS.filter(sp => sp.turns.includes(tn.n));
-  let h = `<div class="pc-hd"><div class="kicker">${ico('flag','s')}코너${tn.ot?' · <span class="st next">OVERTAKING</span>':''}</div><h3>${tn.n}번 코너</h3>${xBtn}</div>`;
+  let h = `<div class="pc-hd"><div class="kicker">${ico('flag','s')}코너${tn.ot?' · <span class="st next">추월 포인트</span>':''}</div><h3>${tn.n}번 코너</h3>${xBtn}</div>`;
   h += `<div class="pc-map">${miniTrack({turn:tn.n})}<div class="tx"><span class="lbl">출발선에서</span><b>${(tn.s/1000).toFixed(2)} km</b></div></div>`;
   h += `<div class="sec" style="margin-top:22px">${sh('이 코너가 보이는 관람석', `${spots.length}곳`)}`;
   h += spots.length ? `<div class="grp">${spots.map(sp=>{ const w=S.me?walk(S.me,sp):null; return `<button class="spot${canEnter(sp.zone)===false?' lock':''}" data-act="sel" data-type="spot" data-id="${sp.id}">${miniTrack({arcs:sp.cov, dot:sp})}<span class="tx"><span class="nm">${esc(sp.name)} ${zb(sp.zone)}</span><p>${esc(sp.desc)}</p></span><span class="rt">${w?`<b>${w.m}분</b>도보`:''}</span></button>`; }).join('')}</div>`
@@ -1206,12 +1206,12 @@ function dItem(it, t){
   const s = st(it,t); const pl = itemPlace(it); const lk = lockedAct(it); const saved = S.saved.has(it.id);
   const sgd = it.kind==='act' ? BYID['stage:'+it.stage] : null;
   let h = dNav();
-  h += `<div class="pc-hd"><div class="kicker">${it.kind==='track'?stag(it):`${ico('music','s')}${esc(sgd.short||sgd.name)}`}${s==='live'?'<span class="st live">LIVE</span>':s==='past'?'<span class="st done">DONE</span>':''}</div><h3>${esc(it.title)}</h3>${it.kind==='track'&&it.note?`<p>${esc(it.note)}</p>`:''}${xBtn}</div>`;
+  h += `<div class="pc-hd"><div class="kicker">${it.kind==='track'?stag(it):`${ico('music','s')}${esc(sgd.short||sgd.name)}`}${s==='live'?'<span class="st live">진행 중</span>':s==='past'?'<span class="st done">종료</span>':''}</div><h3>${esc(it.title)}</h3>${it.kind==='track'&&it.note?`<p>${esc(it.note)}</p>`:''}${xBtn}</div>`;
   h += `<div class="sec" style="margin-top:18px"><div class="hero ${s==='live'?'live':''}" style="padding:16px 18px">
-    <div class="main" style="margin-top:0"><div><span class="lbl">${WEEKDAY_EN[it.day]} · ${DAYS[it.day].d}</span>${it.approx?`<span class="tz"><span style="font-size:.42em;font-weight:600;color:var(--text2);margin:.6em .25em 0 0;letter-spacing:0">약</span>${hm(it.s)}<small>${TZA}</small></span>`:tzT(it.s)}</div>
+    <div class="main" style="margin-top:0"><div><span class="lbl">${dayFull(it.day)}</span>${it.approx?`<span class="tz"><span style="font-size:.42em;font-weight:600;color:var(--text2);margin:.6em .25em 0 0;letter-spacing:0">약</span>${hm(it.s)}<small>${TZA}</small></span>`:tzT(it.s)}</div>
       ${it.kind==='track' ? miniTrack({live:s==='live', arcs: pl ? pl.cov : [], dot: pl}) : ''}</div>
     ${s==='live'?`<div class="prog"><i style="width:${((t-it.s)/(it.e-it.s)*100).toFixed(1)}%"></i></div>`:''}
-    <div class="stats">${stat(s==='live'?'종료까지':s==='past'||s==='open'?'상태':'시작까지', s==='live'?dur((it.e-t)/M):s==='past'?'종료':s==='open'?'시작함':until(it.s,t).replace(' 뒤',''))}${it.open?stat('끝나는 시각', '미발표'):stat('끝나는 시각', (it.endMax?'최대 ':'')+hm(it.e), TZA)}${stat('한국 시간', `${kst(it.s)}`, 'KST')}</div>
+    <div class="stats">${stat(s==='live'?'종료까지':s==='past'||s==='open'?'상태':'시작까지', s==='live'?dur((it.e-t)/M):s==='past'?'종료':s==='open'?'시작함':until(it.s,t).replace(' 뒤',''))}${it.open?stat('끝나는 시각', '미발표'):stat('끝나는 시각', (it.endMax?'최대 ':'')+hm(it.e), TZA)}${stat('한국 시간', `${kst(it.s)}`)}</div>
   </div></div>`;
   const placeTile = it.kind==='act' ? `<button class="tile" data-act="sel" data-type="stage" data-id="${sgd.id}">${ico('music')}${esc(sgd.short||sgd.name)}<small>지도에서 보기</small></button>`
                   : pl ? `<button class="tile" data-act="sel" data-type="spot" data-id="${pl.id}">${ico('seat')}${esc(pl.name)}<small>내 자리</small></button>`
@@ -1234,7 +1234,7 @@ function vSearch(t){
   const tnm = q.match(/^t?(\d{1,2})(번)?( ?코너)?$/); const turns = tnm && BYID['turn:'+(+tnm[1])] ? [BYID['turn:'+(+tnm[1])]] : [];
   const garage = TBAS.map(b => ({b, a:b.acts.filter(a=>m(a))})).filter(x => x.a.length);
   if(!acts.length && !places.length && !turns.length && !garage.length) return h + `<div class="sgrp"><div class="empty">${sym()}<b>찾는 결과가 없어요</b>영문 이름으로도 검색해 보세요.</div></div>`;
-  if(acts.length) h += `<div class="sgrp">${sh('일정', TZA)}<div class="grp">${acts.slice(0,12).map(x=>row(x,t,{showDay:true})).join('')}</div></div>`;
+  if(acts.length) h += `<div class="sgrp">${sh('일정', '현지 시각')}<div class="grp">${acts.slice(0,12).map(x=>row(x,t,{showDay:true})).join('')}</div></div>`;
   garage.forEach(({b, a}) => { h += `<div class="sgrp">${sh(esc(b.name))}<div class="grp"><button class="spot" data-act="sel" data-type="stage" data-id="${b.stage}"><span class="ic rd">${ico('music')}</span><span class="tx"><span class="nm">${a.map(esc).join(', ')}</span><p>${esc(b.name)} · ${b.days} · 시작 시각 미정</p></span></button></div></div>`; });
   const icon = {spot:'seat',stage:'music',gate:'gate',mrt:TR.icon||'train',village:'village'};
   const lab = {spot:'그랜드스탠드',stage:'무대',gate:'게이트',mrt:TR.layer,village:VN.village.label,turn:'코너'};
@@ -1250,7 +1250,7 @@ function toggleSave(id){
   const it = IT[id];
   if(S.saved.has(id)){
     const clash = ITEMS.find(x => x.id!==id && S.saved.has(x.id) && x.s < it.e && x.e > it.s);
-    toast(clash?'warn':'bell', `<span class="lbl">My plan</span><b>${esc(it.title)} · 담았어요</b><span>${clash?`담아 둔 일정과 겹쳐요 · ${esc(clash.title)} ${hm(clash.s)} ${TZA}`:`${dLabel(it.day)} ${hm(it.s)} ${TZA} · 30분 전에 알려드려요`}</span>`, `<button class="btn sm ghost" data-act="goplan" data-id="${it.day}">보기</button>`);
+    toast(clash?'warn':'bell', `<span class="lbl">내 일정</span><b>${esc(it.title)} · 담았어요</b><span>${clash?`담아 둔 일정과 겹쳐요 · ${esc(clash.title)} ${hm(clash.s)} ${TZA}`:`${dLabel(it.day)} ${hm(it.s)} ${TZA} · 30분 전에 알려드려요`}</span>`, `<button class="btn sm ghost" data-act="goplan" data-id="${it.day}">보기</button>`);
   }
   phaseInit();
   renderSheet();
@@ -1271,13 +1271,13 @@ function onAct(e){
     case 'intent': S.intent=id; renderSheet(true); break;
     case 'sday': S.schedDay=+id; renderSheet(true); break;
     case 'pday': S.planDay=+id; renderSheet(true); break;
-    case 'seat': S.seat=id; store.set('seat', id); buildPins(); renderSheet(); renderTop(); toast('check', `<span class="lbl">My seat</span><b>${esc(BYID['spot:'+id].name)} · 내 자리로 지정했어요</b><span>출발 시각과 이동 시간을 이 자리 기준으로 계산해요</span>`); break;
+    case 'seat': S.seat=id; store.set('seat', id); buildPins(); renderSheet(); renderTop(); toast('check', `<span class="lbl">내 좌석</span><b>${esc(BYID['spot:'+id].name)} · 내 자리로 지정했어요</b><span>출발 시각과 이동 시간을 이 자리 기준으로 계산해요</span>`); break;
     case 'unseat': S.seat=null; store.set('seat', null); buildPins(); renderSheet(); renderTop(); break;
     case 'place': hideToast(); closeModal(); startPlacing(); break;
     case 'route': if(S.sel){ const o = BYID[S.sel.type+':'+S.sel.id]; fitPoints([S.me, o]); } break;
     case 'ticket': openTicket(); break;
     case 'demo': openDemo(); break;
-    case 'saveF1': { const f1 = ITEMS.filter(x=>x.kind==='track'&&x.series==='f1'); f1.forEach(x=>S.saved.add(x.id)); store.set('saved',[...S.saved]); phaseInit(); renderSheet(true); toast('bell', `<span class="lbl">My plan</span><b>F1 세션 ${f1.length}개를 담았어요</b><span>시작 30분 전에 알려드려요</span>`); break; }
+    case 'saveF1': { const f1 = ITEMS.filter(x=>x.kind==='track'&&x.series==='f1'); f1.forEach(x=>S.saved.add(x.id)); store.set('saved',[...S.saved]); phaseInit(); renderSheet(true); toast('bell', `<span class="lbl">내 일정</span><b>F1 세션 ${f1.length}개를 담았어요</b><span>시작 30분 전에 알려드려요</span>`); break; }
     case 'q': S.q=id; renderSheet(); if(!id){ const i=$('#q'); i&&i.focus(); } break;
   }
 }
@@ -1320,7 +1320,7 @@ onG(document, 'keydown', e => {
 
 function openTicket(first){
   const cur = S.ticket;
-  openModal(`${first?`<div class="head">${sym()}<span class="lbl">Live circuit map</span></div>`:''}<h3>${first?'어떤 티켓으로 가세요?':'내 티켓'}</h3><p class="sub">${esc(VN.ticketSub)}</p>
+  openModal(`<h3>${first?'어떤 티켓으로 가세요?':'내 티켓'}</h3><p class="sub">${esc(VN.ticketSub)}</p>
     <div class="grp opts" role="radiogroup" aria-label="티켓">${TICKETS.map(x=>`<button class="opt" role="radio" aria-checked="${cur===x.id}" data-tk="${x.id}"><span class="tx"><b>${esc(x.name)}${x.zl?` <span class="zb">${x.zl==='ALL'?'ALL ZONES':x.badge||(x.zones&&ZONES&&ZONES[x.zones[0]]?ZONES[x.zones[0]].badge:x.zl.replace('Z','ZONE '))}</span>`:''}</b><span>${esc(x.sub)}</span></span><span class="rd"></span></button>`).join('')}</div>
     ${VN.ticketNote?`<p class="note">${esc(VN.ticketNote)}</p>`:''}`);
   $$('[data-tk]', dlg).forEach(b => b.onclick = () => { $$('[data-tk]', dlg).forEach(x=>x.setAttribute('aria-checked', String(x===b))); setTimeout(()=>{ pickTicket(b.dataset.tk); closeModal(); }, 160); });
@@ -1330,7 +1330,7 @@ function pickTicket(id){
   const t = tk(); S.seat = t ? t.seat : null; store.set('seat', S.seat);
   renderTop(); buildPins(); renderSheet(true);
   HOST.onTicket(t ? {id:t.id, name:t.name, zl:t.zl} : null);
-  if(was !== id && t) toast('ticket', `<span class="lbl">Ticket</span><b>${esc(t.name)}</b><span>${t.zones?'자물쇠가 붙은 곳은 이 티켓으로 들어갈 수 없어요':t.toast||'모든 장소를 제한 없이 보여줘요'}</span>`);
+  if(was !== id && t) toast('ticket', `<span class="lbl">티켓</span><b>${esc(t.name)}</b><span>${t.zones?'자물쇠가 붙은 곳은 이 티켓으로 들어갈 수 없어요':t.toast||'모든 장소를 제한 없이 보여줘요'}</span>`);
 }
 $('#b-ticket').onclick = () => openTicket();
 $('#b-ticket-d').onclick = () => openTicket();
@@ -1345,7 +1345,7 @@ function openDemo(){
     <input class="rng" id="dm-r" type="range" min="${VN.demoRange[0]}" max="${VN.demoRange[1]}" step="5" value="${clamp(mins,VN.demoRange[0],VN.demoRange[1])}" aria-label="시각 (${TZA})">
     <div class="rng-l">${[0,1,2,3].map(i=>{ const m=VN.demoRange[0]+Math.round((VN.demoRange[1]+1-VN.demoRange[0])*i/3); return `<span>${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}</span>`; }).join('')}</div>
     <div class="sh"><h2>바로 가기</h2></div>
-    <div class="pre">${PRESETS.map((p,i)=>`<button data-pre="${i}"><b>${DAYS[p.d].w} ${p.t} <span style="font-size:10px;color:var(--text3);letter-spacing:.06em">${TZA}</span></b>${esc(p.l)}</button>`).join('')}</div>
+    <div class="pre">${PRESETS.map((p,i)=>`<button data-pre="${i}"><b>${DAYS[p.d].w} ${p.t} <span style="font-size:12px;font-weight:500;color:var(--text3)">${TZA}</span></b>${esc(p.l)}</button>`).join('')}</div>
     <div class="sh"><h2>시계 속도</h2></div>
     <div class="seg" role="tablist" aria-label="시계 속도">${[[0,'정지'],[1,'실제 속도'],[60,'60배']].map(([v,l])=>`<button role="tab" aria-selected="${CK.demo && CK.speed===v}" data-sp="${v}">${l}</button>`).join('')}</div>
     <div class="acts"><button class="btn flex" data-real>실제 시각으로</button><button class="btn pri flex" data-close-dlg>완료</button></div>`);
@@ -1366,7 +1366,7 @@ $('#hchip-d').onclick = openHero;
 
 function openInfo(){
   const th = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
-  openModal(`<div class="head">${sym()}</div><h3>${esc(VN.info.title)}</h3><p class="sub">${esc(VN.info.sub)}</p>
+  openModal(`<h3>${esc(VN.info.title)}</h3><p class="sub">${esc(VN.info.sub)}</p>
     <div class="sh"><h2>화면 테마</h2></div>
     <div class="seg" role="tablist" aria-label="화면 테마">${[['dark','다크'],['light','라이트']].map(([v,l])=>`<button role="tab" aria-selected="${th===v}" data-th="${v}">${l}</button>`).join('')}</div>
     <div class="sh"><h2>데이터와 정확도</h2></div>
@@ -1410,7 +1410,7 @@ function phaseOf(it, t){ return t < it.s-REMIND*M ? 0 : t < it.s ? 1 : t < it.e 
 function phaseInit(){ const t=now(); lastPhase = {}; ITEMS.forEach(it => lastPhase[it.id] = phaseOf(it,t)); }
 function tick(force){
   const t = now();
-  const ck = `<span class="lamp"></span>${CK.demo&&!CK.speed?ico('pause','s'):''}<span class="t">${hm(t)}</span><span class="z">${TZA}</span>${CK.demo?'<span class="demo">DEMO</span>':''}`;
+  const ck = `<span class="lamp"></span>${CK.demo&&!CK.speed?ico('pause','s'):''}<span class="t">${hm(t)}</span><span class="z">${TZA}</span>${CK.demo?'<span class="demo">데모</span>':''}`;
   if(ck !== lastClock || force){ lastClock = ck; ['#clock','#clock-d'].forEach(s => { $(s).innerHTML = ck; $(s).setAttribute('aria-label', `${VN.tz.name} ${hm(t)}, 한국 시간 ${kst(t)}${CK.demo?', 데모 시계 열기':''}`); }); }
   const hs = heroState(t);
   const hk = hs.state+hs.text+hs.on;
