@@ -18,7 +18,7 @@
 .gx .gx-chips::-webkit-scrollbar { display: none; }
 
 /* ---------- 목록 ---------- */
-.gx .gx-wk + .gx-wk { border-top: var(--band-h) solid var(--band); }
+.gx .gx-wk + .gx-wk { border-top: 1px solid var(--line); margin-top: 8px; }   /* 주 사이: 위 1px 선 + 8px(프로토타입 12판) */
 .gx .gx-wk-head { position: sticky; top: 52px; z-index: 2; display: flex; align-items: baseline; gap: 8px; margin: 0; padding: 16px var(--gutter) 6px; background: var(--bg); font-weight: 400; }
 .gx .gx-daypanel .gx-wk-head { position: static; }
 .gx .gx-srow + .gx-srow::before { left: 76px; }

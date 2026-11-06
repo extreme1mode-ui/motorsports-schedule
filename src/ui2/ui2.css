@@ -83,7 +83,9 @@
 .gx .gx-iconbtn { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 12px; color: var(--text); flex: none; background: none; border: 0; padding: 0; cursor: pointer; }
 .gx .gx-iconbtn:active { background: var(--press); transform: none; }
 .gx .gx-iconbtn svg { transition: transform var(--d1) var(--e-std); }
-.gx .gx-textbtn { position: relative; display: inline-flex; align-items: center; gap: 2px; color: var(--text2); font: inherit; font-weight: 500; flex: none; min-height: 32px; background: none; border: 0; padding: 0; cursor: pointer; }
+/* 글꼴은 물려받되 특이도를 낮춰(:where) 크기 클래스(.gx-t13·.gx-t15)가 이기게 */
+.gx :where(.gx-textbtn) { font: inherit; }
+.gx .gx-textbtn { position: relative; display: inline-flex; align-items: center; gap: 2px; color: var(--text2); font-weight: 500; flex: none; min-height: 32px; background: none; border: 0; padding: 0; cursor: pointer; }
 .gx .gx-textbtn::before { content: ''; position: absolute; inset: -6px -4px; }
 /* 하트: 켜질 때 한 번 튀는 건 하트 하나(--e-pop) */
 .gx .gx-heart.is-on { color: var(--text); }
