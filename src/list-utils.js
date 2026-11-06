@@ -1,4 +1,4 @@
-// 목록·상세 공용 계산(컴포넌트 아님). 화면 부품은 list-parts.jsx / detail-parts.jsx.
+// 목록·상세 공용 계산(컴포넌트 아님). 화면 부품은 list-parts.jsx / screens2/.
 import { SERIES, getRaceStartUtc } from './schedule/index.js';
 
 // 라운드 코드: 'R1', 'R19', 데이터에 묶음 라벨이 있으면 그대로('R9-10'). 0을 채우지 않는다.

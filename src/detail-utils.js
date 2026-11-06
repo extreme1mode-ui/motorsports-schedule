@@ -1,4 +1,4 @@
-// 경기 상세 공용 계산(컴포넌트 아님). 부품은 detail-parts.jsx.
+// 경기 상세 공용 계산(컴포넌트 아님). 화면은 screens2/Detail.jsx.
 
 // 서킷 · 도시, 나라 (가운뎃점은 한 번만)
 export function placeLine(L) {

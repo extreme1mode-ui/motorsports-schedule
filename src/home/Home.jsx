@@ -12,7 +12,7 @@ import { useFormat } from '../use-format.js';
 import { useT } from '../i18n/index.js';
 import { getPrimarySession, getRoundText } from '../schedule/utils.js';
 import { getRecommendations } from '../schedule/recommendations.js';
-import { getHighlights, getHighlightNote, getRaceWeight } from '../schedule/highlights.js';
+import { curationOf } from './curation.js';
 import { track } from '../analytics.js';
 import { prefetchRacePhoto, prefetchHandlers, useVisiblePrefetch } from '../photo-prefetch.js';
 import { GantryLockup } from '../Brand.jsx';
@@ -44,15 +44,6 @@ function useTick(on = true) {
   return t;
 }
 
-// 관전 포인트 한 줄: 하이라이트 → 가중치 3 → 가중치 2 (추천 점수와 같은 순서). 계측 hero_curation은 kind.
-function curationOf(race, locale, tr) {
-  const h = getHighlights(race);
-  if (h.length) { const text = getHighlightNote(h[0], locale); if (text) return { kind: 'highlight', text }; }
-  const w = getRaceWeight(race);
-  if (w === 3) return { kind: 'weight3', text: tr('rec.weight3') };
-  if (w === 2) return { kind: 'weight2', text: tr('rec.weight2') };
-  return null;
-}
 // '결승 1 · 11월 9일 (월) 02:00' — 이름이 숫자로 끝나면(결승 1) 날짜 숫자와 붙지 않게 가운뎃점, 아니면 띄어쓰기
 const labelAt = (tr, label, when) => (/\d$/.test(label) ? tr('home.card.raceAt', { label, datetime: when }) : `${label} ${when}`);
 
@@ -501,7 +492,7 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
   const hl = useMemo(() => homeHeadline(plan, minute, { locale: fmt.locale, timeZone: fmt.timeZone, races: plan.mine }), [plan, minute, fmt.locale, fmt.timeZone]);
   const deck = plan.deck;
   const states = useMemo(() => deck.map((r) => getCardState(r, minute, preferences)), [deck, minute, preferences]);
-  const curs = useMemo(() => deck.map((r) => curationOf(r, fmt.locale, tr)), [deck, fmt.locale, tr]);
+  const curs = useMemo(() => deck.map((r) => curationOf(r, fmt.locale)), [deck, fmt.locale]);
   const mineIds = useMemo(() => new Set((myRaces || []).map((r) => r.id)), [myRaces]);
   const dimOf = useCallback((r) => modeOf(preferences, r.series) === 'off', [preferences]);
 

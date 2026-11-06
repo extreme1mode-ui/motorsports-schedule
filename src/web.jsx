@@ -4,7 +4,8 @@ import { TOKENS } from './primitives.jsx';
 import { GantryLockup, GantrySymbol } from './Brand.jsx';
 import { getCurrentNow, useScheduleData, filterRacesByPreferences } from './schedule/index.js';
 import { Home } from './home/Home.jsx';
-import { WebFavorites, RaceDrawer } from './web-screens.jsx';
+import { WebFavorites } from './web-screens.jsx';
+import { DetailDrawer } from './screens2/Detail.jsx';
 import { ScheduleScreen } from './screens2/Schedule.jsx';
 import { SeriesScreen } from './screens2/Series.jsx';
 import { Settings } from './settings.jsx';
@@ -179,7 +180,7 @@ export function WebApp({ theme, setTheme, themePref, onShareLinkDone, ...prefs }
 
       {drawer.mounted && shownRace && (
         <div onKeyDown={trapTab} style={{ display: 'contents' }}>
-          <RaceDrawer key={shownRace.id} race={shownRace} theme={theme} onClose={closeDrawer}
+          <DetailDrawer key={shownRace.id} race={shownRace} now={now} races={raceList} onOpenRace={onOpenRace} onClose={backDrawer} onDismiss={closeDrawer}
             favorites={favorites} toggleFav={toggleFav} tier={tier} preferences={preferences} closing={drawer.closing} onExitEnd={drawer.onExitEnd} />
         </div>
       )}

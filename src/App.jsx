@@ -3,7 +3,8 @@ import { flushSync } from 'react-dom';
 import { getCurrentNow, useScheduleData, usePreferences, filterRacesByPreferences } from './schedule/index.js';
 import { TOKENS } from './primitives.jsx';
 import { Home } from './home/Home.jsx';
-import { Favorites, RaceDetail } from './screens.jsx';
+import { Favorites } from './screens.jsx';
+import { RaceDetailV2 } from './screens2/Detail.jsx';
 import { ScheduleScreen } from './screens2/Schedule.jsx';
 import { SeriesScreen } from './screens2/Series.jsx';
 import { WebApp, useViewport } from './web.jsx';
@@ -164,7 +165,7 @@ function App({ theme, setTheme, themePref, onShareLinkDone, ...prefs }) {
     setLeaving(true);
     setTimeout(done, 180);
   }, []);
-  // 스택이 바뀐 뒤: 닫혔으면 연 요소로(사라졌으면 화면 제목), 넣었으면 새 화면 제목으로(상세는 RaceDetail이 첫 버튼으로 직접)
+  // 스택이 바뀐 뒤: 닫혔으면 연 요소로(사라졌으면 화면 제목), 넣었으면 새 화면 제목으로(상세는 RaceDetailV2가 제목으로 직접)
   useEffect(() => {
     const target = refocus.current;
     if (!target) return;
@@ -238,7 +239,7 @@ function App({ theme, setTheme, themePref, onShareLinkDone, ...prefs }) {
   const route = (r, isTop) => {
     if (r.t === 'detail') {
       const race = raceList.find((x) => x.id === r.id);
-      return race ? <RaceDetail race={race} theme={theme} onClose={isTop ? back : () => {}} favorites={favorites} toggleFav={toggleFav} preferences={preferences} inStack /> : null;
+      return race ? <RaceDetailV2 race={race} now={now} races={raceList} onOpenRace={onOpenRace} onClose={isTop ? back : () => {}} favorites={favorites} toggleFav={toggleFav} preferences={preferences} /> : null;
     }
     if (r.t === 'settings') return <Settings theme={theme} themePref={themePref} setTheme={setTheme} onGo={settingsGo} {...prefs} />;
     if (r.t === 'series') return (

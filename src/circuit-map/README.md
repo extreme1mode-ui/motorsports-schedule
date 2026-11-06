@@ -21,8 +21,8 @@
 | 위치 | 내용 |
 |---|---|
 | `App.jsx` | `CircuitMapProvider`로 모바일·웹 셸을 감싼다. 창 크기로 셸이 바뀌어도 지도 상태가 유지된다. `DemoClockSheet`도 여기 |
-| `screens.jsx` › `RaceDetail` | `<CircuitMapSection race={race} />` (세션 목록 다음, WEEKEND 앞) |
-| `web-screens.jsx` › `RaceDrawer` | `<CircuitMapSection race={race} variant="drawer" />`. 드로어의 Esc는 지도가 열려 있으면(`html.cm-open`) 무시한다 |
+| `screens2/Detail.jsx` › `Venue` | '현장' 섹션의 '라이브 서킷 맵' 줄 → `openMap(race, 'detail')`, '현장에 가요' 스위치 → `toggleAttend` (UX v2 5단계. `CircuitMapSection`은 지금 쓰지 않음) |
+| `web.jsx` › `DetailDrawer` | 같은 `Venue` 섹션. 서랍의 Esc는 지도가 열려 있으면(`html.cm-open`) 무시한다 |
 | `home/Home.jsx` | 히어로 안 `<HeroSiteRow race={hero.race} now={now} />`, 데모 빌드에서만 시계 칩이 데모 시계를 연다 |
 | `storage/records.js` | `attend`(현장에 가요 경기 id 집합), `circuitMap`(티켓·자리·담은 세션·레이어), `demoClock`(데모 전용) |
 | `schedule/useSchedule.js` | `gantry:clock` 이벤트를 받으면 상태(LIVE·NEXT)를 다시 계산한다. 기본 빌드에서는 이 이벤트가 오지 않는다 |
