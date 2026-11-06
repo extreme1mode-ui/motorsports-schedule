@@ -6,13 +6,13 @@
 
 | 파일 | 하는 일 |
 |---|---|
-| `CircuitMap.jsx` | React 쪽 전부. `CircuitMapProvider`(열림 상태·히스토리·포커스·`현장에 가요`), 전체 화면 레이어(포털 `#cm`), 진입점 두 개(`CircuitMapSection`, `HeroSiteRow`), `hasMap(race)` |
+| `CircuitMap.jsx` | React 쪽 전부. `CircuitMapProvider`(열림 상태·히스토리·포커스·`현장에 가요`), 전체 화면 레이어(포털 `#cm`), 진입점 두 개(`MapEntryButton` — 상세 현장 줄, `HeroSiteRow`), `hasMap(race)` |
 | `map-core.js` | 지도 코어 `GantryMap(HOST, D)`. 프레임워크 없는 DOM/SVG 코드. 팬·줌, 레이어, 핀, 시트(지금·일정·관람·내 계획), 검색, 티켓 대화상자 |
 | `map-markup.js` | 코어가 처음 열릴 때 `#cm`에 넣는 마크업과 아이콘 심볼 |
 | `base.json` | 지도 데이터(약 360KB). `track` 트랙, `bm` 바탕 지도(OSM), `evt` 행사 배치(공식 맵), `roadlab` 도로 이름. `tools/circuit-map-data/run.sh`가 만든다. 손으로 고치지 않는다 |
 | `circuit-map.css` | 지도 안 부품. 모두 `#cm` 아래로 한정 |
 | `basemap.css` | 바탕 지도 재료(`--bm-*`), 도로·건물·구역 스타일, 표시 단계(LOD) 규칙 |
-| `entry.css` | 진입점 두 곳(`.cme`, `.home .hero2-site`)과 레이어 전환 애니메이션 |
+| `entry.css` | 홈 현장 줄(`.home .hero2-site`)과 레이어 전환 애니메이션 |
 
 데모 시계는 `src/demo/`에 있다(아래 참고).
 
@@ -21,7 +21,7 @@
 | 위치 | 내용 |
 |---|---|
 | `App.jsx` | `CircuitMapProvider`로 모바일·웹 셸을 감싼다. 창 크기로 셸이 바뀌어도 지도 상태가 유지된다. `DemoClockSheet`도 여기 |
-| `screens2/Detail.jsx` › `Venue` | '현장' 섹션의 '라이브 서킷 맵' 줄 → `openMap(race, 'detail')`, '현장에 가요' 스위치 → `toggleAttend` (UX v2 5단계. `CircuitMapSection`은 지금 쓰지 않음) |
+| `screens2/Detail.jsx` › `Venue` | '현장' 섹션의 '라이브 서킷 맵' 줄 = `<MapEntryButton>`(지도 열기·청크 미리 받기), '현장에 가요' 스위치 → `toggleAttend` (UX v2) |
 | `web.jsx` › `DetailDrawer` | 같은 `Venue` 섹션. 서랍의 Esc는 지도가 열려 있으면(`html.cm-open`) 무시한다 |
 | `home/Home.jsx` | 히어로 안 `<HeroSiteRow race={hero.race} now={now} />`, 데모 빌드에서만 시계 칩이 데모 시계를 연다 |
 | `storage/records.js` | `attend`(현장에 가요 경기 id 집합), `circuitMap`(티켓·자리·담은 세션·레이어), `demoClock`(데모 전용) |

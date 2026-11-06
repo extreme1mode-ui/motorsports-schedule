@@ -1,7 +1,7 @@
 // 홈 전용 시간 판정. 다른 화면이 쓰는 calculateEventStatus / buildNormalizedRace / normalizeSessions는 건드리지 않는다.
 // 스펙: design/HOME-SPEC.md 5장(TimeStat 6상태), 6장(LIVE 판정), 10장(취소 판정).
 import { getPrimarySession, getVisibleSessions, getRaceSessions, localDateTimeToUtc } from '../schedule/utils.js';
-import { getParts, getCountdownParts, getDayDifference, DEFAULT_TIME_ZONE } from '../schedule/format.js';
+import { getParts, DEFAULT_TIME_ZONE } from '../schedule/format.js';
 
 export const TIME_STATES = ['live', 'soon', 'upcoming', 'tba', 'done', 'cancelled'];
 
@@ -228,15 +228,3 @@ export function findNextRace(races = [], now = new Date()) {
 }
 
 // ---------- 표기 ----------
-// 'HH:MM:SS' — soon 카운트다운. 음수는 00:00:00. (숫자는 format.getCountdownParts, 표기만 여기서)
-export function formatCountdown(ms) {
-  const { hours, minutes, seconds } = getCountdownParts(ms);
-  return [hours, minutes, seconds].map((v) => String(v).padStart(2, '0')).join(':');
-}
-
-// 'D-3' / 'D-DAY' — 시청자 시간대의 날짜 차이 기준.
-export function formatDday(date, now = new Date(), timeZone = DEFAULT_TIME_ZONE) {
-  const days = getDayDifference(date, now, { timeZone });
-  if (days === null) return '';
-  return days <= 0 ? 'D-DAY' : `D-${days}`;
-}

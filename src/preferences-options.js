@@ -12,16 +12,6 @@ export const SERIES_DESCRIPTION_KEYS = {
   GTWC: 'series.GTWC.desc',
 };
 
-export const MODE_OPTIONS = [
-  { id: 'all', label: 'mode.all', sub: 'mode.all.sub' },
-  { id: 'race', label: 'mode.race', sub: 'mode.race.sub' },
-];
-
-export const MODE_OPTIONS_WITH_OFF = [
-  ...MODE_OPTIONS,
-  { id: 'off', label: 'mode.off', sub: 'mode.off.sub' },
-];
-
 // value가 null이면 "아직 모름"으로 저장된다 (usePreferences.country 규칙).
 export const COUNTRY_OPTIONS = [
   { id: 'KR', value: 'KR', label: 'country.KR' },

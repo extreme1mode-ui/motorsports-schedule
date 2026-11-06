@@ -154,16 +154,6 @@ function CircuitMapLayer() {
   );
 }
 
-// ---------- 미니 서킷 (경기 base.json 트랙 좌표에서 미리 뽑아 둔 path — venues/index.js) ----------
-function MiniCircuit({ mini }) {
-  return (
-    <svg className="cme-mini" viewBox={mini.vb} aria-hidden="true" focusable="false">
-      <path d={mini.d} className="cme-mini-c" />
-      <path d={mini.d} className="cme-mini-t" />
-    </svg>
-  );
-}
-
 // 진입점이 화면에 나타나면 idle 시간에 지도 청크를 미리 받아 둔다.
 // 훅이라 조건부 return보다 먼저 호출해야 한다(show가 false여도 호출 자체는 한다).
 function useMapPreload(show, venueId) {
@@ -191,39 +181,15 @@ function useMapPreload(show, venueId) {
 // 버튼에 포인터·포커스가 닿는 순간에도 받는다 — 누를 때는 대개 이미 와 있다.
 const preloadOn = (venueId) => ({ onPointerEnter: () => preloadMapChunk(venueId), onFocus: () => preloadMapChunk(venueId) });
 
-// ---------- 진입점 1: 경기 상세의 '현장' 카드 ----------
-export function CircuitMapSection({ race, variant = 'sheet' }) {
+// ---------- 진입점 1: 경기 상세 › 현장의 '라이브 서킷 맵' 줄(UX v2 screens2/Detail.jsx) ----------
+// 줄의 모양은 상세가 정하고(children·className), 여기서는 지도 열기와 청크 미리 받기(보이면 idle에, 닿으면 바로)만 맡는다.
+export function MapEntryButton({ race, className, children }) {
   const ctx = useCircuitMap();
-  const tr = useT();
   const v = venueOfRace(race);
   const show = !!ctx && hasMap(race) && race.status !== 'cancelled';
   useMapPreload(show, v && v.id);
   if (!show) return null;
-  const going = ctx.attend.has(race.id);
-  const tk = ctx.ticketOf(race);
-  return (
-    <section className={`cme cme--${variant}`}>
-      <h2 className="cme-lbl">{tr('cm.section')}</h2>
-      <div className="cme-card">
-        <div className="cme-top">
-          <MiniCircuit mini={v.mini} />
-          <div className="cme-tx">
-            <b>{tr('cm.title')}</b>
-            <span>{tk ? tr(tk.zl ? 'cm.ticket' : 'cm.ticketNoZone', { name: tk.name, zone: tk.zl }) : tr(v.sub)}</span>
-          </div>
-        </div>
-        <div className="cme-act">
-          <button type="button" className="cme-btn cme-btn--fill" {...preloadOn(v.id)} onClick={() => ctx.openMap(race, 'detail')}>
-            <MapIcon />{tr('cm.open')}
-          </button>
-          <button type="button" className="cme-btn cme-btn--line" aria-pressed={going} onClick={() => ctx.toggleAttend(race)}>
-            {going && <CheckIcon />}{tr('cm.attend')}
-          </button>
-        </div>
-        {going && <p className="cme-note">{tr('cm.attendNote')}</p>}
-      </div>
-    </section>
-  );
+  return <button type="button" className={className} {...preloadOn(v.id)} onClick={() => ctx.openMap(race, 'detail')}>{children}</button>;
 }
 
 // ---------- 진입점 2: 홈 히어로 아래 현장 줄 ----------
@@ -259,10 +225,5 @@ function MapIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z" /><path d="M9 4v14M15 6v14" />
     </svg>
-  );
-}
-function CheckIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
   );
 }

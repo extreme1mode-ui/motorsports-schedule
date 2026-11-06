@@ -19,6 +19,7 @@ import { COUNTRY_OPTIONS, countryIdFromValue } from '../preferences-options.js';
 import { useF1Results, resultOf, photoOf, teamColor } from '../results/results.js';
 import { Avatar } from '../results/ResultsUI.jsx';
 import { useCircuitMap, hasMap } from '../circuit-map/context.js';
+import { MapEntryButton } from '../circuit-map/CircuitMap.jsx';
 import { venueOfRace } from '../circuit-map/venues/index.js';
 import { Icon } from '../ui2/Icon.jsx';
 import { Dot, Band, ListHeader, LiveText, Progress, Roll, Photo, Seg, HeartBtn, CalBtn } from '../ui2/parts.jsx';
@@ -279,11 +280,11 @@ function Venue({ race, now }) {
   const ticket = ticketOf(race);
   const rows = [];
   if (map) rows.push(
-    <button key="map" type="button" className="gx-row" onClick={() => cm.openMap(race, 'detail')}>
+    <MapEntryButton key="map" race={race} className="gx-row">
       <span className="gx-bc-ic"><Icon n="map" s={22} /></span>
       <span className="gx-row-c"><span className="gx-t17">{tr('cm.title')}</span><span className="gx-row-s gx-t13">{tr(v?.sub || 'cm.sub')}</span></span>
       <span className="gx-row-r"><Icon n="chev" s={20} className="gx-ter" /></span>
-    </button>,
+    </MapEntryButton>,
   );
   if (map && alive) rows.push(
     <button key="go" type="button" className="gx-row" role="switch" aria-checked={going} onClick={() => cm.toggleAttend(race)}>

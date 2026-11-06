@@ -30,8 +30,6 @@ html[data-theme="light"], [data-theme="light"] body { background: #FFFFFF; }
 button { transition: transform var(--dur-press) var(--ease-out), background var(--dur-press) var(--ease-out), color var(--dur-press) var(--ease-out), opacity var(--dur-press) var(--ease-out); }
 button:active { transform: scale(.96); }                       /* 기본: 알약형 CTA·칩 */
 .press-icon:active { transform: scale(.90); }                  /* 아이콘 버튼(44px 이하) */
-.press-chip { transition: transform var(--dur-press) var(--ease-out), background var(--dur-press) var(--ease-out), border-color var(--dur-press) var(--ease-out); }
-.press-chip:active { transform: scale(.96); }                  /* 칩 크기의 div (달력 날짜 칸) */
 .press-row { transition: transform var(--dur-press) var(--ease-out), background var(--dur-press) var(--ease-out), border-color var(--dur-press) var(--ease-out); }
 .press-row:active { transform: scale(.985); background: var(--surface2) !important; }   /* 리스트 행·카드(폭 200px+). 인라인 t.surface를 눌린 동안만 덮는다 */
 button:disabled:active { transform: none; }
@@ -43,7 +41,7 @@ button:disabled:active { transform: none; }
   button:hover { opacity: .9; }
   .press-icon:hover { opacity: .8; }
   .press-row:hover { background: var(--surface2) !important; }
-  .press-row:hover, .press-chip:hover { opacity: 1; }
+  .press-row:hover { opacity: 1; }
 }
 
 /* Hide scrollbars globally */
@@ -85,10 +83,6 @@ button:disabled:active { transform: none; }
 
 /* ---------- 상세 열기/닫기 ---------- */
 /* 모바일 시트: 아래에서 16px + 페이드. 닫힘은 반대(--ease-in). 높이 전체를 옮기지 않는다. */
-.detail-sheet { animation: sheet-in var(--dur-sheet) var(--ease-out) both; }
-.detail-sheet.closing { animation: sheet-out var(--dur-sheet) var(--ease-in) both; pointer-events: none; }
-@keyframes sheet-in { from { opacity: 0; transform: translateY(16px); } }
-@keyframes sheet-out { to { opacity: 0; transform: translateY(16px); } }
 /* 데스크탑 드로어: 패널은 translateX(100%)→0, 백드롭은 opacity만 (blur는 애니메이션하지 않음). */
 .drawer-root { overflow: hidden; }
 .drawer-backdrop { animation: fade-in var(--dur-move) var(--ease-out) both; }
@@ -107,7 +101,5 @@ button:disabled:active { transform: none; }
 .g-group > .g-row + .g-row::before { content: ""; position: absolute; top: 0; right: 0; left: var(--g-inset, 16px); height: 1px; background: var(--line); pointer-events: none; }
 .g-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 12px 16px; margin: 0;
   border: 0; background: none; color: inherit; font: inherit; text-align: left; text-decoration: none; box-sizing: border-box; }
-.g-row.g-tap { cursor: pointer; }
-.g-row.g-dim { opacity: var(--dim); }
 /* 그릇 안 줄은 눌러도 줄어들지 않는다 — 면만 한 단계 밝아진다(옆 줄과 어긋나 보이지 않게). */
 .g-group > .press-row:active { transform: none; }

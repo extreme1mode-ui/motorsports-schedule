@@ -160,4 +160,3 @@
 @keyframes gx-snackout { to { transform: translateY(8px); opacity: 0; } }
 
 /* 포커스: 사진 위에서는 흰 링 */
-.gx .gx-on-photo :focus-visible { outline-color: #FFFFFF; }

@@ -3,7 +3,6 @@
 
 .gx .gx-screen { color: var(--text); background: var(--bg); word-break: keep-all; padding-bottom: 24px; }
 .gx .gx-screen button, .gx .gx-screen a { font-family: inherit; }
-.gx .gx-nw { white-space: nowrap; }
 .gx .gx-ell { display: block; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gx .gx-dow-0 { color: var(--sun); } .gx .gx-dow-6 { color: var(--sat); }
 

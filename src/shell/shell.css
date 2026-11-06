@@ -11,8 +11,6 @@
 .gx .gx-stack-bar { position: sticky; top: 0; z-index: 4; height: 52px; display: flex; align-items: center; padding: 0 12px; background: var(--bg); transition: box-shadow var(--d2) var(--e-std); }
 .gx [data-sc="1"] > .gx-stack-bar { box-shadow: 0 1px 0 var(--line); }
 
-/* 설정 톱니 자리(결정 18): 탭 화면 제목 줄 오른쪽 */
-.gx .gx-gear-slot { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 20px); right: 8px; z-index: 5; }
 
 /* 위 막대 1px 선: 내용이 밑으로 지나갈 때만(data-sc), 걸린 머리는 붙었을 때만(data-stuck) */
 .gx .gx-appbar, .gx [data-stick] { transition: box-shadow var(--d2) var(--e-std); }
