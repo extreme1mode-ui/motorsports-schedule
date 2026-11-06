@@ -37,7 +37,7 @@ export default function Root() {
   const setTheme = useCallback((v) => { setThemePref(v); storage.theme.write(v); }, []);
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', theme === 'light' ? '#F2F3F5' : '#07080B'));
+    document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', theme === 'light' ? '#FFFFFF' : '#0E1015'));
   }, [theme]);
   // index.html의 lang/title은 한국어 기본값(검색용). 앱이 뜨면 사용자 locale로 바꾼다.
   // 경기 상세가 걸려 있는 동안은 경기 제목이 이긴다(document-title.js).
@@ -72,8 +72,13 @@ export default function Root() {
     <FormatProvider locale={prefs.preferences.locale} timeZone={prefs.preferences.timezone} country={prefs.preferences.country}>
       {/* 서킷 맵 레이어는 모바일·웹 셸 바깥에 둔다 — 창 크기로 셸이 바뀌어도 지도와 상태가 유지된다. */}
       <CircuitMapProvider setTheme={setTheme}>
-        {screen}
-        <DemoClockSheet />
+        {/* UX v2 토큰의 루트(tokens-v2.css). 상자를 만들지 않아(display: contents) 지금 셸 배치는 그대로다.
+            body로 포털하는 새 부품(시트·스낵바)은 이 안의 레이어로 포털한다. 서킷 맵(#cm)은 바깥이라 :root 토큰 그대로. */}
+        <div className="gx" style={{ display: 'contents' }}>
+          {screen}
+          <DemoClockSheet />
+          <div id="gx-layer" className="gx-layer" />
+        </div>
       </CircuitMapProvider>
     </FormatProvider>
   );
