@@ -4,7 +4,9 @@ import { TOKENS } from './primitives.jsx';
 import { GantryLockup, GantrySymbol } from './Brand.jsx';
 import { getCurrentNow, useScheduleData, filterRacesByPreferences } from './schedule/index.js';
 import { Home } from './home/Home.jsx';
-import { WebSchedule, WebSeries, WebFavorites, RaceDrawer } from './web-screens.jsx';
+import { WebFavorites, RaceDrawer } from './web-screens.jsx';
+import { ScheduleScreen } from './screens2/Schedule.jsx';
+import { SeriesScreen } from './screens2/Series.jsx';
 import { Settings } from './settings.jsx';
 import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
@@ -159,14 +161,16 @@ export function WebApp({ theme, setTheme, themePref, onShareLinkDone, ...prefs }
       {/* 서랍이 열려 있는 동안 뒤(사이드바·본문)는 inert — 서랍 안에서만 Tab */}
       <Sidebar view={view} onGo={onGo} collapsed={tier === 'tablet'} inert={drawerOpen} />
 
-      <main inert={drawerOpen || undefined} aria-hidden={drawerOpen || undefined} style={{ padding: `${gutter + 8}px ${gutter}px ${gutter * 2}px`, maxWidth: '100%', minWidth: 0 }}>
-        <div style={{ maxWidth: maxMain, margin: '0 auto' }}>
+      {/* 시리즈는 사진이 본문 폭 전체를 채운다(글은 본문 열에 맞춤) — 그 화면만 여백 없이, 열 폭·여백은 CSS 변수로 넘긴다 */}
+      <main inert={drawerOpen || undefined} aria-hidden={drawerOpen || undefined} style={{
+        padding: view === 'series' ? 0 : `${gutter + 8}px ${gutter}px ${gutter * 2}px`, maxWidth: '100%', minWidth: 0,
+        '--gx-main-max': `${maxMain}px`, '--gx-gutter': `${gutter}px`,
+      }}>
+        <div style={{ maxWidth: view === 'series' ? 'none' : maxMain, margin: '0 auto' }}>
           {view === 'home' && <Home theme={theme} setTheme={setTheme} now={now} races={raceList} myRaces={myRaces}
             preferences={preferences} favorites={favorites} toggleFav={toggleFav} onOpenRace={onOpenRace} onGo={onGo} setSeriesMode={prefs.setSeriesMode} />}
-          {view === 'schedule' && <WebSchedule theme={theme} races={raceList}
-            onOpenRace={openFromSchedule} now={now} tier={tier} seasonYear={safeSeasonYear} />}
-          {view === 'series' && <WebSeries theme={theme} races={raceList}
-            onOpenRace={openFromSeries} initialCategory={categoryFilter || 'F1'} tier={tier} seasonYear={safeSeasonYear} />}
+          {view === 'schedule' && <ScheduleScreen races={raceList} onOpenRace={openFromSchedule} now={now} preferences={preferences} seasonYear={safeSeasonYear} />}
+          {view === 'series' && <SeriesScreen races={raceList} onOpenRace={openFromSeries} now={now} preferences={preferences} seasonYear={safeSeasonYear} initialCategory={categoryFilter || undefined} />}
           {view === 'fav' && <WebFavorites theme={theme} races={raceList} myRaces={myRaces}
             favorites={favorites} onOpenRace={openFromSaved} toggleFav={toggleFav} tier={tier} />}
           {view === 'settings' && <Settings theme={theme} themePref={themePref} setTheme={setTheme} onGo={onGo} {...prefs} />}

@@ -2,14 +2,13 @@
 // AI 티 정리(2026-10-29): 영문 머리말(CALENDAR · ROUND LIST · PINNED RACES …), 0 채운 숫자, 줄마다 카드, 시리즈 색 막대·면·빛,
 // 라벨-값 칸 격자를 걷어 냈다. 구성·순서·기능·계측은 그대로. 공용 계산은 list-parts.jsx, 상세 본문은 detail-parts.jsx.
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { SERIES, CATEGORIES, getVisibleSessions, getSeriesStats, getRaceStartUtc, buildRaceWeekBars } from './schedule/index.js';
+import { getVisibleSessions, getRaceStartUtc } from './schedule/index.js';
 import { SeriesTag } from './primitives.jsx';
-import { ScreenTitle, SectionHead, Group, DayHead, Chip } from './ui.jsx';
-import { SeriesDot, SeriesSummary, MonthTabs } from './list-parts.jsx';
-import { byStart, viewerParts, catLabel, raceStatus, seriesRound, groupByViewerDay, getRoundDisplay } from './list-utils.js';
+import { ScreenTitle, SectionHead, Group } from './ui.jsx';
+import { SeriesDot } from './list-parts.jsx';
+import { byStart, viewerParts, raceStatus, seriesRound, getRoundDisplay } from './list-utils.js';
 import { DetailTagLine, DetailNotice, DetailSessions, DetailWeekend, DetailBroadcast, DetailAlarm, DetailLinks } from './detail-parts.jsx';
 import { placeLine, canAddAlarm, hasDetailLinks } from './detail-utils.js';
-import { ScheduleRow, RowSide } from './screens.jsx';
 import { useFormat } from './use-format.js';
 import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
@@ -21,265 +20,14 @@ import { PhotoCredit } from './photo-credit.jsx';
 import { raceShareUrl } from './share-link.js';
 import { useRecommendationShown } from './use-analytics.js';
 import { CircuitMapSection } from './circuit-map/CircuitMap.jsx';
-import { RaceResultSection, PodiumLine, SubTabs, StandingsList } from './results/ResultsUI.jsx';
+import { RaceResultSection } from './results/ResultsUI.jsx';
 
-// 달력 막대 치수. 오버레이 grid가 날짜 칸 grid와 열이 정확히 겹친다(칸 사이 간격 없이 머리선으로 나눈다).
-// CAL_BAR_TOP = 칸 위 패딩(6) + 날짜 원(26) + 원과 막대 사이(6)
-const CAL_BAR_H = 20;
-const CAL_BAR_GAP = 3;
-const CAL_BAR_TOP = 38;
-const CAL_LANES = 4;
-const CAL_CELL_MIN = 120;
-// 레인이 많은 주는 칸이 막대를 담도록 늘어난다 (오버레이는 절대배치라 높이에 기여하지 않는다).
-const weekMinHeight = (lanes, hasMore) =>
-  Math.max(CAL_CELL_MIN, CAL_BAR_TOP + lanes * CAL_BAR_H + Math.max(0, lanes - 1) * CAL_BAR_GAP + (hasMore ? 18 : 0) + 8);
 const onKeyActivate = (fn) => (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } };
 
-// 필터 칩 줄(화면 제목 오른쪽). 고른 칩은 본문색 반전 — 시리즈 색으로 채우지 않는다.
-function ChipRow({ items, value, onChange }) {
-  const tr = useT();
-  return (
-    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-      {items.map((it) => <Chip key={it.id} on={value === it.id} onClick={() => onChange(it.id)}>{catLabel(tr, it)}</Chip>)}
-    </div>
-  );
-}
 
-export function WebSchedule({ races, onOpenRace, now, tier, seasonYear }) {
-  const fmt = useFormat();
-  const tr = useT();
-  const safeSeasonYear = Number.isFinite(seasonYear) ? seasonYear : 2026;
-  const [month, setMonth] = useState(() => Number(fmt.parts(now)?.month || 1) - 1);
-  const [filterCategory, setFilterCategory] = useState('ALL');
 
-  const filtered = filterCategory === 'ALL' ? races : races.filter(r => r.category === filterCategory);
-  const monthOf = (r) => Number(viewerParts(fmt, r)?.month || 1) - 1;
-  const monthRaces = filtered.filter(r => monthOf(r) === month);
-  const sortedMonth = useMemo(() => [...monthRaces].sort(byStart), [monthRaces]);
-  // 화면에 보이는 앞쪽 3개만 낮은 우선순위로 미리 받아둔다.
-  const monthListRef = useRef(null);
-  useVisiblePrefetch(monthListRef, sortedMonth);
-  const groups = groupByViewerDay(fmt, tr, sortedMonth);
-  let rowIndex = 0;
 
-  return (
-    <div>
-      <ScreenTitle title={tr('schedule.title')}
-        sub={`${tr('schedule.monthCount', { month: fmt.monthNames[month], n: sortedMonth.length })} · ${tr('schedule.zoneNote', { zone: fmt.zoneLabel })}`}
-        right={<ChipRow items={[{ id: 'ALL', short: 'ALL' }, ...Object.values(CATEGORIES)]} value={filterCategory} onChange={setFilterCategory} />}
-        style={{ marginBottom: 16 }} />
 
-      <MonthTabs names={fmt.monthNames} value={month} style={{ marginBottom: 24, boxShadow: 'inset 0 -1px 0 var(--line)' }}
-        onChange={(m) => { if (m !== month) track('schedule_month_changed', { direction: m > month ? 'next' : 'prev' }); setMonth(m); }} />
-
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: tier === 'tablet' ? '1fr' : 'minmax(0, 1.4fr) minmax(0, 1fr)',
-        gap: 24, alignItems: 'flex-start',
-      }}>
-        <BigMonthGrid month={month} races={monthRaces} onOpen={onOpenRace} now={now} seasonYear={safeSeasonYear} />
-
-        <div ref={monthListRef} style={{ minWidth: 0 }}>
-            {sortedMonth.length === 0 && (
-              <Group style={{ padding: 24, fontSize: 15, color: 'var(--text3)', textAlign: 'center' }}>{tr('schedule.emptyMonth')}</Group>
-            )}
-            {groups.map((g, gi) => (
-              <section key={g.key}>
-                <DayHead style={gi === 0 ? { paddingTop: 0 } : { paddingTop: 16 }}>{g.label}</DayHead>
-                <Group inset={36}>
-                  {g.races.map((r) => { const idx = rowIndex++; return <ScheduleRow key={r.id} race={r} idx={idx} onOpen={() => onOpenRace(r)} />; })}
-                </Group>
-              </section>
-            ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// 달력(데스크톱): 칸 상자 없이 머리선으로만 나눈다(주 위쪽 선 + 칸 왼쪽 선). 오늘은 날짜만 채운 원.
-// 경기 주말 막대는 시리즈 색 옅은 면(다크 24% · 라이트 15%, --cal-tint) + 본문색 글자(K2). 취소는 취소선 + 흐린 글자.
-function BigMonthGrid({ month, races, onOpen, now, seasonYear }) {
-  const fmt = useFormat();
-  const year = seasonYear;
-  // 달력 모양은 시간대와 무관한 달력 산술 (UTC로 계산해 로컬 TZ 영향 제거)
-  const firstDow = new Date(Date.UTC(year, month, 1)).getUTCDay();
-  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-  // 레이스 위크 전체를 잇는 막대. 세션 시각을 시청자 시간대로 옮겨 만든다 (서킷 현지 주말 날짜가 아니다).
-  const { weeks: barWeeks } = buildRaceWeekBars(races, { parts: fmt.parts, year, month, firstDow, daysInMonth, maxLanes: CAL_LANES });
-
-  const cells = [];
-  for (let i = 0; i < firstDow; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-  while (cells.length % 7) cells.push(null);
-  const weekRows = [];
-  for (let i = 0; i < cells.length; i += 7) weekRows.push(cells.slice(i, i + 7));
-
-  const todayStr = now.toISOString().slice(0, 10);
-  const cols = 'repeat(7, minmax(0, 1fr))';
-
-  return (
-    <Group>
-      <div style={{ display: 'grid', gridTemplateColumns: cols, padding: '10px 0 8px' }}>
-        {fmt.weekdayNames.map((d, i) => (
-          <span key={d} style={{ paddingLeft: 12, fontSize: 12, fontWeight: 500, color: i === 0 ? 'var(--cal-sun)' : i === 6 ? 'var(--cal-sat)' : 'var(--text3)' }}>{d}</span>
-        ))}
-      </div>
-
-      {/* 주마다 컨테이너 하나. 그 위에 같은 열 구조의 오버레이를 얹어 칸을 넘어가는 막대를 그린다. */}
-      {weekRows.map((row, w) => {
-        const week = barWeeks[w] || { segments: [], overflow: {}, byDay: {} };
-        const lanes = week.segments.reduce((n, seg) => Math.max(n, seg.lane + 1), 0);
-        const minHeight = weekMinHeight(lanes, Object.keys(week.overflow).length > 0);
-        return (
-          <div key={w} style={{ position: 'relative', boxShadow: 'inset 0 1px 0 var(--line)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: cols }}>
-              {row.map((d, i) => {
-                const edge = i === 0 ? 'none' : 'inset 1px 0 0 var(--line)';
-                if (!d) return <div key={i} style={{ minHeight, boxShadow: edge }} />;
-                const dayRaces = week.byDay[d] || [];
-                const more = week.overflow[d] || 0;
-                const dateKey = `${seasonYear}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                const isToday = dateKey === todayStr;
-                const isSun = i % 7 === 0; const isSat = i % 7 === 6;
-                return (
-                  <div key={i} className={dayRaces.length ? 'press-chip' : undefined} {...(dayRaces.length ? prefetchHandlers(dayRaces[0]) : null)} onClick={() => dayRaces[0] && onOpen(dayRaces[0])} style={{
-                    minHeight, minWidth: 0, padding: '6px 8px', boxShadow: edge,
-                    cursor: dayRaces.length ? 'pointer' : 'default', display: 'flex', flexDirection: 'column',
-                  }}>
-                    <span style={{
-                      minWidth: 26, height: 26, alignSelf: 'flex-start', borderRadius: 13, display: 'grid', placeItems: 'center',
-                      background: isToday ? 'var(--text)' : 'transparent', fontVariantNumeric: 'tabular-nums',
-                      fontSize: 13, fontWeight: isToday ? 700 : 500,
-                      color: isToday ? 'var(--bg)' : isSun ? 'var(--cal-sun)' : isSat ? 'var(--cal-sat)' : 'var(--text)',
-                    }}>{d}</span>
-                    <div style={{ flex: 1 }} />
-                    {more > 0 && <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text3)' }}>+{more}</span>}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* 막대 오버레이. 빈 곳은 pointer-events로 통과시켜 날짜 칸 클릭을 막지 않는다. */}
-            <div style={{
-              position: 'absolute', inset: 0, display: 'grid', gridTemplateColumns: cols,
-              rowGap: CAL_BAR_GAP, gridAutoRows: CAL_BAR_H,
-              alignContent: 'start', paddingTop: CAL_BAR_TOP, pointerEvents: 'none',
-            }}>
-              {week.segments.map((seg, j) => {
-                const r = seg.race;
-                const accent = SERIES[r.series]?.accent || 'var(--text3)';
-                const x = r.status === 'cancelled';
-                return (
-                  <div key={j} className="press-chip" title={fmt.race(r).name}
-                    {...prefetchHandlers(r)} onClick={() => onOpen(r)}
-                    style={{
-                      gridColumn: `${seg.startCol + 1} / ${seg.endCol + 2}`, gridRow: seg.lane + 1,
-                      height: CAL_BAR_H, minWidth: 0, boxSizing: 'border-box',
-                      fontSize: 12, fontWeight: 600, lineHeight: '20px', padding: '0 6px',
-                      background: `color-mix(in srgb, ${accent} var(--cal-tint), transparent)`, color: x ? 'var(--text3)' : 'var(--text)',
-                      // 이어지는 쪽은 각지게 + 칸 끝까지. 실제 시작·끝만 둥글게 하고 안쪽으로 들인다.
-                      borderRadius: `${seg.roundStart ? 5 : 0}px ${seg.roundEnd ? 5 : 0}px ${seg.roundEnd ? 5 : 0}px ${seg.roundStart ? 5 : 0}px`,
-                      marginLeft: seg.roundStart ? 6 : 0, marginRight: seg.roundEnd ? 6 : 0,
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      textDecoration: x ? 'line-through' : 'none',
-                      pointerEvents: 'auto', cursor: 'pointer',
-                    }}>{fmt.race(r).shortName}</div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
-    </Group>
-  );
-}
-
-export function WebSeries({ races, onOpenRace, initialCategory, tier, seasonYear }) {
-  const tr = useT();
-  const safeSeasonYear = Number.isFinite(seasonYear) ? seasonYear : 2026;
-  const [sel, setSel] = useState(initialCategory || 'F1');
-  useEffect(() => { if (initialCategory) setSel(initialCategory); }, [initialCategory]);
-  const s = CATEGORIES[sel];
-  const list = useMemo(() => races.filter(r => r.category === sel).sort(byStart), [races, sel]);
-  const roundsRef = useRef(null);
-  useVisiblePrefetch(roundsRef, list);
-  const stats = getSeriesStats(list);
-  // F1만: 라운드 | 드라이버 순위. 기본은 지금처럼 라운드 목록.
-  const [view, setView] = useState('rounds');
-  const showDrivers = sel === 'F1' && view === 'drivers';
-  const onView = (v) => { if (v !== view) track('series_view_changed', { category: sel, view: v }); setView(v); };
-  const onSel = (id) => { if (id !== sel) track('series_tab_changed', { category: id }); setSel(id); };
-  const narrow = tier === 'tablet';
-  // 라운드 표: 라운드 | 날짜 | 경기 | 포디움 | 결승 시각 (태블릿은 포디움 열을 경기 칸 아래로)
-  const cols = narrow ? '56px 112px minmax(0,1fr) 108px' : '64px 128px minmax(0,1.5fr) minmax(0,1fr) 120px';
-
-  return (
-    <div>
-      <ScreenTitle title={tr('series.title')} sub={tr('series.subtitle', { n: Object.keys(CATEGORIES).length })}
-        right={<ChipRow items={Object.values(CATEGORIES)} value={sel} onChange={onSel} />} style={{ marginBottom: 24 }} />
-
-      <SeriesSummary wide cat={s} stats={stats} year={safeSeasonYear} style={{ marginBottom: 20 }} />
-
-      {sel === 'F1' && (
-        <div style={{ marginBottom: 24 }}>
-          <SubTabs size={17} value={view} onChange={onView}
-            items={[{ id: 'rounds', label: tr('series.view.rounds') }, { id: 'drivers', label: tr('series.view.drivers') }]} />
-        </div>
-      )}
-
-      {showDrivers ? (
-        <>
-          <SectionHead title={tr('standings.title')} />
-          <StandingsList races={list} variant="desktop" />
-        </>
-      ) : (
-        <>
-          <SectionHead title={tr('series.roundList')} />
-          <div ref={roundsRef}><Group inset={16}>
-            <div style={{ display: 'grid', gridTemplateColumns: cols, columnGap: 16, alignItems: 'center', padding: '10px 16px', boxShadow: 'inset 0 -1px 0 var(--line)' }}>
-              {[tr('series.col.round'), tr('series.col.date'), tr('series.col.race'), narrow ? null : tr('series.col.podium'), tr('series.col.start')].filter((h) => h !== null).map((h, i, a) => (
-                <span key={i} style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)', textAlign: i === a.length - 1 ? 'right' : 'left' }}>{h}</span>
-              ))}
-            </div>
-            {list.map((r, idx) => <WebRoundRow key={r.id} race={r} idx={idx} cols={cols} narrow={narrow} onOpen={() => onOpenRace(r)} />)}
-          </Group></div>
-        </>
-      )}
-    </div>
-  );
-}
-
-// 라운드 표의 한 줄. 시리즈 색 왼쪽 막대·RND 머리말·SPRINT 알약·영어 상태 알약 없음.
-function WebRoundRow({ race, idx, cols, narrow, onOpen }) {
-  const fmt = useFormat();
-  const tr = useT();
-  const L = fmt.race(race);
-  const status = raceStatus(race);
-  const done = status === 'completed';
-  const cancelled = status === 'cancelled';
-  const start = getRaceStartUtc(race);
-  const sub = [L.circuit, race.isSprint ? tr('status.sprint') : null, race.specialBadge].filter(Boolean).join(' · ');
-
-  return (
-    <div className={`g-row g-tap press-row${done || cancelled ? ' g-dim' : ''}`} role="button" tabIndex={0} data-prefetch-index={idx} {...prefetchHandlers(race)}
-      onClick={onOpen} onKeyDown={onKeyActivate(onOpen)}
-      style={{ display: 'grid', gridTemplateColumns: cols, columnGap: 16, minHeight: 64 }}>
-      <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text2)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{getRoundDisplay(race, idx + 1)}</span>
-      <span style={{ fontSize: 15, color: 'var(--text2)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmt.shortDate(start || race.primaryStartUtc)}</span>
-      <span style={{ minWidth: 0 }}>
-        <span style={{
-          display: 'block', fontSize: 17, lineHeight: 1.35, fontWeight: 600, letterSpacing: '-0.01em', color: 'var(--text)',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: cancelled ? 'line-through' : 'none',
-        }}>{L.shortName}</span>
-        <span style={{ display: 'block', marginTop: 2, fontSize: 13, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sub}</span>
-        {narrow && done && <PodiumLine race={race} />}
-      </span>
-      {!narrow && <span style={{ minWidth: 0 }}>{done && <PodiumLine race={race} />}</span>}
-      <span style={{ display: 'flex', justifyContent: 'flex-end' }}><RowSide start={start} status={status} /></span>
-    </div>
-  );
-}
 
 export function WebFavorites({ races, myRaces, favorites, onOpenRace, toggleFav, tier }) {
   const tr = useT();

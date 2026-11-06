@@ -3,7 +3,9 @@ import { flushSync } from 'react-dom';
 import { getCurrentNow, useScheduleData, usePreferences, filterRacesByPreferences } from './schedule/index.js';
 import { TOKENS } from './primitives.jsx';
 import { Home } from './home/Home.jsx';
-import { Schedule, SeriesView, Favorites, RaceDetail } from './screens.jsx';
+import { Favorites, RaceDetail } from './screens.jsx';
+import { ScheduleScreen } from './screens2/Schedule.jsx';
+import { SeriesScreen } from './screens2/Series.jsx';
 import { WebApp, useViewport } from './web.jsx';
 import { Onboarding } from './onboarding.jsx';
 import { Settings } from './settings.jsx';
@@ -242,7 +244,7 @@ function App({ theme, setTheme, themePref, onShareLinkDone, ...prefs }) {
     if (r.t === 'series') return (
       <>
         <div className="gx-stack-bar"><button type="button" className="gx-iconbtn" aria-label={t(preferences.locale || 'ko', 'aria.back')} onClick={back}><Icon n="back" /></button></div>
-        <SeriesView theme={theme} races={raceList} onOpenRace={openFromSeries} initialCategory={r.cat || 'F1'} seasonYear={safeSeasonYear} />
+        <SeriesScreen races={raceList} onOpenRace={openFromSeries} now={now} preferences={preferences} seasonYear={safeSeasonYear} initialCategory={r.cat || undefined} />
       </>
     );
     return null;
@@ -260,20 +262,21 @@ function App({ theme, setTheme, themePref, onShareLinkDone, ...prefs }) {
       paddingTop: 'env(safe-area-inset-top, 0px)',
     }}>
       {/* 탭 화면 — 스택이 덮고 있으면 inert(나가는 동안은 아래에서 미리 보인다) */}
-      <div ref={scrollRef} inert={covered || undefined} aria-hidden={covered || undefined} style={{
+      <div ref={scrollRef} data-scroll="" inert={covered || undefined} aria-hidden={covered || undefined} style={{
         height: '100dvh',
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
         paddingBottom: mobileBottomNavSpace,
       }}>
         {view === 'home' && <Home theme={theme} setTheme={setTheme} now={now} races={raceList} myRaces={myRaces} preferences={preferences} favorites={favorites} toggleFav={toggleFav} onOpenRace={onOpenRace} onGo={onGo} setSeriesMode={prefs.setSeriesMode} />}
-        {view === 'schedule' && <Schedule theme={theme} races={raceList} onOpenRace={openFromSchedule} now={now} seasonYear={safeSeasonYear} />}
-        {view === 'series' && <SeriesView theme={theme} races={raceList} onOpenRace={openFromSeries} initialCategory={categoryFilter || 'F1'} seasonYear={safeSeasonYear} />}
+        {view === 'schedule' && <ScheduleScreen races={raceList} onOpenRace={openFromSchedule} now={now} preferences={preferences} seasonYear={safeSeasonYear} />}
+        {view === 'series' && <SeriesScreen races={raceList} onOpenRace={openFromSeries} now={now} preferences={preferences} seasonYear={safeSeasonYear} initialCategory={categoryFilter || undefined} />}
         {view === 'fav' && <Favorites theme={theme} races={raceList} myRaces={myRaces} favorites={favorites} onOpenRace={openFromSaved} toggleFav={toggleFav} />}
       </div>
       {/* 설정 톱니 자리(결정 18) — 홈은 위 막대에 이미 있다 */}
       {/* 스택이 덮는 동안에도 지우지 않는다(inert) — 설정을 닫으면 포커스가 이 톱니로 돌아와야 한다 */}
-      {view !== 'home' && <div className="gx-gear-slot" inert={covered || undefined}><GearBtn onClick={() => push({ t: 'settings' })} /></div>}
+      {/* 홈·일정·시리즈는 자기 제목 줄에 있다. 즐겨찾기는 6단계에서 옮긴다 */}
+      {view === 'fav' && <div className="gx-gear-slot" inert={covered || undefined}><GearBtn onClick={() => push({ t: 'settings' })} /></div>}
 
       {/* 화면 스택: 맨 위만 보이고, 나가는 동안은 바로 아래도 보인다 */}
       {stack.map((r, i) => {
