@@ -1,10 +1,5 @@
-// 경기 상세 공용 계산(컴포넌트 아님). 부품은 detail-parts.jsx.
+// 경기 상세 공용 계산(컴포넌트 아님). 화면은 screens2/Detail.jsx.
 
-// 서킷 · 도시, 나라 (가운뎃점은 한 번만)
-export function placeLine(L) {
-  const city = [L.city, L.country].filter(Boolean).join(', ');
-  return [L.circuit, city].filter(Boolean).join(' · ');
-}
 
 // 시간대 차이(분). Intl로 그 시각의 오프셋을 구한다. 실패하면 null.
 function tzOffsetMinutes(timeZone, date) {
@@ -36,10 +31,4 @@ export function offsetText(race, fmt, tr) {
   return tr(diff < 0 ? 'detail.offsetBehind' : 'detail.offsetAhead', { zone, diff: span });
 }
 
-// 캘린더 담기를 그릴지: 끝났거나 취소됐거나 시각이 확정된 세션이 없으면 그리지 않는다(예전과 같다).
-export function canAddAlarm(race) {
-  return race.status !== 'completed' && race.status !== 'cancelled'
-    && (Array.isArray(race.sessions) ? race.sessions : []).some((x) => x.startUtc);
-}
 export const ticketOf = (race) => (race.status !== 'completed' && race.status !== 'cancelled' && race.ticketUrl) || null;
-export const hasDetailLinks = (race) => !!(ticketOf(race) || race.officialUrl);

@@ -12,8 +12,8 @@
     <meta name="description" content="F1, WEC, IMSA, WRC, GT 월드 챌린지 경기 일정을 한국 시간으로. 세션 시각, 카운트다운, 중계 정보까지 한곳에서." />
     <!-- 첫 페인트 전에 테마를 정한다: 고른 값이 있으면 그것, 없으면(처음·'system') 기기 밝기 모드. React는 같은 규칙으로 이어받는다. -->
     <script>(function(){try{var t=localStorage.getItem('gantry.theme');if(!t&&localStorage.getItem('paddock.theme')==='light')t='light';if(t!=='dark'&&t!=='light')t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
-    <meta name="theme-color" content="#07080B" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#F2F3F5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0E1015" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />
 
     <!-- 브랜드 파일은 public/gantry/ (Gantry 브랜드 패키지와 같은 파일) -->
     <link rel="icon" href="/gantry/favicon.ico" sizes="16x16 24x24 32x32 48x48" />
@@ -47,9 +47,9 @@
          테마는 localStorage['gantry.theme'](없으면 기기 설정)를 따르고(React가 data-theme을 붙이기 전이라), 한 세션에 한 번만 나온다.
          마크업은 꺼진 채(gs-gone)로 두고 아래 스크립트가 켠다 — JS 없이 읽는 크롤러에게 경기 페이지 본문을 덮지 않는다. -->
     <style>
-      #gt-splash{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;background:#07080B;color:#F2F4F7;
+      #gt-splash{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;background:#0E1015;color:#F2F4F7;
         transition:opacity 260ms cubic-bezier(.2,.8,.25,1);-webkit-user-select:none;user-select:none;cursor:pointer}
-      #gt-splash[data-tone="light"]{background:#F2F3F5;color:#14161C}
+      #gt-splash[data-tone="light"]{background:#FFFFFF;color:#14161C}
       #gt-splash.gs-hide{opacity:0;pointer-events:none}
       #gt-splash.gs-gone{display:none}
       #gt-splash.gs-plain .gs-grid,#gt-splash.gs-plain .gs-mark{opacity:0}

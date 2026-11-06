@@ -1,0 +1,144 @@
+/* Gantry UX v2 — 목표 토큰 (프로토타입 11판에서 실제 계산값을 뽑음)
+ * 이식할 때: 이 파일을 src/styles/tokens-v2.css로 두고 tokens.css 뒤에 불러온다. 실서비스 src/styles/tokens.css(:root)는 고치지 않는다.
+ * 색과 --r-btn은 실서비스와 이름이 겹친다(--bg·--line·--text3 …). 그래서 값은 앱 루트 .gx 아래에만 둔다.
+ *   → body 포털로 뜨는 서킷 맵(#cm)·경기 정적 페이지는 지금 :root 값 그대로라 모습이 바뀌지 않는다.
+ *   → 새 시트·스낵바처럼 body로 포털하는 부품은 .gx 안의 레이어로 포털한다.
+ * 실서비스는 <html data-theme>로 테마를 바꾼다. 토스는 라이트 고정 + 회색 단계만 TDS 값(8단계, html[data-plat="toss"]).
+ * 글자·움직임·간격은 겹치지 않는 새 이름이라 :root에 둔다. 덱 카드 반경은 기존 --r-card(14, 서킷 맵이 씀)와 겹치지 않게 --r-deck.
+ * 첫 페인트(index.html theme-color·스플래시 바탕·body 바탕)는 앱 바탕과 같게 새 --bg 값으로: 다크 #0E1015, 라이트 #FFFFFF.
+ */
+
+/* 라이트 */
+[data-theme="light"] .gx {
+  --bg: #FFFFFF;
+  --band: #F2F3F5;
+  --fill: #F2F3F5;
+  --fill2: #E7E9EC;
+  --press: rgba(16,18,24,.045);
+  --line: rgba(16,18,24,.08);
+  --text: #14161C;
+  --text2: #565B67;
+  --text3: #6A6E78;
+  --text4: #A3A7B0;
+  --brand: #14161C;
+  --onbrand: #FFFFFF;
+  --elev: #FFFFFF;
+  --shadow: 0 8px 28px rgba(16,18,24,.12), 0 1px 3px rgba(16,18,24,.06);
+  --signal: #FFD400;
+  --signal-ink: #8C6800;
+  --scrim: rgba(16,18,24,.45);
+  --snack: #14161C;
+  --onsnack: #FFFFFF;
+  --callout: #F5F6F8;
+  --f1: #C10500;
+  --wec: #1C5FD1;
+  --imsa: #00926A;
+  --wrc: #C06400;
+  --gtwc: #6F45CC;
+  --t-F1: #FFE8E7;
+  --t-WEC: #E4EDFF;
+  --t-IMSA: #DDF5EC;
+  --t-WRC: #FFEEDC;
+  --t-GTWC: #EEE7FF;
+  --t-END: #EAEDF2;
+  --sun: #CC2B36;
+  --sat: #2563EB;
+}
+
+/* 다크 */
+.gx, [data-theme="dark"] .gx {
+  --bg: #0E1015;
+  --band: #050608;
+  --fill: #1C2029;
+  --fill2: #262B35;
+  --press: rgba(255,255,255,.05);
+  --line: rgba(255,255,255,.08);
+  --text: #F4F5F7;
+  --text2: #A5A9B4;
+  --text3: #8A8F9B;
+  --text4: #5B606B;
+  --brand: #F2F4F7;
+  --onbrand: #0B0C10;
+  --elev: #1A1D24;
+  --shadow: 0 10px 32px rgba(0,0,0,.55);
+  --signal: #FFD400;
+  --signal-ink: #FFD400;
+  --scrim: rgba(0,0,0,.62);
+  --snack: #F2F4F7;
+  --onsnack: #0B0C10;
+  --callout: #1B1E26;
+  --f1: #E10600;
+  --wec: #2E7DFF;
+  --imsa: #14D19B;
+  --wrc: #FF8A00;
+  --gtwc: #A77BFF;
+  --t-F1: #2C0D0C;
+  --t-WEC: #0F1B33;
+  --t-IMSA: #08261D;
+  --t-WRC: #2B1907;
+  --t-GTWC: #1E1631;
+  --t-END: #1C2029;
+  --sun: #FF6B7A;
+  --sat: #6BA3FF;
+}
+
+/* 토스(라이트 고정, 라이트와 다른 값만) */
+[data-plat="toss"] .gx {
+  --band: #F2F4F6;
+  --fill: #F2F4F6;
+  --fill2: #E5E8EB;
+  --line: rgba(0,27,55,.08);
+  --text: #191F28;
+  --text2: #4E5968;
+  --text3: #5F6B7A;
+  --brand: #191F28;
+  --callout: #F2F4F6;
+  --band-h: 16px;   /* 섹션 사이 띠(토스 16px) */
+  --gx-sat: 0px;    /* 토스: 네이티브 내비 바가 상태 표시줄 자리를 맡는다 */
+}
+
+/* 시리즈 타일 글자(라이트·토스): 위 시리즈 색을 그대로 쓰면 대비가 모자라서 명시값(4.5:1 이상) */
+[data-theme="light"] .gx, [data-plat="toss"] .gx { --ink-F1: #9E0400; --ink-WEC: #174EAB; --ink-IMSA: #007857; --ink-WRC: #9D5200; --ink-GTWC: #5B39A7; }
+.gx, [data-theme="dark"] .gx { --ink-F1: var(--f1); --ink-WEC: var(--wec); --ink-IMSA: var(--imsa); --ink-WRC: var(--wrc); --ink-GTWC: var(--gtwc); }
+
+/* 글자 단계 (px / line-height). 굵기는 400·500·600·700만, 자간 0, 한국어 keep-all */
+:root {
+  --t11: 11px; --t11-lh: 15px;   /* 사진 출처만 (시리즈 히어로 출처는 10px · 흰색 38%) */
+  --t13: 13px; --t13-lh: 19px;
+  --t15: 15px; --t15-lh: 22px;
+  --t17: 17px; --t17-lh: 25px;
+  --t20: 20px; --t20-lh: 28px;   /* 700 */
+  --t22: 22px; --t22-lh: 30px;   /* 700 */
+  --t26: 26px; --t26-lh: 35px;   /* 700, 탭 화면 제목 */
+  --t30: 30px; --t30-lh: 40px;   /* 700, 데스크톱 홈 제목 · 시리즈 히어로 이름(16자 넘으면 26) */
+  --t40: 40px; --t40-lh: 48px;   /* 700 */
+}
+
+/* 사진 위 출처 글자(덱 카드). 사진 아래 출처(상세)는 --text3 */
+:root { --credit-on-photo: rgba(255,255,255,.6); --credit-shadow: 0 1px 2px rgba(0,0,0,.35); }
+
+/* 움직임: 길이 넷 + 곡선 넷. 튀는 건 하트 하나(--e-pop) */
+:root {
+  --d1: 110ms;
+  --d2: 180ms;
+  --d3: 260ms;
+  --d4: 340ms;
+  --e-out: cubic-bezier(.05, .7, .1, 1);
+  --e-in: cubic-bezier(.3, 0, .8, .15);
+  --e-std: cubic-bezier(.2, 0, 0, 1);
+  --e-pop: cubic-bezier(.3, 1.6, .5, 1);
+}
+@media (prefers-reduced-motion: reduce) { :root { --d1: 1ms; --d2: 1ms; --d3: 1ms; --d4: 1ms; } }
+
+/* 간격·모양 (프로토타입 값) */
+:root {
+  --gutter: 20px;          /* 모바일 좌우 */
+  --gx-sat: env(safe-area-inset-top, 0px);   /* 위 safe-area(토스는 0) */
+  --band-h: 12px;          /* 섹션 사이 회색 띠 (토스 16px) */
+  --row-min: 56px;         /* 목록 줄 최소 높이 */
+  --hit: 44px;             /* 누름 최소 */
+  --r-deck: 20px;          /* 덱 카드 (데스크톱 큰 장 24). 기존 --r-card(14)와 다른 이름 */
+  --r-box: 16px;           /* 회색 면(결과·큐레이션·레일) */
+  --r-row: 12px;           /* 진행 중 칸 */
+}
+.gx { --r-btn: 14px; }     /* 52px 주 버튼. 기존 :root --r-btn(12)은 그대로 */

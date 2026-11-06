@@ -1,6 +1,7 @@
 // 날짜·시간 포매팅 단일 지점. 전부 Intl.DateTimeFormat 기반이고 locale / timeZone을 인자로 받는다.
 // 지금은 호출부가 'ko' / 'Asia/Seoul'(기본값)을 쓴다. 언어·시간대는 다음 단계에서 인자로 흘려보낸다.
 // 숫자(연·월·일·시·분)는 locale과 무관하게 ASCII 숫자로 뽑고, 요일·월 이름만 locale을 따른다.
+import { t } from '../i18n/t.js';
 
 export const DEFAULT_LOCALE = 'ko';
 export const DEFAULT_TIME_ZONE = 'Asia/Seoul';
@@ -124,4 +125,112 @@ export function getTimeZoneLabel(timeZone = DEFAULT_TIME_ZONE, locale = DEFAULT_
   } catch { name = ''; }
   if (!name || /GMT|UTC/i.test(name)) name = String(timeZone).split('/').pop().replace(/_/g, ' ');
   return name;
+}
+
+// ---------- UX v2 표기 (문구는 i18n 'format.*'·'time.*'·'day.head.*') ----------
+// 시각은 위 formatTime 그대로 24시간제 '02:00'(ko·en 같음). 새벽·오전·오후 같은 때 이름은 쓰지 않는다.
+// 날짜 ko '11월 9일 (월)' / en 'Mon, Nov 9'. 상대 표기는 보는 사람 시간대의 날짜 차이로 센다.
+// 범위·라운드의 대시 뒤에는 단어 결합자(U+2060)를 넣어 대시 뒤에서 줄이 갈리지 않게 한다(문구 값은 그대로 두고 변수 앞에 붙인다).
+const WJ = '⁠';
+const MIN_MS = 60 * 1000;
+const HOUR_MS = 60 * MIN_MS;
+
+function dayVars(p, locale) {
+  return {
+    m: Number(p.month), d: Number(p.day), y: p.year,
+    dow: p.weekdayName,
+    mon: locale === 'ko' ? String(Number(p.month)) : p.monthShort,
+  };
+}
+// '11월 9일 (월)' / 'Mon, Nov 9'. dow: false면 '11월 9일' / 'Nov 9'
+export function formatDayDate(value, { locale = DEFAULT_LOCALE, timeZone = DEFAULT_TIME_ZONE, dow = true } = {}) {
+  const p = getParts(value, { locale, timeZone });
+  return p ? t(locale, dow ? 'format.date' : 'format.dateNoDow', dayVars(p, locale)) : '';
+}
+// '11월 9일 (월) 02:00' / 'Mon, Nov 9, 02:00'
+export function formatDayDateTime(value, opts = {}) {
+  const locale = opts.locale ?? DEFAULT_LOCALE;
+  const date = formatDayDate(value, opts);
+  return date ? t(locale, 'format.dateTime', { date, time: formatTime(value, opts) }) : '';
+}
+function rangeOf(pa, pb, locale) {
+  const a = dayVars(pa, locale); const b = dayVars(pb, locale);
+  if (pa.year === pb.year && pa.month === pb.month) {
+    if (pa.day === pb.day) return t(locale, 'format.dateNoDow', a);
+    return t(locale, 'format.range', { m: a.m, mon: a.mon, a: a.d, b: `${WJ}${b.d}` });
+  }
+  return t(locale, 'format.rangeCross', { m: a.m, mon: a.mon, a: a.d, m2: `${WJ}${b.m}`, mon2: `${WJ}${b.mon}`, b: b.d });
+}
+// 날짜 범위 '11월 7일–9일' / 'Nov 7–9' (보는 사람 시간대)
+export function formatDayRange(from, to, { locale = DEFAULT_LOCALE, timeZone = DEFAULT_TIME_ZONE } = {}) {
+  const pa = getParts(from, { locale, timeZone }); const pb = getParts(to ?? from, { locale, timeZone });
+  return pa && pb ? rangeOf(pa, pb, locale) : '';
+}
+// 서킷 현지 날짜키 범위('2026-11-06'~'2026-11-08') — 시간대 변환 없이 그 날짜 그대로
+export function formatPlainDayRange(fromKey, toKey, { locale = DEFAULT_LOCALE } = {}) {
+  const pa = getPlainDateParts(fromKey, { locale }); const pb = getPlainDateParts(toKey ?? fromKey, { locale });
+  return pa && pb ? rangeOf(pa, pb, locale) : '';
+}
+// 달력 머리 '2026년 11월' / 'November 2026'
+export function formatMonthTitle(value, { locale = DEFAULT_LOCALE, timeZone = DEFAULT_TIME_ZONE } = {}) {
+  const p = getParts(value, { locale, timeZone });
+  return p ? t(locale, 'format.month', { y: p.year, m: Number(p.month), monthName: p.monthName }) : '';
+}
+
+// 상대 날짜: 오늘·내일·모레·어제, 14일 미만 'N일 뒤/전', 이상 'N주 뒤/전'(내림). inline이면 문장 안 꼴(en 소문자).
+export function formatRelDay(value, now = new Date(), { locale = DEFAULT_LOCALE, timeZone = DEFAULT_TIME_ZONE, inline = false } = {}) {
+  const n = getDayDifference(value, now, { timeZone });
+  if (n === null) return '';
+  const word = (key) => t(locale, inline ? `${key}.inline` : key);
+  if (n === 0) return word('time.today');
+  if (n === 1) return word('time.tomorrow');
+  if (n === 2) return word('time.dayAfter');
+  if (n === -1) return t(locale, 'time.yesterday');
+  if (n > 0) return n < 14 ? t(locale, 'time.inDays', { n }) : t(locale, 'time.inWeeks', { n: Math.floor(n / 7) });
+  return -n < 14 ? t(locale, 'time.daysAgo', { n: -n }) : t(locale, 'time.weeksAgo', { n: Math.floor(-n / 7) });
+}
+// 짧은 상대 시각: 1시간 미만 'N분 뒤'(최소 1분), 12시간 미만 'N시간 뒤'(반올림), 그 밖은 formatRelDay
+export function formatRelShort(value, now = new Date(), opts = {}) {
+  const d = toDate(value); const at = toDate(now);
+  if (!d || !at) return '';
+  const locale = opts.locale ?? DEFAULT_LOCALE;
+  const diff = d.getTime() - at.getTime();
+  if (diff > 0 && diff < HOUR_MS) return t(locale, 'time.inMinutes', { m: Math.max(1, Math.round(diff / MIN_MS)) });
+  if (diff > 0 && diff < 12 * HOUR_MS) return t(locale, 'time.inHours', { h: Math.round(diff / HOUR_MS) });
+  return formatRelDay(d, at, opts);
+}
+// 제목 문장의 날 자리: ko 오늘·내일·모레 또는 '토요일' / en Today·Tomorrow 또는 'Saturday'
+export function formatDayWord(value, now = new Date(), { locale = DEFAULT_LOCALE, timeZone = DEFAULT_TIME_ZONE } = {}) {
+  const n = getDayDifference(value, now, { timeZone });
+  if (n === 0) return t(locale, 'time.today');
+  if (n === 1) return t(locale, 'time.tomorrow');
+  if (n === 2 && locale === 'ko') return t(locale, 'time.dayAfter');
+  const d = toDate(value);
+  return d ? dtf(locale, { weekday: 'long', timeZone }).format(d) : '';
+}
+// 시간표 날짜 머리: { main: '오늘 · 토요일' | '토요일', sub: '11월 7일' }
+export function formatDayHead(value, now = new Date(), { locale = DEFAULT_LOCALE, timeZone = DEFAULT_TIME_ZONE } = {}) {
+  const d = toDate(value);
+  if (!d) return { main: '', sub: '' };
+  const weekday = dtf(locale, { weekday: 'long', timeZone }).format(d);
+  const n = getDayDifference(d, now, { timeZone });
+  const key = n === 0 ? 'day.head.today' : n === 1 ? 'day.head.tomorrow' : n === -1 ? 'day.head.yesterday' : null;
+  return { main: key ? t(locale, key, { weekday }) : weekday, sub: formatDayDate(d, { locale, timeZone, dow: false }) };
+}
+// 길이 '2시간 10분' / '2 h 10 min'. 1분 미만은 1분.
+export function formatDurationText(ms, { locale = DEFAULT_LOCALE } = {}) {
+  const total = Math.max(1, Math.round((ms || 0) / MIN_MS));
+  const h = Math.floor(total / 60); const m = total % 60;
+  if (!h) return t(locale, 'time.dur.m', { m });
+  return m ? t(locale, 'time.dur.hm', { h, m }) : t(locale, 'time.dur.h', { h });
+}
+// 경과 '2시간 10분 지났어요' / '2 h 10 min in'
+export function formatElapsed(start, now = new Date(), { locale = DEFAULT_LOCALE } = {}) {
+  const a = toDate(start); const b = toDate(now);
+  if (!a || !b) return '';
+  return t(locale, 'time.elapsed', { d: formatDurationText(b.getTime() - a.getTime(), { locale }) });
+}
+// 요일 이름 '토요일' / 'Saturday'
+export function formatWeekday(value, { locale = DEFAULT_LOCALE, timeZone = DEFAULT_TIME_ZONE } = {}) {
+  const d = toDate(value); return d ? dtf(locale, { weekday: 'long', timeZone }).format(d) : '';
 }

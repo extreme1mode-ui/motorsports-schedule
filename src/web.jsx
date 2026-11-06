@@ -4,12 +4,22 @@ import { TOKENS } from './primitives.jsx';
 import { GantryLockup, GantrySymbol } from './Brand.jsx';
 import { getCurrentNow, useScheduleData, filterRacesByPreferences } from './schedule/index.js';
 import { Home } from './home/Home.jsx';
-import { WebSchedule, WebSeries, WebFavorites, RaceDrawer } from './web-screens.jsx';
-import { Settings } from './settings.jsx';
-import { useT } from './i18n/index.js';
+import { FavoritesScreen } from './screens2/Favorites.jsx';
+import { DetailDrawer } from './screens2/Detail.jsx';
+import { ScheduleScreen } from './screens2/Schedule.jsx';
+import { SeriesScreen } from './screens2/Series.jsx';
+import { SettingsScreen } from './screens2/Settings.jsx';
+import { t, useT } from './i18n/index.js';
 import { track } from './analytics.js';
 import { useRaceLink } from './share-link.js';
 import { withViewTransition, useScrollMemory, useFocusViewTitle, usePresence } from './use-motion.js';
+import { ShellContext } from './shell/context.js';
+import { useShellCore } from './shell/useShellCore.js';
+import { useDevShellHook } from './shell/dev-hook.js';
+import { ShellSheets } from './shell/ShellSheets.jsx';
+import { activeElement, focusBack, trapTab, useScrollEdges } from './shell/utils.js';
+import './shell/shell.css';
+import { Snackbar } from './ui2/Snackbar.jsx';
 import { storage } from './storage/index.js';
 
 export function useViewport() {
@@ -26,11 +36,16 @@ export function useViewport() {
   return { w, tier, isWeb: w >= 900 };
 }
 
-export function WebApp({ theme, setTheme, themePref, onShareLinkDone, ...prefs }) {
+export function WebApp({ theme, setTheme, themePref, onShareLinkDone, startRedo, entry, onEntryDone, ...prefs }) {
   const { preferences } = prefs;
-  const [view, setView] = useState('home');
+  // 온보딩 다시 하기를 X로 닫고 돌아오면 설정부터(entry)
+  const [view, setView] = useState(() => (entry?.open === 'settings' ? 'settings' : 'home'));
   const [categoryFilter, setCategoryFilter] = useState(null);
-  const [openRaceId, setOpenRaceId] = useState(null);
+  // 서랍 스택(UX v2): 상세 → (다음 라운드 같은) 다른 상세. 위에서부터 하나씩 빠지고, 닫기(X·바깥)는 서랍 전체를 닫는다.
+  const [dstack, setDstack] = useState([]);           // [{ t: 'detail', id }]
+  const openRaceId = dstack.length ? dstack[dstack.length - 1].id : null;
+  const shell = useShellCore();
+  const rootRef = useRef(null);
   const [favorites, setFavorites] = useState(() => storage.favorites.read());
   const [now, setNow] = useState(() => getCurrentNow());
   const [tweaks, setTweaks] = useState(false);
@@ -75,8 +90,17 @@ export function WebApp({ theme, setTheme, themePref, onShareLinkDone, ...prefs }
     });
   }, []);
   // source: 어느 화면에서 열었는지. 화면별 래퍼가 기본값을 주고, 추천 카드는 'recommendation'을 직접 넘긴다.
-  const openerRef = useRef(null);   // 드로어를 연 요소 — 닫힐 때 포커스를 되돌린다
-  const openFrom = useCallback((race, source, extra) => { openerRef.current = document.activeElement; track('race_opened', { series: race.series, source, ...extra }); setOpenRaceId(race.id); }, []);
+  const openerRef = useRef(null);   // 서랍을 연 요소 — 서랍이 닫힐 때 포커스를 되돌린다
+  const dstackRef = useRef(dstack);
+  useEffect(() => { dstackRef.current = dstack; }, [dstack]);
+  const openFrom = useCallback((race, source, extra) => {
+    if (!dstackRef.current.length) openerRef.current = activeElement();
+    track('race_opened', { series: race.series, source, ...extra });
+    setDstack((d) => (d.length ? [...d, { t: 'detail', id: race.id }] : [{ t: 'detail', id: race.id }]));
+  }, []);
+  const closeDrawer = useCallback(() => setDstack([]), []);
+  // 한 단계 뒤로: 서랍 안에 둘 이상이면 하나만 빼고, 하나면 서랍을 닫는다
+  const backDrawer = useCallback(() => setDstack((d) => (d.length > 1 ? d.slice(0, -1) : [])), []);
   const onOpenRace = useCallback((race, source = 'home', extra) => openFrom(race, source, extra), [openFrom]);
   const openFromSchedule = useCallback((race) => openFrom(race, 'schedule'), [openFrom]);
   const openFromSeries = useCallback((race) => openFrom(race, 'series'), [openFrom]);
@@ -87,6 +111,8 @@ export function WebApp({ theme, setTheme, themePref, onShareLinkDone, ...prefs }
   const saveScroll = useScrollMemory(view, null);
   useFocusViewTitle(view);
   const onGo = useCallback((v, arg) => {
+    // 지금 탭을 다시 누르면 맨 위로
+    if (v === view && v !== 'series') { window.scrollTo({ top: 0, behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); return; }
     saveScroll(view);
     withViewTransition(() => {
       if (v === 'series') { setCategoryFilter(arg); setView('series'); }
@@ -101,51 +127,86 @@ export function WebApp({ theme, setTheme, themePref, onShareLinkDone, ...prefs }
   const shownRace = openRace ?? lastRace;
   useEffect(() => {
     if (drawer.mounted) return;
-    const el = openerRef.current;
-    if (el && el.isConnected && typeof el.focus === 'function' && el !== document.body) el.focus({ preventScroll: true });
-    else document.querySelector('[data-view-title]')?.focus({ preventScroll: true });
+    if (openerRef.current) focusBack(openerRef.current, rootRef.current || document);
     openerRef.current = null;
   }, [drawer.mounted]);
+  // Esc: 시트가 먼저(Sheet가 잡는다), 서킷 맵이 열려 있으면(html.cm-open) 지도가 먼저, 그다음 서랍 한 단계
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || shell.sheet) return;
+      if (document.documentElement.classList.contains('cm-open')) return;
+      if (dstackRef.current.length) backDrawer();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [backDrawer, shell.sheet]);
+  useScrollEdges(rootRef);
+  useDevShellHook(shell);
+  // 온보딩 다시 하기를 마치고 돌아오면 스낵바 + 되돌리기(entry, 한 번)
+  const entryRef = useRef(entry);
+  useEffect(() => {
+    const e = entryRef.current;
+    if (!e) return;
+    if (e.toast) shell.toast(e.toast.text, { label: t(preferences.locale || 'ko', 'toast.undo'), fn: e.toast.undo });
+    onEntryDone?.();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const ctx = useMemo(() => ({
+    push: (route) => { if (route.t === 'settings') onGo('settings'); else if (route.t === 'series') onGo('series', route.cat); else setDstack((d) => [...d, route]); },
+    back: backDrawer, openSettings: () => onGo('settings'), openSheet: shell.openSheet, toast: shell.toast, mem: shell.mem, desktop: true, go: onGo,
+  }), [onGo, backDrawer, shell.openSheet, shell.toast, shell.mem]);
+  const drawerOpen = dstack.length > 0;
 
   const sidebarWidth = tier === 'tablet' ? 76 : 240;
   const gutter = tier === 'ultra' ? 48 : tier === 'desktop' ? 36 : 24;
   const maxMain = tier === 'ultra' ? 1480 : tier === 'desktop' ? 1200 : 1000;
 
   return (
-    <div style={{
+    <ShellContext.Provider value={ctx}>
+    <div ref={rootRef} style={{
       minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)',
       fontFamily: '"Pretendard Variable", "Pretendard", -apple-system, "Apple SD Gothic Neo", system-ui, sans-serif',
       display: 'grid', gridTemplateColumns: `${sidebarWidth}px 1fr`,
       position: 'relative',
     }}>
-      <Sidebar view={view} onGo={onGo} collapsed={tier === 'tablet'} />
+      {/* 서랍이 열려 있는 동안 뒤(사이드바·본문)는 inert — 서랍 안에서만 Tab */}
+      <Sidebar view={view} onGo={onGo} collapsed={tier === 'tablet'} inert={drawerOpen} />
 
-      <main style={{ padding: `${gutter + 8}px ${gutter}px ${gutter * 2}px`, maxWidth: '100%', minWidth: 0 }}>
-        <div style={{ maxWidth: maxMain, margin: '0 auto' }}>
+      {/* 시리즈는 사진이 본문 폭 전체를 채운다(글은 본문 열에 맞춤) — 그 화면만 여백 없이, 열 폭·여백은 CSS 변수로 넘긴다 */}
+      <main inert={drawerOpen || undefined} aria-hidden={drawerOpen || undefined} style={{
+        padding: view === 'series' ? 0 : `${gutter + 8}px ${gutter}px ${gutter * 2}px`, maxWidth: '100%', minWidth: 0,
+        '--gx-main-max': `${maxMain}px`, '--gx-gutter': `${gutter}px`,
+      }}>
+        <div style={{ maxWidth: view === 'series' ? 'none' : maxMain, margin: '0 auto' }}>
           {view === 'home' && <Home theme={theme} setTheme={setTheme} now={now} races={raceList} myRaces={myRaces}
             preferences={preferences} favorites={favorites} toggleFav={toggleFav} onOpenRace={onOpenRace} onGo={onGo} setSeriesMode={prefs.setSeriesMode} />}
-          {view === 'schedule' && <WebSchedule theme={theme} races={raceList}
-            onOpenRace={openFromSchedule} now={now} tier={tier} seasonYear={safeSeasonYear} />}
-          {view === 'series' && <WebSeries theme={theme} races={raceList}
-            onOpenRace={openFromSeries} initialCategory={categoryFilter || 'F1'} tier={tier} seasonYear={safeSeasonYear} />}
-          {view === 'fav' && <WebFavorites theme={theme} races={raceList} myRaces={myRaces}
-            favorites={favorites} onOpenRace={openFromSaved} toggleFav={toggleFav} tier={tier} />}
-          {view === 'settings' && <Settings theme={theme} themePref={themePref} setTheme={setTheme} onGo={onGo} {...prefs} />}
+          {view === 'schedule' && <ScheduleScreen races={raceList} onOpenRace={openFromSchedule} now={now} preferences={preferences} seasonYear={safeSeasonYear} />}
+          {view === 'series' && <SeriesScreen races={raceList} onOpenRace={openFromSeries} now={now} preferences={preferences} seasonYear={safeSeasonYear} initialCategory={categoryFilter || undefined} />}
+          {view === 'fav' && <FavoritesScreen races={raceList} myRaces={myRaces} now={now} preferences={preferences}
+            favorites={favorites} onOpenRace={openFromSaved} toggleFav={toggleFav} />}
+          {view === 'settings' && <SettingsScreen preferences={preferences} themePref={themePref} onRedo={startRedo} />}
         </div>
       </main>
 
-      {drawer.mounted && shownRace && <RaceDrawer race={shownRace} theme={theme} onClose={() => setOpenRaceId(null)}
-        favorites={favorites} toggleFav={toggleFav} tier={tier} preferences={preferences} closing={drawer.closing} onExitEnd={drawer.onExitEnd} />}
+      {drawer.mounted && shownRace && (
+        <div onKeyDown={trapTab} style={{ display: 'contents' }}>
+          <DetailDrawer key={shownRace.id} race={shownRace} now={now} races={raceList} onOpenRace={onOpenRace} onClose={backDrawer} onDismiss={closeDrawer}
+            favorites={favorites} toggleFav={toggleFav} tier={tier} preferences={preferences} closing={drawer.closing} onExitEnd={drawer.onExitEnd} />
+        </div>
+      )}
 
       {tweaks && <WebTweaks theme={theme} setTheme={setTheme} />}
+
+      <ShellSheets sheet={shell.sheet} onClose={shell.closeSheet} dialog prefs={prefs} themePref={themePref} setTheme={setTheme} toast={shell.toast} />
+      <Snackbar msg={shell.snack} onHold={shell.holdSnack} hidden={!!shell.sheet} placement={drawerOpen ? 'drawer' : 'desktop'} />
     </div>
+    </ShellContext.Provider>
   );
 }
 
 // 사이드바: 아이콘 20 + 한글 15/600 한 줄. 고른 메뉴는 면 하나(왼쪽 막대 없음).
 // 예전의 영문 보조 라벨(HOME·SCHEDULE…), '2026 · SEASON', 즐겨찾기 개수 배지, 'LIVE TIMING' 상자는 걷어 냈다(N1·K6).
 // 테마는 설정 화면으로, 시간대는 일정 제목 아래 한 줄로 옮겼다.
-function Sidebar({ view, onGo, collapsed }) {
+function Sidebar({ view, onGo, collapsed, inert = false }) {
   const tr = useT();
   const items = [
     { id: 'home',     label: tr('nav.home'),     icon: 'home' },
@@ -176,7 +237,7 @@ function Sidebar({ view, onGo, collapsed }) {
   };
 
   return (
-    <aside style={{
+    <aside inert={inert || undefined} aria-label={tr('aria.mainNav')} style={{
       viewTransitionName: 'nav-chrome',
       boxShadow: 'inset -1px 0 0 var(--line)',
       background: 'var(--bg)',

@@ -1,0 +1,108 @@
+/* 경기 상세(UX v2 SPEC 4장). 모바일은 화면 스택 안, 데스크톱은 오른쪽 서랍 — 둘 다 .gx-detail이 스크롤 상자다. */
+.gx .gx-detail { position: relative; height: 100%; overflow: hidden auto; overscroll-behavior: contain; background: var(--bg); color: var(--text); display: flex; flex-direction: column; }
+.gx .gx-detail > * { flex-shrink: 0; }
+.gx .gx-stack.is-detail > .gx-detail { height: 100dvh; }
+
+/* 위 막대: 사진 위에서는 둥근 버튼만, 사진이 지나가면 채움, 제목은 큰 제목이 지나간 뒤 */
+.gx .gx-dtop { position: sticky; top: 0; z-index: 5; height: 56px; margin-bottom: -56px; display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 0 8px;
+  transition: background-color var(--d2) var(--e-std), box-shadow var(--d2) var(--e-std); }
+.gx .gx-stack.is-detail .gx-dtop { padding-top: var(--gx-sat); height: calc(56px + var(--gx-sat)); margin-bottom: calc(-56px - var(--gx-sat)); }
+.gx .gx-dtop .gx-round { position: relative; width: 40px; height: 40px; margin: 0 4px; border-radius: 50%; background: rgba(0, 0, 0, .38); color: #fff; flex: none;
+  transition: background-color var(--d2) var(--e-std), color var(--d2) var(--e-std); }
+.gx .gx-dtop .gx-round::before { content: ""; position: absolute; inset: -2px; border-radius: 50%; }
+.gx .gx-dtop-title { flex: 1; min-width: 0; padding: 0 8px; text-align: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; opacity: 0; transition: opacity var(--d2) var(--e-std); }
+.gx .gx-dtop-title.is-left { text-align: left; padding-left: 12px; }
+.gx .gx-dtop-title.is-on { opacity: 1; }
+.gx .gx-dtop.is-solid { background: var(--bg); box-shadow: 0 1px 0 var(--line); }
+.gx .gx-dtop.is-solid .gx-round { background: none; color: var(--text); }
+
+/* 사진 + 출처(사진 아래 오른쪽, 11px — 글자 단계의 유일한 예외) */
+.gx .gx-dphoto { position: relative; aspect-ratio: 16 / 10; overflow: hidden; background: var(--fill); }
+.gx .gx-detail.is-drawer .gx-dphoto { aspect-ratio: 5 / 2; }
+.gx .gx-dphoto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gx .gx-dcredit { display: block; margin: 6px 0 0; padding: 0 var(--gutter); text-align: right; color: var(--text3); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gx .gx-t11 { font-size: 11px; line-height: 15px; }
+
+.gx .gx-dhead { display: flex; flex-direction: column; gap: 4px; padding: 20px var(--gutter) 8px; }
+.gx .gx-dhead h1 { margin: 0; outline: none; word-break: keep-all; }
+.gx .gx-dhead .gx-stag { color: var(--text2); }
+.gx .gx-dhead .gx-stag .gx-dot { margin-right: 6px; }
+
+/* 핵심 블록 */
+.gx .gx-dkey { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px var(--gutter) 20px; }
+.gx .gx-dkey b { font-variant-numeric: tabular-nums; }
+.gx .gx-dkey .gx-prog { max-width: none; }
+.gx .gx-dkey-now { display: flex; flex-wrap: wrap; align-items: baseline; margin-bottom: 4px; }
+.gx .gx-dcur { padding: 0 var(--gutter) 16px; word-break: keep-all; text-wrap: pretty; }
+
+/* 바로 가기 탭(위 막대 아래에 붙음) */
+.gx .gx-dtabs { position: sticky; top: 56px; z-index: 4; display: flex; padding: 0 10px; margin-top: 8px; background: var(--bg); box-shadow: inset 0 -1px 0 var(--line); overflow-x: auto; scrollbar-width: none; }
+.gx .gx-stack.is-detail .gx-dtabs { top: calc(56px + var(--gx-sat)); }
+.gx .gx-dtabs::-webkit-scrollbar { display: none; }
+.gx .gx-dtabs button { position: relative; height: 44px; padding: 0 10px; border: 0; background: none; font: inherit; font-size: 15px; font-weight: 600; color: var(--text3); white-space: nowrap; cursor: pointer; }
+.gx .gx-dtabs button.is-on { color: var(--text); }
+.gx .gx-dtabs button.is-on::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: 0; height: 2px; border-radius: 1px; background: var(--text); }
+@media (hover: hover) { .gx .gx-dtabs button:hover { color: var(--text); } }
+.gx .gx-detail section h2:focus { outline: none; }
+.gx .gx-detail section h2:focus-visible { outline: 2px solid var(--focus, var(--text)); outline-offset: 2px; border-radius: 4px; }
+/* 섹션 머리는 탭 줄 아래에서 멈춘다(탭으로 건너뛸 때) */
+.gx .gx-detail section { scroll-margin-top: 100px; }
+
+/* 결과: 순위 · 사진 · 이름/팀 · 기록 + 점수 칸(36px, 간격 8) */
+.gx .gx-res-row { gap: 12px; }
+.gx .gx-res-row + .gx-res-row::before { left: 106px; }
+.gx .gx-res-p { width: 26px; flex: none; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+.gx .gx-res-av { flex: none; display: grid; }
+.gx .gx-res-name b { font-weight: 600; }
+.gx .gx-team-dot { display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 2px; vertical-align: 0; }
+.gx .gx-res-v { flex-direction: row; align-items: baseline; gap: 8px; }
+.gx .gx-res-pt { min-width: 36px; text-align: right; white-space: nowrap; }
+.gx .gx-results { container-type: inline-size; }
+/* 이름: 줄이 모자라면 이름(given)부터 줄이고 성(family)은 끝까지. 좁으면(400px 이하) given을 숨긴다 */
+.gx .gx-res-row .gx-res-name { display: flex; gap: 4px; min-width: 0; align-items: baseline; white-space: nowrap; }
+.gx .gx-res-row .gx-res-name > .gx-given { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.gx .gx-res-row .gx-res-name > b { flex: none; }
+@container (max-width: 400px) { .gx .gx-res-row .gx-given { display: none; } }
+
+/* 링크 줄: 줄 전체가 링크라 밑줄·링크 색 없음 */
+.gx .gx-detail a.gx-row, .gx .gx-detail a.gx-btn { color: inherit; text-decoration: none; }
+.gx .gx-detail a.gx-btn.is-primary { color: var(--onbrand); }
+
+/* 중계·현장 줄 아이콘 */
+.gx .gx-bc-ic { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 12px; background: var(--fill); color: var(--text2); }
+.gx .gx-detail .gx-row + .gx-row::before { left: 78px; }
+.gx .gx-detail .gx-res-row + .gx-res-row::before { left: 106px; }
+.gx .gx-detail .gx-tl-row + .gx-tl-row::before { left: 90px; }
+.gx .gx-detail .gx-kv + .gx-kv::before, .gx .gx-detail .gx-link-row::before { left: var(--gutter); }
+.gx .gx-dfoot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 12px 12px var(--gutter); }
+.gx .gx-dfoot .gx-textbtn { min-height: 44px; padding: 0 8px; }
+
+/* 세션 일정 */
+.gx .gx-detail .gx-tl-dh { position: static; }
+.gx .gx-ses-day + .gx-ses-day { margin-top: 4px; }
+.gx .gx-ses-row .gx-row-c > span.gx-prog { overflow: hidden; }
+
+/* 이름·값 줄 */
+.gx .gx-kv { min-height: 56px; }
+.gx .gx-kv .gx-row-r { white-space: nowrap; }
+
+/* 현장에 가요 스위치 */
+.gx .gx-switch { position: relative; width: 52px; height: 32px; flex: none; border-radius: 16px; background: var(--fill2, var(--fill)); transition: background-color var(--d2) var(--e-std); }
+.gx .gx-switch i { position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); transition: transform var(--d2) var(--e-std); }
+.gx .gx-switch.is-on { background: var(--brand); }
+.gx .gx-switch.is-on i { transform: translateX(20px); }
+[data-theme="dark"] .gx .gx-switch.is-on i, .gx[data-theme="dark"] .gx-switch.is-on i { background: var(--onbrand); }
+
+/* 아래 고정 바 [♡][행동] */
+.gx .gx-dspace { flex: 1 0 104px; }   /* 본문이 짧아도 아래 바가 화면 바닥에 */
+.gx .gx-dbar { position: sticky; bottom: 0; z-index: 4; display: flex; gap: 8px; margin-top: -104px; padding: 12px var(--gutter) calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--bg); box-shadow: 0 -1px 0 var(--line); }
+.gx .gx-dbar .gx-btn.is-grow { flex: 1; min-width: 0; }
+.gx .gx-dbar-note { flex: 1; align-self: center; color: var(--text3); white-space: normal; text-wrap: pretty; }
+
+/* 데스크톱 서랍 */
+.gx .gx-drawer-panel { overflow: hidden; }
+.gx .gx-drawer-panel > .gx-detail { height: 100vh; }
+
+/* 토스(SPEC 9장·결정 15): 위 막대가 없어 탭 줄이 맨 위에 붙고, 오른쪽 끝에 공유 */
+.gx .gx-dtabs.is-toss, .gx .gx-stack.is-detail .gx-dtabs.is-toss { top: 0; align-items: center; }
+.gx .gx-dtabs-share { margin-left: auto; flex: none; color: var(--text); }

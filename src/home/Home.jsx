@@ -1,471 +1,620 @@
-// 홈 — 반응형 단일 컴포넌트. 레이아웃 분기는 home.css의 900px 미디어쿼리가 한다.
-// 규칙·판정은 design/HOME-SPEC.md. 표현은 AI 티 정리(2026-10-29) 기준: 히어로 4층(H1), 큰 숫자는 1시간 안 카운트다운만(H2),
-// 줄마다 색 막대 대신 시리즈 점(K1), 시계 칩·테마 버튼 없음(N2), 가운뎃점 한 줄에 하나(D3), D-day 기준을 말로(D6).
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import './home.css';
-import { LightRow } from '../Brand.jsx';
-import { adaptRaces } from './adapt.js';
-import { resolveTimeState, resolveWeekendPhase, formatCountdown } from './time.js';
-import { getRaceWeekKey, groupRacesByWeekend } from './weeks.js';
+// 홈(UX v2 SPEC 1장): 위 줄 → 제목 문장 → 카드 덱(넘겨 보기) → 관전 포인트·현장 줄 → 지난 주말 결과(48시간 안이면 덱 바로 아래)
+// → 내 주말 시간표 → 놓치면 아쉬운 경기 → 이후 일정. 데스크톱은 덱 아래 시간표 + 오른쪽 레일(결과·추천·이후 일정).
+// 규칙은 home/plan.js(히어로 순서 L5·덱·제목 문장·카드 상태), 시각 표기는 useFormat()(보는 사람 시간대·언어).
+// 홈 조립은 분 단위로 memo하고(아래 Home의 비교), 진행 중의 지난 시간·진행 막대·숫자 굴림만 1초마다 자기 칸에서 갱신한다.
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import './home2.css';
+import { buildHomePlan, homeHeadline, getCardState } from './plan.js';
+import { getMainSessionAt, getRaceEnd, getSessionEnd, resolveTimeState, isAliveState, isCancelled } from './time.js';
 import { photo, photoPos, photoCredit } from './photos.js';
 import { SERIES_DESCRIPTION_KEYS } from '../preferences-options.js';
 import { useFormat } from '../use-format.js';
 import { useT } from '../i18n/index.js';
-import { zonedDateFromKey } from '../schedule/format.js';
-import { formatSessionLabel } from '../schedule/utils.js';
+import { getPrimarySession, getRoundText } from '../schedule/utils.js';
 import { getRecommendations } from '../schedule/recommendations.js';
-import { Group, MoreLink } from '../ui.jsx';
-import { getHighlights, getHighlightNote, getRaceWeight } from '../schedule/highlights.js';
+import { curationOf } from './curation.js';
 import { track } from '../analytics.js';
 import { prefetchRacePhoto, prefetchHandlers, useVisiblePrefetch } from '../photo-prefetch.js';
 import { GantryLockup } from '../Brand.jsx';
-import { usePop, useImageLoaded } from '../use-motion.js';
 import { toggleAlarm, useAlarms } from '../alarm.js';
 import { HeroSiteRow } from '../circuit-map/CircuitMap.jsx';
+import { IS_TOSS } from '../platform.js';
 import { demoClock } from '../demo/clock.js';
 import { openDemoClock } from '../demo/demo-clock-events.js';
-import { IS_TOSS } from '../platform.js';
+import { useF1Results, resultOf, photoOf, teamColor } from '../results/results.js';
+import { Avatar } from '../results/ResultsUI.jsx';
+import { useShell } from '../shell/context.js';
+import { Icon } from '../ui2/Icon.jsx';
+import { Dot, LiveText, Progress, Roll, ListHeader, Band, RaceRow, Photo, GearBtn } from '../ui2/parts.jsx';
+import { joinDot, SEP } from '../ui2/hooks.js';
 
-const ORDER = ['F1', 'WEC', 'IMSA', 'GTWC', 'WRC'];
-const SERIES_VAR = { F1: '--f1', WEC: '--wec', IMSA: '--imsa', WRC: '--wrc', GTWC: '--gtwc' };
 const HOUR_MS = 3600000;
-
-// ---------- 작은 순수 헬퍼 ----------
-const modeOf = (preferences, series) => preferences?.series?.[series] || 'off';
-const interestOf = (preferences, series) => ({ all: 2, race: 1 }[modeOf(preferences, series)] || 0);
-const isAlive = (state) => state !== 'done' && state !== 'cancelled';
-// 행·카드의 기준 시각: 시작 시각(UTC). 없으면 서킷 현지 주말 마지막 날 정오(이벤트 고유 정보라 race.timezone으로).
-const dateOf = (ev) => (ev.startUtc ? new Date(ev.startUtc) : zonedDateFromKey(ev.weekendEnd, '12:00', ev.timezone || 'UTC'));
 const sameMinute = (a, b) => Math.floor(new Date(a).getTime() / 60000) === Math.floor(new Date(b).getTime() / 60000);
+const msOf = (v) => (v ? new Date(v).getTime() : null);
+const modeOf = (preferences, series) => preferences?.series?.[series] || 'off';
+const cx = (...list) => list.filter(Boolean).join(' ');
 
-function josa(word, withBatchim, noBatchim) {
-  const s = String(word || '');
-  const c = s.charCodeAt(s.length - 1);
-  if (!(c >= 0xac00 && c <= 0xd7a3)) return noBatchim;
-  return (c - 0xac00) % 28 ? withBatchim : noBatchim;
+// 1초마다 지금 시각(데모 시계면 데모 시각 — Date가 바뀌어 있다). 진행 중 칸·데모 시계만 쓴다.
+function useTick(on = true) {
+  const [t, setT] = useState(() => Date.now());
+  useEffect(() => {
+    if (!on) return undefined;
+    const i = setInterval(() => setT(Date.now()), 1000);
+    return () => clearInterval(i);
+  }, [on]);
+  return t;
 }
 
-// 라운드 코드 'R19'(0을 채우지 않는다). 라운드가 없으면 데이터 라벨 그대로(대문자로 바꾸지 않는다), 그것도 없으면 비운다.
-function roundText(ev) {
-  const r = ev.round || ev.plannedRound;
-  if (r) return `R${r}`;
-  return ev.label ? String(ev.label) : '';
-}
-// 문장 속 라운드: '19라운드'
-function roundWords(ev, t) {
-  const r = ev.round || ev.plannedRound;
-  if (r) return t('round.n', { n: r });
-  return ev.label ? String(ev.label) : '';
+// '결승 1 · 11월 9일 (월) 02:00' — 이름이 숫자로 끝나면(결승 1) 날짜 숫자와 붙지 않게 가운뎃점, 아니면 띄어쓰기
+const labelAt = (tr, label, when) => (/\d$/.test(label) ? tr('home.card.raceAt', { label, datetime: when }) : `${label} ${when}`);
+
+// 데모 시계 칩(데모 빌드만): 시간대 · 데모 시각 · '데모'
+function DemoClock() {
+  const fmt = useFormat(); const tr = useT();
+  const tick = useTick(demoClock.enabled);
+  if (!demoClock.enabled) return null;
+  return <button type="button" className="gx-demo-chip" aria-label={tr('demo.open')} onClick={openDemoClock}><span className="gx-demo-zone">{fmt.zoneLabel}</span><b>{fmt.time(tick)}</b><span>{tr('demo.badge')}</span></button>;
 }
 
-// 시청자 시간대 기준 '09.26' / '토' — format.getParts에서 직접 (문자열 슬라이싱 금지)
-const md = (fmt, date) => fmt.monthDayShort(date);                 // '09.26' / en 'Sep 26'
-const dow = (fmt, date) => fmt.parts(date)?.weekdayName || '';
-
-function heroReason(ev, ts, kind, now, fmt, t, phase) {
-  // 주말 진행 상황이 먼저다. 본경기 시작 시각만 보면 연습·예선이 달리는 중에도 'D-2'가 뜬다.
-  // 'before'/'after'는 아래 기존 판정(D-day 등)으로 그대로 넘긴다.
-  // 정규화된 세션의 라벨 필드는 tEn이다 (normalizeSessions). 원본 JSON의 t도 같이 받아둔다.
-  const label = phase?.session ? formatSessionLabel(phase.session.tEn ?? phase.session.t, phase.session.kind, fmt.locale) : '';
-  if (label && phase.phase === 'session-live') {
-    return { text: t('home.reason.sessionLive', { session: label }), urgent: true, lit: 0 };
+// ---------- 덱 카드 ----------
+// 카드의 '언제'(카드마다 자기 상태대로). 진행 중(결승·세션)은 지난 시간 + 진행 막대만 — 시작 시각·끝 예상·'…에서도 중계' 없음.
+function CardWhen({ race, c, compact }) {
+  const fmt = useFormat(); const tr = useT();
+  const live = c.kind === 'live' || c.kind === 'session';
+  const now = useTick(live || c.kind === 'count' || (c.kind === 'between' && !!c.hour));
+  const main = getMainSessionAt(race, now) || getPrimarySession(race);
+  const ml = main ? fmt.sessionLabel(main) : fmt.sessionLabel({ tEn: 'Race', kind: 'race' });
+  const st0 = msOf(main?.startUtc);
+  const T = (text) => <b className="gx-card-time"><Roll>{text}</Roll></b>;
+  const S = (text) => (text ? <span className="gx-card-sub"><Roll>{text}</Roll></span> : null);
+  const dayTime = (ms) => `${fmt.dayWord(ms, now)} ${fmt.time(ms)}`;
+  // 작은 장은 '내일 13:30'처럼 줄이고, 상대 시각이 그 말과 같으면(내일 · 내일) 아래 줄은 뺀다
+  const rel = (ms) => { const r = fmt.relShort(ms, now); return compact && r === fmt.dayWord(ms, now) ? null : r; };
+  if (c.kind === 'live') {
+    const multi = race.sessions.filter((s) => s.kind === 'race' && s.startUtc).length > 1;
+    const el = fmt.elapsed(st0, now);
+    return <>{T(multi ? tr('home.card.liveOf', { label: ml, elapsed: el }) : el)}<Progress from={st0} to={getSessionEnd(race, main)} now={now} label={ml} /></>;
   }
-  if (label && phase.phase === 'session-soon') {
-    const ms = Math.max(0, phase.startsInMs ?? 0);
-    const h = Math.floor(ms / 3600000);
-    const m = Math.max(1, Math.round(ms / 60000));
+  if (c.kind === 'session') {
+    const sl = fmt.sessionLabel(c.ses);
+    return <>{T(tr('home.card.liveOf', { label: sl, elapsed: fmt.elapsed(c.ses.startUtc, now) }))}<Progress from={c.ses.startUtc} to={getSessionEnd(race, c.ses)} now={now} label={sl} /></>;
+  }
+  if (c.kind === 'between') {
+    const nx = c.nx; const nxAt = msOf(nx.startUtc); const nl = fmt.sessionLabel(nx);
+    const sub = compact ? rel(nxAt) : (nx === main ? fmt.relShort(nxAt, now) : tr('home.card.betweenSub', { rel: fmt.relShort(nxAt, now), label: ml, datetime: fmt.dayDateTime(st0) }));
+    return <>{T(labelAt(tr, nl, compact ? dayTime(nxAt) : fmt.dayDateTime(nxAt)))}{S(sub)}</>;
+  }
+  if (c.kind === 'tba' || st0 == null) {
+    const range = race.weekendStart && race.weekendEnd ? fmt.plainDayRange(race.weekendStart, race.weekendEnd) : null;
+    return <>{T(tr('home.card.tba', { label: ml }))}{S(range && tr('home.card.localRange', { range }))}</>;
+  }
+  return <>{T(labelAt(tr, ml, compact ? dayTime(st0) : fmt.dayDateTime(st0)))}{S(rel(st0))}</>;
+}
+
+// 카드의 할 일 하나(결정 2·3): 진행 중이거나 1시간 안이면 '…에서 보기'(외부), 그 전에는 캘린더에 담기. 시각 미정이면 안내 한 줄.
+function cardAct({ race, c, fmt, tr, alarmOn, onCal, onOpen }) {
+  const bc = fmt.broadcast(race.broadcast);
+  const names = (list) => list.map((b) => b.name).join(', ');
+  const urgent = c.kind === 'live' || c.kind === 'session' || c.kind === 'count' || (c.kind === 'between' && c.hour);
+  if (urgent && bc[0]) {
+    const b = bc[0];
+    const long = b.name.length > 12;
+    const full = tr('home.watchOn', { channel: b.name });
+    const label = long ? <><span className="lb-l">{full}</span><span className="lb-s">{tr('home.watchShort')}<span className="gx-vh">, {b.name}</span></span></> : full;
+    const onClick = () => track('broadcast_clicked', { name: b.name, region: b.region, access: b.access, series: race.series, source: 'home' });
+    const btn = b.url
+      ? <a className={cx('gx-card-btn', long && 'is-long')} href={b.url} target="_blank" rel="noopener noreferrer" onClick={onClick}>{label}<span className="gx-vh">, {tr('aria.external')}</span></a>
+      : <button type="button" className={cx('gx-card-btn', long && 'is-long')} onClick={onOpen}>{label}</button>;
+    // 진행 중에는 '…에서도 중계' 줄을 빼고(버튼 하나로 충분), 좁은 카드에서 버튼이 '중계 보기'로 줄면 어디서 열리는지만
+    const rest = bc.slice(1);
+    const nowOn = c.kind === 'live' || c.kind === 'session';
+    const restLine = rest.length && !nowOn ? tr('home.alsoOn', { channels: names(rest) }) : null;
+    const line = long ? <><span className="lb-l">{restLine}</span><span className="lb-s">{tr('home.opensIn', { channel: b.name })}{restLine ? `${SEP}${restLine}` : ''}</span></> : restLine;
+    return { btn, full, href: b.url, onClick, line, narrowOnly: long && !restLine, urgent: true };
+  }
+  const line = bc.length ? tr('home.broadcastOn', { channels: names(bc) }) : null;
+  // 결정 6: 토스는 캘린더가 없다 — 평소에는 아래 버튼 없이 중계 줄만(하트는 늘 오른쪽 위). 자리에 다른 버튼을 넣지 않는다.
+  if (IS_TOSS) return { btn: null, line };
+  if (msOf(getPrimarySession(race)?.startUtc)) {
     return {
-      text: h >= 1 ? t('home.reason.sessionSoonHours', { session: label, h }) : t('home.reason.sessionSoonMinutes', { session: label, m }),
-      urgent: true, lit: 5,
+      btn: <button type="button" className={cx('gx-card-btn', alarmOn && 'is-weak')} onClick={onCal} aria-label={alarmOn ? tr('home.alertOn.aria') : undefined}>{alarmOn && <Icon n="check" s={20} />}{alarmOn ? tr('home.alertOn') : tr('home.alertSet')}</button>,
+      line,
     };
   }
-  if (label && phase.phase === 'between') {
-    // 시각은 전부 시청자 시간대. ko는 '25(금)', en은 'Sep 25 (Fri)' — 오늘이어도 날짜를 그대로 붙인다.
-    const next = new Date(phase.session.startUtc);
-    const p = fmt.parts(next);
-    const when = fmt.locale === 'ko' && p
-      ? `${Number(p.day)}(${p.weekdayName}) ${fmt.time(next)}`
-      : `${fmt.shortDate(next)} ${fmt.time(next)}`;
-    return { text: t('home.reason.nextSession', { session: label, when }), urgent: false, lit: 5 };
-  }
-  // 라이트 로우: 갠트리 신호등처럼 레이스가 가까워질수록 하나씩 켜진다. 진행 중이면 전부 꺼진다(= lights out).
-  if (kind === 'live') return { text: t('home.reason.live'), urgent: true, lit: 0 };
-  if (kind === 'soon') {
-    const ms = ts.start - now; const h = Math.floor(ms / 3600000); const m = Math.max(1, Math.round((ms % 3600000) / 60000));
-    return { text: `${fmt.isNight(ts.start) ? t('home.tonight') : t('home.today')} · ${h >= 1 ? t('home.startsInHours', { h }) : t('home.startsInMinutes', { m })}`, urgent: true, lit: 5 };
-  }
-  if (kind === 'today') return { text: t('home.reason.today'), urgent: false, lit: 5 };
-  // D-day: 시작 시각이 있으면 시청자 시간대의 날짜 차이, 없으면 서킷 현지 주말 마지막 날 기준.
-  // 무엇까지인지 말로 붙인다(D6): '결승까지 6일' — 시각이 없으면 '다음 레이스 · 6일 후'.
-  const ref = ts.start || zonedDateFromKey(ev.weekendEnd, '12:00', ev.timezone || 'UTC');
-  const d = Math.max(0, fmt.dayDiff(ref, now) ?? 0);
-  const lit = Math.max(0, Math.min(5, 5 - d));
-  const what = ts.start && ev.primarySession ? fmt.sessionLabel(ev.primarySession) : '';
-  if (what) return { text: d === 0 ? t('home.reason.untilToday', { label: what }) : t('home.reason.until', { label: what, d }), urgent: false, lit };
-  return { text: d === 0 ? t('home.reason.weekendToday') : t('home.reason.weekend', { d }), urgent: false, lit };
+  return { btn: <span className="gx-card-note gx-t15">{tr('home.alertTba')}</span>, line };
 }
 
-// 히어로 시각 줄. 날짜·시각은 문장 크기(20)로, 큰 숫자(40)는 시작 1시간 안 카운트다운에만 쓴다(H2).
-//   big: 굵은 한 줄, countdown: 카운트다운 대상(있으면 big 대신), note: 옆에 붙는 설명('결승 · 새벽').
-function heroClock(ev, ts, kind, now, fmt, t) {
-  const st = ts.start;
-  const night = st && fmt.isNight(st) ? t('home.night') : null;
-  const what = ev.primarySession ? fmt.sessionLabel(ev.primarySession) : '';
-  if (kind === 'live') return { big: t('home.clock.live'), live: true, note: what || null };
-  if (kind === 'soon' && st - now <= HOUR_MS) return { countdown: st, note: [fmt.shortDateTime(st), night].filter(Boolean).join(' · ') };
-  // 주말 기간은 이벤트 고유 정보 — 서킷 현지 날짜 그대로
-  if (kind === 'today' || !st) return { big: `${fmt.plainMonthDay(ev.weekendStart)} – ${fmt.plainMonthDay(ev.weekendEnd)}`, note: t('home.clock.tba') };
-  return { big: fmt.shortDateTime(st), soon: kind === 'soon', note: [what, night].filter(Boolean).join(' · ') || null };
-}
-
-// 히어로 큐레이션 줄. heroReason(시간·주말 진행 상태)이 못 담는 '왜 하필 이 경기인가'를 한 줄로 붙인다.
-// 우선순위는 추천 엔진(scoreRace)과 같다 — 하이라이트가 등급을 이긴다. 1등급이면 null(줄 자체를 안 그린다).
-function heroCuration(race, locale, t) {
-  const highlights = getHighlights(race);
-  if (highlights.length) {
-    const text = getHighlightNote(highlights[0], locale);
-    if (text) return { kind: 'highlight', text };
-  }
-  const weight = getRaceWeight(race);
-  if (weight === 3) return { kind: 'weight3', text: t('rec.weight3') };
-  if (weight === 2) return { kind: 'weight2', text: t('rec.weight2') };
-  return null;
-}
-
-// 히어로 사진: 미리 로드하고 onload 때 .loaded로 opacity 0 → 1 (home.css). 레이아웃은 .hero2 min-height가 잡고 있어 안 움직인다.
-function HeroPhoto({ url, pos }) {
-  const loaded = useImageLoaded(url);
-  return <div className={`hero2-photo${loaded ? ' loaded' : ''}`} style={{ backgroundImage: `url(${url})`, backgroundPosition: pos }} />;
-}
-
-// 저장 하트: 켜질 때만 되튐(pop). 애니메이션은 아이콘(svg)에 걸어 버튼의 :active scale과 겹치지 않게.
-function HeartButton({ on, label, onClick }) {
-  const [popClass, onAnimationEnd] = usePop(on);
+function CardHeart({ on, label, onClick }) {
+  const [pop, setPop] = useState(false);
   return (
-    <button type="button" className={`heart${on ? ' on' : ''}`} aria-label={label} aria-pressed={on} onClick={onClick}>
-      <span className={`heart-ic${popClass}`} onAnimationEnd={onAnimationEnd} style={{ display: 'grid', placeItems: 'center' }}>
-        {on
-          ? <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
-          : <Icon name="heart" size={24} />}
-      </span>
+    <button type="button" className={cx('gx-card-heart', on && 'is-on', pop && 'is-pop')} aria-pressed={!!on} aria-label={label}
+      onClick={() => { if (!on) setPop(true); onClick(); }} onAnimationEnd={() => setPop(false)}>
+      <Icon n={on ? 'heartF' : 'heart'} s={20} />
     </button>
   );
 }
 
-// ---------- 1초 단위로 자기 DOM만 갱신하는 조각 (홈 전체 리렌더 없음) ----------
-function Clock() {
-  const fmt = useFormat();
-  const ref = useRef(null);
-  useEffect(() => {
-    const tick = () => { if (ref.current) ref.current.textContent = fmt.time(new Date()); };
-    tick();
-    const i = setInterval(tick, 1000);
-    return () => clearInterval(i);
-  }, [fmt]);
-  return <b ref={ref} />;
+// size: m(모바일 넘겨 보기) · main(데스크톱 큰 장) · side(옆 한 장) · mini(옆 두 장 중 하나)
+function DeckCard({ race, k, n, size, c, onHit, onOpen, actions }) {
+  const fmt = useFormat(); const tr = useT();
+  const L = fmt.race(race);
+  const compact = size === 'mini';
+  const live = c.kind === 'live' || c.kind === 'session';
+  const a = cardAct({ race, c, fmt, tr, alarmOn: actions.alarms.has(race.id), onCal: () => actions.addAlarm(race), onOpen });
+  const place = joinDot([L.circuit, [L.city, L.country].filter(Boolean).join(', ')]);
+  const credit = photoCredit(race);
+  const desk = size !== 'm';
+  return (
+    <article className={cx('gx-card', `is-${size}`, live && 'is-live')} data-k={k} role="group"
+      aria-roledescription={desk ? undefined : tr('home.deck.roledesc')}
+      aria-label={!desk && n > 1 ? tr('home.deck.cardAria', { n, k: k + 1, name: L.fullName }) : L.fullName}>
+      <Photo className="gx-card-img" src={photo(race, size === 'mini' ? 'card' : 'hero')} pos={photoPos(race)} eager={k === 0} lazy={k > 1} />
+      <span className="gx-card-scrim" aria-hidden="true" />
+      <button type="button" className="gx-card-hit" {...prefetchHandlers(race)} onClick={() => (onHit ? onHit(k, race) : onOpen())} aria-label={tr('home.openDetail', { name: L.fullName })} />
+      {/* 출처는 글자 폭만 누를 수 있고 Tab은 건너뛴다(상세에서도 볼 수 있음) */}
+      {credit && <span className="gx-card-credit"><a href={credit.url} target="_blank" rel="noopener noreferrer" tabIndex={-1} aria-label={`${tr('photo.credit', credit)}. ${tr('aria.external')}`}>{tr('photo.credit', credit)}</a></span>}
+      <CardHeart on={actions.favorites.has(race.id)} label={tr('aria.saveRace', { name: L.shortName })} onClick={() => actions.toggleFav(race)} />
+      <div className="gx-card-body">
+        <div className="gx-card-main">
+          <span className="gx-card-tag gx-t13">{live && <LiveText />}<Dot series={race.series} />{joinDot([race.series, getRoundText(race, fmt.locale), race.isSprint ? tr('home.sprintWeekend') : null])}</span>
+          <span className="gx-card-title">{L.fullName}</span>
+          {!compact && <span className="gx-card-place gx-t15">{place}</span>}
+          <span className="gx-card-when"><CardWhen race={race} c={c} compact={compact} /></span>
+        </div>
+        {compact
+          ? (a.urgent && a.href
+            ? <a className="gx-card-link gx-t15" href={a.href} target="_blank" rel="noopener noreferrer" onClick={a.onClick}>{a.full}<Icon n="ext" s={16} /><span className="gx-vh">, {tr('aria.external')}</span></a>
+            : a.line && <span className="gx-card-bc gx-t13">{a.line}</span>)
+          : <div className="gx-card-side">{a.btn && <div className="gx-card-act">{a.btn}</div>}{a.line && <span className={cx('gx-card-bc gx-t13', a.narrowOnly && 'is-narrow-only')}>{a.line}</span>}</div>}
+      </div>
+    </article>
+  );
 }
 
-function Countdown({ target, onExpire }) {
+// 카드 아래 캡션: 관전 포인트 · 현장 줄(현장에 가요를 켠 서킷 맵 경기, 주말 동안만 — HeroSiteRow가 판단). 지금 보는 장의 것만.
+function FootItem({ race, cur, now }) {
+  const tr = useT();
+  return (
+    <>
+      {cur && <p className="gx-cur gx-t15"><span className="gx-badge">{tr('home.curation')}</span>{cur.text}</p>}
+      {!IS_TOSS && <HeroSiteRow race={race} now={new Date(now)} />}
+    </>
+  );
+}
+// 칸 높이는 지금 장에 맞춰 180ms로 바뀐다(빈 장 아래가 비지 않게). 높이는 DOM에 직접 — 상태로 들면 렌더가 한 번 더 돈다.
+function DeckFoot({ list, i, now }) {
   const ref = useRef(null);
-  useEffect(() => {
-    const tick = () => {
-      const diff = target.getTime() - Date.now();
-      if (ref.current) ref.current.textContent = formatCountdown(diff);
-      if (diff <= 0) onExpire?.();
-    };
-    tick();
-    const i = setInterval(tick, 1000);
-    return () => clearInterval(i);
-  }, [target, onExpire]);
-  return <span ref={ref} />;
+  useLayoutEffect(() => {
+    const el = ref.current; const it = el?.children[i];
+    if (el && it) el.style.height = `${it.offsetHeight}px`;
+  });
+  return (
+    <div className="gx-deck-foot" ref={ref}>
+      {list.map(({ race, cur }, k) => <div key={race.id} className={cx('gx-deck-foot-i', k === i && 'is-on')} aria-hidden={k !== i}><FootItem race={race} cur={cur} now={now} /></div>)}
+    </div>
+  );
 }
 
-// ---------- 표시 조각 ----------
-function Icon({ name, size = 17 }) {
-  const paths = {
-    sliders: <><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h10M18 18h2" /><circle cx="16" cy="6" r="2" /><circle cx="10" cy="12" r="2" /><circle cx="16" cy="18" r="2" /></>,
-    sun: <><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4" /></>,
-    moon: <path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z" />,
-    heart: <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />,
+// 모바일 덱: 스크롤 스냅, 넘기면 점·캡션이 따라온다. ←/→로 장과 포커스가 함께, 점은 Tab 한 번 + 화살표.
+// 엿보이는 장을 누르면 먼저 넘긴다. 시간이 흘러 순서가 바뀌어도 보던 경기에 머문다(보던 경기 id를 상태로 기억).
+function DeckMobile({ deck, states, curs, openAt, actions, now }) {
+  const tr = useT(); const fmt = useFormat();
+  const n = deck.length;
+  const [viewed, setViewed] = useState(deck[0]?.id ?? null);
+  const found = deck.findIndex((r) => r.id === viewed);
+  const i = found < 0 ? 0 : found;
+  const ref = useRef(null);
+  const step = () => { const c = ref.current?.querySelector('.gx-card'); return c ? c.offsetWidth + 12 : 1; };
+  const reduce = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
+  const go = (k, instant) => { const el = ref.current; if (el) el.scrollTo({ left: k * step(), behavior: reduce() || instant ? 'auto' : 'smooth' }); };
+  // 순서가 바뀌면(보던 경기가 다른 자리로) 스크롤을 그 자리로 옮긴다
+  const order = deck.map((r) => r.id).join('|');
+  useLayoutEffect(() => { const el = ref.current; if (el) el.scrollLeft = i * step(); }, [order]); // eslint-disable-line react-hooks/exhaustive-deps
+  const onScroll = () => {
+    const el = ref.current; if (!el) return;
+    const k = Math.max(0, Math.min(n - 1, Math.round(el.scrollLeft / step())));
+    if (deck[k] && deck[k].id !== viewed) setViewed(deck[k].id);
+  };
+  // 키보드로 다른 장 안 버튼에 가면 그 장으로 넘긴다
+  const onFocus = (e) => { const card = e.target.closest?.('.gx-card'); if (!card) return; const k = Number(card.dataset.k); if (k !== i) go(k); };
+  // ←/→: 장을 넘기면서 포커스도 새 장의 같은 자리로
+  const onKey = (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const card = e.target.closest?.('.gx-card'); if (!card) return;
+    const k = Number(card.dataset.k) + (e.key === 'ArrowRight' ? 1 : -1);
+    if (k < 0 || k >= n) return;
+    e.preventDefault(); go(k);
+    const cls = ['gx-card-hit', 'gx-card-btn', 'gx-card-heart'].find((x) => e.target.classList.contains(x)) || 'gx-card-hit';
+    const cards = ref.current?.querySelectorAll('.gx-card');
+    (cards?.[k]?.querySelector(`.${cls}`) || cards?.[k]?.querySelector('.gx-card-hit'))?.focus({ preventScroll: true });
+  };
+  // 옆에 엿보이는 장을 누르면 먼저 그 장으로(바로 열지 않음)
+  const onHit = (k, race) => { if (k !== i) go(k); else openAt(k, race); };
+  const onDotKey = (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    e.preventDefault();
+    const k = Math.max(0, Math.min(n - 1, i + (e.key === 'ArrowRight' ? 1 : -1)));
+    go(k); e.currentTarget.querySelectorAll('button')[k]?.focus();
   };
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {paths[name]}
-    </svg>
+    <section className="gx-deck" aria-roledescription={tr('home.deck.roledesc')} aria-label={tr('home.deck.region')}>
+      <div className="gx-deck-track" ref={ref} onScroll={onScroll} onFocus={onFocus} onKeyDown={onKey}>
+        {deck.map((race, k) => <DeckCard key={race.id} race={race} k={k} n={n} size="m" c={states[k]} onHit={onHit} onOpen={() => openAt(k, race)} actions={actions} />)}
+      </div>
+      {n > 1 && (
+        <div className="gx-deck-dots" role="group" aria-label={tr('home.deck.dots')} onKeyDown={onDotKey}>
+          {deck.map((race, k) => (
+            <button key={race.id} type="button" className={k === i ? 'is-on' : undefined} tabIndex={k === i ? 0 : -1} aria-current={k === i ? 'true' : undefined}
+              aria-label={tr('home.deck.dot', { k: k + 1, name: fmt.race(race).shortName })} onClick={() => go(k)}><i /></button>
+          ))}
+        </div>
+      )}
+      <DeckFoot list={deck.map((race, k) => ({ race, cur: curs[k] }))} i={i} now={now} />
+    </section>
   );
 }
 
-// 시리즈 표시: 8px 점 + 코드(+ 라운드) 한 번. 예전 막대·대문자·자간 없음.
-function SeriesBadge({ series, round }) {
-  return <span className="sbadge"><i style={{ background: `var(${SERIES_VAR[series]})` }} />{series}{round ? ` ${round}` : ''}</span>;
-}
-
-// 줄 오른쪽: 시각(17/600) + 아래 12px 한 줄(상태·'새벽'·날짜). 예전 LIVE 노랑 알약·'심야' 상자 대신 글자.
-function TimeStat({ ts, withDate }) {
-  const fmt = useFormat();
-  const t = useT();
-  const { state, start } = ts;
-  const sub = (txt, cls = '') => <span className={`time-sub${cls}`}>{txt}</span>;
-  if (state === 'cancelled') return <span className="time-col"><span className="time time--tba">{t('time.tba')}</span>{sub(t('time.cancelled'))}</span>;
-  if (state === 'tba') return <span className="time-col"><span className="time time--tba">{t('time.tba')}</span></span>;
-  const live = state === 'live';
+// 데스크톱 덱: 큰 장 + 옆 장(두 장까지). 옆 장보다 경기가 많으면 '이번 주말 경기 모두 보기'. 관전 포인트는 큰 장만(결정 7).
+function DeckDesktop({ deck, states, curs, openAt, actions, onGo, now }) {
+  const tr = useT();
+  const [r, ...others] = deck;
+  const side = others.slice(0, 2);
+  const more = others.length - side.length;
   return (
-    <span className="time-col">
-      <span className={`time${state === 'soon' ? ' time--soon' : ''}`}>{fmt.time(start)}</span>
-      {live && sub(<><i className="livedot" />{t('home.clock.live')}</>, ' time-sub--live')}
-      {state === 'done' && sub(t('time.done'))}
-      {!live && state !== 'done' && (withDate ? sub(fmt.shortDate(start)) : fmt.isNight(start) ? sub(t('home.night')) : null)}
-    </span>
+    <section className="gx-deck" aria-label={tr('home.deck.region')}>
+      <div className={cx('gx-deck-grid', !side.length && 'is-one')}>
+        <DeckCard race={r} k={0} n={deck.length} size="main" c={states[0]} onOpen={() => openAt(0, r)} actions={actions} />
+        {side.length > 0 && (
+          <div className="gx-deck-side">
+            {side.map((x, k) => <DeckCard key={x.id} race={x} k={k + 1} n={deck.length} size={side.length > 1 ? 'mini' : 'side'} c={states[k + 1]} onOpen={() => openAt(k + 1, x)} actions={actions} />)}
+          </div>
+        )}
+      </div>
+      <div className="gx-deck-dfoot">
+        <div className="gx-deck-dfoot-l"><FootItem race={r} cur={curs[0]} now={now} /></div>
+        {more > 0 && <button type="button" className="gx-textbtn gx-t15" onClick={() => onGo('schedule')}>{tr('home.deck.allThisWeekend')}<Icon n="chev" s={16} /></button>}
+      </div>
+    </section>
   );
 }
 
-// 같은 주말 줄 / 새로 볼만한 것 줄: 이름 · '● F1 R19 · 서킷' · 중계 한 줄 …… 시각 + 날짜.
-function Card2({ ev, ts, onOpen, small, idx }) {
+// ---------- 내 주말 시간표 ----------
+function LiveBar({ race, s }) {
   const fmt = useFormat();
-  const t = useT();
-  const chans = fmt.broadcast(ev.broadcast).map((b) => b.name);
-  return (
-    <button type="button" className="g-row g-tap hrow hrow--card" data-prefetch-index={idx} {...prefetchHandlers(ev.race)} onClick={() => onOpen(ev.race)}>
-      <span className="main">
-        <span className="nm ko">{ev.displayName}</span>
-        <span className="meta ko"><SeriesBadge series={ev.series} round={roundText(ev)} />
-          {small
-            ? ` · ${[ev.city, `${fmt.plainShortDate(ev.weekendStart)} – ${fmt.plainShortDate(ev.weekendEnd)}`].filter(Boolean).join(', ')}`
-            : ev.circuit ? ` · ${ev.circuit}` : ''}
+  const tick = useTick(true);
+  return <Progress from={s.startUtc} to={getSessionEnd(race, s)} now={tick} label={fmt.sessionLabel(s)} />;
+}
+function TLRow({ it, now, dim, compact, onOpen, still = false }) {
+  const fmt = useFormat(); const tr = useT();
+  const { s, r } = it;
+  const st = it.end != null && now >= it.end ? 'done' : now >= it.at ? 'live' : 'upcoming';
+  const soon = st === 'upcoming' && it.at - now < 2 * HOUR_MS;
+  const stx = st === 'live' ? <LiveText /> : st === 'done' ? <span className="gx-ter">{tr('status.done')}</span>
+    : it.at - now < 12 * HOUR_MS ? <span className={soon ? 'gx-st-next' : 'gx-sub'}><Roll>{fmt.relShort(it.at, now)}</Roll></span> : null;
+  // still: 온보딩 미리보기 — 누르지 않는 줄, 상태 글자 없음
+  if (still) {
+    return (
+      <div className="gx-row gx-tl-row is-static">
+        <span className="gx-tl-time"><b className="gx-t17">{fmt.time(it.at)}</b></span>
+        <span className="gx-row-c">
+          <span className={cx('gx-row-t gx-t17', s.kind === 'race' && 'gx-w600')}>{fmt.sessionLabel(s)}</span>
+          <span className="gx-row-s gx-t13"><Dot series={r.series} />{joinDot([r.series, fmt.race(r).shortName])}</span>
         </span>
-        {!small && chans.length > 0 && <span className="cap ko">{t('home.broadcastOn', { channels: chans.join(', ') })}</span>}
+      </div>
+    );
+  }
+  return (
+    <button type="button" className={cx('gx-row gx-tl-row', (st === 'done' || dim) && 'is-dim', st === 'live' && 'is-live')} {...prefetchHandlers(r)} onClick={() => onOpen(r)}>
+      <span className="gx-tl-time"><b className="gx-t17">{fmt.time(it.at)}</b></span>
+      <span className="gx-row-c">
+        <span className={cx('gx-row-t gx-t17', s.kind === 'race' && 'gx-w600')}>{fmt.sessionLabel(s)}</span>
+        <span className="gx-row-s gx-t13"><Dot series={r.series} />{joinDot([r.series, fmt.race(r).shortName])}</span>
+        {st === 'live' && <LiveBar race={r} s={s} />}
+        {compact && stx && <span className="gx-t13 gx-tl-st">{stx}</span>}
       </span>
-      {!small && <TimeStat ts={ts} withDate />}
+      {!compact && <span className="gx-row-r gx-t13">{stx}</span>}
     </button>
   );
 }
-
-// 이후 일정 줄: 날짜 칸(11.08 / 일) · 이름 + '● WEC R8' …… 시각 + '새벽'.
-function Row({ ev, ts, dim, idx, onOpen }) {
-  const fmt = useFormat();
-  const d = dateOf(ev);
+function NowMark({ now }) {
+  const fmt = useFormat(); const tr = useT();
+  const text = tr('home.tl.now', { time: fmt.time(now) });
+  return <div className="gx-now" role="separator" aria-label={text}><span className="gx-t13 gx-w600">{text}</span></div>;
+}
+function Timeline({ plan, now, columns, dimOf, onOpen, onMore }) {
+  const fmt = useFormat(); const tr = useT();
+  const [showDone, setShowDone] = useState(false);
+  if (!plan.heroWeek || !plan.days.length) return null;
+  const isDone = (it) => it.end != null && now >= it.end;
+  const all = plan.days.flatMap((d) => d.items);
+  // 끝난 세션이 둘 이상이고 아직 남은 세션이 있으면 접는다(데스크톱 칸 보기는 접지 않음). 펼치기는 머리 줄 오른쪽 작은 글자
+  const canFold = !columns && all.filter(isDone).length >= 2 && all.some((it) => !isDone(it));
+  const fold = canFold && !showDone;
+  const days = fold ? plan.days.map((d) => ({ ...d, items: d.items.filter((it) => !isDone(it)) })).filter((d) => d.items.length) : plan.days;
+  const items = days.flatMap((d) => d.items);
+  // '지금' 선: 지난 세션과 다음 세션 사이. 진행 중인 세션이 있으면 없음
+  const firstFuture = items.findIndex((it) => it.at > now);
+  const anyPast = items.some((it) => it.at <= now);
+  const anyLive = items.some((it) => it.at <= now && !isDone(it));
+  const markAt = anyPast && firstFuture > 0 && !anyLive ? items[firstFuture] : null;
+  const markDay = markAt ? days.findIndex((d) => d.items[0] === markAt) : -1;
+  const foldBtn = canFold
+    ? <button type="button" className="gx-textbtn gx-t13 gx-lh-fold" aria-expanded={showDone} onClick={() => setShowDone(!showDone)}>{tr(showDone ? 'home.tl.hideDone' : 'home.tl.showDone')}<Icon n={showDone ? 'up' : 'down'} s={14} /></button>
+    : null;
   return (
-    <button type="button" className={`g-row g-tap hrow${dim ? ' g-dim' : ''}`} data-prefetch-index={idx} {...prefetchHandlers(ev.race)} onClick={() => onOpen(ev.race)}>
-      <span className="dt">{md(fmt, d)}<small>{dow(fmt, d)}</small></span>
-      <span className="main">
-        <span className="nm ko">{ev.displayName}</span>
-        <span className="meta"><SeriesBadge series={ev.series} round={roundText(ev)} /></span>
-      </span>
-      <TimeStat ts={ts} />
-    </button>
+    <section aria-labelledby="gx-tl-h">
+      <ListHeader id="gx-tl-h" title={tr('home.tl.title')} sub={tr('home.tl.count', { n: all.length })} right={foldBtn} />
+      <div className={columns ? 'gx-tl-cols' : undefined} style={columns ? { gridTemplateColumns: `repeat(${Math.min(4, days.length)}, minmax(0, 1fr))` } : undefined}>
+        {days.map((d, di) => {
+          const head = fmt.dayHead(d.items[0].at, now);
+          // 다음 세션이 그날 첫 줄이면 '지금' 선은 그날 머리 앞(앞 묶음 끝). 칸 보기에서는 앞 칸의 끝(앞 칸이 없으면 이 칸 머리 위)
+          const markBefore = markDay === di && !columns;
+          const markTop = columns && markDay === di && di === 0;
+          const markEnd = columns && markDay === di + 1;
+          return (
+            <div key={d.key} style={{ display: 'contents' }}>
+              {markBefore && <NowMark now={now} />}
+              <div className="gx-tl-day">
+                {markTop && <NowMark now={now} />}
+                <div className="gx-tl-dh" data-stick=""><span className="gx-t15 gx-w600">{head.main}</span><span className="gx-t13 gx-ter">{head.sub}</span></div>
+                {d.items.map((it) => (
+                  <div key={`${it.r.id}-${it.s.tEn}-${it.at}`} style={{ display: 'contents' }}>
+                    {markAt === it && markDay !== di && <NowMark now={now} />}
+                    <TLRow it={it} now={now} dim={dimOf(it.r)} compact={columns} onOpen={onOpen} />
+                  </div>
+                ))}
+                {markEnd && <NowMark now={now} />}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {/* 보는 범위 문장 대신 버튼 하나: 다른 시리즈를 켜고 끄는 설정으로. 시각 미정 세션이 있으면 그 한 줄만 */}
+      <div className="gx-tl-foot">
+        {plan.tba > 0 && <span className="gx-t13 gx-ter">{tr('home.tl.tbaNote', { n: plan.tba })}</span>}
+        <button type="button" className="gx-btn is-weak" onClick={onMore}>{tr('home.tl.more')}</button>
+      </div>
+    </section>
+  );
+}
+
+// 온보딩 미리보기(SPEC 7장): 홈과 같은 시간표 줄을 날짜별로, 누르지 않는 모양으로
+export function PreviewDays({ plan, now }) {
+  const fmt = useFormat();
+  return (
+    <>
+      {plan.days.map((d) => {
+        const head = fmt.dayHead(d.items[0].at, now);
+        return (
+          <div key={d.key} className="gx-tl-day">
+            <div className="gx-tl-dh"><span className="gx-t15 gx-w600">{head.main}</span><span className="gx-t13 gx-ter">{head.sub}</span></div>
+            {d.items.map((it) => <TLRow key={`${it.r.id}-${it.s.tEn}-${it.at}`} it={it} now={now} still />)}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+// ---------- 지난 주말 결과 · 추천 · 이후 일정 ----------
+function LastResult({ race, data, onOpen }) {
+  const fmt = useFormat(); const tr = useT();
+  const res = resultOf(data, race);
+  const top = (res?.gp || []).filter((x) => ['1', '2', '3'].includes(String(x.pt))).slice(0, 3);
+  if (!top.length) return null;
+  const L = fmt.race(race);
+  const list = top.map((x, i) => `${tr('home.last.pos', { n: i + 1 })} ${x.family}`).join(', ');
+  return (
+    <section aria-labelledby="gx-last-h">
+      <ListHeader id="gx-last-h" title={tr('home.last.title')} action={tr('home.last.more')} onAction={onOpen} />
+      <button type="button" className="gx-podium" onClick={onOpen} aria-label={tr('home.last.aria', { name: L.fullName, list })}>
+        <span className="gx-stag gx-t13"><Dot series={race.series} />{joinDot([race.series, getRoundText(race, fmt.locale), L.shortName])}</span>
+        <span className="gx-pod-grid" aria-hidden="true">
+          {top.map((x, i) => (
+            <span className="gx-pod-col" key={x.code}>
+              {/* 1·2·3위 사진 원은 같은 크기(56) */}
+              <span className="gx-pod-av"><Avatar src={photoOf(data, x.code)} code={x.code} size={56} /></span>
+              <span className="gx-t13 gx-sub">{i === 0 ? tr('home.last.winner') : tr('home.last.pos', { n: i + 1 })}</span>
+              <span className="gx-t15 gx-w600 gx-pod-name">{x.family}</span>
+              <span className="gx-t13 gx-sub gx-pod-team"><i className="gx-team-dot" style={{ background: x.c ? teamColor(x.c) : 'var(--text4)' }} />{x.team}</span>
+            </span>
+          ))}
+        </span>
+      </button>
+    </section>
+  );
+}
+
+// 놓치면 아쉬운 경기: 안 보는 시리즈 추천 1개. '…도 챙겨 보기'를 누르면 이 화면에 있는 동안 '✓ … 담았어요'로 고정 + 되돌리기.
+function Discover({ pick, preferences, setSeriesMode, onOpen, now }) {
+  const fmt = useFormat(); const tr = useT(); const shell = useShell();
+  const [added, setAdded] = useState(null);   // 누른 추천(이 화면에 있는 동안)
+  const d = added || pick;
+  // 계측: 보이는 카드가 바뀔 때만 1회. 담은 뒤(고정된 동안)에는 추천이 바뀌어도 화면에 보이지 않으니 세지 않는다
+  const shownRef = useRef(null);
+  const pickId = pick?.race?.id ?? null;
+  const fixed = !!added;
+  useEffect(() => {
+    if (fixed || !pick || shownRef.current === pickId) return;
+    shownRef.current = pickId;
+    track('recommendation_shown', { series: pick.race.series, reason_kinds: pick.kinds || [], score: pick.score, rank: 0 });
+  }, [pickId, fixed]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!d) return null;
+  const r = d.race; const s = r.series; const done = !!added;
+  const raceWord = tr(s === 'WRC' ? 'raceWord.WRC' : 'raceWord.race');
+  // 소개 문장이 이미 '아직 안 보고 있어요'라고 하니 같은 이유는 한 번만
+  const why = (d.reasons || []).filter((x) => x && x !== tr('rec.offSeries'));
+  const add = () => {
+    const from = modeOf(preferences, s);
+    track('series_mode_changed', { series: s, from, to: 'race' });
+    setSeriesMode?.(s, 'race');
+    setAdded(d);
+    shell.toast(tr('home.discover.toast', { series: s, raceWord }), {
+      label: tr('toast.undo'),
+      fn: () => { track('series_mode_changed', { series: s, from: 'race', to: from }); setSeriesMode?.(s, from); setAdded(null); },
+    });
+  };
+  const main = getPrimarySession(r);
+  return (
+    <section aria-labelledby="gx-disc-h">
+      <ListHeader id="gx-disc-h" title={tr('home.discover')} />
+      <div className="gx-disc">
+        <p className="gx-disc-intro gx-t15">{done ? tr('home.discover.addedIntro', { series: s, raceWord }) : tr('home.discover.intro', { series: s, desc: tr(SERIES_DESCRIPTION_KEYS[s]) })}</p>
+        <RaceRow race={r} now={now} onOpen={() => { track('recommendation_clicked', { series: s, position: 0 }); onOpen(r, 'recommendation'); }}
+          meta={joinDot([main ? fmt.sessionLabel(main) : raceWord, getRoundText(r, fmt.locale)])} />
+        {why.length > 0 && <ul className="gx-why gx-t15" aria-label={tr('home.discover.whyAria')}>{why.map((x) => <li key={x}><Icon n="check" s={16} />{x}</li>)}</ul>}
+        {done
+          ? <button type="button" className="gx-btn is-done" aria-disabled="true"><Icon n="check" s={20} />{tr('home.discover.added', { series: s, raceWord })}</button>
+          : <button type="button" className="gx-btn" onClick={add}><Icon n="plus" s={20} />{tr('home.discover.follow', { series: s, raceWord })}</button>}
+      </div>
+    </section>
+  );
+}
+
+// 이후 일정: 왼쪽 달력 한 장(달 + 날짜, 같은 날이 이어지면 첫 줄에만) · 이름 · 시리즈·라운드·요일 · 오른쪽 시각 + 상대 날짜
+function Later({ list, now, dimOf, onOpen, onGo }) {
+  const fmt = useFormat(); const tr = useT();
+  const ref = useRef(null);
+  useVisiblePrefetch(ref, list);
+  if (!list.length) return null;
+  const whenOf = (r) => msOf(getPrimarySession(r)?.startUtc) ?? msOf(r.primaryStartUtc);
+  return (
+    <section aria-labelledby="gx-later-h" ref={ref}>
+      <ListHeader id="gx-later-h" title={tr('home.upNext')} action={tr('schedule.viewAll')} onAction={() => onGo('schedule')} />
+      {list.map((r, i) => {
+        const t = whenOf(r); const p = t != null ? fmt.parts(t) : null;
+        const pt = i > 0 ? whenOf(list[i - 1]) : null;
+        const same = p && pt != null && fmt.dateKey(t) === fmt.dateKey(pt);
+        const timed = msOf(getPrimarySession(r)?.startUtc) != null;
+        return (
+          <button type="button" key={r.id} data-prefetch-index={i} {...prefetchHandlers(r)} className={cx('gx-row gx-later', dimOf(r) && 'is-dim')} onClick={() => onOpen(r)}>
+            <span className="gx-leaf" aria-hidden="true">{same ? null : p ? <><span className="gx-t13 gx-sub">{p.monthShort}</span><b className="gx-t20">{Number(p.day)}</b></> : <span className="gx-t13 gx-ter">{tr('status.tba')}</span>}</span>
+            <span className="gx-row-c">
+              <span className="gx-row-t gx-t17 gx-w600">{fmt.race(r).shortName}</span>
+              <span className="gx-row-s gx-t13"><Dot series={r.series} />{joinDot([r.series, getRoundText(r, fmt.locale), t != null ? fmt.weekday(t) : null])}</span>
+            </span>
+            <span className="gx-row-r"><span className="gx-t15 gx-w600">{timed ? fmt.time(t) : tr('status.tba')}</span><span className="gx-t13 gx-sub">{t != null ? fmt.relDay(t, now) : ''}</span></span>
+          </button>
+        );
+      })}
+    </section>
+  );
+}
+
+function Empty({ onGo }) {
+  const tr = useT();
+  return (
+    <div className="gx-empty">
+      <span className="gx-empty-ic"><Icon n="flag" s={28} /></span>
+      <b className="gx-t20">{tr('home.empty.title')}</b>
+      <p className="gx-t15 gx-sub">{tr('home.empty.body')}</p>
+      <button type="button" className="gx-btn is-weak" onClick={() => onGo('schedule')}>{tr('home.empty.cta')}</button>
+    </div>
   );
 }
 
 // ---------- 홈 본체 ----------
 function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOpenRace, onGo, setSeriesMode }) {
-  const alerts = useAlarms();   // 상세에서 담아도 히어로가 바로 '담음'이 된다 (alarm.js가 알린다)
-  const [, setExpiredTick] = useState(0);
-  const onExpire = useCallback(() => setExpiredTick((n) => n + 1), []);
+  const fmt = useFormat(); const tr = useT(); const shell = useShell();
+  const alarms = useAlarms();   // 상세에서 담아도 카드가 바로 '담았어요'가 된다 (alarm.js가 알린다)
+  const results = useF1Results(true);
+  const minute = Math.floor(msOf(now) / 60000) * 60000;   // 홈은 분 단위로 다시 짠다
+  const plan = useMemo(() => buildHomePlan(races || [], {
+    preferences, favorites, now: minute, timeZone: fmt.timeZone, hasResults: (r) => !!resultOf(results, r),
+  }), [races, preferences, favorites, minute, fmt.timeZone, results]);
+  const hl = useMemo(() => homeHeadline(plan, minute, { locale: fmt.locale, timeZone: fmt.timeZone, races: plan.mine }), [plan, minute, fmt.locale, fmt.timeZone]);
+  const deck = plan.deck;
+  const states = useMemo(() => deck.map((r) => getCardState(r, minute, preferences)), [deck, minute, preferences]);
+  const curs = useMemo(() => deck.map((r) => curationOf(r, fmt.locale)), [deck, fmt.locale]);
+  const mineIds = useMemo(() => new Set((myRaces || []).map((r) => r.id)), [myRaces]);
+  const dimOf = useCallback((r) => modeOf(preferences, r.series) === 'off', [preferences]);
 
-  const fmt = useFormat();
-  const t = useT();
-  const at = useMemo(() => (now instanceof Date ? now : new Date(now)), [now]);
+  // 첫 장 사진(상세 헤더용 'card')을 미리 받는다
+  const heroId = plan.hero?.id ?? null;
+  useEffect(() => { if (plan.hero) prefetchRacePhoto(plan.hero, { priority: 'low' }); }, [heroId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const toggleAlert = (ev) => toggleAlarm(ev, { source: 'hero', preferences, locale: fmt.locale, now: at });
+  // 덱 카드 열기: 첫 장에만 hero_phase·hero_curation(지금 히어로와 같은 뜻), 둘째 장부터는 source home만
+  const openAt = useCallback((k, race) => {
+    if (k === 0) onOpenRace(race, 'home', { hero_phase: plan.phase?.phase ?? null, hero_curation: curs[0]?.kind ?? null });
+    else onOpenRace(race, 'home');
+  }, [onOpenRace, plan.phase, curs]);
+  const open = useCallback((race, source = 'home') => onOpenRace(race, source), [onOpenRace]);
 
-  // 관심 경기(myRaces)와 전체(races)를 홈 형태로. 시간 상태는 한 번만 계산해 id로 찾는다.
-  const mine = useMemo(() => adaptRaces(myRaces || [], preferences, fmt.locale), [myRaces, preferences, fmt.locale]);
-  const all = useMemo(() => adaptRaces(races || [], preferences, fmt.locale), [races, preferences, fmt.locale]);
-  const stateOf = useMemo(() => {
-    const map = new Map();
-    for (const ev of all) map.set(ev.id, resolveTimeState(ev.race, at, { timeZone: fmt.timeZone }));
-    return map;
-  }, [all, at, fmt.timeZone]);
-  const ts = (ev) => stateOf.get(ev.id) || resolveTimeState(ev.race, at, { timeZone: fmt.timeZone });
-  const interest = (ev) => interestOf(preferences, ev.series);
+  // 카드의 하트(스낵바 + 되돌리기)·캘린더(L7: 두 번째부터는 같은 파일 다시 받기)
+  const actions = {
+    favorites, alarms,
+    toggleFav: (race) => {
+      const had = favorites.has(race.id);
+      toggleFav(race.id);
+      shell.toast(tr(had ? 'toast.unsaved' : 'toast.saved'), { label: tr('toast.undo'), fn: () => toggleFav(race.id) });
+    },
+    addAlarm: (race) => {
+      const res = toggleAlarm(race, { source: 'hero', preferences, locale: fmt.locale, now: new Date(minute) });
+      shell.toast(tr(res?.again ? 'toast.calAgain' : 'toast.calAdded'));
+    },
+  };
 
-  // --- 히어로 한 자리. 무엇이 들어갈지는 긴급도가 정한다 (스펙 4장). ---
-  let hero = null; let kind = null; let heroWeek = null;
-  const live = mine.filter((ev) => ts(ev).state === 'live');
-  const soon = mine.filter((ev) => ts(ev).state === 'soon').sort((a, b) => ts(a).start - ts(b).start);
-  const todayTba = mine.filter((ev) => { const s = ts(ev); return s.state === 'tba' && s.weekendStart && s.weekendEnd && s.weekendStart <= at && at <= s.weekendEnd; });
-  if (live.length) { hero = live[0]; kind = 'live'; }
-  else if (soon.length) { hero = soon[0]; kind = 'soon'; }
-  else if (todayTba.length) { hero = todayTba[0]; kind = 'today'; }
-  const weekGroups = groupRacesByWeekend(mine);
-  if (!hero) {
-    for (const group of weekGroups) {
-      const cand = group.races.filter((ev) => isAlive(ts(ev).state));
-      if (!cand.length) continue;
-      cand.sort((a, b) => {
-        if (interest(b) !== interest(a)) return interest(b) - interest(a);           // 관심 수준 내림차순 (all > race)
-        const as = ts(a).start ? 0 : 1; const bs = ts(b).start ? 0 : 1;
-        if (as !== bs) return as - bs;                                                 // 시각 확정 우선
-        return ORDER.indexOf(a.series) - ORDER.indexOf(b.series);                      // 시리즈 순서
-      });
-      hero = cand[0]; heroWeek = group.weekKey; kind = 'weekend'; break;
-    }
-  }
-  const used = new Set();
-  if (hero) { used.add(hero.id); heroWeek = heroWeek || getRaceWeekKey(hero); }
+  // 지난 주말 결과: 끝난 지 48시간 안이면 덱 바로 아래, 아니면 시간표 아래
+  const lastEnd = plan.last ? getRaceEnd(plan.last)?.getTime() : null;
+  const freshLast = lastEnd != null && minute - lastEnd < 48 * HOUR_MS;
+  // 놓치면 아쉬운 경기: 관심 밖(즐겨찾기도 아닌) 아직 안 끝난 경기에서 추천 엔진 점수 1등
+  const pick = useMemo(() => {
+    const pool = (races || []).filter((r) => !mineIds.has(r.id) && !isCancelled(r) && isAliveState(resolveTimeState(r, minute).state));
+    return getRecommendations(pool, preferences, new Date(minute), 1, fmt.locale)[0] || null;
+  }, [races, mineIds, preferences, minute, fmt.locale]);
 
-  // --- 같은 주말 ---
-  const mates = (weekGroups.find((g) => g.weekKey === heroWeek)?.races || []).filter((ev) => !used.has(ev.id) && isAlive(ts(ev).state));
-  mates.forEach((ev) => used.add(ev.id));
+  const last = plan.last ? <LastResult race={plan.last} data={results} onOpen={() => open(plan.last)} /> : null;
+  const timeline = <Timeline plan={plan} now={minute} columns={shell.desktop} dimOf={dimOf} onOpen={open} onMore={() => shell.openSettings()} />;
+  const disc = pick ? <Discover pick={pick} preferences={preferences} setSeriesMode={setSeriesMode} onOpen={open} now={minute} /> : null;
+  const later = <Later list={plan.later} now={minute} dimOf={dimOf} onOpen={open} onGo={onGo} />;
+  const head = (
+    <div className="gx-home-top">
+      <span className="gx-t15 gx-sub">{hl.cap}</span>
+      <h1 className={shell.desktop ? 'gx-t30' : 'gx-t26'} data-view-title tabIndex={-1}><Roll>{hl.title}</Roll></h1>
+    </div>
+  );
 
-  // --- 이후 일정 (관심 경기, 최대 7) ---
-  const later = mine.filter((ev) => !used.has(ev.id) && isAlive(ts(ev).state)).slice(0, 7);
-
-  // --- 새로 볼만한 것: 추천 엔진이 점수로 고른다 (관심 경기 제외, 아직 안 끝난 것만) ---
-  const mineIds = new Set(mine.map((ev) => ev.id));
-  const discPool = all.filter((ev) => !mineIds.has(ev.id) && isAlive(ts(ev).state));
-  const discPicks = getRecommendations(discPool.map((ev) => ev.race), preferences, at, 1, fmt.locale);
-  const discRank = discPicks.length ? 0 : null;                 // 카드가 하나라 limit=1 — 순위는 배열 index
-  const discPick = discPicks[0] || null;
-  const disc = discPick ? discPool.find((ev) => ev.race === discPick.race) || null : null;
-  const discSeries = disc?.series ?? null;
-  const discReasons = (discPick?.reasons || []).filter(Boolean);
-
-  // 히어로를 눌러 상세로 갈 때 바로 뜨도록, 상세 헤더가 쓰는 'card' 사진을 미리 받아둔다.
-  // (히어로는 세로로 큰 박스라 'hero'를 쓰고 상세는 헤더 비율이라 URL이 다르다 — 그래서 따로 한 장.)
-  const heroRaceId = hero?.id ?? null;
-  useEffect(() => { if (hero?.race) prefetchRacePhoto(hero.race, { priority: 'low' }); }, [heroRaceId]); // eslint-disable-line react-hooks/exhaustive-deps
-  // '이후 일정' 목록도 화면에 보이는 앞쪽 3개만.
-  const rowsRef = useRef(null);
-  const laterRaces = useMemo(() => later.map((ev) => ev.race), [later]);
-  useVisiblePrefetch(rowsRef, laterRaces);
-
-  // 계측: 발견 카드 노출은 카드가 바뀔 때만 1회. 클릭은 열기 콜백에서.
-  const discId = disc?.id ?? null;
-  const shownRef = useRef(null);
-  useEffect(() => {
-    if (!disc || shownRef.current === discId) return;
-    shownRef.current = discId;
-    track('recommendation_shown', { series: disc.series, reason_kinds: discPick.kinds || [], score: discPick.score, rank: discRank });
-  }, [discId]); // eslint-disable-line react-hooks/exhaustive-deps
-  const openDiscover = (race) => { track('recommendation_clicked', { series: race.series, position: discRank ?? 0 }); onOpenRace(race, 'recommendation'); };
-
-  return (
-    <div className="home">
-      <div className="pagehead">
-        <div className="pagehead-id">
-          {/* 모바일에서만. 데스크톱은 사이드바에 로고가 있다. */}
-          <span className="pagehead-brand"><GantryLockup height={14} /></span>
-          {/* 제목은 화면에서만 숨긴다 — 화면 전환 포커스(data-view-title)와 화면 낭독기가 쓴다. */}
-          <h1 className="ko vh" data-view-title tabIndex={-1} >{t('home.title')}</h1>
-        </div>
-        <div className="pagehead-tools">
-          {/* 시계 칩은 없앴다(N2) — 시간 기준은 일정 제목 아래 한 줄. 데모 빌드에서만 데모 시계 시트를 여는 버튼이 남는다. */}
-          {demoClock.enabled && <button type="button" className="clock clock--demo" aria-label={t('demo.open')} onClick={openDemoClock}>{fmt.zoneLabel} <Clock /><span className="dm">{t('demo.badge')}</span></button>}
-          {/* 테마 버튼은 설정으로 옮겼다(K5). */}
-          <div className="mobtools">
-            <button type="button" className="iconbtn" aria-label={t('nav.settings')} onClick={() => onGo('settings')}><Icon name="sliders" size={24} /></button>
-          </div>
+  if (shell.desktop) {
+    return (
+      <div className="gx-home home is-desk">
+        {demoClock.enabled && <div style={{ display: 'flex', justifyContent: 'flex-end' }}><DemoClock /></div>}
+        {head}
+        {plan.hero ? <DeckDesktop deck={deck} states={states} curs={curs} openAt={openAt} actions={actions} onGo={onGo} now={minute} /> : <Empty onGo={onGo} />}
+        <div className="gx-dhome-grid">
+          <div className="gx-dhome-main">{timeline}</div>
+          <aside className="gx-rail" aria-label={tr('home.railAria')}>
+            {last && <div className="gx-rail-card">{last}</div>}
+            {disc && <div className="gx-rail-card">{disc}</div>}
+            {plan.later.length > 0 && <div className="gx-rail-card">{later}</div>}
+          </aside>
         </div>
       </div>
-
-      {hero ? (() => {
-        const hts = ts(hero);
-        const phase = resolveWeekendPhase(hero.race, at, { mode: modeOf(preferences, hero.series) });
-        const reason = heroReason(hero, hts, kind, at, fmt, t, phase);
-        const curation = heroCuration(hero.race, fmt.locale, t);
-        const openHero = () => onOpenRace(hero.race, 'home', { hero_phase: phase.phase, hero_curation: curation?.kind ?? null });
-        const clock = heroClock(hero, hts, kind, at, fmt, t);
-        const bcast = fmt.broadcast(hero.broadcast);
-        const chans = bcast.map((b) => b.name);
-        const urgent = kind === 'live' || kind === 'soon';
-        const faved = favorites?.has(hero.id);
-        const alertOn = alerts.has(hero.id);
-        const credit = photoCredit(hero);
-        const title = hero.fullName || hero.displayName;
-        // 영문 공식명(스폰서 포함)은 영어 화면에서만 부제로 둔다 — 한국어 화면에서는 같은 경기를 두 번 쓰는 셈이다(H1).
-        const official = fmt.locale !== 'ko' && hero.officialName && hero.officialName !== title ? hero.officialName : null;
-        return (
-          <section className="hero2">
-            <HeroPhoto url={photo(hero, 'hero')} pos={photoPos(hero)} />
-            {/* 히어로 전체가 상세로 가는 버튼이다('상세' 링크 대신, H1). 안쪽 버튼·링크는 이 위에 따로 눌린다. */}
-            <button type="button" className="hero2-hit" aria-label={t('home.openDetail', { name: title })} onClick={openHero} />
-            {credit && (
-              <a className="hero2-credit" href={credit.url} target="_blank" rel="noopener noreferrer" title={t('photo.credit', credit)} aria-label={t('photo.credit', credit)}>
-                <span className="by">{t('photo.by', credit)}</span><span className="lic">&nbsp;· {credit.license}</span>
-              </a>
-            )}
-            <div className="hero2-wrap">
-              <div className="hero2-left">
-                {/* ① 신호등 줄 + 이유 한 줄 (알약 없음). 노랑은 진행 중·24시간 안일 때만(K3). */}
-                <div className={`hero2-reason${reason.urgent ? ' urgent' : ''}`}><LightRow lit={reason.lit} tone={reason.urgent ? 'signal' : 'default'} size={6} gap={3} />{reason.text}</div>
-                {curation && <div className="hero2-curation ko">{curation.text}</div>}
-                {/* ② 제목 */}
-                <h2 className="hero2-title ko">{title}</h2>
-                {official && <div className="hero2-official">{official}</div>}
-                {/* ③ '● F1 19라운드' + 서킷 */}
-                <div className="hero2-place ko">
-                  <span className="sbadge"><i style={{ background: `var(${SERIES_VAR[hero.series]})` }} />{[hero.series, roundWords(hero, t)].filter(Boolean).join(' ')}</span>
-                  {hero.isSprint && <span className="hero2-tag">{t('home.sprintWeekend')}</span>}
-                  <span className="hero2-circuit">{[hero.circuit, hero.city].filter(Boolean).join(', ')}</span>
-                </div>
-              </div>
-              <div className="hero2-right">
-                {/* ④ 시각 + 행동 + 중계 */}
-                <div className={`hero2-time${clock.countdown ? ' hero2-time--count' : ''}${clock.live || clock.countdown || clock.soon ? ' urgent' : ''}`}>
-                  <b>{clock.countdown ? <Countdown target={clock.countdown} onExpire={onExpire} /> : <>{clock.live && <i className="livedot" />}{clock.big}</>}</b>
-                  {clock.note && <span className="ko">{clock.note}</span>}
-                </div>
-                <div className="hero2-act">
-                  {urgent && chans.length
-                    ? (bcast[0].url
-                      // "○○에서 보기"는 중계처 랜딩으로 바로 나간다 (새 탭). 클릭 계측은 onClick, 이동은 브라우저 기본 동작.
-                      ? <a className="cta" href={bcast[0].url} target="_blank" rel="noopener noreferrer" onClick={() => track('broadcast_clicked', { name: bcast[0].name, region: bcast[0].region, access: bcast[0].access, series: hero.series, source: 'home' })}>{t('home.watchOn', { channel: chans[0] })}</a>
-                      : <button type="button" className="cta" onClick={openHero}>{t('home.watchOn', { channel: chans[0] })}</button>)
-                    // 토스 빌드는 캘린더 알림을 쓰지 않는다 — 자리에 다른 버튼을 넣지 않는다.
-                    : !IS_TOSS && <button type="button" className="cta" aria-pressed={alertOn} onClick={() => toggleAlert(hero)}>{alertOn ? t('home.alertOn') : t('home.alertSet')}</button>}
-                  <HeartButton on={!!faved} label={t('aria.save')} onClick={() => toggleFav?.(hero.id)} />
-                </div>
-                {chans.length > 0 && <div className="hero2-chans ko">{t('home.broadcastOn', { channels: chans.join(', ') })}</div>}
-              </div>
-              {/* 현장 줄: '현장에 가요'를 켠 지도 있는 경기, 주말 동안만 */}
-              {!IS_TOSS && <HeroSiteRow race={hero.race} now={now} />}
-            </div>
-          </section>
-        );
-      })() : (
-        <Group className="g-group empty">
-          <h3 className="ko">{t('home.empty.title')}</h3>
-          <p className="ko">{t('home.empty.body')}</p>
-          <button type="button" className="btn2" onClick={() => onGo('schedule')}>{t('home.empty.cta')}</button>
-        </Group>
-      )}
-
-      {mates.length > 0 && (
+    );
+  }
+  return (
+    <div className="gx-home home">
+      {/* 토스: 위 막대 없이(네이티브 내비 바) 톱니는 제목 옆 */}
+      {IS_TOSS ? <div className="gx-home-toss">{head}<GearBtn onClick={() => onGo('settings')} /></div> : (
         <>
-          <div className="sechead"><h2 className="ko">{t('home.sameWeekend')}</h2></div>
-          <Group>{mates.map((ev, i) => <Card2 key={ev.id} ev={ev} idx={i} ts={ts(ev)} onOpen={onOpenRace} />)}</Group>
+          <header className="gx-home-bar gx-appbar">
+            <GantryLockup height={13} />
+            <span className="gx-bar-r"><DemoClock /><GearBtn onClick={() => onGo('settings')} /></span>
+          </header>
+          {head}
         </>
       )}
-
-      {later.length > 0 && (
-        <>
-          <div className="sechead"><h2 className="ko">{t('home.upNext')}</h2><MoreLink onClick={() => onGo('schedule')}>{t('schedule.viewAll')}</MoreLink></div>
-          {/* 구분선은 이름 시작점(16 + 날짜 칸 52 + 간격 12 = 80)부터 */}
-          <div ref={rowsRef}>
-            <Group inset={80}>{later.map((ev, i) => <Row key={ev.id} ev={ev} idx={i} ts={ts(ev)} dim={interest(ev) === 0} onOpen={onOpenRace} />)}</Group>
-          </div>
-        </>
-      )}
-
-      {disc && (
-        <>
-          <div className="sechead"><h2 className="ko">{t('home.discover')}</h2></div>
-          <Group className="g-group panel">
-            <h3 className="ko">{t('home.discover.title', { name: t(`series.${discSeries}.name`), josa: josa(t(`series.${discSeries}.name`), '은', '는') })}</h3>
-            <p className="ko">{t('home.discover.body', { desc: t(SERIES_DESCRIPTION_KEYS[discSeries]) })}</p>
-            <div className="panel-pick"><Card2 ev={disc} ts={ts(disc)} onOpen={openDiscover} small /></div>
-            {discReasons.length > 0 && <div className="panel-why ko">{discReasons.join(', ')}</div>}
-            <button type="button" className="btn2" onClick={() => { track('series_mode_changed', { series: discSeries, from: modeOf(preferences, discSeries), to: 'race' }); setSeriesMode?.(discSeries, 'race'); }}>{t('home.discover.add', { series: discSeries })}</button>
-          </Group>
-        </>
-      )}
+      {plan.hero ? <DeckMobile deck={deck} states={states} curs={curs} openAt={openAt} actions={actions} now={minute} /> : <Empty onGo={onGo} />}
+      {freshLast && last && <><Band />{last}</>}
+      {plan.days.length > 0 && <><Band />{timeline}</>}
+      {!freshLast && last && <><Band />{last}</>}
+      {disc && <><Band />{disc}</>}
+      {plan.later.length > 0 && <><Band />{later}</>}
     </div>
   );
 }
 
-// App의 1초 setNow로 홈이 통째로 리렌더되지 않도록 now는 분 단위로만 비교한다 (스펙 5장).
-// 초 단위 갱신은 KstClock/Countdown이 자기 DOM만 손댄다.
+// App의 1초 setNow로 홈이 통째로 리렌더되지 않도록 now는 분 단위로만 비교한다.
+// 초 단위 갱신은 진행 중 칸(CardWhen·LiveBar)과 데모 시계가 자기 안에서 한다.
 export const Home = memo(HomeView, (prev, next) => {
   for (const key of new Set([...Object.keys(prev), ...Object.keys(next)])) {
     if (key === 'now') { if (!sameMinute(prev.now, next.now)) return false; continue; }

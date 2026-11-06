@@ -1,5 +1,8 @@
 import { KST_TIMEZONE, getCategoryForSeries } from './constants.js';
 import { formatDateKey, formatTime, formatDateTimeKey, zonedDateFromKey } from './format.js';
+import { t } from '../i18n/t.js';
+// 서로 부르는 사이(time.js도 이 파일을 쓴다). 둘 다 함수 안에서만 쓰므로 모듈 평가 순서와 무관하다.
+import { resolveTimeState, getWeekendRange, findNextRace } from '../home/time.js';
 
 function pad(value) {
   return String(value).padStart(2, '0');
@@ -139,7 +142,8 @@ export function formatSessionLabel(label, kind, locale = 'ko') {
   switch (kind) {
     case 'race':
       if (/Power Stage/i.test(t)) return '파워 스테이지';
-      return `결승${num(/^Race\s+(\d+)$/i)}`;
+      // 끝이 'Race N'이면 번호를 남긴다('… Asia Race 1'도 '결승 1'). 결승이 둘인 주말에 두 결승이 구별된다.
+      return `결승${num(/\bRace\s+(\d+)\s*$/i)}`;
     case 'finish':
       return /Podium/i.test(t) ? '포디움' : '체커기';
     case 'sprint':
@@ -153,7 +157,7 @@ export function formatSessionLabel(label, kind, locale = 'ko') {
     case 'practice':
       if (/Shakedown/i.test(t)) return '셰이크다운';
       if (/Warm[- ]?up/i.test(t)) return '워밍업';
-      return `연습${num(/Practice\s*#?(\d+)/i)}${/Night/i.test(t) ? ' (야간)' : ''}`;
+      return `${/Night/i.test(t) ? '야간 ' : ''}연습${num(/Practice\s*#?(\d+)/i)}`;
     default:
       // kind 'other': 테스트·이벤트성 세션. WRC 'SS1 〈스테이지명〉'은 고유명이라 그대로 둔다.
       if (/^SS\d+\b/i.test(t)) return t;
@@ -326,6 +330,17 @@ export function getPrimarySession(race) {
     || null;
 }
 
+// 결승 세션 목록(시각 있는 것, 시작 순). 결승이 둘인 주말(GTWC 스프린트·아시아 결승 1·2)은 둘 다 들어간다.
+// 결승이 없으면 대표 세션 하나(시각이 있을 때만). 지금 기준 결승 고르기는 home/time.js getMainSessionAt.
+export function getRaceSessions(race) {
+  const sessions = Array.isArray(race?.sessions) ? race.sessions : [];
+  const races = sessions.filter((s) => s.kind === 'race' && s.startUtc)
+    .sort((a, b) => new Date(a.startUtc) - new Date(b.startUtc));
+  if (races.length) return races;
+  const primary = getPrimarySession(race);
+  return primary?.startUtc ? [primary] : [];
+}
+
 // 관심 수준에 따라 보여줄 세션. 어떤 경기도 0개로 보이지 않도록 최소 대표 세션은 남긴다.
 // 'off'는 시리즈 숨김과 별개이므로 여기서는 'race'와 같게 처리한다.
 export function getVisibleSessions(race, mode = 'all') {
@@ -361,6 +376,48 @@ export function getRaceLabels(race, locale = 'ko') {
     city: getLocalizedField(race, 'city', locale),
     country: getLocalizedField(race, 'country', locale),
   };
+}
+
+// ---------- 라운드·선수권 (UX v2 L10·L12) ----------
+// GTWC는 선수권이 여럿이라 데이터 championship으로 가른다(id로 가리면 뉘르부르크링 24시처럼 id에 -igtc-가 없는 IGTC를 놓친다).
+// 이름은 데이터 값 그대로: 유럽은 cup('Endurance Cup'·'Sprint Cup'), 아시아 'Asia', IGTC 'IGTC'. alsoCountsFor는 보지 않는다.
+export function getChampionshipLabel(race) {
+  if (race?.series !== 'GTWC') return null;
+  if (race.championship === 'GTWC_ASIA') return 'Asia';
+  if (race.championship === 'IGTC') return 'IGTC';
+  return race.cup || null;
+}
+// 같은 선수권 키: F1·WEC… 은 시리즈, GTWC는 'GTWC-asia'·'GTWC-igtc'·'GTWC-eu-<cup>'
+export function getChampionshipKey(race) {
+  if (race?.series !== 'GTWC') return race?.series ?? null;
+  if (race.championship === 'GTWC_ASIA') return 'GTWC-asia';
+  if (race.championship === 'IGTC') return 'GTWC-igtc';
+  return `GTWC-eu-${race.cup || ''}`;
+}
+// 라운드 번호만: '5', 'R9-10' → '9–⁠10'(대시 뒤 단어 결합자). 없으면 ''.
+export function getRoundNumber(race) {
+  const m = typeof race?.roundLabel === 'string' && race.roundLabel.match(/^R(\d+)-(\d+)$/);
+  if (m) return `${m[1]}–\u2060${m[2]}`;
+  return race?.round ? String(race.round) : '';
+}
+// 'N라운드' · 'A–⁠B라운드' · 'Endurance Cup 5라운드' (en 'Round 5' · 'Rounds 9–⁠10' · 'Endurance Cup Round 5').
+// 데이터 roundLabel이 'R1-2' 꼴이 아니면 그 값 그대로.
+export function getRoundText(race, locale = 'ko') {
+  if (race?.roundLabel && !/^R\d+-\d+$/.test(race.roundLabel)) return race.roundLabel;
+  const m = typeof race?.roundLabel === 'string' && race.roundLabel.match(/^R(\d+)-(\d+)$/);
+  const round = m
+    ? t(locale, 'round.range', { a: m[1], b: `\u2060${m[2]}` })
+    : race?.round ? t(locale, 'round.n', { n: race.round }) : '';
+  if (!round) return '';
+  const champ = getChampionshipLabel(race);
+  return champ ? t(locale, 'round.withChamp', { champ, round }) : round;
+}
+// 다음 라운드: 정렬된 목록에서 이 경기 뒤의, 같은 선수권의 첫 경기(취소 제외). 없으면 null.
+export function findNextRound(race, races = []) {
+  const i = races.findIndex((r) => r === race || (r.id === race?.id));
+  if (i < 0) return null;
+  const key = getChampionshipKey(race);
+  return races.slice(i + 1).find((r) => getChampionshipKey(r) === key && r.status !== 'cancelled') || null;
 }
 
 // 중계처 노출: region이 'global'이거나 사용자 국가와 같은 것. 비면(방어) 전체를 그대로 보여준다.
@@ -428,13 +485,28 @@ export function buildNormalizedRace(race, source, now = new Date()) {
 
 // 시리즈/카테고리 헤더 집계. 모바일·데스크톱이 각자 세던 것을 하나로. includeInRoundCount === false는 제외.
 // rounds는 데이터에 있는 경기 수(취소 포함) — F1 2026은 24.
-export function getSeriesStats(races = []) {
+// UX v2(L13): done은 마지막 결승이 끝난 경기(주말 끝이 아니라), remaining = rounds − done − cancelled.
+// next는 아직 시작하지 않은 결승 중 가장 이른 경기(L4), live는 서킷 현지 주말 안에 있고 아직 안 끝난 경기.
+export function getSeriesStats(races = [], now = new Date()) {
   const counted = races.filter((race) => race.includeInRoundCount !== false);
+  const state = (race) => resolveTimeState(race, now).state;
+  const done = counted.filter((race) => state(race) === 'done').length;
+  const cancelled = counted.filter((race) => race.status === 'cancelled').length;
+  const at = new Date(now).getTime();
+  const live = counted.find((race) => {
+    if (race.status === 'cancelled') return false;
+    const { start, end } = getWeekendRange(race);
+    const st = state(race);
+    return start && end && at >= start.getTime() && at <= end.getTime() && st !== 'done' && st !== 'cancelled';
+  }) || null;
   return {
     rounds: counted.length,
-    done: counted.filter((race) => race.status === 'completed').length,
-    upcoming: counted.filter((race) => race.status === 'upcoming' || race.status === 'live').length,
-    cancelled: counted.filter((race) => race.status === 'cancelled').length,
+    done,
+    upcoming: counted.length - done - cancelled,
+    remaining: counted.length - done - cancelled,
+    cancelled,
+    next: findNextRace(counted, now),
+    live,
   };
 }
 
@@ -449,8 +521,10 @@ export function sortRacesByPrimaryDate(races) {
   });
 }
 
+// '다음 경기' 표시(UX v2 L4): 아직 시작하지 않은 결승 중 가장 이른 것(home/time.js findNextRace). 로드 시점 기준 하나.
+// 화면은 지금 보이는 목록과 지금 시각으로 findNextRace를 다시 부른다.
 export function markNextRace(races, now = new Date()) {
-  const nextRace = races.find((race) => race.status === 'upcoming');
+  const nextRace = findNextRace(races, now);
   return races.map((race) => ({
     ...race,
     isNextRace: nextRace ? race.id === nextRace.id : false,

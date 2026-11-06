@@ -14,21 +14,6 @@ export function usePop(active) {
   return [pop ? ' pop' : '', onAnimationEnd];
 }
 
-// 이미지를 미리 받아 로드 완료 여부를 돌려준다. url이 바뀌면 다시 false부터 (캐시돼 있어도 onload는 비동기로 오므로 짧게 페이드인).
-export function useImageLoaded(url) {
-  const [state, setState] = useState({ url, loaded: false });
-  if (state.url !== url) setState({ url, loaded: false });
-  useEffect(() => {
-    if (!url) return undefined;
-    let alive = true;
-    const img = new Image();
-    img.onload = () => { if (alive) setState((s) => (s.url === url ? { url, loaded: true } : s)); };
-    img.src = url;
-    return () => { alive = false; };
-  }, [url]);
-  return state.url === url && state.loaded;
-}
-
 // ---------- 탭 전환 ----------
 // View Transitions API가 있으면 크로스페이드로, 없으면 즉시. 콜백 안의 setState는 flushSync로 동기 커밋해야 스냅샷이 맞는다.
 export function withViewTransition(commit, flushSync) {

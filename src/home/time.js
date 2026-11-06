@@ -1,7 +1,7 @@
 // 홈 전용 시간 판정. 다른 화면이 쓰는 calculateEventStatus / buildNormalizedRace / normalizeSessions는 건드리지 않는다.
 // 스펙: design/HOME-SPEC.md 5장(TimeStat 6상태), 6장(LIVE 판정), 10장(취소 판정).
-import { getPrimarySession, getVisibleSessions, localDateTimeToUtc } from '../schedule/utils.js';
-import { getParts, getCountdownParts, getDayDifference, DEFAULT_TIME_ZONE } from '../schedule/format.js';
+import { getPrimarySession, getVisibleSessions, getRaceSessions, localDateTimeToUtc } from '../schedule/utils.js';
+import { getParts, DEFAULT_TIME_ZONE } from '../schedule/format.js';
 
 export const TIME_STATES = ['live', 'soon', 'upcoming', 'tba', 'done', 'cancelled'];
 
@@ -135,9 +135,11 @@ export function isNight(date, timeZone = DEFAULT_TIME_ZONE) {
  */
 export function resolveTimeState(race, now = new Date(), { timeZone = DEFAULT_TIME_ZONE } = {}) {
   const at = toDate(now) || new Date();
-  const { start, end: dataEnd, session } = getReferenceTimes(race);
+  // 기준 결승은 지금 시각의 것(UX v2 L1): 결승이 둘인 주말은 결승 1이 끝나면 결승 2로 옮겨 간다.
+  const session = getMainSessionAt(race, at);
+  const start = toDate(session?.startUtc);
   // 데이터에 종료 시각이 없으면 추정치로 메운다. 이게 없으면 live 조건이 영원히 거짓이다.
-  const end = dataEnd || getSessionEnd(race, session);
+  const end = getSessionEnd(race, session);
   const { start: weekendStart, end: weekendEnd } = getWeekendRange(race);
   const base = { start, end, session, weekendStart, weekendEnd, isNight: start ? isNight(start, timeZone) : false, msUntilStart: start ? start.getTime() - at.getTime() : null };
 
@@ -153,16 +155,76 @@ export function resolveTimeState(race, now = new Date(), { timeZone = DEFAULT_TI
   return { ...base, state: 'done' };
 }
 
-// ---------- 표기 ----------
-// 'HH:MM:SS' — soon 카운트다운. 음수는 00:00:00. (숫자는 format.getCountdownParts, 표기만 여기서)
-export function formatCountdown(ms) {
-  const { hours, minutes, seconds } = getCountdownParts(ms);
-  return [hours, minutes, seconds].map((v) => String(v).padStart(2, '0')).join(':');
+// ---------- UX v2 규칙 (PORTING L1·L3·L4) ----------
+// 지금 기준 결승(L1): 진행 중이거나 아직 안 끝난 첫 결승, 다 끝났으면 마지막 결승. 결승이 하나면 늘 그 결승.
+// 결승 세션이 없으면 대표 세션(getPrimarySession) 그대로.
+export function getMainSessionAt(race, now = new Date()) {
+  const list = getRaceSessions(race);
+  if (!list.length) return getPrimarySession(race);
+  const at = (toDate(now) || new Date()).getTime();
+  return list.find((s) => { const end = getSessionEnd(race, s); return end && at < end.getTime(); }) || list[list.length - 1];
+}
+// 경기가 끝나는 시각: 마지막 결승의 끝(결승이 둘이면 결승 2). 시각이 없으면 null.
+export function getRaceEnd(race) {
+  const list = getRaceSessions(race);
+  return list.length ? getSessionEnd(race, list[list.length - 1]) : null;
 }
 
-// 'D-3' / 'D-DAY' — 시청자 시간대의 날짜 차이 기준.
-export function formatDday(date, now = new Date(), timeZone = DEFAULT_TIME_ZONE) {
-  const days = getDayDifference(date, now, { timeZone });
-  if (days === null) return '';
-  return days <= 0 ? 'D-DAY' : `D-${days}`;
+// 홈·시간표에서 보는 세션: 관심 수준대로, 체커기(finish) 제외. '결승만'이면 결승(없으면 대표 세션).
+export function getTimelineSessions(race, mode = 'all') {
+  const sessions = (Array.isArray(race?.sessions) ? race.sessions : []).filter((s) => s.kind !== 'finish');
+  if (mode === 'all') return sessions;
+  const races = sessions.filter((s) => s.kind === 'race');
+  if (races.length) return races;
+  const primary = getPrimarySession(race);
+  return primary ? [primary] : [];
 }
+// 보는 세션 중 지금 진행 중인 것 / 다음에 시작하는 것
+export function getLiveSession(race, now = new Date(), mode = 'all') {
+  const at = (toDate(now) || new Date()).getTime();
+  return getTimelineSessions(race, mode).find((s) => {
+    const start = toDate(s.startUtc); const end = getSessionEnd(race, s);
+    return start && end && at >= start.getTime() && at < end.getTime();
+  }) || null;
+}
+export function getNextSession(race, now = new Date(), mode = 'all') {
+  const at = (toDate(now) || new Date()).getTime();
+  return getTimelineSessions(race, mode)
+    .filter((s) => s.startUtc && new Date(s.startUtc).getTime() > at)
+    .sort((a, b) => new Date(a.startUtc) - new Date(b.startUtc))[0] || null;
+}
+
+// 목록 상태(L3). 6상태에 둘을 더한다 — 둘 다 관심 수준대로 보는 세션만 센다.
+//   session  결승이 아닌 보는 세션이 진행 중
+//   weekend  서킷 현지 주말이 시작했고(관심 'all'이거나 보는 세션이 하나라도 시작) 지금 진행 중인 건 없음
+// 나머지는 resolveTimeState 그대로: live · soon(24시간 안) · upcoming · tba · done · cancelled.
+export function getRaceState(race, now = new Date(), mode = 'all') {
+  const at = toDate(now) || new Date();
+  const state = resolveTimeState(race, at).state;
+  if (state !== 'soon' && state !== 'upcoming') return state;
+  if (getLiveSession(race, at, mode)) return 'session';
+  if (state === 'soon') return state;
+  const { start } = getWeekendRange(race);
+  if (!start || at < start) return state;
+  const begun = mode === 'all' || getTimelineSessions(race, mode).some((s) => s.startUtc && new Date(s.startUtc) <= at);
+  return begun ? 'weekend' : state;
+}
+export const isAliveState = (state) => state !== 'done' && state !== 'cancelled';
+
+// '다음 경기'(L4, 결정 5): 아직 시작하지 않은 결승 중 가장 이른 것. 주말이 이미 시작한 경기도 결승 전이면 들어가고,
+// 결승이 둘이면 남은 결승 기준. 취소는 빠진다. 시각이 같으면 라운드 순. 넘긴 목록(칩·시리즈별) 안에서 고른다.
+export function findNextRace(races = [], now = new Date()) {
+  const at = (toDate(now) || new Date()).getTime();
+  const order = (r) => r?.round ?? r?.plannedRound ?? Number.MAX_SAFE_INTEGER;
+  let best = null; let bestAt = Infinity;
+  for (const race of races) {
+    if (isCancelled(race)) continue;
+    const main = getMainSessionAt(race, at);
+    const ms = main?.startUtc ? new Date(main.startUtc).getTime() : (race.primaryStartUtc ? new Date(race.primaryStartUtc).getTime() : NaN);
+    if (!Number.isFinite(ms) || !(ms > at)) continue;
+    if (ms < bestAt || (ms === bestAt && order(race) < order(best))) { best = race; bestAt = ms; }
+  }
+  return best;
+}
+
+// ---------- 표기 ----------

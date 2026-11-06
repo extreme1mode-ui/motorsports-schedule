@@ -1,4 +1,4 @@
-// 온보딩과 설정 화면이 함께 쓰는 선택지·문구. (컴포넌트는 preferences-ui.jsx)
+// 온보딩·설정·시트가 함께 쓰는 선택지·문구. (화면은 screens2/Onboarding.jsx·Settings.jsx, 시트는 shell/ShellSheets.jsx)
 
 import { storage } from './storage/index.js';
 import { IS_TOSS } from './platform.js';
@@ -12,16 +12,6 @@ export const SERIES_DESCRIPTION_KEYS = {
   WRC: 'series.WRC.desc',
   GTWC: 'series.GTWC.desc',
 };
-
-export const MODE_OPTIONS = [
-  { id: 'all', label: 'mode.all', sub: 'mode.all.sub' },
-  { id: 'race', label: 'mode.race', sub: 'mode.race.sub' },
-];
-
-export const MODE_OPTIONS_WITH_OFF = [
-  ...MODE_OPTIONS,
-  { id: 'off', label: 'mode.off', sub: 'mode.off.sub' },
-];
 
 // value가 null이면 "아직 모름"으로 저장된다 (usePreferences.country 규칙).
 export const COUNTRY_OPTIONS = [

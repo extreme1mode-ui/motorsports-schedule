@@ -1,0 +1,31 @@
+/* UX v2 셸(SPEC 8장). .gx 아래로 한정, 키프레임 gx- 접두. */
+
+/* 모바일 화면 스택: 들어올 때 260ms 감속, 나갈 때 180ms 가속(아래 화면이 미리 보임). 줄인 움직임이면 --d*가 1ms라 바로. */
+.gx .gx-stack { position: absolute; inset: 0; z-index: 80; background: var(--bg); overflow: hidden auto; overscroll-behavior: contain;
+  padding-top: var(--gx-sat); animation: gx-push var(--d3) var(--e-out); }
+.gx .gx-stack.is-detail, .gx .gx-stack.is-own { padding-top: 0; overflow: hidden; }   /* 상세·설정은 스스로 스크롤한다 */
+.gx .gx-stack.is-out { animation: gx-pushout var(--d2) var(--e-in) forwards; pointer-events: none; }
+.gx .gx-stack[hidden] { display: none; }
+@keyframes gx-push { from { transform: translateX(24px); opacity: .4; } }
+@keyframes gx-pushout { to { transform: translateX(24px); opacity: 0; } }
+.gx .gx-stack-bar { position: sticky; top: 0; z-index: 4; height: 52px; display: flex; align-items: center; padding: 0 12px; background: var(--bg); transition: box-shadow var(--d2) var(--e-std); }
+.gx [data-sc="1"] > .gx-stack-bar { box-shadow: 0 1px 0 var(--line); }
+
+
+/* 위 막대 1px 선: 내용이 밑으로 지나갈 때만(data-sc), 걸린 머리는 붙었을 때만(data-stuck) */
+.gx .gx-appbar, .gx [data-stick] { transition: box-shadow var(--d2) var(--e-std); }
+.gx [data-sc="1"] .gx-appbar { box-shadow: 0 1px 0 var(--line); }
+.gx [data-stick][data-stuck] { box-shadow: 0 1px 0 var(--line); }
+
+/* 고르기 시트의 줄 */
+.gx .gx-radio { min-height: 60px; }
+.gx .gx-radio + .gx-radio::before { left: var(--gutter); }
+.gx .gx-rdot { width: 24px; height: 24px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--fill2); display: grid; place-items: center; flex: none; }
+.gx .gx-rdot.is-on { background: var(--brand); color: var(--onbrand); box-shadow: none; }
+.gx .gx-sheet-pad { padding: 8px var(--gutter) 8px; display: grid; gap: 8px; }
+.gx .gx-cal-url { display: block; padding: 12px 14px; border-radius: 12px; background: var(--fill); color: var(--text2); word-break: break-all; user-select: all; font-family: inherit; }
+.gx .gx-btn.is-full { width: 100%; text-decoration: none; }
+.gx .gx-sheet-pad p { margin: 4px 0 0; }
+
+/* 화면 제목 포커스는 링 없이(키보드 사용자는 바로 다음 Tab에서 링이 보인다) */
+.gx [data-view-title]:focus { outline: none; }
