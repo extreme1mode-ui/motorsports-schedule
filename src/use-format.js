@@ -7,7 +7,7 @@ import {
   formatMonthDay, formatDateFull, getDayDifference, getMonthNames, getWeekdayNames, getTimeZoneLabel,
   formatPlainDateFull, formatPlainShortDate, formatPlainMonthDayNumeric, getPlainDateParts,
   formatDayDate, formatDayDateTime, formatDayRange, formatPlainDayRange, formatMonthTitle,
-  formatRelDay, formatRelShort, formatDayWord, formatDayHead, formatDurationText, formatElapsed,
+  formatRelDay, formatRelShort, formatDayWord, formatDayHead, formatDurationText, formatElapsed, formatWeekday,
 } from './schedule/format.js';
 
 // 시청자 기준(사용자 시간대) 포매터 묶음. 이벤트 고유 날짜(plain*)는 시간대 변환 없이 그대로.
@@ -49,6 +49,7 @@ export function useFormat() {
       relDay: (v, now, inline) => formatRelDay(v, now, { ...o, inline }),   // '내일' · '6일 뒤' · '2주 뒤'
       relShort: (v, now) => formatRelShort(v, now, o),     // '40분 뒤' · '3시간 뒤', 그 밖은 relDay
       dayWord: (v, now) => formatDayWord(v, now, o),       // 제목 문장의 날: '오늘' · '토요일'
+      weekday: (v) => formatWeekday(v, o),                 // '토요일' / 'Saturday'
       dayHead: (v, now) => formatDayHead(v, now, o),       // { main: '오늘 · 토요일', sub: '11월 7일' }
       duration: (ms) => formatDurationText(ms, o),         // '2시간 10분'
       elapsed: (from, now) => formatElapsed(from, now, o), // '2시간 10분 지났어요'

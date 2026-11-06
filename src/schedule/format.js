@@ -230,3 +230,7 @@ export function formatElapsed(start, now = new Date(), { locale = DEFAULT_LOCALE
   if (!a || !b) return '';
   return t(locale, 'time.elapsed', { d: formatDurationText(b.getTime() - a.getTime(), { locale }) });
 }
+// 요일 이름 '토요일' / 'Saturday'
+export function formatWeekday(value, { locale = DEFAULT_LOCALE, timeZone = DEFAULT_TIME_ZONE } = {}) {
+  const d = toDate(value); return d ? dtf(locale, { weekday: 'long', timeZone }).format(d) : '';
+}

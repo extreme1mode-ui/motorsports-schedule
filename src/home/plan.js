@@ -3,11 +3,11 @@
 // 시각은 보는 사람 시간대(preferences.timezone), 문구는 i18n 'home.h.*'·'home.cap'.
 import {
   resolveTimeState, getRaceState, getMainSessionAt, getRaceEnd, getLiveSession, getNextSession,
-  resolveWeekendPhase, getWeekendRange, isAliveState, isCancelled,
+  resolveWeekendPhase, getWeekendRange, isAliveState, isCancelled, getTimelineSessions, getSessionEnd,
 } from './time.js';
 import { getRaceWeekKey, groupRaceWeeks, getWeekName } from './weeks.js';
 import { getPrimarySession, getRaceLabels, formatSessionLabel } from '../schedule/utils.js';
-import { formatTime, formatRelDay, formatDayWord, getTimeZoneLabel, DEFAULT_LOCALE, DEFAULT_TIME_ZONE } from '../schedule/format.js';
+import { formatTime, formatRelDay, formatDayWord, formatDateKey, getTimeZoneLabel, DEFAULT_LOCALE, DEFAULT_TIME_ZONE } from '../schedule/format.js';
 import { t } from '../i18n/t.js';
 
 const HOUR_MS = 3600000;
@@ -99,7 +99,45 @@ export function buildHomePlan(races = [], { preferences, favorites = new Set(), 
     return end && at >= end.getTime() && at - end.getTime() < LAST_WITHIN_MS;
   }).sort((a, b) => startOf(getPrimarySession(b)) - startOf(getPrimarySession(a)))[0] || null;
 
-  return { hero, pick, kind, phase, heroSession, heroWeek, heroNext, weekRaces, deck, later, last, mine };
+  // 내 주말 시간표: 그 주말 관심 경기의 세션(관심 수준대로, 체커기 빼고), 보는 사람 시간대의 날짜로 묶는다. 시각 미정은 개수만.
+  const timeline = [];
+  let tba = 0;
+  for (const r of heroWeek ? heroWeek.races : []) {
+    const mode = modeOf(preferences, r.series) === 'off' ? 'race' : modeOf(preferences, r.series);
+    for (const s of getTimelineSessions(r, mode)) {
+      if (!s.startUtc) { tba += 1; continue; }
+      timeline.push({ s, r, at: msOf(s.startUtc), end: getSessionEnd(r, s)?.getTime() ?? null });
+    }
+  }
+  timeline.sort((a, b) => a.at - b.at);
+  const days = [];
+  for (const it of timeline) {
+    const key = formatDateKey(it.at, { timeZone });
+    let d = days[days.length - 1];
+    if (!d || d.key !== key) { d = { key, items: [] }; days.push(d); }
+    d.items.push(it);
+  }
+
+  return { hero, pick, kind, phase, heroSession, heroWeek, heroNext, weekRaces, deck, later, last, mine, days, tba };
+}
+
+// 덱 카드 한 장의 상태(카드마다 따로): live 결승 진행 중 · session 세션 진행 중 · count 1시간 안 결승 ·
+// between(hour) 1시간 안 다른 세션 · soon 24시간 안 · tba 시각 미정 · between 세션 사이 · weekend 그 밖.
+// 결정 2: 결승·세션 모두 시작 1시간 전부터 '곧'(중계 버튼). 결승이 둘인 주말은 지금 기준 결승(L1).
+export function getCardState(race, now = new Date(), preferences) {
+  const at = new Date(now).getTime();
+  const m0 = modeOf(preferences, race.series);
+  const mode = m0 === 'off' ? 'race' : m0;
+  const ts = resolveTimeState(race, at).state;
+  if (ts === 'live') return { kind: 'live' };
+  const phase = resolveWeekendPhase(race, at, { mode });
+  if (phase.phase === 'session-live' && phase.session !== getPrimarySession(race)) return { kind: 'session', ses: phase.session };
+  const nx = getNextSession(race, at, mode);
+  if (nx && startOf(nx) - at <= HOUR_MS) return nx.kind === 'race' ? { kind: 'count' } : { kind: 'between', nx, hour: true };
+  if (ts === 'soon') return { kind: 'soon' };
+  if (ts === 'tba') return { kind: 'tba' };
+  if ((phase.phase === 'between' || phase.phase === 'session-soon') && nx) return { kind: 'between', nx };
+  return { kind: 'weekend' };
 }
 
 // 제목 문장 { cap, title }. 한 경기를 가리키면 늘 경기 이름(결정 4). 이번·다음 주말에 볼 경기가 둘 이상이면 'N개'.

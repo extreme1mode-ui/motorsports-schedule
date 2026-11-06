@@ -32,28 +32,26 @@ export function calendarUrlFor(race, { locale = 'ko', level = 'race' } = {}) {
 }
 
 // ev: 홈이 쓰는 adapt된 형태({ id, series, startUtc, race }) 또는 정규화된 race 그대로.
-// 이미 담긴 경기를 다시 누르면 표시만 지운다(캘린더는 건드리지 않는다).
+// UX v2 결정 3(L7): 담은 뒤 다시 누르면 지우지 않고 같은 .ics를 다시 연다(표시는 그대로). race_alarm_added는 처음 담을 때만.
+// 돌려주는 값: { alarms, again } — again이면 다시 받은 것(화면이 '캘린더 파일을 다시 받았어요'를 띄운다).
 export function toggleAlarm(ev, { source, preferences, locale = 'ko', now = new Date() } = {}) {
   const id = ev?.id;
   if (!id) return null;
   const current = readAlarms();
-  const already = current.has(id);
-  const next = new Set(current);
-
-  if (already) {
-    next.delete(id);
-  } else {
+  const again = current.has(id);
+  if (!again) {
     const startUtc = ev.startUtc || ev.primaryStartUtc || null;
     const start = startUtc ? new Date(startUtc) : null;
     const daysUntil = start ? Math.round((start.getTime() - now.getTime()) / 86400000) : null;
     track('race_alarm_added', { series: ev.series, race_id: id, source, ...(daysUntil === null ? {} : { days_until: daysUntil }) });
-    const url = calendarUrlFor(ev.race || ev, { locale, level: alarmLevelFor(preferences, ev.series) });
-    if (url) window.open(url, '_blank', 'noopener,noreferrer');
-    next.add(id);
   }
-
+  const url = calendarUrlFor(ev.race || ev, { locale, level: alarmLevelFor(preferences, ev.series) });
+  if (url) window.open(url, '_blank', 'noopener,noreferrer');
+  if (again) return { alarms: current, again: true };
+  const next = new Set(current);
+  next.add(id);
   publish(next);
-  return next;
+  return { alarms: next, again: false };
 }
 
 // 현재 담긴 경기 id 집합. 같은 탭의 다른 화면이 담으면 즉시 다시 그려진다.
