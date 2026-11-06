@@ -153,7 +153,8 @@
 .gx .gx-snack.is-tabbar { --gx-snack-bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
 .gx .gx-snack.is-bar { --gx-snack-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
 .gx .gx-snack.is-desktop { left: auto; right: 32px; bottom: 32px; width: 400px; }
-.gx .gx-snack.is-drawer { position: absolute; left: 16px; right: 16px; bottom: 16px; width: auto; }
+/* 데스크톱 서랍 안: 서랍(560) 오른쪽 32 · 폭 496 · 아래 108(서랍 아래 바 위) */
+.gx .gx-snack.is-drawer { left: auto; right: 32px; bottom: 108px; width: 496px; max-width: calc(100vw - 64px); }
 .gx .gx-snack-a { font: inherit; font-weight: 700; flex: none; color: var(--onsnack); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 @keyframes gx-snackin { from { transform: translateY(8px); opacity: 0; } }
 @keyframes gx-snackout { to { transform: translateY(8px); opacity: 0; } }

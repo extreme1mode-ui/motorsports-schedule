@@ -12,7 +12,16 @@ import { FormatProvider } from './format-context.jsx';
 import { t, useT } from './i18n/index.js';
 import { track, getDaysSinceFirstVisit, recordFirstTouch, firstTouchProps } from './analytics.js';
 import { useRaceLink, hasRaceLinkInPath } from './share-link.js';
-import { withViewTransition, useScrollMemory, useFocusViewTitle, usePresence } from './use-motion.js';
+import { withViewTransition, useScrollMemory, useFocusViewTitle } from './use-motion.js';
+import { ShellContext } from './shell/context.js';
+import { useShellCore } from './shell/useShellCore.js';
+import { useDevShellHook } from './shell/dev-hook.js';
+import { ShellSheets } from './shell/ShellSheets.jsx';
+import { activeElement, focusBack, prefersReducedMotion, useScrollEdges } from './shell/utils.js';
+import './shell/shell.css';
+import { Snackbar } from './ui2/Snackbar.jsx';
+import { GearBtn } from './ui2/parts.jsx';
+import { Icon } from './ui2/Icon.jsx';
 import { storage } from './storage/index.js';
 import { setAppTitle } from './document-title.js';
 import { CircuitMapProvider } from './circuit-map/CircuitMap.jsx';
@@ -84,20 +93,28 @@ export default function Root() {
   );
 }
 
+// 모바일 셸(UX v2 SPEC 8장): 탭 4개 + 화면 스택(상세·시리즈 상세·설정). 탭 화면은 지금처럼 한 스크롤 상자 + 탭별 스크롤 기억.
+// 스택 화면은 들어올 때 260ms 감속, 나갈 때 180ms 가속(그동안 아래 화면이 보인다). 닫히면 연 요소로 포커스를 돌려준다.
+// Esc = 뒤로(시트가 열려 있으면 시트가, 서킷 맵이 열려 있으면 지도가 먼저). 지금 탭을 다시 누르면 맨 위로.
 function App({ theme, setTheme, themePref, onShareLinkDone, ...prefs }) {
   const { preferences } = prefs;
   const [view, setView] = useState('home');
   const [categoryFilter, setCategoryFilter] = useState(null);
-  const [openRaceId, setOpenRaceId] = useState(null);
+  const [stack, setStack] = useState([]);            // [{ t: 'detail', id } | { t: 'settings' } | { t: 'series', cat }]
+  const [leaving, setLeaving] = useState(false);      // 맨 위 화면이 나가는 180ms 동안
   const [favorites, setFavorites] = useState(() => storage.favorites.read());
   const [now, setNow] = useState(() => getCurrentNow());
   const [tweaks, setTweaks] = useState(false);
+  const shell = useShellCore();
+  const rootRef = useRef(null);
   const schedule = useScheduleData(now);
   const raceList = useMemo(() => (Array.isArray(schedule.races) ? schedule.races : []), [schedule.races]);
   const safeSeasonYear = Number.isFinite(schedule.seasonYear)
     ? schedule.seasonYear
     : Number((raceList.find((race) => race?.raceDateKst)?.raceDateKst || '').slice(0, 4)) || 2026;
-  const openRace = raceList.find((race) => race.id === openRaceId) || null;
+  // 주소(/race/<id>)·탭 제목이 따라가는 경기: 스택에서 가장 위에 있는 상세
+  const detailRoute = [...stack].reverse().find((r) => r.t === 'detail') || null;
+  const openRace = detailRoute ? raceList.find((race) => race.id === detailRoute.id) || null : null;
   const myRaces = useMemo(() => filterRacesByPreferences(raceList, preferences, favorites), [raceList, preferences, favorites]);
 
   useEffect(() => {
@@ -122,44 +139,119 @@ function App({ theme, setTheme, themePref, onShareLinkDone, ...prefs }) {
       return next;
     });
   }, []);
+
+  // ---------- 화면 스택 ----------
+  const openers = useRef([]);       // 스택 화면을 연 요소들 — 닫힐 때 하나씩 포커스를 되돌린다
+  const refocus = useRef(null);     // 다음 커밋 뒤 포커스 갈 곳(요소 | 'title' | 'pushed')
+  const leavingRef = useRef(false);
+  const push = useCallback((route) => {
+    openers.current.push(activeElement());
+    refocus.current = 'pushed';
+    setStack((s) => [...s, route]);
+  }, []);
+  const back = useCallback(() => {
+    if (leavingRef.current) return;
+    const done = () => {
+      refocus.current = openers.current.pop() || 'title';
+      leavingRef.current = false;
+      setLeaving(false);
+      setStack((s) => s.slice(0, -1));
+    };
+    if (prefersReducedMotion()) { done(); return; }
+    leavingRef.current = true;
+    setLeaving(true);
+    setTimeout(done, 180);
+  }, []);
+  // 스택이 바뀐 뒤: 닫혔으면 연 요소로(사라졌으면 화면 제목), 넣었으면 새 화면 제목으로(상세는 RaceDetail이 첫 버튼으로 직접)
+  useEffect(() => {
+    const target = refocus.current;
+    if (!target) return;
+    refocus.current = null;
+    const root = rootRef.current;
+    if (target === 'pushed') {
+      const top = root && [...root.querySelectorAll('.gx-stack:not([hidden])')].pop();
+      if (top && !top.contains(document.activeElement)) top.querySelector('[data-view-title]')?.focus({ preventScroll: true });
+      return;
+    }
+    focusBack(target, root || document);
+  }, [stack]);
+
   // source: 어느 화면에서 열었는지. 화면별 래퍼가 기본값을 주고, 추천 카드는 'recommendation'을 직접 넘긴다.
-  const openerRef = useRef(null);   // 상세를 연 요소 — 닫힐 때 포커스를 되돌린다
-  const openFrom = useCallback((race, source, extra) => { openerRef.current = document.activeElement; track('race_opened', { series: race.series, source, ...extra }); setOpenRaceId(race.id); }, []);
+  const openFrom = useCallback((race, source, extra) => {
+    track('race_opened', { series: race.series, source, ...extra });
+    push({ t: 'detail', id: race.id });
+  }, [push]);
   const onOpenRace = useCallback((race, source = 'home', extra) => openFrom(race, source, extra), [openFrom]);
   const openFromSchedule = useCallback((race) => openFrom(race, 'schedule'), [openFrom]);
   const openFromSeries = useCallback((race) => openFrom(race, 'series'), [openFrom]);
   const openFromSaved = useCallback((race, source = 'saved') => openFrom(race, source), [openFrom]);
   // 공유 주소(/race/<id>): 들어오면 그 상세를 열고, 열고 닫을 때 주소를 맞춘다.
   useRaceLink({ races: raceList, ready: !schedule.loading, openRace, openFrom, onDone: onShareLinkDone });
+
+  // ---------- 탭 ----------
   // 탭 전환: 떠나기 전 scrollTop 저장 → View Transition(지원 시) 안에서 동기 커밋 → 복원은 useScrollMemory의 layout effect.
   const scrollRef = useRef(null);
   const saveScroll = useScrollMemory(view, scrollRef);
   useFocusViewTitle(view);
+  const viewRef = useRef(view);
+  useEffect(() => { viewRef.current = view; }, [view]);
+  const stackRef = useRef(stack);
+  useEffect(() => { stackRef.current = stack; }, [stack]);
   const onGo = useCallback((v, arg) => {
-    saveScroll(view);
+    if (v === 'settings') { push({ t: 'settings' }); return; }
+    // 지금 탭을 다시 누르면 맨 위로(스택이 없을 때)
+    if (v === viewRef.current && !stackRef.current.length && v !== 'series') {
+      scrollRef.current?.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+      return;
+    }
+    saveScroll(viewRef.current);
+    openers.current = [];
     withViewTransition(() => {
+      setStack([]);
       if (v === 'series') { setCategoryFilter(arg); setView('series'); }
       else setView(v);
     }, flushSync);
-  }, [view, saveScroll]);
+  }, [saveScroll, push]);
 
-  // 상세: 닫힐 때 퇴장 애니메이션이 끝난 뒤 언마운트. 그동안 마지막 race를 계속 보여준다.
-  const detail = usePresence(!!openRace);
-  const [lastRace, setLastRace] = useState(openRace);            // 닫히는 동안 보여줄 마지막 race (렌더 중 상태 조정)
-  if (openRace && openRace !== lastRace) setLastRace(openRace);
-  const shownRace = openRace ?? lastRace;
+  // Esc = 뒤로. 시트는 자기 Esc를 먼저 잡고(stopPropagation), 서킷 맵이 열려 있으면(html.cm-open) 지도가 먼저.
   useEffect(() => {
-    if (detail.mounted) return;
-    const el = openerRef.current;
-    if (el && el.isConnected && typeof el.focus === 'function' && el !== document.body) el.focus({ preventScroll: true });
-    else document.querySelector('[data-view-title]')?.focus({ preventScroll: true });
-    openerRef.current = null;
-  }, [detail.mounted]);
+    const onKey = (e) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || shell.sheet) return;
+      if (document.documentElement.classList.contains('cm-open')) return;
+      if (stackRef.current.length) back();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [back, shell.sheet]);
 
+  useScrollEdges(rootRef);
+  useDevShellHook(shell);
+
+  const covered = stack.length > 0;
+  const top = stack[stack.length - 1];
+  const ctx = useMemo(() => ({
+    push, back, openSettings: () => push({ t: 'settings' }), openSheet: shell.openSheet, toast: shell.toast, mem: shell.mem, desktop: false,
+  }), [push, back, shell.openSheet, shell.toast, shell.mem]);
+  const settingsGo = useCallback((v, arg) => { if (v === 'home') back(); else onGo(v, arg); }, [back, onGo]);
+  const route = (r, isTop) => {
+    if (r.t === 'detail') {
+      const race = raceList.find((x) => x.id === r.id);
+      return race ? <RaceDetail race={race} theme={theme} onClose={isTop ? back : () => {}} favorites={favorites} toggleFav={toggleFav} preferences={preferences} inStack /> : null;
+    }
+    if (r.t === 'settings') return <Settings theme={theme} themePref={themePref} setTheme={setTheme} onGo={settingsGo} {...prefs} />;
+    if (r.t === 'series') return (
+      <>
+        <div className="gx-stack-bar"><button type="button" className="gx-iconbtn" aria-label={t(preferences.locale || 'ko', 'aria.back')} onClick={back}><Icon n="back" /></button></div>
+        <SeriesView theme={theme} races={raceList} onOpenRace={openFromSeries} initialCategory={r.cat || 'F1'} seasonYear={safeSeasonYear} />
+      </>
+    );
+    return null;
+  };
   const mobileBottomNavSpace = 'calc(92px + env(safe-area-inset-bottom, 0px))';
 
   return (
-    <div style={{
+    <ShellContext.Provider value={ctx}>
+    <div ref={rootRef} style={{
       position: 'relative',
       width: '100%',
       height: '100dvh',
@@ -167,8 +259,8 @@ function App({ theme, setTheme, themePref, onShareLinkDone, ...prefs }) {
       background: 'var(--bg)',
       paddingTop: 'env(safe-area-inset-top, 0px)',
     }}>
-      {/* Scrollable content area — sits inside the fixed-height App shell */}
-      <div ref={scrollRef} style={{
+      {/* 탭 화면 — 스택이 덮고 있으면 inert(나가는 동안은 아래에서 미리 보인다) */}
+      <div ref={scrollRef} inert={covered || undefined} aria-hidden={covered || undefined} style={{
         height: '100dvh',
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
@@ -178,16 +270,32 @@ function App({ theme, setTheme, themePref, onShareLinkDone, ...prefs }) {
         {view === 'schedule' && <Schedule theme={theme} races={raceList} onOpenRace={openFromSchedule} now={now} seasonYear={safeSeasonYear} />}
         {view === 'series' && <SeriesView theme={theme} races={raceList} onOpenRace={openFromSeries} initialCategory={categoryFilter || 'F1'} seasonYear={safeSeasonYear} />}
         {view === 'fav' && <Favorites theme={theme} races={raceList} myRaces={myRaces} favorites={favorites} onOpenRace={openFromSaved} toggleFav={toggleFav} />}
-        {view === 'settings' && <Settings theme={theme} themePref={themePref} setTheme={setTheme} onGo={onGo} {...prefs} />}
       </div>
+      {/* 설정 톱니 자리(결정 18) — 홈은 위 막대에 이미 있다 */}
+      {/* 스택이 덮는 동안에도 지우지 않는다(inert) — 설정을 닫으면 포커스가 이 톱니로 돌아와야 한다 */}
+      {view !== 'home' && <div className="gx-gear-slot" inert={covered || undefined}><GearBtn onClick={() => push({ t: 'settings' })} /></div>}
 
-      {/* Overlays and chrome are outside the scroll wrapper so they stay fixed */}
-      {detail.mounted && shownRace && <RaceDetail race={shownRace} theme={theme} onClose={() => setOpenRaceId(null)} favorites={favorites} toggleFav={toggleFav} preferences={preferences} closing={detail.closing} onExitEnd={detail.onExitEnd} />}
+      {/* 화면 스택: 맨 위만 보이고, 나가는 동안은 바로 아래도 보인다 */}
+      {stack.map((r, i) => {
+        const isTop = i === stack.length - 1;
+        const visible = isTop || (leaving && i === stack.length - 2);
+        return (
+          <div key={`${i}-${r.t}-${r.id || r.cat || ''}`} className={`gx-stack${r.t === 'detail' ? ' is-detail' : ''}${leaving && isTop ? ' is-out' : ''}`}
+            hidden={!visible} inert={!isTop || undefined}>
+            {route(r, isTop)}
+          </div>
+        );
+      })}
 
-      <TabBar view={view} onGo={onGo} />
+      {!covered && <TabBar view={view} onGo={onGo} />}
 
       {tweaks && <TweaksPanel theme={theme} setTheme={setTheme} onClose={() => setTweaks(false)} />}
+
+      <ShellSheets sheet={shell.sheet} onClose={shell.closeSheet} prefs={prefs} themePref={themePref} setTheme={setTheme} toast={shell.toast} />
+      <Snackbar msg={shell.snack} onHold={shell.holdSnack} hidden={!!shell.sheet}
+        placement={!covered ? 'tabbar' : top?.t === 'detail' ? 'bar' : 'bottom'} />
     </div>
+    </ShellContext.Provider>
   );
 }
 

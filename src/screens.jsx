@@ -311,7 +311,8 @@ export function Favorites({ races, myRaces, favorites, onOpenRace, toggleFav }) 
   );
 }
 
-export function RaceDetail({ race, onClose, favorites, toggleFav, preferences, closing = false, onExitEnd }) {
+// inStack: UX v2 셸의 화면 스택 안에 그린다 — 들고 나는 움직임은 스택 층이 맡으므로 자기 시트 움직임(detail-sheet)은 쓰지 않는다.
+export function RaceDetail({ race, onClose, favorites, toggleFav, preferences, closing = false, onExitEnd, inStack = false }) {
   const fmt = useFormat();
   const tr = useT();
   const L = fmt.race(race);
@@ -350,7 +351,7 @@ export function RaceDetail({ race, onClose, favorites, toggleFav, preferences, c
   const section = { padding: `28px ${PAD_X}px 0` };
 
   return (
-    <div ref={sheetRef} className={`detail-sheet${closing ? ' closing' : ''}`} onAnimationEnd={closing ? onExitEnd : undefined} style={{ position: 'absolute', inset: 0, background: 'var(--bg)', zIndex: 80, overflow: 'auto', paddingBottom: 40 }}>
+    <div ref={sheetRef} className={inStack ? undefined : `detail-sheet${closing ? ' closing' : ''}`} onAnimationEnd={closing ? onExitEnd : undefined} style={{ position: 'absolute', inset: 0, background: 'var(--bg)', zIndex: 80, overflow: 'auto', paddingBottom: 40 }}>
       {/* 헤더 배경 = 경기 사진 (사진 → 중립 스크림 → 콘텐츠). 높이는 padding이 정한다.
           사진이 뜨기 전 바탕은 시리즈 색이 아니라 중립 surface2 — 로딩 순간에 색이 번쩍이지 않게. */}
       <div style={{ padding: `60px ${PAD_X}px 26px`, background: 'var(--surface2)', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>

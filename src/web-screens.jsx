@@ -435,12 +435,7 @@ export function RaceDrawer({ race, onClose, favorites, toggleFav, tier, preferen
   const panelRef = useRef(null);
   useEffect(() => { panelRef.current?.querySelector('button')?.focus({ preventScroll: true }); }, []);
 
-  useEffect(() => {
-    // 서킷 맵이 열려 있으면 Esc는 지도가 먼저 받는다 (지도 레이어 → 지도 나가기). 드로어는 그대로 둔다.
-    const k = e => { if (e.key === 'Escape' && !document.documentElement.classList.contains('cm-open')) onClose(); };
-    window.addEventListener('keydown', k);
-    return () => window.removeEventListener('keydown', k);
-  }, [onClose]);
+  // Esc는 셸(web.jsx)이 받는다: 서킷 맵이 열려 있으면 지도가 먼저, 그다음 서랍 한 단계(UX v2).
   const block = { marginBottom: 28 };
 
   return (

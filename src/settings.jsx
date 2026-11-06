@@ -5,6 +5,7 @@ import { useT } from './i18n/index.js';
 import { track } from './analytics.js';
 import { GantrySymbol } from './Brand.jsx';
 import { useCalendarToken } from './account/calendar-token.js';
+import { calendarQuery } from './calendar-query.js';
 
 // 언어 이름은 번역하지 않는다(각 언어의 자기 표기). raw: true → ChoiceGroup이 t()를 거치지 않음
 const LOCALE_OPTIONS = [
@@ -13,17 +14,6 @@ const LOCALE_OPTIONS = [
 ];
 import { PageTitle, SectionTitle, SeriesRow, ChoiceGroup, CountryChoices, TimezoneLabel } from './preferences-ui.jsx';
 import { Group } from './ui.jsx';
-
-// 현재 개인화 설정 → 구독 쿼리. 시리즈는 'off'가 아닌 것, level은 하나라도 'all'이면 all.
-function calendarQuery(preferences) {
-  const series = SUPPORTED_SERIES.filter((id) => (preferences?.series?.[id] || 'off') !== 'off');
-  const level = series.some((id) => preferences.series[id] === 'all') ? 'all' : 'race';
-  const params = new URLSearchParams();
-  if (series.length) params.set('series', series.join(','));
-  params.set('level', level);
-  params.set('lang', preferences?.locale || 'ko');
-  return { series, level, search: params.toString() };
-}
 
 // 테마 선택지: 기기 설정(처음 값) | 다크 | 라이트 (K5)
 const THEME_OPTIONS = [

@@ -1,7 +1,7 @@
 // UX v2 스낵바. 아래에서 8px 올라오며 나타나고(260 감속), 사라질 때 180 가속으로 내려간다.
 // - 라이브 영역(role=status)이 문구와 '되돌리기 버튼이 있어요'를 읽어 준다.
 // - 손가락·포인터·포커스가 올라가 있는 동안은 시간이 멈춘다(onHold → useSnack의 hold). WCAG 2.2.1.
-// - 자리(placement): 'tabbar' 탭 바 위 · 'bar' 아래 고정 바 위 · 'bottom' 아래 24 · 'desktop' 오른쪽 아래 · 'drawer' 서랍 안(포털하지 않음).
+// - 자리(placement): 'tabbar' 탭 바 위 · 'bar' 아래 고정 바 위 · 'bottom' 아래 24 · 'desktop' 오른쪽 아래 · 'drawer' 데스크톱 서랍 안.
 // - hidden: 시트가 열려 있는 동안 잠시 숨김.
 // msg: { id, text, action?: { label, fn } } | null — useSnack()이 만든다.
 import { useState } from 'react';
@@ -31,7 +31,6 @@ export function Snackbar({ msg, onHold, placement = 'bottom', hidden = false }) 
       )}
     </>
   );
-  if (placement === 'drawer') return node;
   const layer = getLayer();
   return layer ? createPortal(node, layer) : null;
 }

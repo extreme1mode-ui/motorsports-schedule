@@ -43,10 +43,11 @@ export function useScrolledTitle(sel = 'h1', barHeight = 56) {
   return [ref, on];
 }
 
-// 스낵바 상태: show(text, action?)로 띄우고 duration 뒤 사라진다. hold(true)인 동안(손·포인터·포커스가 올라가 있음)은 멈춘다.
-// action: { label, fn } — 누르면 fn을 부르고 바로 닫는다. [msg, show, hide, hold]
+// 스낵바 상태: show(text, action?)로 띄우고 정한 시간 뒤 사라진다(되돌리기가 있으면 5초, 없으면 4초).
+// hold(true)인 동안(손·포인터·포커스가 올라가 있음)과 paused인 동안(시트가 열려 있음)은 멈추고, 풀리면 다시 센다.
+// action: { label, fn } — 누르면 닫고 fn을 부른다. [msg, show, hide, hold]
 let snackSeq = 0;
-export function useSnack(duration = 4000) {
+export function useSnack({ duration = 4000, actionDuration = 5000, paused = false } = {}) {
   const [msg, setMsg] = useState(null);
   const [held, setHeld] = useState(false);
   const hide = useCallback(() => setMsg(null), []);
@@ -55,9 +56,9 @@ export function useSnack(duration = 4000) {
     setMsg({ id: snackSeq, text, action: action ? { label: action.label, fn: () => { setMsg(null); action.fn?.(); } } : null });
   }, []);
   useEffect(() => {
-    if (!msg || held) return undefined;
-    const timer = setTimeout(() => setMsg(null), duration);
+    if (!msg || held || paused) return undefined;
+    const timer = setTimeout(() => setMsg(null), msg.action ? actionDuration : duration);
     return () => clearTimeout(timer);
-  }, [msg, held, duration]);
+  }, [msg, held, paused, duration, actionDuration]);
   return [msg, show, hide, setHeld];
 }
