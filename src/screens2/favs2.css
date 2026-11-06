@@ -1,0 +1,94 @@
+/* 즐겨찾기(UX v2 SPEC 5장): 입장권. 프로토타입 12판 .tk-*를 .gx 아래 gx- 접두로 옮긴 것. */
+.gx .gx-favs { padding-bottom: 24px; }
+.gx .gx-favs.is-desk .gx-tab-top { padding: 24px 0 16px; }
+
+/* 빈 화면 */
+.gx .gx-empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 40px 32px 32px; }
+.gx .gx-empty p { margin: 0; text-wrap: pretty; }
+.gx .gx-empty-ic { width: 64px; height: 64px; margin-bottom: 8px; border-radius: 50%; display: grid; place-items: center; background: var(--fill); color: var(--text2); }
+.gx .gx-empty .gx-btn { margin-top: 12px; height: 44px; font-size: 15px; }
+
+/* 담아 볼 만한 경기: 오른쪽 날짜·시각 + 담기 */
+.gx .gx-row-wrap { position: relative; container-type: inline-size; }
+.gx .gx-row-wrap > .gx-row { padding-right: 96px; }
+.gx .gx-row-wrap .gx-row-r { min-width: 80px; }
+.gx .gx-save-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); min-width: 64px; height: 36px; padding: 0 12px; display: inline-flex; align-items: center; justify-content: center; gap: 2px;
+  border: 0; border-radius: 10px; background: var(--fill); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
+.gx .gx-save-btn::before { content: ""; position: absolute; inset: -4px; }
+.gx .gx-save-btn.is-on { background: none; color: var(--text2); box-shadow: inset 0 0 0 1px var(--line); }
+.gx .gx-favs.is-desk .gx-row-wrap > .gx-row { padding-left: 0; }
+.gx .gx-favs.is-desk .gx-save-btn { right: 0; }
+.gx .gx-favs.is-desk .gx-lh { padding-left: 0; padding-right: 0; }
+
+/* 데스크톱: 다가오는 · 지난 두 칸 */
+.gx .gx-fav-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: start; }
+
+/* 입장권 */
+.gx .gx-tk-list { display: grid; gap: 12px; padding: 4px var(--gutter) 8px; container-type: inline-size; }
+.gx .gx-favs.is-desk .gx-tk-list { padding: 4px 0 8px; }
+.gx .gx-tk {
+  --tk-notch-b: radial-gradient(circle 9px at 100% 0, #0000 97%, #000) top / 100% 51% no-repeat, radial-gradient(circle 9px at 100% 100%, #0000 97%, #000) bottom / 100% 51% no-repeat;
+  --tk-notch-s: radial-gradient(circle 9px at 0 0, #0000 97%, #000) top / 100% 51% no-repeat, radial-gradient(circle 9px at 0 100%, #0000 97%, #000) bottom / 100% 51% no-repeat;
+  --tk-body: var(--callout); --tk-stub: color-mix(in srgb, var(--callout), var(--text) 5%); --tk-perf: color-mix(in srgb, var(--text4) 75%, transparent); --stub-w: 104px;
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) var(--stub-w); min-height: 132px; isolation: isolate; transition: transform var(--d1) var(--e-std); }
+.gx .gx-favs.is-desk .gx-tk { --stub-w: 116px; min-height: 152px; }
+.gx .gx-tk:has(.gx-tk-hit:active) { transform: scale(.985); }
+.gx .gx-tk-hit { position: absolute; inset: 0; z-index: 1; border: 0; padding: 0; background: none; border-radius: 16px; cursor: pointer; }
+.gx .gx-tk-hit:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.gx .gx-tk-heart { position: absolute; top: 6px; right: calc(var(--stub-w) + 4px); z-index: 2; color: var(--text); }
+.gx .gx-tk-body, .gx .gx-tk-stub { position: relative; display: flex; flex-direction: column; min-width: 0; }
+.gx .gx-tk-body { background: var(--tk-body); border-radius: 16px 0 0 16px; padding: 16px 48px 16px 18px; gap: 2px; -webkit-mask: var(--tk-notch-b); mask: var(--tk-notch-b); }
+.gx .gx-tk-stub { background: var(--tk-stub); border-radius: 0 16px 16px 0; padding: 16px 12px 14px 16px; align-items: flex-start;
+  background-image: linear-gradient(var(--tk-perf) 55%, transparent 0); background-size: 1.5px 7px; background-repeat: repeat-y; background-position: 0 12px;
+  -webkit-mask: var(--tk-notch-s); mask: var(--tk-notch-s); }
+.gx .gx-tk-tag { display: flex; align-items: center; gap: 6px; color: var(--text2); font-weight: 500; white-space: nowrap; overflow: hidden; }
+.gx .gx-tk-tag .gx-ell { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.gx .gx-tk-name { margin-top: 6px; font-weight: 700; color: var(--text); word-break: keep-all; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gx .gx-tk-place { color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gx .gx-tk-foot { margin-top: auto; padding-top: 12px; display: flex; flex-direction: column; }
+.gx .gx-tk-foot b { font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+.gx .gx-tk-extra { color: var(--text3); }
+.gx .gx-tk-lab { color: var(--text3); }
+.gx .gx-tk-time { display: flex; flex-direction: column; line-height: 1.2; margin: 2px 0; }
+.gx .gx-tk-time b { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.gx .gx-tk-bar { margin-top: auto; padding-top: 10px; box-sizing: content-box; color: var(--text4); }
+.gx .gx-tk-bar rect { fill: currentColor; }
+/* 스텁 색: 시리즈 타일 색을 섞은 것. 진행 중은 시간표 진행 중 칸과 같은 노란 기운 */
+.gx .gx-tk-F1 { --tk-stub: color-mix(in srgb, var(--t-F1) 65%, var(--callout)); }
+.gx .gx-tk-WEC { --tk-stub: color-mix(in srgb, var(--t-WEC) 65%, var(--callout)); }
+.gx .gx-tk-IMSA { --tk-stub: color-mix(in srgb, var(--t-IMSA) 65%, var(--callout)); }
+.gx .gx-tk-WRC { --tk-stub: color-mix(in srgb, var(--t-WRC) 65%, var(--callout)); }
+.gx .gx-tk-GTWC { --tk-stub: color-mix(in srgb, var(--t-GTWC) 65%, var(--callout)); }
+.gx .gx-tk.is-live { --tk-stub: color-mix(in srgb, var(--signal) 16%, var(--callout)); }
+/* 지난 경기: 글자 한 단계 옅게 + 스텁이 절취선에서 찢겨 기울어짐 */
+.gx .gx-tk.is-done .gx-tk-name, .gx .gx-tk.is-cancel .gx-tk-name { color: var(--text2); }
+.gx .gx-tk.is-done .gx-tk-foot b, .gx .gx-tk.is-cancel .gx-tk-foot b, .gx .gx-tk.is-done .gx-tk-time b { color: var(--text2); }
+.gx .gx-tk.is-done .gx-tk-tag, .gx .gx-tk.is-cancel .gx-tk-tag { color: var(--text3); }
+.gx .gx-tk.is-done .gx-tk-body { -webkit-mask: none; mask: none; clip-path: var(--tk-bclip); }
+.gx .gx-tk.is-done .gx-tk-stub { -webkit-mask: none; mask: none; background-image: none; clip-path: var(--tk-clip); transform: translateX(3px) rotate(var(--tk-tilt)); transform-origin: 0 50%; }
+.gx .gx-tk.is-tearing .gx-tk-stub { animation: gx-tk-tear 560ms cubic-bezier(.2, .8, .2, 1) both; animation-delay: var(--tk-delay); }
+.gx .gx-tk.is-tearing .gx-tk-body { animation: gx-tk-tear-b 560ms linear both; animation-delay: var(--tk-delay); }
+/* 찢기 전에는 다가오는 표와 같은 절취선·홈이 있다가 그 선을 따라 찢긴다 */
+@keyframes gx-tk-tear {
+  0%, 30% { transform: none; clip-path: var(--tk-clip0); background-image: linear-gradient(var(--tk-perf) 55%, transparent 0); -webkit-mask: var(--tk-notch-s); mask: var(--tk-notch-s); }
+  31% { transform: none; clip-path: var(--tk-clip); background-image: none; -webkit-mask: none; mask: none; }
+  55% { transform: translateX(1px) rotate(calc(var(--tk-tilt) * .3)); }
+  100% { transform: translateX(3px) rotate(var(--tk-tilt)); clip-path: var(--tk-clip); background-image: none; -webkit-mask: none; mask: none; } }
+@keyframes gx-tk-tear-b {
+  0%, 30% { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); -webkit-mask: var(--tk-notch-b); mask: var(--tk-notch-b); }
+  31%, 100% { clip-path: var(--tk-bclip); -webkit-mask: none; mask: none; } }
+@media (prefers-reduced-motion: reduce) { .gx .gx-tk.is-tearing .gx-tk-stub, .gx .gx-tk.is-tearing .gx-tk-body { animation: none; } }
+/* 도장: 취소(스텁) · 현장 관람(몸통) */
+.gx .gx-tk-stamp { position: absolute; display: inline-flex; align-items: center; padding: 2px 8px; border: 1.5px solid currentColor; border-radius: 6px; font-weight: 700; color: var(--text3); transform: rotate(-8deg); }
+.gx .gx-tk-body .gx-tk-stamp { right: 16px; bottom: 16px; color: var(--text2); }
+.gx .gx-tk-stamp-x { position: static; margin-top: auto; align-self: center; }
+/* 하트로 뺀 표: 흐리게(하트만 또렷하게) */
+.gx .gx-tk.is-off .gx-tk-body, .gx .gx-tk.is-off .gx-tk-stub { opacity: .5; }
+/* 320폭: 스텁을 줄이고 이름 한 단계 작게 */
+@container (max-width: 300px) {
+  .gx .gx-tk { --stub-w: 92px; }
+  .gx .gx-tk-name { font-size: 17px; line-height: 24px; }
+  .gx .gx-tk-body { padding-left: 16px; padding-right: 44px; }
+  .gx .gx-tk-stub { padding-left: 13px; padding-right: 10px; }
+  .gx .gx-tk-time b { font-size: 20px; }
+}

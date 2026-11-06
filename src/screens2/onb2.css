@@ -1,0 +1,50 @@
+/* 온보딩(UX v2 SPEC 7장). 모바일·데스크톱 같은 화면: 위 줄 · 내용 · 아래 버튼을 가운데 560 열에. 데스크톱은 사이드바까지 덮는 전체 화면. */
+.gx .gx-onb { --onb-side: max(0px, calc((100% - 560px) / 2)); min-height: 100dvh; display: flex; flex-direction: column; background: var(--bg); color: var(--text);
+  padding-top: env(safe-area-inset-top, 0px); }
+.gx .gx-onb-top { position: sticky; top: 0; z-index: 3; height: 56px; flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 0 calc(var(--onb-side) + 12px) 0 calc(var(--onb-side) + 8px); background: var(--bg); }
+.gx .gx-onb-brand { padding-left: 12px; min-width: 44px; display: inline-flex; color: var(--text); }
+.gx .gx-onb-prog { flex: 1; max-width: 180px; height: 4px; border-radius: 2px; background: var(--fill); overflow: hidden; }
+.gx .gx-onb-prog i { display: block; height: 100%; background: var(--text); transition: width var(--d3) var(--e-out); }
+.gx .gx-onb-tr { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
+.gx .gx-onb-tr .gx-textbtn { min-height: 44px; padding: 0 8px; }
+.gx .gx-onb-body { flex: 1; width: 100%; max-width: 560px; margin: 0 auto; }
+.gx .gx-onb-head { display: flex; flex-direction: column; gap: 4px; padding: 16px var(--gutter) 16px; }
+.gx .gx-onb-head h1 { margin: 0; outline: none; word-break: keep-all; }
+.gx .gx-onb-head .gx-sub { text-wrap: pretty; }
+/* 가치 화면 카드 · 미리보기 시간표 */
+.gx .gx-onb-card { margin: 4px var(--gutter) 0; border-radius: 16px; background: var(--callout); padding: 4px 0; }
+.gx .gx-onb-card .gx-row { padding-left: 16px; padding-right: 16px; }
+.gx .gx-onb-card .gx-row + .gx-row::before { left: 16px; right: 16px; }
+.gx .gx-onb-card .gx-row.is-static { cursor: default; }
+.gx .gx-onb-card .gx-row.is-static:active { background: none; }
+.gx .gx-onb-card .gx-row.is-static:active .gx-row-c { transform: none; }
+.gx .gx-onb-tl { padding: 4px 0 8px; }
+.gx .gx-onb-tl .gx-tl-dh { position: static; padding-left: 16px; padding-right: 16px; background: none; }
+.gx .gx-onb-tl .gx-tl-row + .gx-tl-row::before { left: 86px; right: 16px; }
+.gx .gx-onb-values { list-style: none; margin: 20px 0 0; padding: 0 var(--gutter); display: grid; gap: 14px; }
+.gx .gx-onb-values li { display: flex; align-items: center; gap: 12px; color: var(--text2); }
+.gx .gx-onb-values svg { color: var(--text); flex: none; }
+.gx .gx-onb-note { margin: 12px var(--gutter) 0; text-wrap: pretty; }
+/* 시리즈 고르기 */
+.gx .gx-onb-pick { align-items: center; }
+.gx .gx-onb-pick .gx-row-c > span { white-space: normal; text-wrap: pretty; }
+.gx .gx-check { width: 26px; height: 26px; flex: none; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--fill2); display: grid; place-items: center; color: transparent; }
+.gx .gx-check.is-on { background: var(--brand); color: var(--onbrand); box-shadow: none; }
+/* 질문 */
+.gx .gx-onb-opts { display: grid; gap: 12px; padding: 8px var(--gutter); }
+.gx .gx-onb-opt { display: flex; flex-direction: column; gap: 4px; padding: 20px; border: 0; border-radius: 16px; background: var(--fill); color: var(--text); text-align: left; font: inherit; cursor: pointer;
+  transition: transform var(--d1) var(--e-std), background-color var(--d2) var(--e-std); }
+.gx .gx-onb-opt span { text-wrap: pretty; }
+.gx .gx-onb-opt.is-on { background: var(--brand); color: var(--onbrand); }
+.gx .gx-onb-opt.is-on .gx-sub { color: inherit; opacity: .78; }
+.gx .gx-onb-opt:active { transform: scale(.985); }
+/* 아래 버튼: 화면 아래에 붙음 */
+.gx .gx-onb-cta { position: sticky; bottom: 0; display: grid; place-items: center; min-height: 84px;
+  padding: 12px calc(var(--onb-side) + var(--gutter)) calc(20px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(to top, var(--bg) 70%, transparent); }
+.gx .gx-onb-hint { padding: 12px 0; }
+@media (min-width: 900px) {
+  .gx .gx-onb-top { height: 64px; }
+  .gx .gx-onb-head { padding-top: 32px; }
+  .gx .gx-onb-cta { padding-bottom: 32px; }
+}

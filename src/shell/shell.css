@@ -3,7 +3,7 @@
 /* 모바일 화면 스택: 들어올 때 260ms 감속, 나갈 때 180ms 가속(아래 화면이 미리 보임). 줄인 움직임이면 --d*가 1ms라 바로. */
 .gx .gx-stack { position: absolute; inset: 0; z-index: 80; background: var(--bg); overflow: hidden auto; overscroll-behavior: contain;
   padding-top: env(safe-area-inset-top, 0px); animation: gx-push var(--d3) var(--e-out); }
-.gx .gx-stack.is-detail { padding-top: 0; overflow: hidden; }
+.gx .gx-stack.is-detail, .gx .gx-stack.is-own { padding-top: 0; overflow: hidden; }   /* 상세·설정은 스스로 스크롤한다 */
 .gx .gx-stack.is-out { animation: gx-pushout var(--d2) var(--e-in) forwards; pointer-events: none; }
 .gx .gx-stack[hidden] { display: none; }
 @keyframes gx-push { from { transform: translateX(24px); opacity: .4; } }

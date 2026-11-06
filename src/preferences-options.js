@@ -1,4 +1,4 @@
-// 온보딩과 설정 화면이 함께 쓰는 선택지·문구. (컴포넌트는 preferences-ui.jsx)
+// 온보딩·설정·시트가 함께 쓰는 선택지·문구. (화면은 screens2/Onboarding.jsx·Settings.jsx, 시트는 shell/ShellSheets.jsx)
 
 import { storage } from './storage/index.js';
 

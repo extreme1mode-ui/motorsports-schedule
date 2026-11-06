@@ -1,0 +1,28 @@
+/* 설정(UX v2 SPEC 6장). 모바일은 화면 스택 안에서 스스로 스크롤(위 막대: 큰 제목이 지나간 뒤 '설정' + 선), 데스크톱은 본문 왼쪽 시작선에 맞춘 좁은 열. */
+.gx .gx-settings { background: var(--bg); color: var(--text); padding-bottom: 40px; container-type: inline-size; }
+.gx .gx-settings.is-mob { height: 100dvh; overflow: hidden auto; overscroll-behavior: contain; padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px)); }
+.gx .gx-settings.is-desk { max-width: 720px; }
+.gx .gx-set-bar { position: sticky; top: 0; z-index: 4; height: calc(56px + env(safe-area-inset-top, 0px)); padding: env(safe-area-inset-top, 0px) 8px 0; display: flex; align-items: center; justify-content: space-between; gap: 4px;
+  background: var(--bg); transition: box-shadow var(--d2) var(--e-std); }
+.gx .gx-set-bar-t { flex: 1; min-width: 0; text-align: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; opacity: 0; transition: opacity var(--d2) var(--e-std); }
+.gx .gx-set-bar.is-on { box-shadow: 0 1px 0 var(--line); }
+.gx .gx-set-bar.is-on .gx-set-bar-t { opacity: 1; }
+.gx .gx-set-top { padding: 8px var(--gutter) 4px; }
+.gx .gx-set-top h1 { margin: 0; }
+.gx .gx-settings.is-desk .gx-set-top { padding: 24px 0 8px; }
+.gx .gx-settings.is-desk .gx-lh, .gx .gx-settings.is-desk .gx-set-row { padding-left: 0; padding-right: 0; }
+.gx .gx-settings.is-desk .gx-set-row + .gx-set-row::before { right: 0; }
+.gx .gx-set-row .gx-row-c > span:first-child { white-space: normal; text-wrap: balance; }
+.gx .gx-set-row .gx-row-s { white-space: normal; text-wrap: pretty; }
+.gx .gx-set-row .gx-row-r { max-width: 55%; }
+.gx .gx-set-row .gx-row-r .gx-t15 { text-align: right; }
+.gx .gx-set-row.is-static { cursor: default; }
+.gx .gx-set-row.is-static:active { background: none; }
+.gx .gx-set-row.is-static:active .gx-row-c { transform: none; }
+.gx .gx-set-row:not(:has(.gx-tile)) + .gx-set-row::before { left: var(--gutter); }
+.gx .gx-settings.is-desk .gx-set-row:not(:has(.gx-tile)) + .gx-set-row::before { left: 0; }
+/* '안 보기' 시리즈: 꺼진 것처럼(회색 타일 · 글자 text3) */
+.gx .gx-set-row.is-off .gx-row-c .gx-t17 { color: var(--text3); }
+.gx .gx-set-row.is-off .gx-row-s { color: var(--text3); }
+.gx .gx-set-foot { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 32px var(--gutter) 0; }
+@container (max-width: 359px) { .gx .gx-settings .gx-lh-l { flex-direction: column; align-items: flex-start; gap: 2px; } }

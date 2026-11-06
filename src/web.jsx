@@ -4,12 +4,12 @@ import { TOKENS } from './primitives.jsx';
 import { GantryLockup, GantrySymbol } from './Brand.jsx';
 import { getCurrentNow, useScheduleData, filterRacesByPreferences } from './schedule/index.js';
 import { Home } from './home/Home.jsx';
-import { WebFavorites } from './web-screens.jsx';
+import { FavoritesScreen } from './screens2/Favorites.jsx';
 import { DetailDrawer } from './screens2/Detail.jsx';
 import { ScheduleScreen } from './screens2/Schedule.jsx';
 import { SeriesScreen } from './screens2/Series.jsx';
-import { Settings } from './settings.jsx';
-import { useT } from './i18n/index.js';
+import { SettingsScreen } from './screens2/Settings.jsx';
+import { t, useT } from './i18n/index.js';
 import { track } from './analytics.js';
 import { useRaceLink } from './share-link.js';
 import { withViewTransition, useScrollMemory, useFocusViewTitle, usePresence } from './use-motion.js';
@@ -36,9 +36,10 @@ export function useViewport() {
   return { w, tier, isWeb: w >= 900 };
 }
 
-export function WebApp({ theme, setTheme, themePref, onShareLinkDone, ...prefs }) {
+export function WebApp({ theme, setTheme, themePref, onShareLinkDone, startRedo, entry, onEntryDone, ...prefs }) {
   const { preferences } = prefs;
-  const [view, setView] = useState('home');
+  // 온보딩 다시 하기를 X로 닫고 돌아오면 설정부터(entry)
+  const [view, setView] = useState(() => (entry?.open === 'settings' ? 'settings' : 'home'));
   const [categoryFilter, setCategoryFilter] = useState(null);
   // 서랍 스택(UX v2): 상세 → (다음 라운드 같은) 다른 상세. 위에서부터 하나씩 빠지고, 닫기(X·바깥)는 서랍 전체를 닫는다.
   const [dstack, setDstack] = useState([]);           // [{ t: 'detail', id }]
@@ -141,9 +142,17 @@ export function WebApp({ theme, setTheme, themePref, onShareLinkDone, ...prefs }
   }, [backDrawer, shell.sheet]);
   useScrollEdges(rootRef);
   useDevShellHook(shell);
+  // 온보딩 다시 하기를 마치고 돌아오면 스낵바 + 되돌리기(entry, 한 번)
+  const entryRef = useRef(entry);
+  useEffect(() => {
+    const e = entryRef.current;
+    if (!e) return;
+    if (e.toast) shell.toast(e.toast.text, { label: t(preferences.locale || 'ko', 'toast.undo'), fn: e.toast.undo });
+    onEntryDone?.();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const ctx = useMemo(() => ({
     push: (route) => { if (route.t === 'settings') onGo('settings'); else if (route.t === 'series') onGo('series', route.cat); else setDstack((d) => [...d, route]); },
-    back: backDrawer, openSettings: () => onGo('settings'), openSheet: shell.openSheet, toast: shell.toast, mem: shell.mem, desktop: true,
+    back: backDrawer, openSettings: () => onGo('settings'), openSheet: shell.openSheet, toast: shell.toast, mem: shell.mem, desktop: true, go: onGo,
   }), [onGo, backDrawer, shell.openSheet, shell.toast, shell.mem]);
   const drawerOpen = dstack.length > 0;
 
@@ -172,9 +181,9 @@ export function WebApp({ theme, setTheme, themePref, onShareLinkDone, ...prefs }
             preferences={preferences} favorites={favorites} toggleFav={toggleFav} onOpenRace={onOpenRace} onGo={onGo} setSeriesMode={prefs.setSeriesMode} />}
           {view === 'schedule' && <ScheduleScreen races={raceList} onOpenRace={openFromSchedule} now={now} preferences={preferences} seasonYear={safeSeasonYear} />}
           {view === 'series' && <SeriesScreen races={raceList} onOpenRace={openFromSeries} now={now} preferences={preferences} seasonYear={safeSeasonYear} initialCategory={categoryFilter || undefined} />}
-          {view === 'fav' && <WebFavorites theme={theme} races={raceList} myRaces={myRaces}
-            favorites={favorites} onOpenRace={openFromSaved} toggleFav={toggleFav} tier={tier} />}
-          {view === 'settings' && <Settings theme={theme} themePref={themePref} setTheme={setTheme} onGo={onGo} {...prefs} />}
+          {view === 'fav' && <FavoritesScreen races={raceList} myRaces={myRaces} now={now} preferences={preferences}
+            favorites={favorites} onOpenRace={openFromSaved} toggleFav={toggleFav} />}
+          {view === 'settings' && <SettingsScreen preferences={preferences} themePref={themePref} onRedo={startRedo} />}
         </div>
       </main>
 

@@ -281,13 +281,25 @@ function LiveBar({ race, s }) {
   const tick = useTick(true);
   return <Progress from={s.startUtc} to={getSessionEnd(race, s)} now={tick} label={fmt.sessionLabel(s)} />;
 }
-function TLRow({ it, now, dim, compact, onOpen }) {
+function TLRow({ it, now, dim, compact, onOpen, still = false }) {
   const fmt = useFormat(); const tr = useT();
   const { s, r } = it;
   const st = it.end != null && now >= it.end ? 'done' : now >= it.at ? 'live' : 'upcoming';
   const soon = st === 'upcoming' && it.at - now < 2 * HOUR_MS;
   const stx = st === 'live' ? <LiveText /> : st === 'done' ? <span className="gx-ter">{tr('status.done')}</span>
     : it.at - now < 12 * HOUR_MS ? <span className={soon ? 'gx-st-next' : 'gx-sub'}><Roll>{fmt.relShort(it.at, now)}</Roll></span> : null;
+  // still: 온보딩 미리보기 — 누르지 않는 줄, 상태 글자 없음
+  if (still) {
+    return (
+      <div className="gx-row gx-tl-row is-static">
+        <span className="gx-tl-time"><b className="gx-t17">{fmt.time(it.at)}</b></span>
+        <span className="gx-row-c">
+          <span className={cx('gx-row-t gx-t17', s.kind === 'race' && 'gx-w600')}>{fmt.sessionLabel(s)}</span>
+          <span className="gx-row-s gx-t13"><Dot series={r.series} />{joinDot([r.series, fmt.race(r).shortName])}</span>
+        </span>
+      </div>
+    );
+  }
   return (
     <button type="button" className={cx('gx-row gx-tl-row', (st === 'done' || dim) && 'is-dim', st === 'live' && 'is-live')} {...prefetchHandlers(r)} onClick={() => onOpen(r)}>
       <span className="gx-tl-time"><b className="gx-t17">{fmt.time(it.at)}</b></span>
@@ -360,6 +372,24 @@ function Timeline({ plan, now, columns, dimOf, onOpen, onMore }) {
         <button type="button" className="gx-btn is-weak" onClick={onMore}>{tr('home.tl.more')}</button>
       </div>
     </section>
+  );
+}
+
+// 온보딩 미리보기(SPEC 7장): 홈과 같은 시간표 줄을 날짜별로, 누르지 않는 모양으로
+export function PreviewDays({ plan, now }) {
+  const fmt = useFormat();
+  return (
+    <>
+      {plan.days.map((d) => {
+        const head = fmt.dayHead(d.items[0].at, now);
+        return (
+          <div key={d.key} className="gx-tl-day">
+            <div className="gx-tl-dh"><span className="gx-t15 gx-w600">{head.main}</span><span className="gx-t13 gx-ter">{head.sub}</span></div>
+            {d.items.map((it) => <TLRow key={`${it.r.id}-${it.s.tEn}-${it.at}`} it={it} now={now} still />)}
+          </div>
+        );
+      })}
+    </>
   );
 }
 

@@ -1,15 +1,15 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useEffectEvent, useCallback, useMemo, useRef } from 'react';
 import { flushSync } from 'react-dom';
-import { getCurrentNow, useScheduleData, usePreferences, filterRacesByPreferences } from './schedule/index.js';
+import { getCurrentNow, useScheduleData, usePreferences, filterRacesByPreferences, detectTimezone, SUPPORTED_SERIES } from './schedule/index.js';
 import { TOKENS } from './primitives.jsx';
 import { Home } from './home/Home.jsx';
-import { Favorites } from './screens.jsx';
+import { FavoritesScreen } from './screens2/Favorites.jsx';
 import { RaceDetailV2 } from './screens2/Detail.jsx';
 import { ScheduleScreen } from './screens2/Schedule.jsx';
 import { SeriesScreen } from './screens2/Series.jsx';
 import { WebApp, useViewport } from './web.jsx';
-import { Onboarding } from './onboarding.jsx';
-import { Settings } from './settings.jsx';
+import { OnboardingScreen } from './screens2/Onboarding.jsx';
+import { SettingsScreen } from './screens2/Settings.jsx';
 import { readTheme, systemTheme } from './preferences-options.js';
 import { FormatProvider } from './format-context.jsx';
 import { t, useT } from './i18n/index.js';
@@ -23,7 +23,6 @@ import { ShellSheets } from './shell/ShellSheets.jsx';
 import { activeElement, focusBack, prefersReducedMotion, useScrollEdges } from './shell/utils.js';
 import './shell/shell.css';
 import { Snackbar } from './ui2/Snackbar.jsx';
-import { GearBtn } from './ui2/parts.jsx';
 import { Icon } from './ui2/Icon.jsx';
 import { storage } from './storage/index.js';
 import { setAppTitle } from './document-title.js';
@@ -69,17 +68,48 @@ export default function Root() {
     track('app_opened', { locale, timezone, onboarded, days_since_first: getDaysSinceFirstVisit(), ...firstTouchProps() });
   }, [prefs.preferences]);
 
+  // L14(결정 19): 앱 시작·창 포커스 때 기기 시간대가 저장값과 다르면 따라간다. 설정의 시간대 줄은 보여 주기만 한다.
+  const syncTimezone = useEffectEvent(() => {
+    const tz = detectTimezone();
+    if (!tz || tz === prefs.preferences.timezone) return;
+    prefs.setTimezone(tz);
+    track('timezone_changed', { detected: true });
+  });
+  useEffect(() => {
+    syncTimezone();
+    const on = () => { if (document.visibilityState !== 'hidden') syncTimezone(); };
+    window.addEventListener('focus', on);
+    document.addEventListener('visibilitychange', on);
+    return () => { window.removeEventListener('focus', on); document.removeEventListener('visibilitychange', on); };
+  }, []);
+
+  // 설정에서 '처음 설정 다시 하기'(SPEC 7장): 지금 설정을 기억해 두고 온보딩을 연다(onboarded는 건드리지 않는다).
+  // X로 닫으면 설정은 그대로 설정 화면으로, 마치면 홈 + 스낵바 '되돌리기'(기억해 둔 보는 범위로). 셸은 entry로 그 한 번을 받는다.
+  const [redo, setRedo] = useState(null);       // { prev: { F1: 'all', … } } | null
+  const [entry, setEntry] = useState(null);     // { open: 'settings' } | { toast: { text, undo } } | null
+  const startRedo = useCallback(() => setRedo({ prev: { ...prefs.preferences.series } }), [prefs.preferences.series]);
+  const { setSeriesMode } = prefs;
+  const closeRedo = useCallback(() => { setRedo(null); setEntry({ open: 'settings' }); }, []);
+  const endOnboarding = useCallback(({ text } = {}) => {
+    if (!redo) return;   // 처음 온보딩은 지금처럼 스플래시로 들어간다(스낵바 없음)
+    const prev = redo.prev;
+    setRedo(null);
+    setEntry({ toast: { text, undo: () => SUPPORTED_SERIES.forEach((id) => setSeriesMode(id, prev[id] || 'off')) } });
+  }, [redo, setSeriesMode]);
+  const onEntryDone = useCallback(() => setEntry(null), []);
+
   // 공유 주소로 들어왔으면 온보딩보다 상세를 먼저 보여준다. 상세를 닫으면 평소 온보딩이 나온다.
   // (온보딩 화면 자체는 그대로다 — 여기서 순서만 바꾼다.)
   const [shareFirst, setShareFirst] = useState(hasRaceLinkInPath);
   const onShareLinkDone = useCallback(() => setShareFirst(false), []);
 
   // 언어·시간대·국가는 preferences에서. 바꾸면 컨텍스트가 갱신돼 즉시 반영된다.
-  const screen = !prefs.preferences.onboarded && !shareFirst
-    ? <Onboarding {...prefs} />
-    : isWeb
-      ? <WebApp theme={theme} setTheme={setTheme} themePref={themePref} onShareLinkDone={onShareLinkDone} {...prefs} />
-      : <App theme={theme} setTheme={setTheme} themePref={themePref} onShareLinkDone={onShareLinkDone} {...prefs} />;
+  const shellProps = { theme, setTheme, themePref, onShareLinkDone, startRedo, entry, onEntryDone, ...prefs };
+  const screen = redo
+    ? <OnboardingScreen {...prefs} rerun onClose={closeRedo} onEnd={endOnboarding} />
+    : !prefs.preferences.onboarded && !shareFirst
+      ? <OnboardingScreen {...prefs} onEnd={endOnboarding} />
+      : isWeb ? <WebApp {...shellProps} /> : <App {...shellProps} />;
   return (
     <FormatProvider locale={prefs.preferences.locale} timeZone={prefs.preferences.timezone} country={prefs.preferences.country}>
       {/* 서킷 맵 레이어는 모바일·웹 셸 바깥에 둔다 — 창 크기로 셸이 바뀌어도 지도와 상태가 유지된다. */}
@@ -99,11 +129,12 @@ export default function Root() {
 // 모바일 셸(UX v2 SPEC 8장): 탭 4개 + 화면 스택(상세·시리즈 상세·설정). 탭 화면은 지금처럼 한 스크롤 상자 + 탭별 스크롤 기억.
 // 스택 화면은 들어올 때 260ms 감속, 나갈 때 180ms 가속(그동안 아래 화면이 보인다). 닫히면 연 요소로 포커스를 돌려준다.
 // Esc = 뒤로(시트가 열려 있으면 시트가, 서킷 맵이 열려 있으면 지도가 먼저). 지금 탭을 다시 누르면 맨 위로.
-function App({ theme, setTheme, themePref, onShareLinkDone, ...prefs }) {
+function App({ theme, setTheme, themePref, onShareLinkDone, startRedo, entry, onEntryDone, ...prefs }) {
   const { preferences } = prefs;
   const [view, setView] = useState('home');
   const [categoryFilter, setCategoryFilter] = useState(null);
-  const [stack, setStack] = useState([]);            // [{ t: 'detail', id } | { t: 'settings' } | { t: 'series', cat }]
+  // 온보딩 다시 하기를 X로 닫고 돌아오면 설정부터(entry)
+  const [stack, setStack] = useState(() => (entry?.open === 'settings' ? [{ t: 'settings' }] : []));   // [{ t: 'detail', id } | { t: 'settings' } | { t: 'series', cat }]
   const [leaving, setLeaving] = useState(false);      // 맨 위 화면이 나가는 180ms 동안
   const [favorites, setFavorites] = useState(() => storage.favorites.read());
   const [now, setNow] = useState(() => getCurrentNow());
@@ -229,19 +260,26 @@ function App({ theme, setTheme, themePref, onShareLinkDone, ...prefs }) {
 
   useScrollEdges(rootRef);
   useDevShellHook(shell);
+  // 온보딩 다시 하기를 마치고 돌아오면 스낵바 + 되돌리기(entry, 한 번)
+  const entryRef = useRef(entry);
+  useEffect(() => {
+    const e = entryRef.current;
+    if (!e) return;
+    if (e.toast) shell.toast(e.toast.text, { label: t(preferences.locale || 'ko', 'toast.undo'), fn: e.toast.undo });
+    onEntryDone?.();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const covered = stack.length > 0;
   const top = stack[stack.length - 1];
   const ctx = useMemo(() => ({
-    push, back, openSettings: () => push({ t: 'settings' }), openSheet: shell.openSheet, toast: shell.toast, mem: shell.mem, desktop: false,
-  }), [push, back, shell.openSheet, shell.toast, shell.mem]);
-  const settingsGo = useCallback((v, arg) => { if (v === 'home') back(); else onGo(v, arg); }, [back, onGo]);
+    push, back, openSettings: () => push({ t: 'settings' }), openSheet: shell.openSheet, toast: shell.toast, mem: shell.mem, desktop: false, go: (v, arg) => onGo(v, arg),
+  }), [push, back, onGo, shell.openSheet, shell.toast, shell.mem]);
   const route = (r, isTop) => {
     if (r.t === 'detail') {
       const race = raceList.find((x) => x.id === r.id);
       return race ? <RaceDetailV2 race={race} now={now} races={raceList} onOpenRace={onOpenRace} onClose={isTop ? back : () => {}} favorites={favorites} toggleFav={toggleFav} preferences={preferences} /> : null;
     }
-    if (r.t === 'settings') return <Settings theme={theme} themePref={themePref} setTheme={setTheme} onGo={settingsGo} {...prefs} />;
+    if (r.t === 'settings') return <SettingsScreen preferences={preferences} themePref={themePref} onRedo={startRedo} />;
     if (r.t === 'series') return (
       <>
         <div className="gx-stack-bar"><button type="button" className="gx-iconbtn" aria-label={t(preferences.locale || 'ko', 'aria.back')} onClick={back}><Icon n="back" /></button></div>
@@ -260,6 +298,7 @@ function App({ theme, setTheme, themePref, onShareLinkDone, ...prefs }) {
       height: '100dvh',
       overflow: 'hidden',
       background: 'var(--bg)',
+      color: 'var(--text)',
       paddingTop: 'env(safe-area-inset-top, 0px)',
     }}>
       {/* 탭 화면 — 스택이 덮고 있으면 inert(나가는 동안은 아래에서 미리 보인다) */}
@@ -272,19 +311,15 @@ function App({ theme, setTheme, themePref, onShareLinkDone, ...prefs }) {
         {view === 'home' && <Home theme={theme} setTheme={setTheme} now={now} races={raceList} myRaces={myRaces} preferences={preferences} favorites={favorites} toggleFav={toggleFav} onOpenRace={onOpenRace} onGo={onGo} setSeriesMode={prefs.setSeriesMode} />}
         {view === 'schedule' && <ScheduleScreen races={raceList} onOpenRace={openFromSchedule} now={now} preferences={preferences} seasonYear={safeSeasonYear} />}
         {view === 'series' && <SeriesScreen races={raceList} onOpenRace={openFromSeries} now={now} preferences={preferences} seasonYear={safeSeasonYear} initialCategory={categoryFilter || undefined} />}
-        {view === 'fav' && <Favorites theme={theme} races={raceList} myRaces={myRaces} favorites={favorites} onOpenRace={openFromSaved} toggleFav={toggleFav} />}
+        {view === 'fav' && <FavoritesScreen races={raceList} myRaces={myRaces} now={now} preferences={preferences} favorites={favorites} onOpenRace={openFromSaved} toggleFav={toggleFav} />}
       </div>
-      {/* 설정 톱니 자리(결정 18) — 홈은 위 막대에 이미 있다 */}
-      {/* 스택이 덮는 동안에도 지우지 않는다(inert) — 설정을 닫으면 포커스가 이 톱니로 돌아와야 한다 */}
-      {/* 홈·일정·시리즈는 자기 제목 줄에 있다. 즐겨찾기는 6단계에서 옮긴다 */}
-      {view === 'fav' && <div className="gx-gear-slot" inert={covered || undefined}><GearBtn onClick={() => push({ t: 'settings' })} /></div>}
 
       {/* 화면 스택: 맨 위만 보이고, 나가는 동안은 바로 아래도 보인다 */}
       {stack.map((r, i) => {
         const isTop = i === stack.length - 1;
         const visible = isTop || (leaving && i === stack.length - 2);
         return (
-          <div key={`${i}-${r.t}-${r.id || r.cat || ''}`} className={`gx-stack${r.t === 'detail' ? ' is-detail' : ''}${leaving && isTop ? ' is-out' : ''}`}
+          <div key={`${i}-${r.t}-${r.id || r.cat || ''}`} className={`gx-stack${r.t === 'detail' ? ' is-detail' : r.t === 'settings' ? ' is-own' : ''}${leaving && isTop ? ' is-out' : ''}`}
             hidden={!visible} inert={!isTop || undefined}>
             {route(r, isTop)}
           </div>
