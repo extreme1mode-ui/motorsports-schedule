@@ -149,7 +149,6 @@
 .gx .gx-tl-dh { position: sticky; top: 52px; z-index: 2; display: flex; align-items: baseline; gap: 8px; padding: 12px var(--gutter) 4px; background: var(--bg); }
 [data-plat="toss"] .gx .gx-tl-dh { top: 0; }   /* 토스는 위 막대(52px)가 없다 — 날짜 머리가 맨 위에 붙게(프로토타입 12판) */
 .gx .gx-tl-row { min-height: 60px; padding-top: 10px; padding-bottom: 10px; }
-.gx .gx-tl-row + .gx-tl-row::before { left: 90px; }
 .gx .gx-tl-time { width: 56px; flex: none; display: flex; flex-direction: column; line-height: 1.25; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .gx .gx-tl-time b { font-weight: 700; }
 .gx .gx-tl-row .gx-row-s .gx-dot { margin-right: 6px; vertical-align: 1px; }
@@ -169,7 +168,7 @@
 .gx .gx-tl-cols .gx-tl-dh { position: static; padding-left: 0; padding-right: 0; }
 .gx .gx-tl-cols .gx-tl-row { gap: 10px; padding-left: 0; padding-right: 0; }
 .gx .gx-tl-cols .gx-tl-time { width: 52px; }
-.gx .gx-tl-cols .gx-tl-row + .gx-tl-row::before { left: 62px; right: 0; }
+.gx .gx-tl-cols .gx-tl-row + .gx-tl-row::before { left: 0; right: 0; }
 .gx .gx-tl-cols .gx-tl-row.is-live { margin: 0; width: 100%; padding-left: 8px; padding-right: 8px; }
 .gx .gx-tl-cols .gx-now { padding-left: 0; padding-right: 0; }
 
@@ -196,7 +195,6 @@
 .gx .gx-disc .gx-btn.is-done { color: var(--text2); cursor: default; }
 
 /* ---------- 이후 일정 ---------- */
-.gx .gx-later + .gx-later::before { left: 78px; }
 .gx .gx-leaf { width: 44px; flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.15; font-variant-numeric: tabular-nums; }
 .gx .gx-leaf b { font-weight: 700; }
 .gx .gx-later .gx-row-s .gx-dot { margin-right: 6px; vertical-align: 1px; }
@@ -220,11 +218,10 @@
 .gx .gx-rail-card { border-radius: var(--r-box); background: var(--callout); padding: 0 16px 8px; min-width: 0; }
 .gx .gx-rail-card .gx-lh { padding: 16px 0 8px; }
 .gx .gx-rail-card .gx-row { padding-left: 0; padding-right: 0; }
-.gx .gx-rail-card .gx-row + .gx-row::before { right: 0; }
+.gx .gx-rail-card .gx-row + .gx-row::before { left: 0; right: 0; }
 .gx .gx-rail-card .gx-podium, .gx .gx-rail-card .gx-disc { width: 100%; margin: 0 0 8px; padding-left: 0; padding-right: 0; background: none; }
 .gx .gx-rail-card .gx-disc-intro, .gx .gx-rail-card .gx-why { padding-left: 0; padding-right: 0; }
 .gx .gx-rail-card .gx-disc .gx-btn { width: 100%; margin: 8px 0 0; }
-.gx .gx-rail-card .gx-later + .gx-later::before { left: 58px; }
 @media (max-width: 1179px) { .gx .gx-dhome-grid { grid-template-columns: minmax(0, 1fr) 280px; gap: 28px; } }
 
 /* 토스: 위 막대 없음(네이티브 내비 바) — 톱니는 제목 옆(결정 18) */

@@ -21,7 +21,7 @@
 .gx .gx-onb-card .gx-row.is-static:active .gx-row-c { transform: none; }
 .gx .gx-onb-tl { padding: 4px 0 8px; }
 .gx .gx-onb-tl .gx-tl-dh { position: static; padding-left: 16px; padding-right: 16px; background: none; }
-.gx .gx-onb-tl .gx-tl-row + .gx-tl-row::before { left: 86px; right: 16px; }
+.gx .gx-onb-tl .gx-tl-row + .gx-tl-row::before { left: 16px; right: 16px; }
 .gx .gx-onb-values { list-style: none; margin: 20px 0 0; padding: 0 var(--gutter); display: grid; gap: 14px; }
 .gx .gx-onb-values li { display: flex; align-items: center; gap: 12px; color: var(--text2); }
 .gx .gx-onb-values svg { color: var(--text); flex: none; }
