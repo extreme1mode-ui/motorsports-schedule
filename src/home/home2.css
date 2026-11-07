@@ -162,18 +162,25 @@
 .gx .gx-tl-st { flex: none; margin-left: auto; white-space: nowrap; }
 .gx .gx-tl-foot { display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 8px var(--gutter) 20px; }
 .gx .gx-tl-foot .gx-btn { height: 44px; font-size: var(--t15); width: 100%; }
-.gx .gx-tl-cols { display: grid; gap: 0 20px; }
+.gx .gx-tl-cols { display: grid; gap: 0 40px; }   /* 칸 사이 40px(홈 본문·레일 사이와 같게) */
 .gx .gx-tl-cols .gx-tl-day { min-width: 0; }
 .gx .gx-tl-cols .gx-tl-dh { position: static; padding-left: 0; padding-right: 0; }
 .gx .gx-tl-cols .gx-tl-row { gap: 10px; padding-left: 0; padding-right: 0; }
 .gx .gx-tl-cols .gx-tl-time { width: 52px; }
 .gx .gx-tl-cols .gx-tl-row + .gx-tl-row::before { left: 0; right: 0; }
 .gx .gx-tl-cols .gx-tl-row.is-live { margin: 0; width: 100%; padding-left: 8px; padding-right: 8px; }
-/* 하루 한 칸이 250px보다 좁아지면 두 칸으로 흘린다(위→아래, 그다음 칸). 하루 묶음은 칸 사이에서 나뉘지 않게 */
+/* 하루 한 칸이 250px보다 좁아지면(칸 사이 40px 포함) 두 칸으로 흘린다(위→아래, 그다음 칸). 하루 묶음은 칸 사이에서 나뉘지 않게.
+   같은 칸에 날짜가 이어지면 그 사이 32px(칸 맨 위로 넘어간 날짜의 여백은 브라우저가 0으로 자른다) */
 .gx .gx-tl-sec { container: gxtl / inline-size; }
 .gx .gx-tl-cols .gx-tl-day { break-inside: avoid; }
-@container gxtl (max-width: 799px) { .gx .gx-tl-cols.is-d3 { display: block; columns: 2; column-gap: 20px; } }
-@container gxtl (max-width: 1075px) { .gx .gx-tl-cols.is-d4 { display: block; columns: 2; column-gap: 20px; } }
+@container gxtl (max-width: 829px) {
+  .gx .gx-tl-cols.is-d3 { display: block; columns: 2; column-gap: 40px; }
+  .gx .gx-tl-cols.is-d3 .gx-tl-day + .gx-tl-day { margin-top: 32px; }
+}
+@container gxtl (max-width: 1119px) {
+  .gx .gx-tl-cols.is-d4 { display: block; columns: 2; column-gap: 40px; }
+  .gx .gx-tl-cols.is-d4 .gx-tl-day + .gx-tl-day { margin-top: 32px; }
+}
 
 /* ---------- 지난 주말 결과 ---------- */
 .gx .gx-podium { display: block; width: calc(100% - var(--gutter) * 2); margin: 4px var(--gutter) 24px; padding: 16px; border: 0; border-radius: var(--r-box); background: var(--callout);
