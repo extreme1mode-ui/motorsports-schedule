@@ -20,8 +20,10 @@
 .gx .gx-favs.is-desk .gx-save-btn { right: 0; }
 .gx .gx-favs.is-desk .gx-lh { padding-left: 0; padding-right: 0; }
 
-/* 데스크톱: 다가오는 · 지난 두 칸 */
+/* 데스크톱: 다가오는 · 지난 두 칸. 담아 볼 만한 경기는 그 아래 1px 선 뒤, 같은 두 칸 격자(줄이 화면 끝까지 늘어나지 않게) */
 .gx .gx-fav-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: start; }
+.gx .gx-favs.is-desk .gx-band { height: 1px; margin: 32px 0 0; background: var(--line); }
+.gx .gx-favs.is-desk .gx-sugg-list { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 40px; }
 
 /* 입장권 */
 .gx .gx-tk-list { display: grid; gap: 12px; padding: 4px var(--gutter) 8px; container-type: inline-size; }

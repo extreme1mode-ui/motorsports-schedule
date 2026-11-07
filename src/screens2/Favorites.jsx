@@ -1,4 +1,5 @@
 // 즐겨찾기(UX v2 SPEC 5장): 제목 + '담은 경기 N개' + 톱니 · 다가오는 경기 · 지난 경기(3개 뒤 접기) · 빈 화면(안내 + 일정 둘러보기 + 담아 볼 만한 경기).
+// 위계: 내가 담은 경기(표)가 먼저, 담아 볼 만한 경기는 늘 그 아래. 빈 화면에서 담은 뒤에도 표가 위로 오고 추천은 아래에 남는다.
 // 경기 한 장 = 입장권: 몸통 + 절취선(반원 홈은 CSS mask) + 스텁(결승 · 시각 · 남은 때 · 바코드).
 // 지난 경기는 경기 id로 정해지는 찢긴 결·기울기, 취소는 '취소' 도장, 현장에 간 지난 경기는 '현장 관람' 도장.
 // 하트로 빼면(결정 17) 이 화면에 있는 동안 흐리게 남고 다시 누르면 다시 담긴다. 다른 탭으로 가면(화면이 내려가면) 정리된다.
@@ -157,6 +158,26 @@ export function FavoritesScreen({ races, myRaces, now, preferences, favorites, t
   );
   const pastShown = allPast ? past : past.slice(0, PAST_FOLD);
 
+  // 담아 볼 만한 경기: 담은 경기 아래(빈 화면이면 안내 아래)
+  const suggSec = emptyMode && sugg.length > 0 && (
+    <section aria-labelledby="gx-fav-sugg">
+      <ListHeader id="gx-fav-sugg" title={tr('fav.suggest')} />
+      <div className="gx-sugg-list">
+        {sugg.map((r, i) => {
+          const on = favorites.has(r.id);
+          return (
+            <div key={r.id} className="gx-row-wrap gx-sugg">
+              <RaceRow race={r} now={at} meta={getRoundText(r, fmt.locale) || r.series}
+                onOpen={() => { track('recommendation_clicked', { series: r.series, position: i }); onOpenRace(r, 'recommendation'); }} />
+              <button type="button" className={cx('gx-save-btn gx-t15', on && 'is-on')} aria-pressed={on} aria-label={tr('aria.saveRace', { name: fmt.race(r).shortName })}
+                onClick={() => toggleFav(r.id)}>{on ? <><Icon n="check" s={16} />{tr('fav.savedShort')}</> : tr('fav.save')}</button>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+
   const upSec = up.length > 0 && (
     <section aria-labelledby="gx-fav-up">
       <ListHeader id="gx-fav-up" title={tr('fav.upcoming')} sub={tr('list.count', { n: up.length })} />
@@ -180,36 +201,13 @@ export function FavoritesScreen({ races, myRaces, now, preferences, favorites, t
         <div><h1 className="gx-t26" data-view-title tabIndex={-1}>{tr('fav.title')}</h1>{savedN > 0 && <span className="gx-t15 gx-sub">{tr('fav.subtitle', { n: savedN })}</span>}</div>
         {!desktop && <div className="gx-top-acts"><GearBtn onClick={() => shell.openSettings()} /></div>}
       </div>
-      {emptyMode && (
-        <>
-          {!list.length && (
-            <div className="gx-empty">
-              <span className="gx-empty-ic"><Icon n="heart" s={28} /></span>
-              <b className="gx-t20">{tr('fav.emptyTitle')}</b>
-              <p className="gx-t15 gx-sub">{tr('fav.emptyBody')}</p>
-              <button type="button" className="gx-btn is-weak" onClick={() => shell.go?.('schedule')}>{tr('fav.browse')}</button>
-            </div>
-          )}
-          {sugg.length > 0 && (
-            <>
-              <Band />
-              <section aria-labelledby="gx-fav-sugg">
-                <ListHeader id="gx-fav-sugg" title={tr('fav.suggest')} />
-                {sugg.map((r, i) => {
-                  const on = favorites.has(r.id);
-                  return (
-                    <div key={r.id} className="gx-row-wrap gx-sugg">
-                      <RaceRow race={r} now={at} meta={getRoundText(r, fmt.locale) || r.series}
-                        onOpen={() => { track('recommendation_clicked', { series: r.series, position: i }); onOpenRace(r, 'recommendation'); }} />
-                      <button type="button" className={cx('gx-save-btn gx-t15', on && 'is-on')} aria-pressed={on} aria-label={tr('aria.saveRace', { name: fmt.race(r).shortName })}
-                        onClick={() => toggleFav(r.id)}>{on ? <><Icon n="check" s={16} />{tr('fav.savedShort')}</> : tr('fav.save')}</button>
-                    </div>
-                  );
-                })}
-              </section>
-            </>
-          )}
-        </>
+      {!list.length && (
+        <div className="gx-empty">
+          <span className="gx-empty-ic"><Icon n="heart" s={28} /></span>
+          <b className="gx-t20">{tr('fav.emptyTitle')}</b>
+          <p className="gx-t15 gx-sub">{tr('fav.emptyBody')}</p>
+          <button type="button" className="gx-btn is-weak" onClick={() => shell.go?.('schedule')}>{tr('fav.browse')}</button>
+        </div>
       )}
       {desktop ? (
         list.length > 0 && <div className="gx-fav-cols"><div>{upSec}</div><div>{pastSec}</div></div>
@@ -220,6 +218,7 @@ export function FavoritesScreen({ races, myRaces, now, preferences, favorites, t
           {pastSec}
         </>
       )}
+      {suggSec && <><Band />{suggSec}</>}
     </div>
   );
 }
