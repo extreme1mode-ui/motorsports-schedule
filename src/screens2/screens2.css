@@ -166,15 +166,19 @@
 /* 폰: 사진은 위 82%, 아래는 같은 어둠으로 이어서 차가 글 뒤로 숨지 않게 */
 .gx .gx-series.is-mob .gx-sfh-img { bottom: auto; height: 82%; }
 .gx .gx-series.is-mob .gx-sfh-shade { background: linear-gradient(to bottom, rgba(11,12,16,.74) 0, rgba(11,12,16,.52) 26%, rgba(11,12,16,0) 40%, rgba(11,12,16,0) 48%, rgba(11,12,16,.62) 66%, rgba(11,12,16,1) 82%); }
-/* 데스크톱: 본문 폭 전체 사진, 글은 본문 열에 맞춤 */
+/* 데스크톱: 어두운 띠 위 오른쪽에 사진 상자(왼쪽은 배경으로 페이드), 글은 본문 열 왼쪽.
+   띠 전체를 cover로 채우면 넓은 폭에서 사진의 가운데 37%만 남아 차가 잘려서, 상자로 차를 통째로 보인다. */
 .gx .gx-series.is-desk .gx-sfh { min-height: 420px; }
+.gx .gx-series.is-desk .gx-sfh-img { left: auto; right: 0; width: clamp(560px, 62%, 1040px);
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 45%); mask-image: linear-gradient(to right, transparent 0, #000 45%); }
+.gx .gx-series.is-desk .gx-sfh-shade { background: linear-gradient(to bottom, rgba(8,9,12,.35) 0, rgba(8,9,12,0) 25%, rgba(8,9,12,0) 70%, rgba(8,9,12,.35) 100%); }
 .gx .gx-series.is-desk .gx-sfh-in, .gx .gx-series.is-desk .gx-ser-bar-in > .gx-ser-tabs, .gx .gx-series.is-desk .gx-ser-main {
   max-width: var(--gx-main-max, 1040px); margin: 0 auto; padding-left: var(--gx-gutter, 32px); padding-right: var(--gx-gutter, 32px); box-sizing: border-box; width: 100%; }
 .gx .gx-series.is-desk .gx-sfh-top { padding: 32px 0 4px; }
 .gx .gx-series.is-desk .gx-ser-tabs.is-on-photo { padding: 0; }
 .gx .gx-series.is-desk .gx-sfh-info { padding: 24px 0 36px; }
 .gx .gx-series.is-desk .gx-ssb { max-width: 520px; }
-.gx .gx-series.is-desk .gx-sfh-credit { right: max(12px, calc((100% - var(--gx-main-max, 1040px)) / 2 + var(--gx-gutter, 32px))); bottom: 12px; }
+.gx .gx-series.is-desk .gx-sfh-credit { right: 16px; bottom: 12px; }   /* 사진 상자 오른쪽 아래 */
 .gx .gx-series.is-desk .gx-ser-main { padding-top: 8px; padding-bottom: 64px; }
 .gx .gx-series.is-desk .gx-row, .gx .gx-series.is-desk .gx-lh, .gx .gx-series.is-desk .gx-tabs-wrap { padding-left: 0; padding-right: 0; }
 .gx .gx-series.is-desk .gx-row + .gx-row::before { right: 0; left: 0; }
