@@ -13,9 +13,11 @@ import { loadTossStorageDriver } from './storage-driver.js'
 import { installExternalLinks } from './links.js'
 import { syncTossUserKey } from './user-key.js'
 import { applySavedDataFeed, refreshDataFeed } from './data-feed.js'
+import { installSafeArea } from './safe-area.js'
 
 async function boot() {
   setPlatform(createTossPlatform())
+  installSafeArea()   // 첫 페인트 전에 아래 safe-area를 넘긴다(탭 바·아래 버튼이 홈 인디케이터 위로)
   // 저장값을 메모리에 올린 뒤 렌더한다 — 화면은 첫 렌더부터 동기로 읽는다. 토스 밖이거나 실패하면 로컬 드라이버 그대로.
   const driver = await loadTossStorageDriver()
   if (driver) setStorageDriver(driver)
