@@ -6,6 +6,7 @@ import { getCurrentNow, useScheduleData, filterRacesByPreferences } from './sche
 import { Home } from './home/Home.jsx';
 import { FavoritesScreen } from './screens2/Favorites.jsx';
 import { DetailDrawer } from './screens2/Detail.jsx';
+import { drawerWidth } from './screens2/drawer.js';
 import { ScheduleScreen } from './screens2/Schedule.jsx';
 import { SeriesScreen } from './screens2/Series.jsx';
 import { SettingsScreen } from './screens2/Settings.jsx';
@@ -197,7 +198,7 @@ export function WebApp({ theme, setTheme, themePref, onShareLinkDone, startRedo,
       {tweaks && <WebTweaks theme={theme} setTheme={setTheme} />}
 
       <ShellSheets sheet={shell.sheet} onClose={shell.closeSheet} dialog prefs={prefs} themePref={themePref} setTheme={setTheme} toast={shell.toast} />
-      <Snackbar msg={shell.snack} onHold={shell.holdSnack} hidden={!!shell.sheet} placement={drawerOpen ? 'drawer' : 'desktop'} />
+      <Snackbar msg={shell.snack} onHold={shell.holdSnack} hidden={!!shell.sheet} placement={drawerOpen ? 'drawer' : 'desktop'} drawerWidth={drawerWidth(tier)} />
     </div>
     </ShellContext.Provider>
   );

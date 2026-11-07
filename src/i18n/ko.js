@@ -238,6 +238,7 @@ export default {
   'round.n': '{n}라운드',
   'category.ALL': '전체',
   'category.ENDURANCE': '내구',
+  'series.heroName.ENDURANCE': '내구 레이스',
   'ob.s3.sub': '지금 있는 곳의 시간대({zone})를 보고 골랐어요. 다르면 바꿔 주세요.',
   'settings.timezone.offset': 'UTC{offset}',
   'series.season': '{year} 시즌',

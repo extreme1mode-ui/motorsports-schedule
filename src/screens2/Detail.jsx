@@ -20,6 +20,7 @@ import { useF1Results, resultOf, photoOf, teamColor } from '../results/results.j
 import { Avatar } from '../results/ResultsUI.jsx';
 import { useCircuitMap, hasMap } from '../circuit-map/context.js';
 import { MapEntryButton } from '../circuit-map/CircuitMap.jsx';
+import { drawerWidth } from './drawer.js';
 import { venueOfRace } from '../circuit-map/venues/index.js';
 import { Icon } from '../ui2/Icon.jsx';
 import { Dot, Band, ListHeader, LiveText, Progress, Roll, Photo, Seg, HeartBtn, CalBtn } from '../ui2/parts.jsx';
@@ -494,7 +495,7 @@ export function RaceDetailV2({ race, now, preferences, favorites, toggleFav, rac
 // 들고 나는 움직임은 index.css drawer-* 그대로
 export function DetailDrawer({ tier, closing, onExitEnd, onClose, onDismiss, ...props }) {
   const fmt = useFormat();
-  const width = tier === 'ultra' ? 560 : tier === 'desktop' ? 480 : 440;
+  const width = drawerWidth(tier);
   return (
     <div className={cx('drawer-root', closing && 'closing')} style={{ position: 'fixed', inset: 0, zIndex: 80, display: 'flex', justifyContent: 'flex-end' }}>
       <div className="drawer-backdrop" onClick={onDismiss || onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)' }} />

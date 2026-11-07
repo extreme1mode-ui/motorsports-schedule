@@ -10,7 +10,8 @@ import './ui2.css';
 import { getLayer } from './hooks.js';
 import { useT } from '../i18n/index.js';
 
-export function Snackbar({ msg, onHold, placement = 'bottom', hidden = false }) {
+// drawerWidth: 'drawer' 자리일 때 서랍 폭(스낵바 폭 = 서랍 폭 − 64)
+export function Snackbar({ msg, onHold, placement = 'bottom', hidden = false, drawerWidth }) {
   const tr = useT();
   // 사라지는 움직임 동안 마지막 문구를 붙들어 둔다
   const [last, setLast] = useState(msg);
@@ -22,6 +23,7 @@ export function Snackbar({ msg, onHold, placement = 'bottom', hidden = false }) 
       <div className="gx-vh" role="status" aria-live="polite">{live}</div>
       {m && (
         <div key={m.id} className={`gx-snack is-${placement}${msg ? '' : ' is-out'}${hidden ? ' is-hidden' : ''}`}
+          style={placement === 'drawer' && drawerWidth ? { '--gx-drawer-w': `${drawerWidth}px` } : undefined}
           onAnimationEnd={() => { if (!msg) setLast(null); }}
           onPointerEnter={() => onHold?.(true)} onPointerLeave={() => onHold?.(false)}
           onFocus={() => onHold?.(true)} onBlur={() => onHold?.(false)}>
