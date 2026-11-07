@@ -70,7 +70,8 @@ function SeriesHero({ cat, races, stats, list, now, tabs, tabsRef, onOpen, year 
     ? (lvSt === 'live' || lvSt === 'session' ? <LiveText>{tr('series.liveRace', { name: name(lv) })}</LiveText> : <span>{tr('series.weekendRace', { name: name(lv) })}</span>)
     : stats.next ? <span className="gx-nw-parts">{tr('series.heroNext', { name: name(stats.next), datetime: t ? fmt.dayDateTime(t) : tr('status.tba') })}</span> : null;
   const sub = SERIES_OF[cat].length > 1 ? joinDot([tr('series.season', { year }), ...SERIES_OF[cat]]) : tr('series.season', { year });
-  const nm = catName(tr, cat);
+  // 히어로 제목만 '내구 레이스'(프로토타입 그룹 이름). 탭 이름은 '내구' 그대로
+  const nm = cat === 'ENDURANCE' ? tr('series.heroName.ENDURANCE') : catName(tr, cat);
   return (
     <header className="gx-sfh">
       {ph && <Photo className="gx-sfh-img" key={ph.id} src={photo(ph, 'hero')} pos={pos} eager />}

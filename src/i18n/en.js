@@ -230,6 +230,7 @@ export default {
   'round.n': 'Round {n}',
   'category.ALL': 'All',
   'category.ENDURANCE': 'Endurance',
+  'series.heroName.ENDURANCE': 'Endurance',
   'ob.s3.sub': 'Picked from your time zone ({zone}). Change it if that’s wrong.',
   'settings.timezone.offset': 'UTC{offset}',
   'series.season': '{year} season',
