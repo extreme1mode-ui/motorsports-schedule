@@ -126,7 +126,7 @@
 .gx .gx-layer { position: relative; z-index: 900; }
 .gx .gx-sheet-wrap { position: fixed; inset: 0; z-index: 900; display: flex; flex-direction: column; justify-content: flex-end; }
 .gx .gx-scrim { position: absolute; inset: 0; background: var(--scrim); border: 0; padding: 0; animation: gx-fade var(--d3) var(--e-std); }
-.gx .gx-sheet { position: relative; background: var(--elev); color: var(--text); border-radius: 24px 24px 0 0; padding: 8px 0 calc(16px + env(safe-area-inset-bottom, 0px));
+.gx .gx-sheet { position: relative; background: var(--elev); color: var(--text); border-radius: 24px 24px 0 0; padding: 8px 0 calc(16px + var(--gx-sab));
   max-height: 90%; overflow-y: auto; animation: gx-up var(--d4) var(--e-out); transition: transform var(--d2) var(--e-out); }
 @keyframes gx-up { from { transform: translateY(100%); } }
 @keyframes gx-fade { from { opacity: 0; } }
@@ -152,8 +152,8 @@
   animation: gx-snackin var(--d3) var(--e-out); }
 .gx .gx-snack.is-out { animation: gx-snackout var(--d2) var(--e-in) forwards; pointer-events: none; }
 .gx .gx-snack.is-hidden { visibility: hidden; }
-.gx .gx-snack.is-tabbar { --gx-snack-bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
-.gx .gx-snack.is-bar { --gx-snack-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+.gx .gx-snack.is-tabbar { --gx-snack-bottom: calc(100px + var(--gx-sab)); }
+.gx .gx-snack.is-bar { --gx-snack-bottom: calc(88px + var(--gx-sab)); }
 .gx .gx-snack.is-desktop { left: auto; right: 32px; bottom: 32px; width: 400px; }
 /* 데스크톱 서랍 안: 오른쪽 32 · 폭 = 서랍 폭 − 64(--gx-drawer-w, 셸이 넘김) · 아래 108(서랍 아래 바 위) */
 .gx .gx-snack.is-drawer { left: auto; right: 32px; bottom: 108px; width: calc(var(--gx-drawer-w, 560px) - 64px); max-width: calc(100vw - 64px); }

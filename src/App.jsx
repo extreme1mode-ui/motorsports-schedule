@@ -307,7 +307,7 @@ function App({ theme, setTheme, themePref, onShareLinkDone, startRedo, entry, on
     );
     return null;
   };
-  const mobileBottomNavSpace = 'calc(92px + env(safe-area-inset-bottom, 0px))';
+  const mobileBottomNavSpace = 'calc(92px + var(--gx-sab))';
 
   return (
     <ShellContext.Provider value={ctx}>
@@ -370,7 +370,7 @@ function TabBar({ view, onGo }) {
   return (
     <nav style={{
       position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 70, viewTransitionName: 'nav-chrome',
-      padding: '8px 14px calc(12px + env(safe-area-inset-bottom, 0px))',
+      padding: '8px 14px calc(12px + var(--gx-sab))',
       pointerEvents: 'none',
     }}>
       <div style={{

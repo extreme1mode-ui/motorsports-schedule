@@ -146,6 +146,7 @@
 .gx .gx-lh-fold { gap: 2px; color: var(--text2); font-weight: 500; }
 .gx .gx-lh-fold svg { color: var(--text3); }
 .gx .gx-tl-dh { position: sticky; top: 52px; z-index: 2; display: flex; align-items: baseline; gap: 8px; padding: 12px var(--gutter) 4px; background: var(--bg); }
+[data-plat="toss"] .gx .gx-tl-dh { top: 0; }   /* 토스는 위 막대(52px)가 없다 — 날짜 머리가 맨 위에 붙게(프로토타입 12판) */
 .gx .gx-tl-row { min-height: 60px; padding-top: 10px; padding-bottom: 10px; }
 .gx .gx-tl-row + .gx-tl-row::before { left: 90px; }
 .gx .gx-tl-time { width: 56px; flex: none; display: flex; flex-direction: column; line-height: 1.25; font-variant-numeric: tabular-nums; white-space: nowrap; }
