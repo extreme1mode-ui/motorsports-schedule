@@ -401,7 +401,7 @@ function LastResult({ race, data, onOpen }) {
           {top.map((x, i) => (
             <span className="gx-pod-col" key={x.code}>
               {/* 1·2·3위 사진 원은 같은 크기(56) */}
-              <span className="gx-pod-av"><Avatar src={photoOf(data, x.code)} code={x.code} size={56} /></span>
+              <span className="gx-pod-av"><Avatar src={photoOf(data, x.code)} code={x.code} size={56} team={x.c} /></span>
               <span className="gx-t13 gx-sub">{i === 0 ? tr('home.last.winner') : tr('home.last.pos', { n: i + 1 })}</span>
               <span className="gx-t15 gx-w600 gx-pod-name">{x.family}</span>
               <span className="gx-t13 gx-sub gx-pod-team"><i className="gx-team-dot" style={{ background: x.c ? teamColor(x.c) : 'var(--text4)' }} />{x.team}</span>
