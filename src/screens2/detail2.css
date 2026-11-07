@@ -50,7 +50,6 @@
 
 /* 결과: 순위 · 사진 · 이름/팀 · 기록 + 점수 칸(36px, 간격 8) */
 .gx .gx-res-row { gap: 12px; }
-.gx .gx-res-row + .gx-res-row::before { left: 106px; }
 .gx .gx-res-p { width: 26px; flex: none; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
 .gx .gx-res-av { flex: none; display: grid; }
 .gx .gx-res-name b { font-weight: 600; }
@@ -70,9 +69,6 @@
 
 /* 중계·현장 줄 아이콘 */
 .gx .gx-bc-ic { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 12px; background: var(--fill); color: var(--text2); }
-.gx .gx-detail .gx-row + .gx-row::before { left: 78px; }
-.gx .gx-detail .gx-res-row + .gx-res-row::before { left: 106px; }
-.gx .gx-detail .gx-tl-row + .gx-tl-row::before { left: 90px; }
 .gx .gx-detail .gx-kv + .gx-kv::before, .gx .gx-detail .gx-link-row::before { left: var(--gutter); }
 .gx .gx-dfoot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 12px 12px var(--gutter); }
 .gx .gx-dfoot .gx-textbtn { min-height: 44px; padding: 0 8px; }

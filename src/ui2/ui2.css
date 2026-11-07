@@ -55,7 +55,8 @@
 .gx .gx-row { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 64px; padding: 12px var(--gutter); position: relative; text-align: left;
   font: inherit; color: inherit; background: none; border: 0; cursor: pointer; transition: background-color var(--d2) var(--e-std); }
 .gx .gx-row:active { background: var(--press); transform: none; }
-.gx .gx-row + .gx-row::before { content: ""; position: absolute; top: 0; right: var(--gutter); left: 74px; height: 1px; background: var(--line); }
+/* 줄 사이 선: 왼쪽·오른쪽을 줄의 좌우 여백과 같게(글자 시작선에 맞춰 왼쪽만 들이지 않는다). 여백을 바꾸는 곳은 선도 양쪽 같이 바꾼다 */
+.gx .gx-row + .gx-row::before { content: ""; position: absolute; top: 0; right: var(--gutter); left: var(--gutter); height: 1px; background: var(--line); }
 .gx .gx-row-c { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; transition: transform var(--d1) var(--e-std); }
 .gx .gx-row:active .gx-row-c { transform: scale(.985); transform-origin: left center; }
 .gx .gx-row-c > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

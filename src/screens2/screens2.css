@@ -21,7 +21,6 @@
 .gx .gx-wk + .gx-wk { border-top: 1px solid var(--line); margin-top: 8px; }   /* 주 사이: 위 1px 선 + 8px(프로토타입 12판 .wk + .wk) */
 .gx .gx-wk-head { position: sticky; top: 52px; z-index: 2; display: flex; align-items: baseline; gap: 8px; margin: 0; padding: 16px var(--gutter) 6px; background: var(--bg); font-weight: 400; }
 .gx .gx-daypanel .gx-wk-head { position: static; }
-.gx .gx-srow + .gx-srow::before { left: 76px; }
 .gx .gx-date { width: 42px; flex: none; display: flex; flex-direction: column; align-items: center; line-height: 1.15; font-variant-numeric: tabular-nums; }
 .gx .gx-date b { font-weight: 700; }
 .gx .gx-date.is-today b { background: var(--brand); color: var(--onbrand); border-radius: 50%; width: 32px; height: 32px; display: grid; place-items: center; font-size: var(--t17); }
@@ -104,7 +103,7 @@
 .gx .gx-dsched .gx-wk-head { top: 52px; padding-left: 0; padding-right: 0; }
 .gx .gx-dsched .gx-wk + .gx-wk { border-top: 1px solid var(--line); margin-top: 8px; }
 .gx .gx-dsched .gx-row { padding-left: 0; padding-right: 0; }
-.gx .gx-dsched .gx-srow + .gx-srow::before { left: 56px; right: 0; }
+.gx .gx-dsched .gx-srow + .gx-srow::before { left: 0; right: 0; }
 .gx .gx-dsched .gx-past-toggle { padding: 0; }
 .gx .gx-dcol-main { min-width: 0; }
 .gx .gx-drail { position: sticky; top: 24px; padding-top: 24px; min-width: 0; }
@@ -112,7 +111,7 @@
 .gx .gx-rail-scroll { max-height: calc(100vh - 72px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
 .gx .gx-dsched .gx-rail-card .gx-wk-head { background: transparent; padding-left: 0; padding-right: 0; }
 .gx .gx-dsched .gx-rail-card .gx-row { padding-left: 0; padding-right: 0; }
-.gx .gx-dsched .gx-rail-card .gx-row + .gx-row::before { left: 54px; right: 0; }
+.gx .gx-dsched .gx-rail-card .gx-row + .gx-row::before { left: 0; right: 0; }
 .gx .gx-dsched .gx-rail-card .gx-empty-line { padding-left: 0; padding-right: 0; }
 @media (max-width: 1179px) { .gx .gx-dsched { grid-template-columns: minmax(0, 1fr) 280px; gap: 28px; } }
 
@@ -195,7 +194,6 @@
 .gx .gx-tl-note { margin: 0; padding: 12px var(--gutter) 4px; color: var(--text3); }
 .gx .gx-res-row { min-height: 64px; cursor: default; }
 .gx .gx-res-row:active { background: none; }
-.gx .gx-res-row + .gx-res-row::before { left: 104px; }
 .gx .gx-res-p { width: 26px; flex: none; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
 .gx .gx-res-av { flex: none; }
 /* 아바타 대체 글자 13px */

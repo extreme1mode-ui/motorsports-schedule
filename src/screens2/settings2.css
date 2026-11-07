@@ -11,7 +11,7 @@
 .gx .gx-set-top h1 { margin: 0; }
 .gx .gx-settings.is-desk .gx-set-top { padding: 24px 0 8px; }
 .gx .gx-settings.is-desk .gx-lh, .gx .gx-settings.is-desk .gx-set-row { padding-left: 0; padding-right: 0; }
-.gx .gx-settings.is-desk .gx-set-row + .gx-set-row::before { right: 0; }
+.gx .gx-settings.is-desk .gx-set-row + .gx-set-row::before { left: 0; right: 0; }
 .gx .gx-set-row .gx-row-c > span:first-child { white-space: normal; text-wrap: balance; }
 .gx .gx-set-row .gx-row-s { white-space: normal; text-wrap: pretty; }
 .gx .gx-set-row .gx-row-r { max-width: 55%; }
@@ -19,8 +19,6 @@
 .gx .gx-set-row.is-static { cursor: default; }
 .gx .gx-set-row.is-static:active { background: none; }
 .gx .gx-set-row.is-static:active .gx-row-c { transform: none; }
-.gx .gx-set-row:not(:has(.gx-tile)) + .gx-set-row::before { left: var(--gutter); }
-.gx .gx-settings.is-desk .gx-set-row:not(:has(.gx-tile)) + .gx-set-row::before { left: 0; }
 /* '안 보기' 시리즈: 꺼진 것처럼(회색 타일 · 글자 text3) */
 .gx .gx-set-row.is-off .gx-row-c .gx-t17 { color: var(--text3); }
 .gx .gx-set-row.is-off .gx-row-s { color: var(--text3); }
