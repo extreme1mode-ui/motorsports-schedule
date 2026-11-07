@@ -1,7 +1,7 @@
 // 일정(UX v2 SPEC 2장): 제목 + 남은 경기 수 · 목록/달력(처음은 달력) · 칩(위에 붙음).
 // 목록은 주 묶음(이번 주말·다음 주말·날짜 범위), 왼쪽 날짜 줄, 지난 경기는 접기. 모바일 달력은 점 + 고른 날 패널,
 // 데스크톱은 큰 달력(또는 목록) + 오른쪽 레일(작은 달력·날짜 패널). 고른 보기·칩·달·고른 날은 탭을 옮겨도 메모리로 기억한다.
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import './screens2.css';
 import { useFormat } from '../use-format.js';
 import { useT } from '../i18n/index.js';
@@ -95,7 +95,7 @@ function WeekList({ races, now, today, preferences, onOpen, showPast, setShowPas
         const sub = wn.kind ? wn.sub : (firstStart != null ? fmt.relDay(firstStart, now) : wn.sub);
         const a = g.from ? dayOf(g.from, fmt.timeZone) : null; const b = g.to ? dayOf(g.to, fmt.timeZone) : null;
         return (
-          <Fragment key={g.weekKey}>
+          <div key={g.weekKey} style={{ display: 'contents' }}>
             <section className="gx-wk" data-first-rest={g === rest[0] ? '' : undefined} aria-labelledby={`gx-wk-${g.weekKey}`} data-a={a ?? ''} data-b={b ?? ''}>
               <h2 className="gx-wk-head" id={`gx-wk-${g.weekKey}`} data-stick=""><b className="gx-t17">{wn.main}</b><span className="gx-t13 gx-ter">{joinDot([sub, n ? tr('schedule.wkCount', { n }) : null, nc ? tr('schedule.wkCancelled', { n: nc }) : null])}</span></h2>
               {g.races.map((r) => {
@@ -107,7 +107,7 @@ function WeekList({ races, now, today, preferences, onOpen, showPast, setShowPas
             </section>
             {/* 펼친 지난 목록 끝(이번 주말 바로 위)에도 접기 */}
             {showPast && gi === past.length - 1 && rest.length > 0 && toggleBtn}
-          </Fragment>
+          </div>
         );
       })}
       {!shown.length && (
