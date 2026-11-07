@@ -102,7 +102,7 @@ function Results({ race, data }) {
   return (
     <section aria-labelledby="gx-sec-res-h" id="gx-sec-res" className="gx-results">
       <div className="gx-lh">
-        <div className="gx-lh-l"><h2 className="gx-t20" id="gx-sec-res-h">{tr('results.title')}</h2>{!res.sprint && <span className="gx-lh-sub gx-t15">{tr('results.gp')}</span>}</div>
+        <div className="gx-lh-l"><h2 className="gx-t20" id="gx-sec-res-h">{tr('results.title')}</h2></div>
         {res.sprint && <Seg label={tr('results.kindAria')} value={kind} options={[{ v: 'gp', l: tr('results.gp') }, { v: 'sprint', l: tr('results.sprint') }]}
           onChange={(k) => { setKind(k); setAll(false); track('race_results_kind_changed', { kind: k, race_id: race.id }); }} />}
       </div>
