@@ -23,9 +23,9 @@ const CATS = ['F1', 'ENDURANCE', 'WRC', 'GTWC'];
 const SERIES_OF = { F1: ['F1'], ENDURANCE: ['WEC', 'IMSA'], WRC: ['WRC'], GTWC: ['GTWC'] };
 // 시리즈 히어로 사진(경기 사진 /photos/races/<slug>.webp 와 출처 그대로, 경기 배정과 상관없이 slug로 고정).
 // 차 한 대가 옆·3/4로 통째로 들어오고 둘레에 여백이 있는 컷만 — 폰 정사각 자르기와 데스크톱 오른쪽 상자 둘 다에서 차가 잘리지 않게.
-// 위치는 차 가운데(폰은 가로, 데스크톱 넓은 폭은 세로가 잘린다).
+// 위치는 차 가운데(폰은 가로, 데스크톱 넓은 폭은 세로가 잘린다). 세 번째 값이 있으면 폰만 그 위치.
 const HERO_PHOTO = {
-  F1: ['f1-spa-francorchamps', '38% 55%'],    // 2026 벨기에 GP · 베어먼 VF-26(패닝)
+  F1: ['f1-spa-francorchamps', '38% 55%', '24% 55%'],    // 2026 벨기에 GP · 베어먼 VF-26(패닝) — 폰은 차가 가운데 오게 24%
   ENDURANCE: ['imsa-road-atlanta', '42% 50%'], // 2025 프티 르망 · #23 애스턴마틴 발키리(패닝)
   WRC: ['wrc-croatia', '60% 50%'],             // 2026 크로아티아 · 맥얼린 퓨마 Rally1
   GTWC: ['gtwc-spa-24h', '45% 55%'],           // 2025 스파 24시 우승 · #63 람보르기니
@@ -67,7 +67,8 @@ function SeasonStatus({ stats, list, now }) {
 
 function SeriesHero({ cat, stats, list, now, tabs, tabsRef, onOpen, year }) {
   const fmt = useFormat(); const tr = useT(); const shell = useShell();
-  const [slug, pos] = HERO_PHOTO[cat];
+  const [slug, deskPos, mobPos] = HERO_PHOTO[cat];
+  const pos = !shell.desktop && mobPos ? mobPos : deskPos;
   const credit = heroCredit(slug);
   const lv = stats.live; const lvSt = lv ? getRaceState(lv, now) : null;
   const target = lv || stats.next;
