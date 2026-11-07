@@ -65,7 +65,7 @@ function SeasonStatus({ stats, list, now }) {
   );
 }
 
-function SeriesHero({ cat, races, stats, list, now, tabs, tabsRef, onOpen, year }) {
+function SeriesHero({ cat, stats, list, now, tabs, tabsRef, onOpen, year }) {
   const fmt = useFormat(); const tr = useT(); const shell = useShell();
   const [slug, pos] = HERO_PHOTO[cat];
   const credit = heroCredit(slug);
@@ -300,7 +300,7 @@ export function SeriesScreen({ races = [], now, onOpenRace, preferences, seasonY
       <div className={cx('gx-ser-bar', barOn && 'is-on')} inert={!barOn || undefined} aria-hidden={!barOn || undefined}>
         <div className="gx-ser-bar-in"><div className="gx-ser-tabs">{tabs}</div></div>
       </div>
-      <SeriesHero cat={picked} races={races} stats={stats} list={list} now={at} tabs={tabs} tabsRef={tabsRef} onOpen={open} year={year} />
+      <SeriesHero cat={picked} stats={stats} list={list} now={at} tabs={tabs} tabsRef={tabsRef} onOpen={open} year={year} />
       <div className="gx-ser-main">
         <div key={picked} className="gx-ser-body">
           <SeriesBody cat={picked} list={list} stats={stats} now={at} preferences={preferences} data={data} onOpen={open} races={races} />
