@@ -1,13 +1,13 @@
 // 홈 조립(UX v2) — 순수 함수. 화면(Home.jsx)은 이 결과를 분 단위로 memo해서 쓴다.
 // 히어로 순서(결정 1·L5), 덱(이번 주말 내 경기), 이후 일정, 지난 주말 결과, 제목 문장(결정 4).
-// 시각은 보는 사람 시간대(preferences.timezone), 문구는 i18n 'home.h.*'·'home.cap'.
+// 시각은 보는 사람 시간대(preferences.timezone), 문구는 i18n 'home.h.*'(한 줄로 짧게 — '다음은 상파울루 GP 연습 3').
 import {
   resolveTimeState, getRaceState, getMainSessionAt, getRaceEnd, getLiveSession, getNextSession,
   resolveWeekendPhase, getWeekendRange, isAliveState, isCancelled, getTimelineSessions, getSessionEnd,
 } from './time.js';
 import { getRaceWeekKey, groupRaceWeeks, getWeekName } from './weeks.js';
 import { getPrimarySession, getRaceLabels, formatSessionLabel } from '../schedule/utils.js';
-import { formatTime, formatRelDay, formatDayWord, formatDateKey, getTimeZoneLabel, DEFAULT_LOCALE, DEFAULT_TIME_ZONE } from '../schedule/format.js';
+import { formatRelDay, formatDateKey, DEFAULT_LOCALE, DEFAULT_TIME_ZONE } from '../schedule/format.js';
 import { t } from '../i18n/t.js';
 
 const HOUR_MS = 3600000;
@@ -143,13 +143,11 @@ export function getCardState(race, now = new Date(), preferences) {
 // 제목 문장 { cap, title }. 한 경기를 가리키면 늘 경기 이름(결정 4). 이번·다음 주말에 볼 경기가 둘 이상이면 'N개'.
 export function homeHeadline(plan, now = new Date(), { locale = DEFAULT_LOCALE, timeZone = DEFAULT_TIME_ZONE, races = [] } = {}) {
   const at = new Date(now).getTime();
-  const zone = getTimeZoneLabel(timeZone, locale);
   const r = plan?.hero;
-  if (!r) return { cap: zone, title: t(locale, 'home.h.empty') };
+  if (!r) return { title: t(locale, 'home.h.empty') };
   const opts = { locale, timeZone };
   const wk = plan.heroWeek ? getWeekName(plan.heroWeek, at, { ...opts, races }) : null;
   const near = wk?.kind === 'this' || wk?.kind === 'next';
-  const cap = near ? t(locale, 'home.cap', { week: wk.main, range: wk.sub, zone }) : [wk?.main, zone].filter(Boolean).join(' · ');
   // 세션 이름은 지금처럼 formatSessionLabel(ko 한글화, en 원문). 대표 세션이 없으면 '결승'
   const raceWord = formatSessionLabel('Race', 'race', locale);
   const label = (s) => formatSessionLabel(s?.tEn, s?.kind, locale) || raceWord;
@@ -157,8 +155,6 @@ export function homeHeadline(plan, now = new Date(), { locale = DEFAULT_LOCALE, 
   const ml = main ? label(main) : raceWord;
   const st0 = startOf(main);
   const name = getRaceLabels(r, locale).shortName;
-  const day = (ms) => formatDayWord(ms, at, opts);
-  const time = (ms) => formatTime(ms, opts);
   let title;
   switch (plan.kind) {
     case 'live': title = t(locale, 'home.h.live', { name, label: ml }); break;
@@ -168,20 +164,19 @@ export function homeHeadline(plan, now = new Date(), { locale = DEFAULT_LOCALE, 
       break;
     }
     case 'session': title = t(locale, 'home.h.session', { name, label: plan.heroSession ? label(plan.heroSession) : ml }); break;
-    case 'soon': title = t(locale, 'home.h.soon', { day: day(st0), time: time(st0), name, label: ml }); break;
+    case 'soon': title = t(locale, 'home.h.next', { name, label: ml }); break;
     case 'tba': title = t(locale, 'home.h.tba', { name }); break;
     default:
       if (plan.kind === 'between' && plan.heroNext) {
-        const n = startOf(plan.heroNext);
-        title = t(locale, 'home.h.between', { name, label: label(plan.heroNext), day: day(n), time: time(n) });
+        title = t(locale, 'home.h.next', { name, label: label(plan.heroNext) });
       } else if (near) {
         const n = plan.weekRaces.length;
-        title = n > 1 ? t(locale, 'home.h.weekendN', { n }) : t(locale, 'home.h.weekend1', { name, day: day(st0), time: time(st0) });
+        title = n > 1 ? t(locale, 'home.h.weekendN', { n }) : t(locale, 'home.h.next', { name, label: ml });
       } else {
         const firsts = (r.sessions || []).map((x) => msOf(x.startUtc)).filter((x) => x != null);
         const when = st0 ?? (firsts.length ? Math.min(...firsts) : msOf(r.primaryStartUtc));
         title = t(locale, 'home.h.later', { name, rel: formatRelDay(when, at, opts) });
       }
   }
-  return { cap, title };
+  return { title };
 }
