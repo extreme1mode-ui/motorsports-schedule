@@ -56,7 +56,7 @@ function DemoClock() {
 }
 
 // ---------- 덱 카드 ----------
-// 카드의 '언제'(카드마다 자기 상태대로). 진행 중(결승·세션)은 지난 시간 + 진행 막대만 — 시작 시각·끝 예상·'…에서도 중계' 없음.
+// 카드의 '언제' 한 줄(카드마다 자기 상태대로). 진행 중(결승·세션)은 지난 시간 + 진행 막대, 그 밖에는 '연습 3 · 11월 7일 (토) 23:30'만.
 function CardWhen({ race, c, compact }) {
   const fmt = useFormat(); const tr = useT();
   const live = c.kind === 'live' || c.kind === 'session';
@@ -65,10 +65,7 @@ function CardWhen({ race, c, compact }) {
   const ml = main ? fmt.sessionLabel(main) : fmt.sessionLabel({ tEn: 'Race', kind: 'race' });
   const st0 = msOf(main?.startUtc);
   const T = (text) => <b className="gx-card-time"><Roll>{text}</Roll></b>;
-  const S = (text) => (text ? <span className="gx-card-sub"><Roll>{text}</Roll></span> : null);
-  const dayTime = (ms) => `${fmt.dayWord(ms, now)} ${fmt.time(ms)}`;
-  // 작은 장은 '내일 13:30'처럼 줄이고, 상대 시각이 그 말과 같으면(내일 · 내일) 아래 줄은 뺀다
-  const rel = (ms) => { const r = fmt.relShort(ms, now); return compact && r === fmt.dayWord(ms, now) ? null : r; };
+  const dayTime = (ms) => `${fmt.dayWord(ms, now)} ${fmt.time(ms)}`;   // 작은 장은 '내일 13:30'처럼 줄인다
   if (c.kind === 'live') {
     const multi = race.sessions.filter((s) => s.kind === 'race' && s.startUtc).length > 1;
     const el = fmt.elapsed(st0, now);
@@ -80,14 +77,10 @@ function CardWhen({ race, c, compact }) {
   }
   if (c.kind === 'between') {
     const nx = c.nx; const nxAt = msOf(nx.startUtc); const nl = fmt.sessionLabel(nx);
-    const sub = compact ? rel(nxAt) : (nx === main ? fmt.relShort(nxAt, now) : tr('home.card.betweenSub', { rel: fmt.relShort(nxAt, now), label: ml, datetime: fmt.dayDateTime(st0) }));
-    return <>{T(labelAt(tr, nl, compact ? dayTime(nxAt) : fmt.dayDateTime(nxAt)))}{S(sub)}</>;
+    return T(labelAt(tr, nl, compact ? dayTime(nxAt) : fmt.dayDateTime(nxAt)));
   }
-  if (c.kind === 'tba' || st0 == null) {
-    const range = race.weekendStart && race.weekendEnd ? fmt.plainDayRange(race.weekendStart, race.weekendEnd) : null;
-    return <>{T(tr('home.card.tba', { label: ml }))}{S(range && tr('home.card.localRange', { range }))}</>;
-  }
-  return <>{T(labelAt(tr, ml, compact ? dayTime(st0) : fmt.dayDateTime(st0)))}{S(rel(st0))}</>;
+  if (c.kind === 'tba' || st0 == null) return T(tr('home.card.tba', { label: ml }));
+  return T(labelAt(tr, ml, compact ? dayTime(st0) : fmt.dayDateTime(st0)));
 }
 
 // 카드의 할 일 하나(결정 2·3): 진행 중이거나 1시간 안이면 '…에서 보기'(외부), 그 전에는 캘린더에 담기. 시각 미정이면 안내 한 줄.
@@ -138,7 +131,6 @@ function DeckCard({ race, k, n, size, c, onHit, onOpen, actions }) {
   const compact = size === 'mini';
   const live = c.kind === 'live' || c.kind === 'session';
   const a = cardAct({ race, c, fmt, tr, alarmOn: actions.alarms.has(race.id), onCal: () => actions.addAlarm(race), onOpen });
-  const place = joinDot([L.circuit, [L.city, L.country].filter(Boolean).join(', ')]);
   const credit = photoCredit(race);
   const desk = size !== 'm';
   return (
@@ -155,14 +147,12 @@ function DeckCard({ race, k, n, size, c, onHit, onOpen, actions }) {
         <div className="gx-card-main">
           <span className="gx-card-tag gx-t13">{live && <LiveText />}<Dot series={race.series} />{joinDot([race.series, getRoundText(race, fmt.locale), race.isSprint ? tr('home.sprintWeekend') : null])}</span>
           <span className="gx-card-title">{L.fullName}</span>
-          {!compact && <span className="gx-card-place gx-t15">{place}</span>}
           <span className="gx-card-when"><CardWhen race={race} c={c} compact={compact} /></span>
         </div>
+        {/* 메인 버튼(CTA)만 — 아래 중계 줄('…에서 중계'·'…에서도 중계')은 넣지 않는다 */}
         {compact
-          ? (a.urgent && a.href
-            ? <a className="gx-card-link gx-t15" href={a.href} target="_blank" rel="noopener noreferrer" onClick={a.onClick}>{a.full}<Icon n="ext" s={16} /><span className="gx-vh">, {tr('aria.external')}</span></a>
-            : a.line && <span className="gx-card-bc gx-t13">{a.line}</span>)
-          : <div className="gx-card-side">{a.btn && <div className="gx-card-act">{a.btn}</div>}{a.line && <span className={cx('gx-card-bc gx-t13', a.narrowOnly && 'is-narrow-only')}>{a.line}</span>}</div>}
+          ? (a.urgent && a.href && <a className="gx-card-link gx-t15" href={a.href} target="_blank" rel="noopener noreferrer" onClick={a.onClick}>{a.full}<Icon n="ext" s={16} /><span className="gx-vh">, {tr('aria.external')}</span></a>)
+          : a.btn && <div className="gx-card-side"><div className="gx-card-act">{a.btn}</div></div>}
       </div>
     </article>
   );
@@ -567,7 +557,6 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
   const later = <Later list={plan.later} now={minute} dimOf={dimOf} onOpen={open} onGo={onGo} />;
   const head = (
     <div className="gx-home-top">
-      <span className="gx-t15 gx-sub">{hl.cap}</span>
       <h1 className={shell.desktop ? 'gx-t30' : 'gx-t26'} data-view-title tabIndex={-1}><Roll>{hl.title}</Roll></h1>
     </div>
   );
