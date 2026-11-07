@@ -12,19 +12,18 @@ import { raceShareUrl } from '../share-link.js';
 import { toggleAlarm, useAlarms } from '../alarm.js';
 import { photo, photoPos, photoCredit } from '../home/photos.js';
 import { curationOf } from '../home/curation.js';
-import { getRaceState, getMainSessionAt, getSessionEnd, getLiveSession, getNextSession, getWeekendRange, isCancelled } from '../home/time.js';
+import { getRaceState, getMainSessionAt, getSessionEnd, getLiveSession, getNextSession, isCancelled } from '../home/time.js';
 import { getPrimarySession, getVisibleSessions, getRoundText, findNextRound } from '../schedule/utils.js';
-import { offsetText, ticketOf } from '../detail-utils.js';
+import { ticketOf } from '../detail-utils.js';
 import { COUNTRY_OPTIONS, countryIdFromValue } from '../preferences-options.js';
 import { useF1Results, resultOf, photoOf, teamColor } from '../results/results.js';
 import { Avatar } from '../results/ResultsUI.jsx';
 import { useCircuitMap, hasMap } from '../circuit-map/context.js';
 import { MapEntryButton } from '../circuit-map/CircuitMap.jsx';
 import { drawerWidth } from './drawer.js';
-import { venueOfRace } from '../circuit-map/venues/index.js';
 import { Icon } from '../ui2/Icon.jsx';
 import { Dot, Band, ListHeader, LiveText, Progress, Roll, Photo, Seg, HeartBtn, CalBtn } from '../ui2/parts.jsx';
-import { joinDot, SEP } from '../ui2/hooks.js';
+import { joinDot } from '../ui2/hooks.js';
 
 const HOUR_MS = 3600000;
 const clock = () => Date.now();   // 탭 이동 중 밑줄 잠금용(이벤트 처리기에서만 부른다)
@@ -34,13 +33,6 @@ const viewModeOf = (preferences, s) => (preferences?.series?.[s] === 'all' ? 'al
 const reduceMotion = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
 const mmss = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
 
-// 세션의 현지 시각 '11월 21일 20:00' (서킷 현지 날짜·시각 그대로)
-function localText(fmt, s) {
-  const v = typeof s?.local === 'string' ? s.local : '';
-  if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(v) || !s.startUtc) return null;
-  return `${fmt.plainDayRange(v.slice(0, 10), v.slice(0, 10))} ${v.slice(11, 16)}`;
-}
-
 // ---------- 핵심 블록 ----------
 function KeyFact({ race, now, preferences }) {
   const fmt = useFormat(); const tr = useT();
@@ -48,53 +40,42 @@ function KeyFact({ race, now, preferences }) {
   const m = getMainSessionAt(race, now) || getPrimarySession(race);
   const ml = m ? fmt.sessionLabel(m) : fmt.sessionLabel({ tEn: 'Race', kind: 'race' });
   const st0 = msOf(m?.startUtc);
-  const lt = localText(fmt, m);
-  if (st === 'cancelled') {
-    const { end } = getWeekendRange(race);
-    const past = end && now > end.getTime();
-    const range = race.weekendStart && race.weekendEnd ? fmt.plainDayRange(race.weekendStart, race.weekendEnd) : null;
-    return <div className="gx-dkey"><b className="gx-t22">{tr('detail.cancelled.title')}</b><span className="gx-t15 gx-sub">{past ? (range ? tr('detail.cancelled.was', { range }) : tr('detail.cancelled.never')) : tr('detail.cancelled.future')}</span></div>;
-  }
+  // 핵심 블록은 '무엇 · 언제' 두 줄만(상대 시각·현지 시각·끝 예상·안내 문장은 넣지 않는다)
+  if (st === 'cancelled') return <div className="gx-dkey"><b className="gx-t22">{tr('detail.cancelled.title')}</b></div>;
   if (st === 'live') {
     const end = getSessionEnd(race, m)?.getTime();
-    const hasFinish = (race.sessions || []).some((s) => s.kind === 'finish' && s.startUtc);
     return (
       <div className="gx-dkey">
         <LiveText>{tr('status.liveLabel', { label: ml })}</LiveText>
-        <b className="gx-t22"><Roll>{tr('detail.key.started', { time: fmt.time(st0), elapsed: fmt.elapsed(st0, now) })}</Roll></b>
+        <b className="gx-t22"><Roll>{fmt.elapsed(st0, now)}</Roll></b>
         <Progress from={st0} to={end} now={now} label={tr('detail.progressAria', { label: ml })} />
-        <span className="gx-t15 gx-sub"><Roll>{tr(hasFinish ? 'time.endsIn' : 'time.endsInEst', { d: fmt.duration(end - now) })}</Roll></span>
       </div>
     );
   }
-  // 끝난 경기: '결승 · 끝났어요' + '… 시작'(아래 시각이 끝난 시각으로 읽히지 않게)
+  // 끝난 경기: '결승 · 종료' + 시각
   if (st === 'done') {
     if (st0 == null) return <div className="gx-dkey"><span className="gx-t15 gx-sub">{tr('detail.key.done', { label: ml })}</span></div>;
-    return <div className="gx-dkey"><span className="gx-t15 gx-sub">{tr('detail.key.done', { label: ml })}</span><b className="gx-t22">{tr('detail.key.startedAt', { datetime: fmt.dayDateTime(st0) })}</b><span className="gx-t15 gx-sub">{fmt.relDay(st0, now)}</span></div>;
+    return <div className="gx-dkey"><span className="gx-t15 gx-sub">{tr('detail.key.done', { label: ml })}</span><b className="gx-t22">{fmt.dayDateTime(st0)}</b></div>;
   }
-  if (st0 == null) return <div className="gx-dkey"><span className="gx-t15 gx-sub">{ml}</span><b className="gx-t22">{tr('detail.key.tba')}</b><span className="gx-t15 gx-sub">{tr('detail.key.tbaNote')}</span></div>;
+  if (st0 == null) return <div className="gx-dkey"><span className="gx-t15 gx-sub">{ml}</span><b className="gx-t22">{tr('detail.key.tba')}</b></div>;
   // 1시간 안: 카운트다운(큰 숫자는 여기만)
   if (st0 - now <= HOUR_MS) {
     return (
       <div className="gx-dkey">
         <span className="gx-t15 gx-sub">{tr('detail.key.countdown', { label: ml })}</span>
         <b className="gx-t40 gx-tnum" aria-label={tr('detail.key.countdownAria', { m: Math.ceil((st0 - now) / 60000) })}><Roll>{mmss(st0 - now)}</Roll></b>
-        <span className="gx-t15 gx-sub">{joinDot([tr('detail.key.startedAt', { datetime: fmt.time(st0) }), lt ? tr('detail.local', { time: lt }) : null])}</span>
       </div>
     );
   }
-  // 주말 진행 중: 맨 위에 지금(진행 중 세션) 또는 다음 세션 — 결승 라벨은 그대로 두고 따로 한 줄
+  // 주말 중 진행 중인 세션이 있으면 그 줄만 위에(다음 세션은 세션 탭에서 본다)
   const mode = viewModeOf(preferences, race.series);
   const ls = getLiveSession(race, now, mode);
-  const nx = !ls && getRaceState(race, now, mode) === 'weekend' ? getNextSession(race, now, mode) : null;
   return (
     <div className="gx-dkey">
       {ls && <span className="gx-dkey-now"><LiveText>{tr('detail.key.liveSession', { label: fmt.sessionLabel(ls), time: fmt.time(ls.startUtc) })}</LiveText></span>}
       {ls && <Progress from={ls.startUtc} to={getSessionEnd(race, ls)} now={now} label={tr('detail.progressAria', { label: fmt.sessionLabel(ls) })} />}
-      {nx && nx !== m && <span className="gx-dkey-now gx-t15 gx-st-next"><Roll>{tr('detail.key.nextSession', { label: fmt.sessionLabel(nx), day: fmt.relDay(nx.startUtc, now), time: fmt.time(nx.startUtc), rel: fmt.relShort(nx.startUtc, now) })}</Roll></span>}
       <span className="gx-t15 gx-sub">{ml}</span>
       <b className="gx-t22">{fmt.dayDateTime(st0)}</b>
-      <span className="gx-t15 gx-sub"><Roll>{lt ? tr('detail.key.relLocal', { rel: fmt.relShort(st0, now), local: lt }) : fmt.relShort(st0, now)}</Roll></span>
     </div>
   );
 }
@@ -173,7 +154,7 @@ function Broadcast({ race }) {
   const country = tr(COUNTRY_OPTIONS.find((c) => c.id === cid)?.label || 'country.OTHER');
   return (
     <section aria-labelledby="gx-sec-bc-h" id="gx-sec-bc">
-      <ListHeader id="gx-sec-bc-h" title={tr('detail.broadcast')} sub={tr('detail.broadcast.basis', { country })} />
+      <ListHeader id="gx-sec-bc-h" title={tr('detail.broadcast')} action={country} onAction={() => shell.openSheet('country')} />
       {list.map((b) => (
         <a key={b.name} className="gx-row gx-bc-row" href={b.url || undefined} target="_blank" rel="noopener noreferrer"
           onClick={() => track('broadcast_clicked', { name: b.name, region: b.region, access: b.access, series: race.series, source: 'detail' })}>
@@ -182,10 +163,6 @@ function Broadcast({ race }) {
           <span className="gx-row-r gx-row-r-mid"><span className="gx-t15 gx-sub">{tr('detail.watch')}</span><Icon n="ext" s={20} className="gx-ter" /><span className="gx-vh">{tr('aria.external')}</span></span>
         </a>
       ))}
-      <div className="gx-dfoot">
-        <span className="gx-t13 gx-ter">{tr('detail.broadcastNote')}</span>
-        <button type="button" className="gx-textbtn gx-t15" onClick={() => shell.openSheet('country')}>{tr('detail.changeCountry')}<Icon n="chev" s={16} /></button>
-      </div>
     </section>
   );
 }
@@ -212,9 +189,6 @@ function Sessions({ race, now, preferences }) {
     if (e != null && now >= e) return 'done';
     return now >= a ? 'live' : 'upcoming';
   };
-  // '다음': 앞선 연습·예선 시각이 아직 안 나왔으면 단정하지 않는다
-  const tbaBefore = all.some((s) => !s.startUtc && (s.kind === 'practice' || s.kind === 'qualifying'));
-  const next = tbaBefore ? null : all.filter((s) => s.startUtc && msOf(s.startUtc) > now && s.kind !== 'finish').sort((a, b) => msOf(a.startUtc) - msOf(b.startUtc))[0];
   const doneN = over ? 0 : shownSet.filter((s) => sstate(s) === 'done').length;
   const fold = doneN >= 2 && !showDone;
   const shown = (fold ? shownSet.filter((s) => sstate(s) !== 'done') : shownSet).slice()
@@ -226,10 +200,9 @@ function Sessions({ race, now, preferences }) {
     if (!g) { g = { k, s, items: [] }; groups.push(g); }
     g.items.push(s);
   });
-  const nextHidden = !open && next && !base.includes(next);
   return (
     <section aria-labelledby="gx-sec-ses-h" id="gx-sec-ses">
-      <ListHeader id="gx-sec-ses-h" title={tr('detail.sessions')} sub={tr('tz.basis', { zone: fmt.zoneLabel })} />
+      <ListHeader id="gx-sec-ses-h" title={tr('detail.sessions')} />
       {doneN >= 2 && (
         <button type="button" className="gx-past-toggle gx-t15" aria-expanded={showDone} onClick={() => setShowDone(!showDone)}>
           <Icon n={showDone ? 'up' : 'down'} s={20} />{showDone ? tr('home.tl.hideDone') : tr('detail.sessions.showDone', { n: doneN })}
@@ -241,18 +214,17 @@ function Sessions({ race, now, preferences }) {
           <div className="gx-ses-day" key={g.k}>
             <div className="gx-tl-dh">{head ? <><span className="gx-t15 gx-w600">{head.main}</span><span className="gx-t13 gx-ter">{head.sub}</span></> : <span className="gx-t15 gx-w600">{tr('detail.sessions.tba')}</span>}</div>
             {g.items.map((s, i) => {
-              const ss = sstate(s); const lt = localText(fmt, s); const label = fmt.sessionLabel(s);
+              const ss = sstate(s); const label = fmt.sessionLabel(s);
               return (
                 // 홈 시간표와 같은 줄: 왼쪽 시각 · 가운데 세션(현지 시각) · 오른쪽 상태. 경기 전체가 끝났으면 '종료'를 반복하지 않고 흐리게만
                 <div key={`${s.tEn}-${i}`} className={cx('gx-row gx-tl-row gx-ses-row', ss === 'done' && 'is-dim', ss === 'live' && 'is-live')}>
                   <span className="gx-tl-time"><b className="gx-t17">{s.startUtc ? fmt.time(s.startUtc) : tr('status.cancelledDate')}</b></span>
                   <span className="gx-row-c">
                     <span className={cx('gx-row-t gx-t17', s.kind === 'race' && 'gx-w600')}>{label}</span>
-                    {lt && <span className="gx-row-s gx-t13">{tr('detail.local', { time: lt })}</span>}
                     {ss === 'live' && <Progress from={s.startUtc} to={getSessionEnd(race, s)} now={now} label={tr('detail.progressAria', { label })} />}
                   </span>
-                  {(ss === 'live' || (ss === 'done' && !over) || s === next) && (
-                    <span className="gx-row-r gx-t13">{ss === 'live' ? <LiveText /> : ss === 'done' ? <span className="gx-ter">{tr('status.done')}</span> : <span className="gx-st-next"><Roll>{tr('detail.sessions.next', { rel: fmt.relShort(s.startUtc, now) })}</Roll></span>}</span>
+                  {(ss === 'live' || (ss === 'done' && !over)) && (
+                    <span className="gx-row-r gx-t13">{ss === 'live' ? <LiveText /> : <span className="gx-ter">{tr('status.done')}</span>}</span>
                   )}
                 </div>
               );
@@ -262,7 +234,7 @@ function Sessions({ race, now, preferences }) {
       })}
       {hidden > 0 && (
         <button type="button" className="gx-past-toggle gx-t15" aria-expanded={open} onClick={() => setOpen(!open)}>
-          <Icon n={open ? 'up' : 'down'} s={20} />{open ? tr('results.showLess') : <span>{tr('detail.sessions.more', { n: hidden })}{nextHidden && <span className="gx-sub gx-w500">{SEP}{tr('detail.sessions.nextHidden', { label: fmt.sessionLabel(next), time: fmt.time(next.startUtc) })}</span>}</span>}
+          <Icon n={open ? 'up' : 'down'} s={20} />{open ? tr('results.showLess') : tr('detail.sessions.more', { n: hidden })}
         </button>
       )}
     </section>
@@ -275,7 +247,6 @@ function Venue({ race, now }) {
   const st = getRaceState(race, now);
   const alive = st !== 'done' && st !== 'cancelled';
   const map = !!cm && hasMap(race) && !isCancelled(race);
-  const v = map ? venueOfRace(race) : null;
   const going = map && cm.attend.has(race.id);
   const start = msOf(getPrimarySession(race)?.startUtc);
   const ticket = ticketOf(race);
@@ -283,21 +254,21 @@ function Venue({ race, now }) {
   if (map) rows.push(
     <MapEntryButton key="map" race={race} className="gx-row">
       <span className="gx-bc-ic"><Icon n="map" s={22} /></span>
-      <span className="gx-row-c"><span className="gx-t17">{tr('cm.title')}</span><span className="gx-row-s gx-t13">{tr(v?.sub || 'cm.sub')}</span></span>
+      <span className="gx-row-c"><span className="gx-t17">{tr('cm.title')}</span></span>
       <span className="gx-row-r"><Icon n="chev" s={20} className="gx-ter" /></span>
     </MapEntryButton>,
   );
   if (map && alive) rows.push(
     <button key="go" type="button" className="gx-row" role="switch" aria-checked={going} onClick={() => cm.toggleAttend(race)}>
       <span className="gx-bc-ic"><Icon n="flag" s={22} /></span>
-      <span className="gx-row-c"><span className="gx-t17">{tr('cm.attend')}</span><span className="gx-row-s gx-t13">{tr('cm.attendNote')}</span></span>
+      <span className="gx-row-c"><span className="gx-t17">{tr('cm.attend')}</span></span>
       <span className={cx('gx-switch', going && 'is-on')} aria-hidden="true"><i /></span>
     </button>,
   );
   if (ticket && alive && start != null && now < start) rows.push(
     <a key="tk" className="gx-row" href={ticket} target="_blank" rel="noopener noreferrer" onClick={() => track('ticket_clicked', { series: race.series, race_id: race.id, source: 'detail' })}>
       <span className="gx-bc-ic"><Icon n="ticket" s={22} /></span>
-      <span className="gx-row-c"><span className="gx-t17">{tr('detail.buyTickets')}</span><span className="gx-row-s gx-t13">{tr('detail.buyTickets.sub')}</span></span>
+      <span className="gx-row-c"><span className="gx-t17">{tr('detail.buyTickets')}</span></span>
       <span className="gx-row-r"><Icon n="ext" s={20} className="gx-ter" /><span className="gx-vh">{tr('aria.external')}</span></span>
     </a>,
   );
@@ -312,23 +283,6 @@ function Venue({ race, now }) {
   return <><Band /><section aria-labelledby="gx-sec-ven-h" id="gx-sec-ven"><ListHeader id="gx-sec-ven-h" title={tr(map ? 'cm.section' : 'detail.links')} />{rows}</section></>;
 }
 const hasVenue = (race, cm) => !!race.officialUrl || !!ticketOf(race) || (!!cm && hasMap(race) && !isCancelled(race));
-
-// ---------- 주말 정보 ----------
-function Weekend({ race }) {
-  const fmt = useFormat(); const tr = useT();
-  const m = getPrimarySession(race);
-  const lt = localText(fmt, m);
-  const off = offsetText(race, fmt, tr);
-  const range = race.weekendStart && race.weekendEnd ? fmt.plainDayRange(race.weekendStart, race.weekendEnd) : null;
-  return (
-    <><Band /><section aria-labelledby="gx-sec-wk-h" id="gx-sec-wk">
-      <ListHeader id="gx-sec-wk-h" title={tr('detail.weekend')} />
-      {range && <div className="gx-row gx-kv"><span className="gx-row-c gx-t17 gx-sub">{tr('detail.period')}</span><span className="gx-row-r gx-t15 gx-w600">{range}</span></div>}
-      {lt && !isCancelled(race) && <div className="gx-row gx-kv"><span className="gx-row-c gx-t17 gx-sub">{tr('detail.mainLocal', { label: fmt.sessionLabel(m) })}</span><span className="gx-row-r gx-t15 gx-w600">{lt}</span></div>}
-      {off && <div className="gx-row gx-kv"><span className="gx-row-c gx-t17 gx-sub">{tr('detail.offset')}</span><span className="gx-row-r gx-t15 gx-w600">{off}</span></div>}
-    </section></>
-  );
-}
 
 // ---------- 바로 가기 탭 ----------
 // 누르면 그 섹션으로 + 섹션 제목에 포커스. 스크롤하면 밑줄이 따라오고, 끝까지 내렸을 때만 마지막 탭. 하나뿐이면 탭 줄 없음.
@@ -381,7 +335,7 @@ function DetailBar({ race, now, preferences, favorites, toggleFav, races, onOpen
   const nx = getNextSession(race, now, vm);
   const urgent = st === 'live' || st === 'session' || (nx && msOf(nx.startUtc) - now <= HOUR_MS);
   let primary = null; let note = null;
-  if (st === 'cancelled') note = tr(fav ? 'detail.note.savedCancelled' : 'detail.note.saveCancelled');
+  if (st === 'cancelled') { /* 취소: 하트만 */ }
   else if (urgent && bc[0]?.url) {
     const b = bc[0];
     primary = <a className="gx-btn is-primary is-grow" href={b.url} target="_blank" rel="noopener noreferrer"
@@ -394,7 +348,7 @@ function DetailBar({ race, now, preferences, favorites, toggleFav, races, onOpen
   } else if ((race.sessions || []).some((s) => s.startUtc)) {
     // 결정 3: 담은 뒤 '✓ 캘린더에 담았어요' 고정, 다시 누르면 같은 파일 다시 받기
     primary = <CalBtn on={alarms.has(race.id)} onClick={() => { const res = toggleAlarm(race, { source: 'detail', preferences, locale: fmt.locale, now: new Date(now) }); shell.toast(tr(res?.again ? 'toast.calAgain' : 'toast.calAdded')); }} />;
-  } else note = tr('home.alertTba');
+  }
   const onFav = () => {
     toggleFav(race.id);
     shell.toast(tr(fav ? 'toast.unsaved' : 'toast.saved'), { label: tr('toast.undo'), fn: () => toggleFav(race.id) });
@@ -402,7 +356,7 @@ function DetailBar({ race, now, preferences, favorites, toggleFav, races, onOpen
   return (
     <div className="gx-dbar">
       <HeartBtn on={fav} onClick={onFav} label={tr('aria.saveRace', { name: L.shortName })} />
-      {primary || <span className="gx-dbar-note gx-t15 gx-sub">{note}</span>}
+      {primary || (note && <span className="gx-dbar-note gx-t15 gx-sub">{note}</span>)}
     </div>
   );
 }
@@ -451,7 +405,6 @@ export function RaceDetailV2({ race, now, preferences, favorites, toggleFav, rac
       : done ? [hasSessions ? ['gx-sec-ses', tr('detail.tab.sessions')] : null, ['gx-sec-bc', tr('detail.tab.watch')]]
         : [['gx-sec-bc', tr('detail.tab.watch')], hasSessions ? ['gx-sec-ses', tr('detail.tab.sessions')] : null]),
     hasVenue(race, cm) ? ['gx-sec-ven', tr(cm && hasMap(race) && !isCancelled(race) ? 'detail.tab.site' : 'detail.tab.links')] : null,
-    ['gx-sec-wk', tr('detail.tab.info')],
   ].filter(Boolean);
   return (
     <div className={cx('gx-detail', inDrawer && 'is-drawer')} ref={ref}>
@@ -476,7 +429,7 @@ export function RaceDetailV2({ race, now, preferences, favorites, toggleFav, rac
       <div className="gx-dhead">
         <span className="gx-stag gx-t13"><Dot series={race.series} />{joinDot([race.series, getRoundText(race, fmt.locale), race.isSprint ? tr('home.sprintWeekend') : null])}</span>
         <h1 className={cx('gx-t26', cancelled && 'gx-strike')} tabIndex={-1} data-view-title>{L.fullName}</h1>
-        <span className="gx-t15 gx-sub">{joinDot([L.circuit, [L.city, L.country].filter(Boolean).join(', ')])}</span>
+        <span className="gx-t15 gx-sub">{joinDot([L.circuit, L.country])}</span>
       </div>
       <KeyFact race={race} now={at} preferences={preferences} />
       {cur && !done && <p className="gx-cur gx-t15 gx-dcur"><span className="gx-badge">{tr('home.curation')}</span>{cur.text}</p>}
@@ -487,7 +440,6 @@ export function RaceDetailV2({ race, now, preferences, favorites, toggleFav, rac
       {hasSessions && <><Band /><Sessions race={race} now={at} preferences={preferences} /></>}
       {done && <><Band /><Broadcast race={race} /></>}
       <Venue race={race} now={at} />
-      <Weekend race={race} />
       <div className="gx-dspace" />
       <DetailBar race={race} now={at} preferences={preferences} favorites={favorites} toggleFav={toggleFav} races={races} onOpenRace={onOpenRace} />
     </div>
