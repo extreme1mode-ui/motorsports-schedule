@@ -2,7 +2,7 @@
 // → 내 주말 시간표 → 놓치면 아쉬운 경기 → 이후 일정. 데스크톱은 덱 아래 시간표 + 오른쪽 레일(결과·추천·이후 일정).
 // 규칙은 home/plan.js(히어로 순서 L5·덱·제목 문장·카드 상태), 시각 표기는 useFormat()(보는 사람 시간대·언어).
 // 홈 조립은 분 단위로 memo하고(아래 Home의 비교), 진행 중의 지난 시간·진행 막대·숫자 굴림만 1초마다 자기 칸에서 갱신한다.
-import { Fragment, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import './home2.css';
 import { buildHomePlan, homeHeadline, getCardState } from './plan.js';
 import { getMainSessionAt, getRaceEnd, getSessionEnd, resolveTimeState, isAliveState, isCancelled } from './time.js';
@@ -294,19 +294,18 @@ function TLRow({ it, now, dim, compact, onOpen, still = false }) {
     <button type="button" className={cx('gx-row gx-tl-row', (st === 'done' || dim) && 'is-dim', st === 'live' && 'is-live')} {...prefetchHandlers(r)} onClick={() => onOpen(r)}>
       <span className="gx-tl-time"><b className="gx-t17">{fmt.time(it.at)}</b></span>
       <span className="gx-row-c">
-        <span className={cx('gx-row-t gx-t17', s.kind === 'race' && 'gx-w600')}>{fmt.sessionLabel(s)}</span>
+        {compact ? (
+          <span className="gx-tl-l1">
+            <span className={cx('gx-row-t gx-t17', s.kind === 'race' && 'gx-w600')}>{fmt.sessionLabel(s)}</span>
+            {stx && <span className="gx-t13 gx-tl-st">{stx}</span>}
+          </span>
+        ) : <span className={cx('gx-row-t gx-t17', s.kind === 'race' && 'gx-w600')}>{fmt.sessionLabel(s)}</span>}
         <span className="gx-row-s gx-t13"><Dot series={r.series} />{joinDot([r.series, fmt.race(r).shortName])}</span>
         {st === 'live' && <LiveBar race={r} s={s} />}
-        {compact && stx && <span className="gx-t13 gx-tl-st">{stx}</span>}
       </span>
       {!compact && <span className="gx-row-r gx-t13">{stx}</span>}
     </button>
   );
-}
-function NowMark({ now }) {
-  const fmt = useFormat(); const tr = useT();
-  const text = tr('home.tl.now', { time: fmt.time(now) });
-  return <div className="gx-now" role="separator" aria-label={text}><span className="gx-t13 gx-w600">{text}</span></div>;
 }
 function Timeline({ plan, now, columns, dimOf, onOpen, onMore }) {
   const fmt = useFormat(); const tr = useT();
@@ -318,50 +317,33 @@ function Timeline({ plan, now, columns, dimOf, onOpen, onMore }) {
   const canFold = !columns && all.filter(isDone).length >= 2 && all.some((it) => !isDone(it));
   const fold = canFold && !showDone;
   const days = fold ? plan.days.map((d) => ({ ...d, items: d.items.filter((it) => !isDone(it)) })).filter((d) => d.items.length) : plan.days;
-  const items = days.flatMap((d) => d.items);
-  // '지금' 선: 지난 세션과 다음 세션 사이. 진행 중인 세션이 있으면 없음
-  const firstFuture = items.findIndex((it) => it.at > now);
-  const anyPast = items.some((it) => it.at <= now);
-  const anyLive = items.some((it) => it.at <= now && !isDone(it));
-  const markAt = anyPast && firstFuture > 0 && !anyLive ? items[firstFuture] : null;
-  const markDay = markAt ? days.findIndex((d) => d.items[0] === markAt) : -1;
   const foldBtn = canFold
     ? <button type="button" className="gx-textbtn gx-t13 gx-lh-fold" aria-expanded={showDone} onClick={() => setShowDone(!showDone)}>{tr(showDone ? 'home.tl.hideDone' : 'home.tl.showDone')}<Icon n={showDone ? 'up' : 'down'} s={14} /></button>
     : null;
   return (
-    <section aria-labelledby="gx-tl-h">
-      <ListHeader id="gx-tl-h" title={tr('home.tl.title')} sub={tr('home.tl.count', { n: all.length })} right={foldBtn} />
-      <div className={columns ? 'gx-tl-cols' : undefined} style={columns ? { gridTemplateColumns: `repeat(${Math.min(4, days.length)}, minmax(0, 1fr))` } : undefined}>
-        {days.map((d, di) => {
+    <section aria-labelledby="gx-tl-h" className={columns ? 'gx-tl-sec' : undefined}>
+      {/* 데스크톱(칸 보기): '다른 시리즈 확인하기 ›'는 머리 줄 오른쪽 글자 버튼(레일의 '결과 보기 ›'와 같은 모양). 폰은 아래 넓은 버튼 그대로 */}
+      <ListHeader id="gx-tl-h" title={tr('home.tl.title')} sub={tr('home.tl.count', { n: all.length })}
+        right={columns ? null : foldBtn} action={columns ? tr('home.tl.moreShort') : null} onAction={onMore} />
+      {/* 칸 보기: 하루 한 칸. 칸이 좁아지면(CSS 컨테이너 쿼리) 두 칸으로 흘려 이름이 잘리지 않게 */}
+      <div className={columns ? `gx-tl-cols is-d${Math.min(4, days.length)}` : undefined} style={columns ? { gridTemplateColumns: `repeat(${Math.min(4, days.length)}, minmax(0, 1fr))` } : undefined}>
+        {days.map((d) => {
           const head = fmt.dayHead(d.items[0].at, now);
-          // 다음 세션이 그날 첫 줄이면 '지금' 선은 그날 머리 앞(앞 묶음 끝). 칸 보기에서는 앞 칸의 끝(앞 칸이 없으면 이 칸 머리 위)
-          const markBefore = markDay === di && !columns;
-          const markTop = columns && markDay === di && di === 0;
-          const markEnd = columns && markDay === di + 1;
           return (
-            <div key={d.key} style={{ display: 'contents' }}>
-              {markBefore && <NowMark now={now} />}
-              <div className="gx-tl-day">
-                {markTop && <NowMark now={now} />}
-                <div className="gx-tl-dh" data-stick=""><span className="gx-t15 gx-w600">{head.main}</span><span className="gx-t13 gx-ter">{head.sub}</span></div>
-                {/* 줄을 div로 감싸면 .gx-tl-row + .gx-tl-row 구분선이 안 붙는다 — Fragment로 형제를 유지 */}
-                {d.items.map((it) => (
-                  <Fragment key={`${it.r.id}-${it.s.tEn}-${it.at}`}>
-                    {markAt === it && markDay !== di && <NowMark now={now} />}
-                    <TLRow it={it} now={now} dim={dimOf(it.r)} compact={columns} onOpen={onOpen} />
-                  </Fragment>
-                ))}
-                {markEnd && <NowMark now={now} />}
-              </div>
+            <div key={d.key} className="gx-tl-day">
+              <div className="gx-tl-dh" data-stick=""><span className="gx-t15 gx-w600">{head.main}</span><span className="gx-t13 gx-ter">{head.sub}</span></div>
+              {/* 줄은 형제로 두어야 .gx-tl-row + .gx-tl-row 구분선이 붙는다 */}
+              {d.items.map((it) => <TLRow key={`${it.r.id}-${it.s.tEn}-${it.at}`} it={it} now={now} dim={dimOf(it.r)} compact={columns} onOpen={onOpen} />)}
             </div>
           );
         })}
       </div>
-      {/* 보는 범위 문장 대신 버튼 하나: 다른 시리즈를 켜고 끄는 설정으로. 시각 미정 세션이 있으면 그 한 줄만 */}
-      <div className="gx-tl-foot">
-        {plan.tba > 0 && <span className="gx-t13 gx-ter">{tr('home.tl.tbaNote', { n: plan.tba })}</span>}
-        <button type="button" className="gx-btn is-weak" onClick={onMore}>{tr('home.tl.more')}</button>
-      </div>
+      {/* 폰: 다른 시리즈를 켜고 끄는 설정으로 가는 넓은 버튼 하나(데스크톱은 머리 줄로 올림) */}
+      {!columns && (
+        <div className="gx-tl-foot">
+          <button type="button" className="gx-btn is-weak" onClick={onMore}>{tr('home.tl.more')}</button>
+        </div>
+      )}
     </section>
   );
 }
