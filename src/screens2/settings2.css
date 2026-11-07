@@ -1,4 +1,4 @@
-/* 설정(UX v2 SPEC 6장). 모바일은 화면 스택 안에서 스스로 스크롤(위 막대: 큰 제목이 지나간 뒤 '설정' + 선), 데스크톱은 본문 왼쪽 시작선에 맞춘 좁은 열. */
+/* 설정(UX v2 SPEC 6장). 모바일은 화면 스택 안에서 스스로 스크롤(위 막대: 큰 제목이 지나간 뒤 '설정' + 선), 데스크톱은 본문 가운데 좁은 열(최대 720px). */
 .gx .gx-settings { background: var(--bg); color: var(--text); padding-bottom: 40px; container-type: inline-size; }
 .gx .gx-settings.is-mob { height: 100dvh; overflow: hidden auto; overscroll-behavior: contain; padding-bottom: calc(40px + var(--gx-sab)); }
 .gx .gx-settings.is-desk { max-width: 720px; }
@@ -12,6 +12,7 @@
 .gx .gx-settings.is-desk .gx-set-top { padding: 24px 0 8px; }
 .gx .gx-settings.is-desk .gx-lh, .gx .gx-settings.is-desk .gx-set-row { padding-left: 0; padding-right: 0; }
 .gx .gx-settings.is-desk .gx-set-row + .gx-set-row::before { left: 0; right: 0; }
+.gx .gx-settings.is-desk { margin-left: auto; margin-right: auto; }   /* 최대 720px 열을 본문 가운데로 */
 .gx .gx-set-row .gx-row-c > span:first-child { white-space: normal; text-wrap: balance; }
 .gx .gx-set-row .gx-row-s { white-space: normal; text-wrap: pretty; }
 .gx .gx-set-row .gx-row-r { max-width: 55%; }
