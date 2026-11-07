@@ -105,7 +105,7 @@ function MiniPodium({ race, data }) {
   if (!top.length) return null;
   return (
     <span className="gx-mini-podium" aria-label={top.map((x) => x.family).join(', ')}>
-      {top.map((x, i) => <span className="gx-mini-av" key={x.code} style={{ zIndex: 3 - i }}><Avatar src={photoOf(data, x.code)} code={x.code} size={28} /></span>)}
+      {top.map((x, i) => <span className="gx-mini-av" key={x.code} style={{ zIndex: 3 - i }}><Avatar src={photoOf(data, x.code)} code={x.code} size={28} team={x.c} /></span>)}
     </span>
   );
 }
@@ -122,7 +122,7 @@ function Standings({ races, data }) {
       {st.rows.map((x) => (
         <div key={x.code} className={cx('gx-row gx-res-row', +x.p <= 3 && 'is-podium')}>
           <span className={cx('gx-res-p', +x.p <= 3 ? 'gx-t20' : 'gx-t17')}>{x.pt}</span>
-          <span className="gx-res-av"><Avatar src={photoOf(data, x.code)} code={x.code} size={40} /></span>
+          <span className="gx-res-av"><Avatar src={photoOf(data, x.code)} code={x.code} size={40} team={x.c} /></span>
           <span className="gx-row-c">
             <span className="gx-t17 gx-res-name"><span className="gx-sub gx-t15">{x.given}</span> <b className="gx-w600">{x.family}</b></span>
             <span className="gx-row-s gx-t13"><i className="gx-team-dot" style={{ background: x.c ? teamColor(x.c) : 'var(--text4)' }} />{joinDot([(x.teams || []).join(' / '), +x.wins ? tr('standings.wins', { n: x.wins }) : null])}</span>

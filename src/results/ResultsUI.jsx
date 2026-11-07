@@ -3,11 +3,12 @@
 import { photoFocusX } from './results.js';
 
 // 원형 사진. 머리~가슴 컷아웃을 1.5배로 키워 얼굴이 원 가운데 오게 한다. 사진이 없으면 드라이버 코드.
-export function Avatar({ src, code, size = 36 }) {
+// team: 팀 색 hex(# 없이). 주면 원 바탕을 팀 색 22%로 물들인다(프로토타입 .av와 같은 값)
+export function Avatar({ src, code, size = 36, team }) {
   return (
     <span aria-hidden style={{
       position: 'relative', flex: 'none', width: size, height: size, borderRadius: 999, overflow: 'hidden',
-      background: 'var(--surface3)', display: 'grid', placeItems: 'center',
+      background: team ? `color-mix(in srgb, #${team} 22%, var(--fill, var(--surface3)))` : 'var(--surface3)', display: 'grid', placeItems: 'center',
     }}>
       {src
         ? <img src={src} alt="" decoding="async" loading="lazy" style={{ position: 'absolute', width: '150%', height: '150%', maxWidth: 'none', left: `${(0.5 - photoFocusX(code) * 1.5) * 100}%`, top: '2%' }} />
