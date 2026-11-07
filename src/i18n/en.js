@@ -445,7 +445,7 @@ export default {
   'round.lead': 'Round',
   'series.col.start.WRC': 'Power Stage time',
   // UX v2 · 상세
-  'detail.cancelled.title': 'This race was cancelled',
+  'detail.cancelled.title': 'Cancelled',
   'detail.cancelled.was': 'It was scheduled for {range}.',
   'detail.cancelled.never': 'It didn’t take place.',
   'detail.cancelled.future': 'If it’s rescheduled, the new date will show here.',

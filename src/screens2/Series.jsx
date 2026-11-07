@@ -12,7 +12,7 @@ import { useMem } from './use-mem.js';
 import { getRoundNumber, getRoundText, getChampionshipLabel, getSeriesStats, getPrimarySession } from '../schedule/utils.js';
 import { CATEGORY_META, getCategoryForSeries } from '../schedule/constants.js';
 import { getRaceState, getMainSessionAt, isCancelled, isAliveState } from '../home/time.js';
-import { photo, photoCredit } from '../home/photos.js';
+import { CREDIT } from '../home/photos.js';
 import { useF1Results, resultOf, photoOf, teamColor, raceKey } from '../results/results.js';
 import { Avatar } from '../results/ResultsUI.jsx';
 import { Icon } from '../ui2/Icon.jsx';
@@ -21,8 +21,16 @@ import { joinDot } from '../ui2/hooks.js';
 
 const CATS = ['F1', 'ENDURANCE', 'WRC', 'GTWC'];
 const SERIES_OF = { F1: ['F1'], ENDURANCE: ['WEC', 'IMSA'], WRC: ['WRC'], GTWC: ['GTWC'] };
-// 시리즈마다 차가 크게 보이는 한 장(지금 서비스 경기 사진 /photos/races/* 와 출처 그대로): F1 상하이 · 내구 몬차 · WRC 일본 · GTWC 마니쿠르
-const HERO_PHOTO = { F1: ['f1-2026-2-chinesegrandprix', '50% 50%'], ENDURANCE: ['wec-2026-8-6hoursofmonza', '46% 50%'], WRC: ['wrc-2026-7-rallyjapan', '50% 50%'], GTWC: ['gtwc-2026-3-gtworldchallengeeuropesprint', '52% 50%'] };
+// 시리즈 히어로 사진(경기 사진 /photos/races/<slug>.webp 와 출처 그대로, 경기 배정과 상관없이 slug로 고정).
+// 차 한 대가 옆·3/4로 통째로 들어오고 둘레에 여백이 있는 컷만 — 폰 정사각 자르기와 데스크톱 오른쪽 상자 둘 다에서 차가 잘리지 않게.
+// 위치는 차 가운데(폰은 가로, 데스크톱 넓은 폭은 세로가 잘린다).
+const HERO_PHOTO = {
+  F1: ['f1-spa-francorchamps', '38% 55%'],    // 2026 벨기에 GP · 베어먼 VF-26(패닝)
+  ENDURANCE: ['imsa-road-atlanta', '42% 50%'], // 2025 프티 르망 · #23 애스턴마틴 발키리(패닝)
+  WRC: ['wrc-croatia', '60% 50%'],             // 2026 크로아티아 · 맥얼린 퓨마 Rally1
+  GTWC: ['gtwc-spa-24h', '45% 55%'],           // 2025 스파 24시 우승 · #63 람보르기니
+};
+const heroCredit = (slug) => { const c = CREDIT[slug]; return c ? { by: c[0], license: c[1], url: c[2] } : null; };
 const msOf = (v) => (v ? new Date(v).getTime() : null);
 const cx = (...list) => list.filter(Boolean).join(' ');
 const viewModeOf = (preferences, s) => (preferences?.series?.[s] === 'all' ? 'all' : 'race');
@@ -57,11 +65,10 @@ function SeasonStatus({ stats, list, now }) {
   );
 }
 
-function SeriesHero({ cat, races, stats, list, now, tabs, tabsRef, onOpen, year }) {
+function SeriesHero({ cat, stats, list, now, tabs, tabsRef, onOpen, year }) {
   const fmt = useFormat(); const tr = useT(); const shell = useShell();
-  const [pid, pos] = HERO_PHOTO[cat];
-  const ph = races.find((r) => (r.staticId || r.id) === pid) || null;
-  const credit = ph ? photoCredit(ph) : null;
+  const [slug, pos] = HERO_PHOTO[cat];
+  const credit = heroCredit(slug);
   const lv = stats.live; const lvSt = lv ? getRaceState(lv, now) : null;
   const target = lv || stats.next;
   const t = target ? (msOf(getMainSessionAt(target, now)?.startUtc) ?? msOf(target.primaryStartUtc)) : null;
@@ -74,7 +81,7 @@ function SeriesHero({ cat, races, stats, list, now, tabs, tabsRef, onOpen, year 
   const nm = cat === 'ENDURANCE' ? tr('series.heroName.ENDURANCE') : catName(tr, cat);
   return (
     <header className="gx-sfh">
-      {ph && <Photo className="gx-sfh-img" key={ph.id} src={photo(ph, 'hero')} pos={pos} eager />}
+      <Photo className="gx-sfh-img" key={slug} src={`/photos/races/${slug}.webp`} pos={pos} eager />
       <span className="gx-sfh-shade" aria-hidden="true" />
       <div className="gx-sfh-in">
         <div className="gx-sfh-top"><h1 className="gx-t26" data-view-title tabIndex={-1}>{tr('series.title')}</h1>{!shell.desktop && <GearBtn onClick={() => shell.openSettings()} />}</div>
@@ -293,7 +300,7 @@ export function SeriesScreen({ races = [], now, onOpenRace, preferences, seasonY
       <div className={cx('gx-ser-bar', barOn && 'is-on')} inert={!barOn || undefined} aria-hidden={!barOn || undefined}>
         <div className="gx-ser-bar-in"><div className="gx-ser-tabs">{tabs}</div></div>
       </div>
-      <SeriesHero cat={picked} races={races} stats={stats} list={list} now={at} tabs={tabs} tabsRef={tabsRef} onOpen={open} year={year} />
+      <SeriesHero cat={picked} stats={stats} list={list} now={at} tabs={tabs} tabsRef={tabsRef} onOpen={open} year={year} />
       <div className="gx-ser-main">
         <div key={picked} className="gx-ser-body">
           <SeriesBody cat={picked} list={list} stats={stats} now={at} preferences={preferences} data={data} onOpen={open} races={races} />
