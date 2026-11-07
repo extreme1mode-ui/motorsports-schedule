@@ -41,7 +41,7 @@
 .gx .gx-onb-opt:active { transform: scale(.985); }
 /* 아래 버튼: 화면 아래에 붙음 */
 .gx .gx-onb-cta { position: sticky; bottom: 0; display: grid; place-items: center; min-height: 84px;
-  padding: 12px calc(var(--onb-side) + var(--gutter)) calc(20px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(to top, var(--bg) 70%, transparent); }
+  padding: 12px calc(var(--onb-side) + var(--gutter)) calc(20px + var(--gx-sab)); background: linear-gradient(to top, var(--bg) 70%, transparent); }
 .gx .gx-onb-hint { padding: 12px 0; }
 @media (min-width: 900px) {
   .gx .gx-onb-top { height: 64px; }

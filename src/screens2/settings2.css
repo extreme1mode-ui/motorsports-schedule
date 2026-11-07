@@ -1,6 +1,6 @@
 /* 설정(UX v2 SPEC 6장). 모바일은 화면 스택 안에서 스스로 스크롤(위 막대: 큰 제목이 지나간 뒤 '설정' + 선), 데스크톱은 본문 왼쪽 시작선에 맞춘 좁은 열. */
 .gx .gx-settings { background: var(--bg); color: var(--text); padding-bottom: 40px; container-type: inline-size; }
-.gx .gx-settings.is-mob { height: 100dvh; overflow: hidden auto; overscroll-behavior: contain; padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px)); }
+.gx .gx-settings.is-mob { height: 100dvh; overflow: hidden auto; overscroll-behavior: contain; padding-bottom: calc(40px + var(--gx-sab)); }
 .gx .gx-settings.is-desk { max-width: 720px; }
 .gx .gx-set-bar { position: sticky; top: 0; z-index: 4; height: calc(56px + env(safe-area-inset-top, 0px)); padding: env(safe-area-inset-top, 0px) 8px 0; display: flex; align-items: center; justify-content: space-between; gap: 4px;
   background: var(--bg); transition: box-shadow var(--d2) var(--e-std); }

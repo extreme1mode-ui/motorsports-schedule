@@ -112,8 +112,13 @@
   --t40: 40px; --t40-lh: 48px;   /* 700 */
 }
 
-/* 사진 위 출처 글자(덱 카드). 사진 아래 출처(상세)는 --text3 */
+/* 사진 위 출처 글자(덱 카드·상세 사진) */
 :root { --credit-on-photo: rgba(255,255,255,.6); --credit-shadow: 0 1px 2px rgba(0,0,0,.35); }
+
+/* 아래 safe-area(홈 인디케이터): 탭 바·아래 버튼·시트·스낵바가 이만큼 올라간다.
+   웹은 env() 그대로. 토스 웹뷰는 env()가 0으로 와서 SDK 값(--ait-sab, src/toss/safe-area.js)과 큰 쪽을 쓴다. */
+:root { --gx-sab: env(safe-area-inset-bottom, 0px); }
+[data-plat="toss"] .gx { --gx-sab: max(var(--ait-sab, 0px), env(safe-area-inset-bottom, 0px)); }
 
 /* 움직임: 길이 넷 + 곡선 넷. 튀는 건 하트 하나(--e-pop) */
 :root {

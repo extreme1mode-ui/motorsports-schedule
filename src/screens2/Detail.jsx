@@ -468,8 +468,11 @@ export function RaceDetailV2({ race, now, preferences, favorites, toggleFav, rac
           <button type="button" className="gx-iconbtn gx-round" aria-label={tr('aria.shareRace', { name: L.shortName })} onClick={share}><Icon n="share" /></button>
         </div>
       )}
-      <div className="gx-dphoto"><Photo src={photo(race, inDrawer ? 'hero' : 'card')} pos={photoPos(race)} eager /></div>
-      {credit && <a className="gx-dcredit gx-t11" href={credit.url} target="_blank" rel="noopener noreferrer" aria-label={`${tr('photo.credit', credit)}. ${tr('aria.external')}`}>{tr('photo.credit', credit)}</a>}
+      {/* 사진 출처는 사진 안 오른쪽 아래에 연하게(시리즈 히어로와 같은 10px) */}
+      <div className="gx-dphoto">
+        <Photo src={photo(race, inDrawer ? 'hero' : 'card')} pos={photoPos(race)} eager />
+        {credit && <a className="gx-dcredit" href={credit.url} target="_blank" rel="noopener noreferrer" aria-label={`${tr('photo.credit', credit)}. ${tr('aria.external')}`}>{tr('photo.credit', credit)}</a>}
+      </div>
       <div className="gx-dhead">
         <span className="gx-stag gx-t13"><Dot series={race.series} />{joinDot([race.series, getRoundText(race, fmt.locale), race.isSprint ? tr('home.sprintWeekend') : null])}</span>
         <h1 className={cx('gx-t26', cancelled && 'gx-strike')} tabIndex={-1} data-view-title>{L.fullName}</h1>

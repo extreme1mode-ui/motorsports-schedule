@@ -16,11 +16,11 @@
 .gx .gx-dtop.is-solid { background: var(--bg); box-shadow: 0 1px 0 var(--line); }
 .gx .gx-dtop.is-solid .gx-round { background: none; color: var(--text); }
 
-/* 사진 + 출처(사진 아래 오른쪽, 11px — 글자 단계의 유일한 예외) */
+/* 사진 + 출처(사진 안 오른쪽 아래, 10px 연한 흰색 — 시리즈 히어로 출처와 같은 크기) */
 .gx .gx-dphoto { position: relative; aspect-ratio: 16 / 10; overflow: hidden; background: var(--fill); }
 .gx .gx-detail.is-drawer .gx-dphoto { aspect-ratio: 5 / 2; }
 .gx .gx-dphoto img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.gx .gx-dcredit { display: block; margin: 6px 0 0; padding: 0 var(--gutter); text-align: right; color: var(--text3); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gx .gx-dcredit { position: absolute; right: 12px; bottom: 8px; z-index: 1; max-width: 70%; font-size: 10px; line-height: 13px; text-align: right; color: var(--credit-on-photo); text-shadow: var(--credit-shadow); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gx .gx-t11 { font-size: 11px; line-height: 15px; }
 
 .gx .gx-dhead { display: flex; flex-direction: column; gap: 4px; padding: 20px var(--gutter) 8px; }
@@ -94,8 +94,8 @@
 [data-theme="dark"] .gx .gx-switch.is-on i, .gx[data-theme="dark"] .gx-switch.is-on i { background: var(--onbrand); }
 
 /* 아래 고정 바 [♡][행동] */
-.gx .gx-dspace { flex: 1 0 104px; }   /* 본문이 짧아도 아래 바가 화면 바닥에 */
-.gx .gx-dbar { position: sticky; bottom: 0; z-index: 4; display: flex; gap: 8px; margin-top: -104px; padding: 12px var(--gutter) calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--bg); box-shadow: 0 -1px 0 var(--line); }
+.gx .gx-dspace { flex: 1 0 calc(104px + var(--gx-sab)); }   /* 본문이 짧아도 아래 바가 화면 바닥에(아래 safe-area만큼 더) */
+.gx .gx-dbar { position: sticky; bottom: 0; z-index: 4; display: flex; gap: 8px; margin-top: calc(-104px - var(--gx-sab)); padding: 12px var(--gutter) calc(12px + var(--gx-sab)); background: var(--bg); box-shadow: 0 -1px 0 var(--line); }
 .gx .gx-dbar .gx-btn.is-grow { flex: 1; min-width: 0; }
 .gx .gx-dbar-note { flex: 1; align-self: center; color: var(--text3); white-space: normal; text-wrap: pretty; }
 

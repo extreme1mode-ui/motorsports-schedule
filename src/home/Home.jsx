@@ -2,7 +2,7 @@
 // → 내 주말 시간표 → 놓치면 아쉬운 경기 → 이후 일정. 데스크톱은 덱 아래 시간표 + 오른쪽 레일(결과·추천·이후 일정).
 // 규칙은 home/plan.js(히어로 순서 L5·덱·제목 문장·카드 상태), 시각 표기는 useFormat()(보는 사람 시간대·언어).
 // 홈 조립은 분 단위로 memo하고(아래 Home의 비교), 진행 중의 지난 시간·진행 막대·숫자 굴림만 1초마다 자기 칸에서 갱신한다.
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import './home2.css';
 import { buildHomePlan, homeHeadline, getCardState } from './plan.js';
 import { getMainSessionAt, getRaceEnd, getSessionEnd, resolveTimeState, isAliveState, isCancelled } from './time.js';
@@ -354,11 +354,12 @@ function Timeline({ plan, now, columns, dimOf, onOpen, onMore }) {
               <div className="gx-tl-day">
                 {markTop && <NowMark now={now} />}
                 <div className="gx-tl-dh" data-stick=""><span className="gx-t15 gx-w600">{head.main}</span><span className="gx-t13 gx-ter">{head.sub}</span></div>
+                {/* 줄을 div로 감싸면 .gx-tl-row + .gx-tl-row 구분선이 안 붙는다 — Fragment로 형제를 유지 */}
                 {d.items.map((it) => (
-                  <div key={`${it.r.id}-${it.s.tEn}-${it.at}`} style={{ display: 'contents' }}>
+                  <Fragment key={`${it.r.id}-${it.s.tEn}-${it.at}`}>
                     {markAt === it && markDay !== di && <NowMark now={now} />}
                     <TLRow it={it} now={now} dim={dimOf(it.r)} compact={columns} onOpen={onOpen} />
-                  </div>
+                  </Fragment>
                 ))}
                 {markEnd && <NowMark now={now} />}
               </div>
