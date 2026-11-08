@@ -1,0 +1,95 @@
+/* 홈 '내 주말 시간표' — 일정 목록(.gx-tll). 색·글자는 tokens-v2 그대로. */
+.gx .gx-tll-days { padding: 0 var(--gutter); }
+.gx .gx-dhome-grid .gx-tll-days { padding: 0; }
+/* 날 칸: 위 12 · 아래 8. 경계선은 아래 날의 머리라서 아래 날 쪽이 더 가깝다(글자 기준 선 아래 17 · 선 위 26, 색 면이면 8) */
+.gx .gx-tll-day { display: grid; grid-template-columns: 52px minmax(0, 1fr); align-items: start; padding: 12px 0 8px; }
+.gx .gx-tll-day + .gx-tll-day { border-top: 1px solid var(--line); }
+.gx .gx-tll.is-cols .gx-tll-day { grid-template-columns: 72px minmax(0, 1fr); padding: 12px 0 8px; }
+
+/* 날짜: 요일 위 · 날짜 아래(오늘은 동그라미). 요일은 경기 이름과, 날짜는 그 아래 첫 줄과 같은 높이
+   (폰: 요일 19 + 7 + 날짜 34 → 날짜 중심 43 = 이름 19 + 줄 48의 중심. 데스크톱: 19 + 2 + 40 → 41 = 19 + 44/2)
+   폰에서는 그날을 스크롤하는 동안 위 막대(52) 아래 12px에 붙는다 — 쉴 때 자리와 같아서 붙는 순간 튀지 않음 */
+.gx .gx-tll-date { position: sticky; top: 64px; width: 34px; display: flex; flex-direction: column; align-items: center; gap: 7px; }
+[data-plat="toss"] .gx .gx-tll-date { top: 12px; }
+.gx .gx-tll.is-cols .gx-tll-date { top: 24px; width: 40px; gap: 2px; }
+/* '끝난 세션' 줄로 시작하는 날: 그 줄을 날짜 덩어리 가운데에(폰 60 · 48, 데스크톱 61 · 44) */
+.gx .gx-tll-day.has-fold .gx-tll-body > .gx-tll-fold { margin-top: 6px; }
+.gx .gx-tll.is-cols .gx-tll-day.has-fold .gx-tll-body > .gx-tll-fold { margin-top: 8px; }
+.gx .gx-tll-wd { font-size: var(--t13); line-height: var(--t13-lh); font-weight: 600; color: var(--text3); }
+.gx .gx-tll-wd.is-sat { color: var(--sat); } .gx .gx-tll-wd.is-sun { color: var(--sun); }
+.gx .gx-tll-num { display: inline-grid; place-items: center; min-width: 34px; height: 34px; border-radius: 17px; font-size: var(--t20); line-height: var(--t20-lh); font-weight: 700; }
+.gx .gx-tll.is-cols .gx-tll-num { min-width: 40px; height: 40px; border-radius: 20px; font-size: var(--t26); line-height: var(--t26-lh); }
+.gx .gx-tll-num.is-today { background: var(--brand); color: var(--onbrand); }
+.gx .gx-tll-day.is-past .gx-tll-num:not(.is-today), .gx .gx-tll-day.is-past .gx-tll-wd { color: var(--text3); }
+.gx .gx-tll-body { min-width: 0; }
+
+/* 줄 공통: 눌림은 크기를 바꾸지 않고 겹(::after)만 — 세로 막대가 끊기지 않게 막대는 겹 위에 */
+.gx .gx-tll-row, .gx .gx-tll-fold { position: relative; isolation: isolate; width: 100%; margin: 0; border: 0; border-radius: 10px; background: none; color: var(--text);
+  font: inherit; text-align: left; cursor: pointer; box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: manipulation;
+  transition: background-color var(--d3) var(--e-std); }
+.gx .gx-tll-row:active, .gx .gx-tll-fold:active { transform: none; }
+.gx .gx-tll-row::after, .gx .gx-tll-fold::after { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--text); opacity: 0; pointer-events: none;
+  transition: opacity var(--d2) var(--e-std); }
+.gx .gx-tll-row[data-press]::after, .gx .gx-tll-fold[data-press]::after { opacity: .07; transition-duration: var(--d1); }
+@media (hover: hover) and (pointer: fine) { .gx .gx-tll-row:hover::after, .gx .gx-tll-fold:hover::after { opacity: .04; } .gx .gx-tll-row[data-press]::after, .gx .gx-tll-fold[data-press]::after { opacity: .08; } }
+.gx .gx-tll-row:focus-visible, .gx .gx-tll-fold:focus-visible { outline: 2px solid var(--text); outline-offset: -2px; }
+
+/* 경기 묶음: 위에 경기 이름 한 번, 줄마다 이어지는 3px 막대 */
+.gx .gx-tll-runh { max-height: 40px; padding: 8px 8px 0; font-size: var(--t13); line-height: var(--t13-lh); font-weight: 500; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: max-height var(--d3) var(--e-std), padding var(--d3) var(--e-std), opacity var(--d2) var(--e-std); }
+.gx .gx-tll.is-cols .gx-tll-runh { padding-left: 10px; padding-right: 10px; }
+/* 경기 이름은 아래 줄에 붙고 위 묶음과는 띄운다. 그날 첫 경기 이름은 요일과 같은 줄 */
+.gx .gx-tll-body > .gx-vh + .gx-tll-run > .gx-tll-runh { padding-top: 0; }
+.gx .gx-tll-row { min-height: 48px; padding: 0 8px; display: flex; align-items: center; gap: 12px; }
+.gx .gx-tll.is-cols .gx-tll-row { min-height: 44px; padding: 0 10px; gap: 14px; }
+.gx .gx-tll-t { width: 44px; flex: none; font-size: var(--t15); line-height: var(--t15-lh); font-weight: 600; transition: color var(--d3) var(--e-std); }
+.gx .gx-tll.is-cols .gx-tll-t { width: 48px; }
+.gx .gx-tll-bar { flex: none; align-self: stretch; width: 3px; background: var(--c); transition: background-color var(--d3) var(--e-std), margin var(--d3) var(--e-std); }
+.gx .gx-tll-row.is-first .gx-tll-bar { margin-top: 10px; border-radius: 2px 2px 0 0; }
+.gx .gx-tll-row.is-last .gx-tll-bar { margin-bottom: 10px; border-radius: 0 0 2px 2px; }
+.gx .gx-tll-row.is-first.is-last .gx-tll-bar { border-radius: 2px; }
+.gx .gx-tll-n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--t15); line-height: var(--t15-lh); transition: color var(--d3) var(--e-std); }
+.gx .gx-tll-row.is-race .gx-tll-n { font-weight: 600; }
+.gx .gx-tll-st { flex: none; white-space: nowrap; font-size: var(--t13); line-height: var(--t13-lh); color: var(--text2); }
+.gx .gx-tll-st.is-muted { color: var(--text3); }
+/* 알약 안 글자는 한 겹 더 감싼다 — flex 바로 아래 글자 조각은 앞뒤 빈칸이 지워져 'In 10 min'이 'In10min'이 된다 */
+.gx .gx-tll-chip { flex: none; height: 24px; padding: 0 9px; border-radius: 12px; display: inline-flex; align-items: center; background: var(--brand); color: var(--onbrand);
+  font-size: var(--t13); line-height: var(--t13-lh); font-weight: 600; white-space: nowrap; }
+
+/* 상태 */
+.gx .gx-tll-row.is-done .gx-tll-t, .gx .gx-tll-row.is-done .gx-tll-n { color: var(--text3); }
+.gx .gx-tll-row.is-done .gx-tll-bar { background: var(--text4); }
+/* 관심 끈 시리즈(그 주말 결승만 보이는 경기)는 한 톤 물러나게 — 다른 목록의 .is-dim과 같은 text2 */
+.gx .gx-tll-row.is-dim .gx-tll-t, .gx .gx-tll-row.is-dim .gx-tll-n { color: var(--text2); }
+.gx .gx-tll-row.is-next { background: var(--callout); }
+.gx .gx-tll-row.is-next .gx-tll-t { font-weight: 700; }
+.gx .gx-tll-row.is-live { background: color-mix(in srgb, var(--signal) 13%, transparent); }
+/* 진행 중 바로 아래가 다음 세션이면 맞닿는 모서리를 펴서 한 덩어리로 */
+.gx .gx-tll-row.is-live:has(+ .gx-tll-row.is-next) { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.gx .gx-tll-row.is-live + .gx-tll-row.is-next { border-top-left-radius: 0; border-top-right-radius: 0; }
+
+/* 끝난 세션 접기: 한 줄 → 눌러서 펼침(높이 260ms, 화살표 반 바퀴). 접힌 동안은 키보드·스크린리더에서도 빠짐(inert) */
+.gx .gx-tll-fold { min-height: 48px; padding: 0 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.gx .gx-tll.is-cols .gx-tll-fold { min-height: 44px; padding: 0 10px; }
+.gx .gx-tll-foldt { font-size: var(--t15); line-height: var(--t15-lh); color: var(--text3); }
+.gx .gx-tll-foldbtn { display: inline-flex; align-items: center; gap: 2px; font-size: var(--t13); line-height: var(--t13-lh); font-weight: 500; color: var(--text2); }
+/* 화살표 아이콘은 상자 14 안에 그림 9 → 오른쪽 여백만큼 당겨서 글자 오른쪽 끝(상태·알약)과 맞춘다 */
+.gx .gx-tll-chev { display: inline-flex; margin-right: -3px; transition: transform var(--d3) var(--e-std); }
+.gx .gx-tll-fold.is-open .gx-tll-chev { transform: rotate(180deg); }
+.gx .gx-tll-more { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows var(--d3) var(--e-std), opacity var(--d2) var(--e-std); }
+.gx .gx-tll-more.is-open { grid-template-rows: 1fr; opacity: 1; }
+.gx .gx-tll-morein { min-height: 0; overflow: hidden; }
+
+/* 펼쳤을 때 같은 경기가 이어지면: 아래 경기 이름을 접고, 회색(끝남) 막대와 색 막대를 한 줄로 잇는다 */
+.gx .gx-tll-more.is-open + .gx-tll-run.is-cont > .gx-tll-runh { max-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0; }
+.gx .gx-tll-more.is-open + .gx-tll-run.is-cont > .gx-tll-row.is-first .gx-tll-bar { margin-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+.gx .gx-tll-more.is-open.has-cont .gx-tll-run:last-child > .gx-tll-row.is-last .gx-tll-bar { margin-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+
+/* 넓은 데스크톱(시간표 960px 이상): 날짜를 두 칸으로 흘린다 */
+.gx .gx-tll.is-cols { container: gxtll / inline-size; }
+@container gxtll (min-width: 960px) {
+  .gx .gx-tll-days { columns: 2; column-gap: 40px; }
+  .gx .gx-tll-day { break-inside: avoid; }
+  .gx .gx-tll-day + .gx-tll-day { border-top: 0; }
+}

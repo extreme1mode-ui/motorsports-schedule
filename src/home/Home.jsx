@@ -5,6 +5,7 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import './home2.css';
 import { buildHomePlan, homeHeadline, getCardState } from './plan.js';
+import { TimelineList } from './TimelineList.jsx';
 import { getMainSessionAt, getRaceEnd, getSessionEnd, resolveTimeState, isAliveState, isCancelled } from './time.js';
 import { photo, photoPos, photoCredit } from './photos.js';
 import { SERIES_DESCRIPTION_KEYS } from '../preferences-options.js';
@@ -266,85 +267,18 @@ function DeckDesktop({ deck, states, curs, openAt, actions, onGo, now }) {
 }
 
 // ---------- 내 주말 시간표 ----------
-function LiveBar({ race, s }) {
+// 홈 시간표는 TimelineList.jsx(일정 목록). 여기는 온보딩 미리보기 줄만 — 누르지 않는 줄, 상태 글자 없음
+function PreviewRow({ it }) {
   const fmt = useFormat();
-  const tick = useTick(true);
-  return <Progress from={s.startUtc} to={getSessionEnd(race, s)} now={tick} label={fmt.sessionLabel(s)} />;
-}
-function TLRow({ it, now, dim, compact, onOpen, still = false }) {
-  const fmt = useFormat(); const tr = useT();
   const { s, r } = it;
-  const st = it.end != null && now >= it.end ? 'done' : now >= it.at ? 'live' : 'upcoming';
-  const soon = st === 'upcoming' && it.at - now < 2 * HOUR_MS;
-  const stx = st === 'live' ? <LiveText /> : st === 'done' ? <span className="gx-ter">{tr('status.done')}</span>
-    : it.at - now < 12 * HOUR_MS ? <span className={soon ? 'gx-st-next' : 'gx-sub'}><Roll>{fmt.relShort(it.at, now)}</Roll></span> : null;
-  // still: 온보딩 미리보기 — 누르지 않는 줄, 상태 글자 없음
-  if (still) {
-    return (
-      <div className="gx-row gx-tl-row is-static">
-        <span className="gx-tl-time"><b className="gx-t17">{fmt.time(it.at)}</b></span>
-        <span className="gx-row-c">
-          <span className={cx('gx-row-t gx-t17', s.kind === 'race' && 'gx-w600')}>{fmt.sessionLabel(s)}</span>
-          <span className="gx-row-s gx-t13"><Dot series={r.series} />{joinDot([r.series, fmt.race(r).shortName])}</span>
-        </span>
-      </div>
-    );
-  }
   return (
-    <button type="button" className={cx('gx-row gx-tl-row', (st === 'done' || dim) && 'is-dim', st === 'live' && 'is-live')} {...prefetchHandlers(r)} onClick={() => onOpen(r)}>
+    <div className="gx-row gx-tl-row is-static">
       <span className="gx-tl-time"><b className="gx-t17">{fmt.time(it.at)}</b></span>
       <span className="gx-row-c">
-        {compact ? (
-          <span className="gx-tl-l1">
-            <span className={cx('gx-row-t gx-t17', s.kind === 'race' && 'gx-w600')}>{fmt.sessionLabel(s)}</span>
-            {stx && <span className="gx-t13 gx-tl-st">{stx}</span>}
-          </span>
-        ) : <span className={cx('gx-row-t gx-t17', s.kind === 'race' && 'gx-w600')}>{fmt.sessionLabel(s)}</span>}
+        <span className={cx('gx-row-t gx-t17', s.kind === 'race' && 'gx-w600')}>{fmt.sessionLabel(s)}</span>
         <span className="gx-row-s gx-t13"><Dot series={r.series} />{joinDot([r.series, fmt.race(r).shortName])}</span>
-        {st === 'live' && <LiveBar race={r} s={s} />}
       </span>
-      {!compact && <span className="gx-row-r gx-t13">{stx}</span>}
-    </button>
-  );
-}
-function Timeline({ plan, now, columns, dimOf, onOpen, onMore }) {
-  const fmt = useFormat(); const tr = useT();
-  const [showDone, setShowDone] = useState(false);
-  if (!plan.heroWeek || !plan.days.length) return null;
-  const isDone = (it) => it.end != null && now >= it.end;
-  const all = plan.days.flatMap((d) => d.items);
-  // 끝난 세션이 둘 이상이고 아직 남은 세션이 있으면 접는다(데스크톱 칸 보기는 접지 않음). 펼치기는 머리 줄 오른쪽 작은 글자
-  const canFold = !columns && all.filter(isDone).length >= 2 && all.some((it) => !isDone(it));
-  const fold = canFold && !showDone;
-  const days = fold ? plan.days.map((d) => ({ ...d, items: d.items.filter((it) => !isDone(it)) })).filter((d) => d.items.length) : plan.days;
-  const foldBtn = canFold
-    ? <button type="button" className="gx-textbtn gx-t13 gx-lh-fold" aria-expanded={showDone} onClick={() => setShowDone(!showDone)}>{tr(showDone ? 'home.tl.hideDone' : 'home.tl.showDone')}<Icon n={showDone ? 'up' : 'down'} s={14} /></button>
-    : null;
-  return (
-    <section aria-labelledby="gx-tl-h" className={columns ? 'gx-tl-sec' : undefined}>
-      {/* 데스크톱(칸 보기): '다른 시리즈 확인하기 ›'는 머리 줄 오른쪽 글자 버튼(레일의 '결과 보기 ›'와 같은 모양). 폰은 아래 넓은 버튼 그대로 */}
-      <ListHeader id="gx-tl-h" title={tr('home.tl.title')} sub={tr('home.tl.count', { n: all.length })}
-        right={columns ? null : foldBtn} action={columns ? tr('home.tl.moreShort') : null} onAction={onMore} />
-      {/* 칸 보기: 하루 한 칸. 칸이 좁아지면(CSS 컨테이너 쿼리) 두 칸으로 흘려 이름이 잘리지 않게 */}
-      <div className={columns ? `gx-tl-cols is-d${Math.min(4, days.length)}` : undefined} style={columns ? { gridTemplateColumns: `repeat(${Math.min(4, days.length)}, minmax(0, 1fr))` } : undefined}>
-        {days.map((d) => {
-          const head = fmt.dayHead(d.items[0].at, now);
-          return (
-            <div key={d.key} className="gx-tl-day">
-              <div className="gx-tl-dh" data-stick=""><span className="gx-t15 gx-w600">{head.main}</span><span className="gx-t13 gx-ter">{head.sub}</span></div>
-              {/* 줄은 형제로 두어야 .gx-tl-row + .gx-tl-row 구분선이 붙는다 */}
-              {d.items.map((it) => <TLRow key={`${it.r.id}-${it.s.tEn}-${it.at}`} it={it} now={now} dim={dimOf(it.r)} compact={columns} onOpen={onOpen} />)}
-            </div>
-          );
-        })}
-      </div>
-      {/* 폰: 다른 시리즈를 켜고 끄는 설정으로 가는 넓은 버튼 하나(데스크톱은 머리 줄로 올림) */}
-      {!columns && (
-        <div className="gx-tl-foot">
-          <button type="button" className="gx-btn is-weak" onClick={onMore}>{tr('home.tl.more')}</button>
-        </div>
-      )}
-    </section>
+    </div>
   );
 }
 
@@ -358,7 +292,7 @@ export function PreviewDays({ plan, now }) {
         return (
           <div key={d.key} className="gx-tl-day">
             <div className="gx-tl-dh"><span className="gx-t15 gx-w600">{head.main}</span><span className="gx-t13 gx-ter">{head.sub}</span></div>
-            {d.items.map((it) => <TLRow key={`${it.r.id}-${it.s.tEn}-${it.at}`} it={it} now={now} still />)}
+            {d.items.map((it) => <PreviewRow key={`${it.r.id}-${it.s.tEn}-${it.at}`} it={it} />)}
           </div>
         );
       })}
@@ -534,7 +468,7 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
   }, [races, mineIds, preferences, minute, fmt.locale]);
 
   const last = plan.last ? <LastResult race={plan.last} data={results} onOpen={() => open(plan.last)} /> : null;
-  const timeline = <Timeline plan={plan} now={minute} columns={shell.desktop} dimOf={dimOf} onOpen={open} onMore={() => shell.openSettings()} />;
+  const timeline = <TimelineList plan={plan} now={minute} columns={shell.desktop} dimOf={dimOf} onOpen={open} onMore={() => shell.openSettings()} />;
   const disc = pick ? <Discover pick={pick} preferences={preferences} setSeriesMode={setSeriesMode} onOpen={open} now={minute} /> : null;
   const later = <Later list={plan.later} now={minute} dimOf={dimOf} onOpen={open} onGo={onGo} />;
   const head = (
@@ -578,7 +512,7 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
 }
 
 // App의 1초 setNow로 홈이 통째로 리렌더되지 않도록 now는 분 단위로만 비교한다.
-// 초 단위 갱신은 진행 중 칸(CardWhen·LiveBar)과 데모 시계가 자기 안에서 한다.
+// 초 단위 갱신은 진행 중 칸(CardWhen)과 데모 시계가 자기 안에서 한다.
 export const Home = memo(HomeView, (prev, next) => {
   for (const key of new Set([...Object.keys(prev), ...Object.keys(next)])) {
     if (key === 'now') { if (!sameMinute(prev.now, next.now)) return false; continue; }
