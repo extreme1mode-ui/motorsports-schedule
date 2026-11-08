@@ -25,6 +25,10 @@ import { drawerWidth } from './drawer.js';
 import { Icon } from '../ui2/Icon.jsx';
 import { Dot, Band, ListHeader, LiveText, Progress, Roll, Photo, Seg, HeartBtn, CalBtn } from '../ui2/parts.jsx';
 import { joinDot } from '../ui2/hooks.js';
+import { likeCount, formatCount, useLikes, COUNT_IN_HEART } from '../likes/likes.js';
+import { LikeInline } from '../likes/Likes.jsx';
+import { WxKeyLine, WxChip } from '../weather/Wx.jsx';
+import { useSessionWx } from '../weather/forecast.js';
 
 const HOUR_MS = 3600000;
 const clock = () => Date.now();   // 탭 이동 중 밑줄 잠금용(이벤트 처리기에서만 부른다)
@@ -174,6 +178,7 @@ function Broadcast({ race }) {
 // 시각 미정은 맨 아래, 경기가 다 끝나면 미정 세션은 숨긴다.
 function Sessions({ race, now, preferences }) {
   const fmt = useFormat(); const tr = useT();
+  const wxOf = useSessionWx(race);
   const mode = viewModeOf(preferences, race.series);
   const [open, setOpen] = useState(false);
   const [showDone, setShowDone] = useState(false);
@@ -216,7 +221,7 @@ function Sessions({ race, now, preferences }) {
           <div className="gx-ses-day" key={g.k}>
             <div className="gx-tl-dh">{head ? <><span className="gx-t15 gx-w600">{head.main}</span><span className="gx-t13 gx-ter">{head.sub}</span></> : <span className="gx-t15 gx-w600">{tr('detail.sessions.tba')}</span>}</div>
             {g.items.map((s, i) => {
-              const ss = sstate(s); const label = fmt.sessionLabel(s);
+              const ss = sstate(s); const label = fmt.sessionLabel(s); const w = wxOf(s);
               return (
                 // 홈 시간표와 같은 줄: 왼쪽 시각 · 가운데 세션(현지 시각) · 오른쪽 상태. 경기 전체가 끝났으면 '종료'를 반복하지 않고 흐리게만
                 <div key={`${s.tEn}-${i}`} className={cx('gx-row gx-tl-row gx-ses-row', ss === 'done' && 'is-dim', ss === 'live' && 'is-live')}>
@@ -225,8 +230,8 @@ function Sessions({ race, now, preferences }) {
                     <span className={cx('gx-row-t gx-t17', s.kind === 'race' && 'gx-w600')}>{label}</span>
                     {ss === 'live' && <Progress from={s.startUtc} to={getSessionEnd(race, s)} now={now} label={tr('detail.progressAria', { label })} />}
                   </span>
-                  {(ss === 'live' || (ss === 'done' && !over)) && (
-                    <span className="gx-row-r gx-t13">{ss === 'live' ? <LiveText /> : <span className="gx-ter">{tr('status.done')}</span>}</span>
+                  {(ss === 'live' || (ss === 'done' && !over) || w) && (
+                    <span className="gx-row-r gx-t13">{ss === 'live' ? <LiveText /> : ss === 'done' ? <span className="gx-ter">{tr('status.done')}</span> : null}<WxChip w={w} /></span>
                   )}
                 </div>
               );
@@ -331,6 +336,7 @@ function DetailTabs({ items, scroller, share, shareLabel }) {
 function DetailBar({ race, now, preferences, favorites, toggleFav, races, onOpenRace }) {
   const fmt = useFormat(); const tr = useT(); const shell = useShell();
   const alarms = useAlarms();
+  useLikes();   // 즐겨찾기 수가 도착하면 다시 그린다
   const vm = viewModeOf(preferences, race.series);
   const st = getRaceState(race, now, vm);
   const bc = fmt.broadcast(race.broadcast);
@@ -362,9 +368,12 @@ function DetailBar({ race, now, preferences, favorites, toggleFav, races, onOpen
     // 결정 3: 담은 뒤 '✓ 캘린더에 담았어요' 고정, 다시 누르면 같은 파일 다시 받기
     primary = <CalBtn on={alarms.has(race.id)} onClick={() => { const res = toggleAlarm(race, { source: 'detail', preferences, locale: fmt.locale, now: new Date(now) }); shell.toast(tr(res?.again ? 'toast.calAgain' : 'toast.calAdded')); }} />;
   }
+  // 즐겨찾기 수: 기준 이상일 때만 하트 안에 숫자(버튼 이름에도 붙인다). 토스는 버튼 밖 장소 줄 끝(LikeInline)
+  const lc = likeCount(race, fav);
+  const cnt = COUNT_IN_HEART && lc.show ? formatCount(lc.n, fmt.locale) : null;
   return (
     <div className="gx-dbar">
-      {!wide && <HeartBtn on={fav} onClick={onFav} label={tr('aria.saveRace', { name: L.shortName })} />}
+      {!wide && <HeartBtn on={fav} onClick={onFav} count={cnt} label={cnt ? tr('aria.saveRaceCount', { name: L.shortName, n: cnt }) : tr('aria.saveRace', { name: L.shortName })} />}
       {primary || (note && <span className="gx-dbar-note gx-t15 gx-sub">{note}</span>)}
     </div>
   );
@@ -441,9 +450,10 @@ export function RaceDetailV2({ race, now, preferences, favorites, toggleFav, rac
       <div className="gx-dhead">
         <span className="gx-stag gx-t13"><Dot series={race.series} />{joinDot([race.series, getRoundText(race, fmt.locale), race.isSprint ? tr('home.sprintWeekend') : null])}</span>
         <h1 className={cx('gx-t26', cancelled && 'gx-strike')} tabIndex={-1} data-view-title>{L.fullName}</h1>
-        <span className="gx-t15 gx-sub">{joinDot([L.circuit, L.country])}</span>
+        <span className="gx-t15 gx-sub">{joinDot([L.circuit, L.country])}<LikeInline race={race} fav={favorites.has(race.id)} /></span>
       </div>
       <KeyFact race={race} now={at} preferences={preferences} />
+      <WxKeyLine race={race} now={at} preferences={preferences} />
       {cur && !done && <p className="gx-cur gx-t15 gx-dcur"><span className="gx-badge">{tr('home.curation')}</span>{cur.text}</p>}
       <DetailTabs items={items} scroller={ref} share={share} shareLabel={tr('aria.shareRace', { name: L.shortName })} />
       {showResults && <><Band /><Results race={race} data={data} /></>}

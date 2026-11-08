@@ -177,14 +177,16 @@ export function Credit({ race, onPhoto = false, tabIndex, className = '' }) {
 
 // ---------- 행동 ----------
 // 하트: 켜질 때 한 번 튄다. size 'btn'은 52px 회색 버튼(상세 아래 바), 'icon'은 44px 아이콘 버튼.
-export function HeartBtn({ on, onClick, label, size = 'btn', className = '' }) {
+// count: 즐겨찾기 수 글자(기준 이상일 때만, 없으면 하트만). 바뀐 자리만 굴러 내려온다
+export function HeartBtn({ on, onClick, label, size = 'btn', className = '', count = null }) {
   const tr = useT();
   const [pop, setPop] = useState(false);
   return (
     <button type="button" aria-pressed={!!on} aria-label={label ?? tr('nav.fav')}
-      className={cx(size === 'btn' ? 'gx-btn is-weak is-icon' : 'gx-iconbtn', 'gx-heart', on && 'is-on', pop && 'is-pop', className)}
+      className={cx(size === 'btn' ? 'gx-btn is-weak is-icon' : 'gx-iconbtn', 'gx-heart', on && 'is-on', pop && 'is-pop', count && 'has-count', className)}
       onClick={() => { if (!on) setPop(true); onClick?.(); }} onAnimationEnd={() => setPop(false)}>
       <Icon n={on ? 'heartF' : 'heart'} />
+      {count && <span className="gx-heart-n" aria-hidden="true"><Roll>{count}</Roll></span>}
     </button>
   );
 }

@@ -1,0 +1,15 @@
+/* 즐겨찾기 수 — 하트 옆 숫자(고정폭, 바뀐 자리만 굴림) · 많이 담은 경기 · 토스용 정보 줄 끝 숫자 */
+.gx .gx-heart-n { font-variant-numeric: tabular-nums; font-weight: 600; }
+.gx .gx-btn.is-icon.has-count { width: auto; min-width: 52px; padding: 0 16px 0 14px; gap: 6px; }
+.gx .gx-btn.is-icon.has-count .gx-heart-n { font-size: var(--t15); line-height: var(--t15-lh); color: var(--text); }
+.gx .gx-card-heart.has-count { width: auto; min-width: 40px; padding: 0 12px 0 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px; }
+.gx .gx-card-heart .gx-heart-n { font-size: var(--t13); line-height: var(--t13-lh); color: #FFFFFF; }
+
+/* 홈 '많이 담은 경기' */
+.gx .gx-pop .gx-row-s .gx-dot { margin-right: 6px; vertical-align: 1px; }
+.gx .gx-pop-n { display: inline-flex; align-items: center; gap: 4px; color: var(--text2); flex: none; }
+
+/* 토스: 정보 줄 끝 ' · ♡ 1,234'(버튼 안에 넣지 않는다 — 내 하트가 세어지지 않으니). 구분점은 joinDot과 같은 글자 */
+.gx .gx-likei-n { white-space: nowrap; }   /* 줄이 넘치면 joinDot처럼 구분점 뒤에서 넘어간다 */
+.gx .gx-likei svg { display: inline-block; vertical-align: -2px; margin-right: 3px; }
+.gx .gx-card-tag .gx-likei { margin-left: -6px; }   /* 카드 윗줄은 flex gap 6px — joinDot 구분점과 같은 간격으로 */

@@ -550,4 +550,17 @@ export default {
   'session.nightPractice': '야간 연습 {n}',
   'session.powerStage': '파워 스테이지',
   'session.finish': '체커기',
+  // 즐겨찾기 수 · 비 예보
+  'aria.saveRaceCount': '{name} 즐겨찾기, {n}번 담겼어요',
+  'home.popular.title': '많이 담은 경기',
+  'home.popular.sub': '이번·다음 주말',
+  'home.popular.countAria': '{n}번 담겼어요',
+  'home.wx.tag': '{level} 예보',
+  'detail.wx.light': '약한 비',
+  'detail.wx.rain': '비',
+  'detail.wx.thunder': '뇌우',
+  'detail.wx.key': '{label} 시간대에 {level} 예보가 있어요',
+  'detail.wx.at': '{time} 예보',
+  'detail.wx.credit': '날씨 데이터: MET Norway',
+  'detail.wx.chipAria': '{level} 예보',
 };

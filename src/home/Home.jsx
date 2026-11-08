@@ -6,6 +6,10 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import './home2.css';
 import { buildHomePlan, homeHeadline, getCardState } from './plan.js';
 import { TimelineList } from './TimelineList.jsx';
+import { likeCount, formatCount, popularRaces, useLikes, COUNT_IN_HEART } from '../likes/likes.js';
+import { Popular, LikeInline } from '../likes/Likes.jsx';
+import { WxCardTag, WxInline } from '../weather/Wx.jsx';
+import { useWeather, useCardWx, wxOfRace } from '../weather/forecast.js';
 import { getMainSessionAt, getRaceEnd, getSessionEnd, resolveTimeState, isAliveState, isCancelled } from './time.js';
 import { photo, photoPos, photoCredit } from './photos.js';
 import { SERIES_DESCRIPTION_KEYS } from '../preferences-options.js';
@@ -118,12 +122,13 @@ function cardAct({ race, c, fmt, tr, alarmOn, onCal, onOpen }) {
   return { btn: <span className="gx-card-note gx-t15">{tr('home.alertTba')}</span>, line };
 }
 
-function CardHeart({ on, label, onClick }) {
+function CardHeart({ on, label, onClick, count = null }) {
   const [pop, setPop] = useState(false);
   return (
-    <button type="button" className={cx('gx-card-heart', on && 'is-on', pop && 'is-pop')} aria-pressed={!!on} aria-label={label}
+    <button type="button" className={cx('gx-card-heart', on && 'is-on', pop && 'is-pop', count && 'has-count')} aria-pressed={!!on} aria-label={label}
       onClick={() => { if (!on) setPop(true); onClick(); }} onAnimationEnd={() => setPop(false)}>
       <Icon n={on ? 'heartF' : 'heart'} s={20} />
+      {count && <span className="gx-heart-n" aria-hidden="true"><Roll>{count}</Roll></span>}
     </button>
   );
 }
@@ -137,6 +142,12 @@ function DeckCard({ race, k, n, size, c, onHit, onOpen, actions }) {
   const a = cardAct({ race, c, fmt, tr, alarmOn: actions.alarms.has(race.id), onCal: () => actions.addAlarm(race), onOpen });
   const credit = photoCredit(race);
   const desk = size !== 'm';
+  // 즐겨찾기 수(기준 이상일 때만) · 비 예보(보는 세션 중 하나라도, 진행 중 카드는 빼고)
+  useLikes();
+  const fav = actions.favorites.has(race.id);
+  const lc = likeCount(race, fav);
+  const cnt = COUNT_IN_HEART && lc.show ? formatCount(lc.n, fmt.locale) : null;
+  const wx = useCardWx(race, actions.preferences, live);
   return (
     <article className={cx('gx-card', `is-${size}`, live && 'is-live')} data-k={k} role="group"
       aria-roledescription={desk ? undefined : tr('home.deck.roledesc')}
@@ -146,12 +157,13 @@ function DeckCard({ race, k, n, size, c, onHit, onOpen, actions }) {
       <button type="button" className="gx-card-hit" {...prefetchHandlers(race)} onClick={() => (onHit ? onHit(k, race) : onOpen())} aria-label={tr('home.openDetail', { name: L.fullName })} />
       {/* 출처는 글자 폭만 누를 수 있고 Tab은 건너뛴다(상세에서도 볼 수 있음) */}
       {credit && <span className="gx-card-credit"><a href={credit.url} target="_blank" rel="noopener noreferrer" tabIndex={-1} aria-label={`${tr('photo.credit', credit)}. ${tr('aria.external')}`}>{tr('photo.credit', credit)}</a></span>}
-      <CardHeart on={actions.favorites.has(race.id)} label={tr('aria.saveRace', { name: L.shortName })} onClick={() => actions.toggleFav(race)} />
+      <CardHeart on={fav} count={cnt} label={cnt ? tr('aria.saveRaceCount', { name: L.shortName, n: cnt }) : tr('aria.saveRace', { name: L.shortName })} onClick={() => actions.toggleFav(race)} />
       <div className="gx-card-body">
         <div className="gx-card-main">
-          <span className="gx-card-tag gx-t13">{live && <LiveText />}<Dot series={race.series} />{joinDot([race.series, getRoundText(race, fmt.locale), race.isSprint ? tr('home.sprintWeekend') : null])}</span>
+          <span className="gx-card-tag gx-t13">{live && <LiveText />}<Dot series={race.series} />{joinDot([race.series, getRoundText(race, fmt.locale), race.isSprint ? tr('home.sprintWeekend') : null])}<LikeInline race={race} fav={fav} /></span>
           <span className="gx-card-title">{L.fullName}</span>
           <span className="gx-card-when"><CardWhen race={race} c={c} compact={compact} /></span>
+          <WxCardTag w={wx} />
         </div>
         {/* 메인 버튼(CTA)만 — 아래 중계 줄('…에서 중계'·'…에서도 중계')은 넣지 않는다 */}
         {compact
@@ -379,8 +391,9 @@ function Discover({ pick, preferences, setSeriesMode, onOpen, now }) {
 }
 
 // 이후 일정: 왼쪽 달력 한 장(달 + 날짜, 같은 날이 이어지면 첫 줄에만) · 이름 · 시리즈·라운드·요일 · 오른쪽 시각 + 상대 날짜
-function Later({ list, now, dimOf, onOpen, onGo }) {
+function Later({ list, now, dimOf, onOpen, onGo, preferences }) {
   const fmt = useFormat(); const tr = useT();
+  useWeather();
   const ref = useRef(null);
   useVisiblePrefetch(ref, list);
   if (!list.length) return null;
@@ -398,7 +411,7 @@ function Later({ list, now, dimOf, onOpen, onGo }) {
             <span className="gx-leaf" aria-hidden="true">{same ? null : p ? <><span className="gx-t13 gx-sub">{p.monthShort}</span><b className="gx-t20">{Number(p.day)}</b></> : <span className="gx-t13 gx-ter">{tr('status.tba')}</span>}</span>
             <span className="gx-row-c">
               <span className="gx-row-t gx-t17 gx-w600">{fmt.race(r).shortName}</span>
-              <span className="gx-row-s gx-t13"><Dot series={r.series} />{joinDot([r.series, getRoundText(r, fmt.locale), t != null ? fmt.weekday(t) : null])}</span>
+              <span className="gx-row-s gx-t13"><Dot series={r.series} />{joinDot([r.series, getRoundText(r, fmt.locale), t != null ? fmt.weekday(t) : null])}<WxInline w={wxOfRace(r, preferences)} /></span>
             </span>
             <span className="gx-row-r"><span className="gx-t15 gx-w600">{timed ? fmt.time(t) : tr('status.tba')}</span><span className="gx-t13 gx-sub">{t != null ? fmt.relDay(t, now) : ''}</span></span>
           </button>
@@ -424,6 +437,7 @@ function Empty({ onGo }) {
 function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOpenRace, onGo, setSeriesMode }) {
   const fmt = useFormat(); const tr = useT(); const shell = useShell();
   const alarms = useAlarms();   // 상세에서 담아도 카드가 바로 '담았어요'가 된다 (alarm.js가 알린다)
+  useLikes();                   // 즐겨찾기 수가 도착하면 '많이 담은 경기'를 다시 짠다
   const results = useF1Results(true);
   const minute = Math.floor(msOf(now) / 60000) * 60000;   // 홈은 분 단위로 다시 짠다
   const plan = useMemo(() => buildHomePlan(races || [], {
@@ -449,7 +463,7 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
 
   // 카드의 하트(스낵바 + 되돌리기)·캘린더(L7: 두 번째부터는 같은 파일 다시 받기)
   const actions = {
-    favorites, alarms,
+    favorites, alarms, preferences,
     toggleFav: (race) => {
       const had = favorites.has(race.id);
       toggleFav(race.id);
@@ -473,7 +487,10 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
   const last = plan.last ? <LastResult race={plan.last} data={results} onOpen={() => open(plan.last)} /> : null;
   const timeline = <TimelineList plan={plan} now={minute} columns={shell.desktop} dimOf={dimOf} onOpen={open} onMore={() => shell.openSettings()} />;
   const disc = pick ? <Discover pick={pick} preferences={preferences} setSeriesMode={setSeriesMode} onOpen={open} now={minute} /> : null;
-  const later = <Later list={plan.later} now={minute} dimOf={dimOf} onOpen={open} onGo={onGo} />;
+  const later = <Later list={plan.later} now={minute} dimOf={dimOf} onOpen={open} onGo={onGo} preferences={preferences} />;
+  // 많이 담은 경기: 이번·다음 주말, 기준을 넘은 것만 최대 3개. 없으면 섹션째 없다
+  const popList = popularRaces(races, favorites, minute, { isAlive: (r) => isAliveState(resolveTimeState(r, minute).state) });
+  const popular = popList.length ? <Popular list={popList} onOpen={open} preferences={preferences} /> : null;
   const head = (
     <div className="gx-home-top">
       <h1 className={shell.desktop ? 'gx-t30' : 'gx-t26'} data-view-title tabIndex={-1}><Roll>{hl.title}</Roll></h1>
@@ -490,6 +507,7 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
           <div className="gx-dhome-main">{timeline}</div>
           <aside className="gx-rail" aria-label={tr('home.railAria')}>
             {last && <div className="gx-rail-card">{last}</div>}
+            {popular && <div className="gx-rail-card">{popular}</div>}
             {disc && <div className="gx-rail-card">{disc}</div>}
             {plan.later.length > 0 && <div className="gx-rail-card">{later}</div>}
           </aside>
@@ -512,6 +530,7 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
       {plan.hero ? <DeckMobile deck={deck} states={states} curs={curs} openAt={openAt} actions={actions} now={minute} /> : <Empty onGo={onGo} />}
       {freshLast && last && <><Band />{last}</>}
       {plan.days.length > 0 && <><Band />{timeline}</>}
+      {popular && <><Band />{popular}</>}
       {!freshLast && last && <><Band />{last}</>}
       {disc && <><Band />{disc}</>}
       {plan.later.length > 0 && <><Band />{later}</>}

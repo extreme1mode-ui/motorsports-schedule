@@ -10,6 +10,8 @@ import { useT } from '../i18n/index.js';
 import { prefetchHandlers } from '../photo-prefetch.js';
 import { Icon } from '../ui2/Icon.jsx';
 import { LiveText, ListHeader, Roll } from '../ui2/parts.jsx';
+import { WxInline } from '../weather/Wx.jsx';
+import { forecastFor, useWeather } from '../weather/forecast.js';
 
 const HOUR = 3600000;
 const cx = (...l) => l.filter(Boolean).join(' ');
@@ -83,6 +85,7 @@ function ListRuns({ runs, dimOf, onOpen, cont, quiet }) {
   const fmt = useFormat(); const tr = useT();
   return runs.map((run, ri) => {
     const L = fmt.race(run.r);
+    const f = forecastFor(run.r);   // 비 예보(끝나지 않은 세션만) — 상세에 들어가기 전에 보인다
     return (
       <div key={`${run.id}-${ri}`} className={cx('gx-tll-run', cont && ri === 0 && 'is-cont')} style={{ '--c': `var(--${run.r.series.toLowerCase()})` }}>
         <div className="gx-tll-runh" aria-hidden="true">{run.r.series} · {L.shortName}</div>
@@ -99,6 +102,7 @@ function ListRuns({ runs, dimOf, onOpen, cont, quiet }) {
               <span className="gx-tll-t">{time}</span>
               <span className="gx-tll-bar" aria-hidden="true" />
               <span className="gx-tll-n">{label}</span>
+              {!done && f.ok && <WxInline w={f.of(x.s)} sep={false} />}
               {live ? <span className="gx-tll-st"><LiveText /></span>
                 : done ? (quiet ? null : <span className="gx-tll-st is-muted">{tr('status.done')}</span>)
                   : chip ? <span className="gx-tll-chip"><span><Roll>{chip}</Roll></span></span>
@@ -116,6 +120,7 @@ const FOLD_KEY = 'gantry.tl.open';
 const readFold = () => { try { return JSON.parse(sessionStorage.getItem(FOLD_KEY) || '{}') || {}; } catch { return {}; } };
 export function TimelineList({ plan, now, columns, dimOf, onOpen, onMore }) {
   const fmt = useFormat(); const tr = useT();
+  useWeather();   // 비 예보가 도착하면 줄을 다시 그린다
   const { list, days } = useSessions(plan, now);
   const [open, setOpenRaw] = useState(readFold);
   const setOpen = (o) => { setOpenRaw(o); try { sessionStorage.setItem(FOLD_KEY, JSON.stringify(o)); } catch { /* 저장 못 해도 이번 화면에서는 펼친 그대로 */ } };

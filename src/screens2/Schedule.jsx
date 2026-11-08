@@ -9,13 +9,15 @@ import { track } from '../analytics.js';
 import { useShell } from '../shell/context.js';
 import { useMem } from './use-mem.js';
 import { dayOf, partsOfDay, noonOfDay, raceSpan, interestRank, sessionsOnDay, sessionStateAt, dayRank, isOver, rowTime } from './day-model.js';
-import { getRoundText, getPrimarySession } from '../schedule/utils.js';
+import { getRoundText, getPrimarySession, getVisibleSessions } from '../schedule/utils.js';
 import { findNextRace, getRaceState, isCancelled } from '../home/time.js';
 import { groupRaceWeeks, getWeekName } from '../home/weeks.js';
 import { getCategoryForSeries } from '../schedule/constants.js';
 import { Icon } from '../ui2/Icon.jsx';
 import { Dot, Chip, Seg, StateText, RaceRow, LiveText, GearBtn } from '../ui2/parts.jsx';
 import { joinDot } from '../ui2/hooks.js';
+import { WxInline } from '../weather/Wx.jsx';
+import { raceWx, useWeather } from '../weather/forecast.js';
 
 const CATS = ['F1', 'ENDURANCE', 'WRC', 'GTWC'];
 const msOf = (v) => (v ? new Date(v).getTime() : null);
@@ -29,6 +31,7 @@ const topIn = (el, sc) => (sc === document.scrollingElement ? el.getBoundingClie
 // ---------- 목록 ----------
 function SchedRow({ race, now, today, onOpen, showDate, isNext, mode }) {
   const fmt = useFormat(); const tr = useT();
+  useWeather();   // 비 예보가 도착하면 줄을 다시 그린다
   const L = fmt.race(race);
   const cancelled = isCancelled(race);
   const st = getRaceState(race, now);
@@ -45,7 +48,7 @@ function SchedRow({ race, now, today, onOpen, showDate, isNext, mode }) {
       </span>
       <span className="gx-row-c">
         <span className={cx('gx-row-t gx-t17 gx-w600', cancelled && 'gx-strike')}>{start && <span className="gx-vh">{fmt.dayDate(start)} </span>}{L.shortName}</span>
-        <span className="gx-row-s gx-t13"><Dot series={race.series} />{joinDot([race.series, getRoundText(race, fmt.locale), L.city])}</span>
+        <span className="gx-row-s gx-t13"><Dot series={race.series} />{joinDot([race.series, getRoundText(race, fmt.locale), L.city])}<WxInline w={raceWx(race, getVisibleSessions(race, mode))} /></span>
       </span>
       <span className="gx-row-r">
         {cancelled
@@ -280,6 +283,7 @@ function BigCal({ spans, month, nav, sel, setSel, today, onOpen }) {
 // 고른 날의 경기: 진행 중 → 곧 → 끝남 순, 오른쪽은 지금 보는 세션 → 다음 세션('3시간 뒤') → 종료
 function DayPanel({ races, sel, now, onOpen, panelRef }) {
   const fmt = useFormat(); const tr = useT();
+  useWeather();
   const list = races.filter((r) => r.span && r.span[0] <= sel && sel <= r.span[1])
     .map((r) => [r, dayRank(r, sel, now, fmt.timeZone)]).sort((a, b) => a[1][0] - b[1][0] || a[1][1] - b[1][1]).map((x) => x[0]);
   const noon = noonOfDay(sel, fmt.timeZone);
@@ -303,7 +307,8 @@ function DayPanel({ races, sel, now, onOpen, panelRef }) {
             : nxt ? (msOf(nxt.startUtc) - at < 12 * 3600000 ? <span className="gx-t13 gx-sub">{fmt.relShort(nxt.startUtc, now)}</span> : nxt !== ss[0] ? <span className="gx-t13 gx-sub gx-ell">{fmt.sessionLabel(nxt)}</span> : <span />)
               : <span className="gx-t13 gx-ter">{tr('status.done')}</span>}
         </> : <span />;
-        return <RaceRow key={r.id} race={r} now={now} onOpen={onOpen} meta={meta} right={right} />;
+        const w = raceWx(r, ss);   // 그날 세션 중 비 예보
+        return <RaceRow key={r.id} race={r} now={now} onOpen={onOpen} meta={w ? <>{meta}<WxInline w={w} sep={!!meta} /></> : meta} right={right} />;
       }) : <p className="gx-empty-line gx-t15">{tr('schedule.noRaces')}</p>}
     </section>
   );
