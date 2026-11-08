@@ -74,14 +74,14 @@ async function coords(titles) {
   const out = {};
   for (let i = 0; i < titles.length; i += 20) {
     const batch = titles.slice(i, i + 20);
-    const url = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=coordinates&redirects=1&titles=${encodeURIComponent(batch.join('|'))}`;
+    const url = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=coordinates&colimit=max&coprimary=all&redirects=1&titles=${encodeURIComponent(batch.join('|'))}`;
     const json = await (await fetch(url, { headers: { 'User-Agent': UA } })).json();
     const back = {};   // 최종 제목 → 요청한 제목
     for (const t of batch) back[t] = t;
     for (const n of json.query?.normalized || []) back[n.to] = back[n.from] || n.from;
     for (const r of json.query?.redirects || []) back[r.to] = back[r.from] || r.from;
     for (const p of Object.values(json.query?.pages || {})) {
-      const c = p.coordinates?.[0];
+      const c = p.coordinates?.find((x) => 'primary' in x) || p.coordinates?.[0];   // 주 좌표가 없으면(마이애미·뉘르부르크링) 첫 좌표
       if (c) out[back[p.title] || p.title] = [c.lat, c.lon];
     }
   }
