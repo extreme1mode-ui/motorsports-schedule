@@ -67,3 +67,15 @@ export async function saveMyPreferences(prefs) {
     return null;
   }
 }
+
+// 즐겨찾기 전체를 서버에 맞춘다(로컬이 원본). 경기별 수를 세는 데만 쓴다. 실패는 조용히 false.
+export async function saveMyLikes(raceIds) {
+  const session = await ensureSession();
+  if (!session) return false;
+  try {
+    const { error } = await session.client.rpc('save_my_likes', { race_ids: raceIds });
+    return !error;
+  } catch {
+    return false;
+  }
+}

@@ -542,4 +542,17 @@ export default {
   'session.nightPractice': 'Night Practice {n}',
   'session.powerStage': 'Power Stage',
   'session.finish': 'Chequered flag',
+  // Save counts · rain forecast
+  'aria.saveRaceCount': 'Save {name}, saved {n} times',
+  'home.popular.title': 'Most saved',
+  'home.popular.sub': 'This and next weekend',
+  'home.popular.countAria': 'saved {n} times',
+  'home.wx.tag': '{level} forecast',
+  'detail.wx.light': 'Light rain',
+  'detail.wx.rain': 'Rain',
+  'detail.wx.thunder': 'Thunderstorm',
+  'detail.wx.key': '{level} is forecast during {label}',
+  'detail.wx.at': 'Forecast {time}',
+  'detail.wx.credit': 'Data from MET Norway',
+  'detail.wx.chipAria': '{level} forecast',
 };
