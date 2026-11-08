@@ -235,4 +235,5 @@
 /* 토스: 위 막대 없음(네이티브 내비 바) — 톱니는 제목 옆(결정 18) */
 .gx .gx-home-toss { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding-top: 16px; }
 .gx .gx-home-toss .gx-home-top { flex: 1; min-width: 0; padding-right: 0; }
-.gx .gx-home-toss > .gx-iconbtn { margin: -4px 8px 0 0; }
+/* 톱니(44px) 가운데를 제목 첫 줄 가운데에 맞춘다: 제목 위 여백 8px + 첫 줄 높이의 절반 − 22px. 제목이 두 줄이어도 첫 줄 기준 */
+.gx .gx-home-toss > .gx-iconbtn { margin: calc(8px + var(--t26-lh) / 2 - 22px) 8px 0 0; }
