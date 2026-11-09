@@ -16,18 +16,17 @@ const LIVE_IDS = {
   series: 'ait.v2.live.46af688ac32d4d8e',     // 시리즈
   fav: 'ait.v2.live.46af688ac32d4d8e',        // 저장
 };
-const TEST_ID = 'ait-ad-test-banner-id';
 const MIN_VERSION = { android: '5.241.0', ios: '5.241.0' };
 
-// 어떤 ID를 쓸지
-// - 개발 모드(npm run dev:toss)이거나, 주소(hostname)에 'private'가 들어 있으면(콘솔 QR 테스트, *.private-apps.tossmini.com) 테스트 ID
-// - 그 밖(출시된 토스 앱, *.apps.tossmini.com)은 운영 ID
-// 운영 ID로 테스트하면 정책 위반이 될 수 있다.
-function isTestEnv() {
-  try { return import.meta.env.DEV || window.location.hostname.includes('private'); }
-  catch { return true; }
-}
-const adGroupIdFor = (slot) => (isTestEnv() ? TEST_ID : LIVE_IDS[slot]) || null;
+// 어떤 ID를 쓸지 — 빌드 때 정한다(주소로 고르지 않는다)
+// - 기본 빌드(npm run build:toss, 검수·출시용): 늘 운영 ID. 테스트 ID 문자열은 번들에 들어가지 않는다
+//   (검수는 번들에 테스트 ID가 있으면 반려한다)
+// - 테스트 ID(ait-ad-test-banner-id)는 두 경우만
+//   - 개발 모드(npm run dev:toss)
+//   - 테스트 번들(npm run build:toss:adtest = VITE_TOSS_AD_TEST=1, 콘솔 QR 확인용. 검수에는 올리지 않는다)
+// AD_TEST는 빌드 때 true/false로 바뀌어, 쓰지 않는 쪽 ID는 번들에서 지워진다. 운영 ID로 테스트하면 정책 위반이 될 수 있다.
+const AD_TEST = import.meta.env.DEV || import.meta.env.VITE_TOSS_AD_TEST === '1';
+const adGroupIdFor = (slot) => (AD_TEST ? 'ait-ad-test-banner-id' : LIVE_IDS[slot]) || null;
 
 let state = 'idle';           // idle → pending → ready | off
 const waiting = new Set();    // 초기화를 기다리는 자리들

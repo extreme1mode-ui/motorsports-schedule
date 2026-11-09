@@ -8,6 +8,7 @@
     "build": "vite build && node tools/build-race-pages.mjs && node tools/build-data.mjs",
     "dev:toss": "vite --mode toss",
     "build:toss": "vite build --mode toss",
+    "build:toss:adtest": "VITE_TOSS_AD_TEST=1 vite build --mode toss",
     "lint": "eslint .",
     "preview": "vite preview",
     "card": "node tools/weekly-card/index.mjs",
