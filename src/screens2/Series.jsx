@@ -15,6 +15,8 @@ import { getRaceState, getMainSessionAt, isCancelled, isAliveState } from '../ho
 import { CREDIT } from '../home/photos.js';
 import { useF1Results, resultOf, photoOf, teamColor, raceKey } from '../results/results.js';
 import { Avatar } from '../results/ResultsUI.jsx';
+import { SeriesChampions } from '../champions/Champions.jsx';
+import { categoryChampions, isChampionCode, takeSeriesView } from '../champions/champions.js';
 import { Icon } from '../ui2/Icon.jsx';
 import { Dot, Band, ListHeader, RaceRow, Tabs, LiveText, StateText, Photo, GearBtn } from '../ui2/parts.jsx';
 import { joinDot } from '../ui2/hooks.js';
@@ -112,7 +114,7 @@ function MiniPodium({ race, data }) {
 }
 
 // 드라이버 순위(F1): 순위 · 사진 · 이름 · 팀 · 승수 …… 점수. 사진이 없으면 코드 글자(13px)
-function Standings({ races, data }) {
+function Standings({ races, data, now }) {
   const fmt = useFormat(); const tr = useT();
   if (!data) return <div style={{ minHeight: 240 }} />;
   const st = data.standings;
@@ -126,7 +128,7 @@ function Standings({ races, data }) {
           <span className="gx-res-av"><Avatar src={photoOf(data, x.code)} code={x.code} size={40} team={x.c} /></span>
           <span className="gx-row-c">
             <span className="gx-t17 gx-res-name"><span className="gx-sub gx-t15">{x.given}</span> <b className="gx-w600">{x.family}</b></span>
-            <span className="gx-row-s gx-t13"><i className="gx-team-dot" style={{ background: x.c ? teamColor(x.c) : 'var(--text4)' }} />{joinDot([(x.teams || []).join(' / '), +x.wins ? tr('standings.wins', { n: x.wins }) : null])}</span>
+            <span className="gx-row-s gx-t13"><i className="gx-team-dot" style={{ background: x.c ? teamColor(x.c) : 'var(--text4)' }} />{joinDot([(x.teams || []).join(' / '), +x.wins ? tr('standings.wins', { n: x.wins }) : null])}{isChampionCode('F1', x.code, now) && <span className="gx-badge gx-champ-badge">{tr('champ.badge')}</span>}</span>
           </span>
           <span className="gx-row-r gx-res-pts"><span className="gx-t17 gx-w600">{x.pts}</span><span className="gx-t13 gx-sub">{tr('results.points')}</span></span>
         </div>
@@ -180,7 +182,15 @@ function RoundTable({ list, multi, next, now, data, onOpen, preferences }) {
 
 function SeriesBody({ cat, list, stats, now, preferences, data, onOpen, races }) {
   const fmt = useFormat(); const tr = useT(); const shell = useShell();
-  const [tab, setTab] = useState('rounds');
+  // 홈 챔피언 카드의 '순위 보기'로 왔으면 드라이버 순위를 열고 탭까지 내려 준다
+  const [tab, setTab] = useState(() => (cat === 'F1' && takeSeriesView() === 'drivers' ? 'drivers' : 'rounds'));
+  const tabsRef = useRef(null);
+  const jumped = useRef(false);
+  useEffect(() => {
+    if (tab !== 'drivers' || jumped.current) return;
+    jumped.current = true;
+    requestAnimationFrame(() => tabsRef.current?.scrollIntoView({ block: 'start' }));
+  }, [tab]);
   const [allDone, setAllDone] = useState(false);
   const series = SERIES_OF[cat];
   const one = series.length === 1;
@@ -207,8 +217,11 @@ function SeriesBody({ cat, list, stats, now, preferences, data, onOpen, races })
   };
   const modeLabel = (s, m) => tr(m === 'race' && s === 'WRC' ? 'mode.race.WRC' : `mode.${m}`);
   const onTab = (v) => { if (v !== tab) track('series_view_changed', { category: cat, view: v }); setTab(v); };
+  // 2026 챔피언: 보는 범위 위, 히어로 바로 아래(확정·결정 중일 때만). F1은 결과 데이터가 온 뒤에(띠만 먼저 뜨지 않게)
+  const champs = categoryChampions(cat, now).length && (cat !== 'F1' || data) ? <><SeriesChampions category={cat} now={now} /><Band /></> : null;
   return (
     <>
+      {champs}
       {series.map((s) => {
         const m = preferences?.series?.[s] || 'off';
         return (
@@ -219,8 +232,8 @@ function SeriesBody({ cat, list, stats, now, preferences, data, onOpen, races })
         );
       })}
       <Band />
-      {cat === 'F1' && <div className="gx-tabs-wrap"><Tabs label={tr('series.tabsAria')} value={tab} onChange={onTab} options={[{ v: 'rounds', l: tr('series.view.rounds') }, { v: 'drivers', l: tr('series.view.drivers') }]} /></div>}
-      {tab === 'drivers' && cat === 'F1' ? <Standings races={races} data={data} /> : shell.desktop ? (
+      {cat === 'F1' && <div className="gx-tabs-wrap" ref={tabsRef}><Tabs label={tr('series.tabsAria')} value={tab} onChange={onTab} options={[{ v: 'rounds', l: tr('series.view.rounds') }, { v: 'drivers', l: tr('series.view.drivers') }]} /></div>}
+      {tab === 'drivers' && cat === 'F1' ? <Standings races={races} data={data} now={now} /> : shell.desktop ? (
         <><ListHeader title={tr('series.roundList')} sub={tr('list.count', { n: list.length })} /><RoundTable list={list} multi={!one} next={stats.next} now={now} data={data} onOpen={onOpen} preferences={preferences} /></>
       ) : (
         <>

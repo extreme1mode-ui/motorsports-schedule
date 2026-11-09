@@ -6,6 +6,9 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import './home2.css';
 import { buildHomePlan, homeHeadline, getCardState } from './plan.js';
 import { TimelineList } from './TimelineList.jsx';
+import { HomeChampions } from '../champions/Champions.jsx';
+import { homeChampions, nextSeasonOpeners } from '../champions/champions.js';
+import { SeasonBreak } from '../champions/SeasonBreak.jsx';
 import { likeCount, formatCount, popularRaces, useLikes, COUNT_IN_HEART } from '../likes/likes.js';
 import { Popular, LikeInline } from '../likes/Likes.jsx';
 import { WxCardTag, WxInline } from '../weather/Wx.jsx';
@@ -491,9 +494,16 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
   // 많이 담은 경기: 이번·다음 주말, 기준을 넘은 것만 최대 3개. 없으면 섹션째 없다
   const popList = popularRaces(races, favorites, minute, { isAlive: (r) => isAliveState(resolveTimeState(r, minute).state) });
   const popular = popList.length ? <Popular list={popList} onOpen={open} preferences={preferences} /> : null;
+  // 2026 챔피언: F1 큰 카드(모두에게) + 관심 시리즈 한 줄씩. 다음 시즌 첫 경기 전까지
+  const champ = useMemo(() => homeChampions(minute, preferences), [minute, preferences]);
+  const champs = champ.feature || champ.rows.length ? <HomeChampions data={champ} now={minute} onGo={onGo} /> : null;
+  // 시즌 사이: 관심 시리즈에 남은 경기가 없으면 '예정된 경기가 없어요' 대신 다음 시즌 첫 경기
+  const openers = useMemo(() => (plan.hero ? [] : nextSeasonOpeners(minute, preferences)), [plan.hero, minute, preferences]);
+  const brk = openers.length ? <SeasonBreak list={openers} now={minute} onGo={onGo} /> : null;
+  const daysToNext = openers.length ? Math.max(1, fmt.dayDiff(openers[0].t, minute)) : null;
   const head = (
     <div className="gx-home-top">
-      <h1 className={shell.desktop ? 'gx-t30' : 'gx-t26'} data-view-title tabIndex={-1}><Roll>{hl.title}</Roll></h1>
+      <h1 className={shell.desktop ? 'gx-t30' : 'gx-t26'} data-view-title tabIndex={-1}><Roll>{daysToNext ? tr('home.break.title', { n: daysToNext }) : hl.title}</Roll></h1>
     </div>
   );
 
@@ -502,9 +512,9 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
       <div className="gx-home home is-desk">
         {demoClock.enabled && <div style={{ display: 'flex', justifyContent: 'flex-end' }}><DemoClock /></div>}
         {head}
-        {plan.hero ? <DeckDesktop deck={deck} states={states} curs={curs} openAt={openAt} actions={actions} onGo={onGo} now={minute} /> : <Empty onGo={onGo} />}
+        {plan.hero ? <DeckDesktop deck={deck} states={states} curs={curs} openAt={openAt} actions={actions} onGo={onGo} now={minute} /> : brk || <Empty onGo={onGo} />}
         <div className="gx-dhome-grid">
-          <div className="gx-dhome-main">{timeline}</div>
+          <div className="gx-dhome-main">{timeline}{champs}</div>
           <aside className="gx-rail" aria-label={tr('home.railAria')}>
             {last && <div className="gx-rail-card">{last}</div>}
             {popular && <div className="gx-rail-card">{popular}</div>}
@@ -527,9 +537,10 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
           {head}
         </>
       )}
-      {plan.hero ? <DeckMobile deck={deck} states={states} curs={curs} openAt={openAt} actions={actions} now={minute} /> : <Empty onGo={onGo} />}
+      {plan.hero ? <DeckMobile deck={deck} states={states} curs={curs} openAt={openAt} actions={actions} now={minute} /> : brk || <Empty onGo={onGo} />}
       {freshLast && last && <><Band />{last}</>}
       {plan.days.length > 0 && <><Band />{timeline}</>}
+      {champs && <><Band />{champs}</>}
       {popular && <><Band />{popular}</>}
       {!freshLast && last && <><Band />{last}</>}
       {disc && <><Band />{disc}</>}
