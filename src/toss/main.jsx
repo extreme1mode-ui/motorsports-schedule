@@ -1,5 +1,5 @@
 // 토스 빌드 진입점. src/main.jsx와 같고, Supabase 익명 계정(startAccountSync)만 만들지 않는다.
-// 렌더 전에 토스 구현(플랫폼·네이티브 저장소)과 지난번 받아 둔 데이터를 끼우고, 렌더 뒤에 외부 링크 처리·익명 키·데이터 갱신을 붙인다.
+// 렌더 전에 토스 구현(플랫폼·네이티브 저장소)과 지난번 받아 둔 데이터를 끼우고, 렌더 뒤에 외부 링크 처리·익명 키·데이터 갱신·광고 초기화를 붙인다.
 // 데모 시계는 다른 모듈보다 먼저 평가돼야 한다 (데모 빌드 전용, 기본 빌드에서는 아무것도 하지 않는다).
 import '../demo/clock.js'
 import { StrictMode } from 'react'
@@ -14,6 +14,7 @@ import { installExternalLinks } from './links.js'
 import { syncTossUserKey } from './user-key.js'
 import { applySavedDataFeed, refreshDataFeed } from './data-feed.js'
 import { installSafeArea } from './safe-area.js'
+import { initAds } from './ads.js'
 
 async function boot() {
   setPlatform(createTossPlatform())
@@ -32,6 +33,7 @@ async function boot() {
   installExternalLinks()
   syncTossUserKey()
   refreshDataFeed()
+  initAds()
 }
 
 boot()

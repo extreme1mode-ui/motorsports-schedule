@@ -1,6 +1,7 @@
-// 토스 플랫폼 구현. src/platform.js의 계약(launchParam·clearLaunchParam·onSystemBack·shareRace)을 채운다.
+// 토스 플랫폼 구현. src/platform.js의 계약(launchParam·clearLaunchParam·onSystemBack·shareRace·attachBanner)을 채운다.
 // SDK 호출은 토스 밖에서 동기로 throw한다 — 그때는 웹 기본 동작(구독 없음·웹 공유)으로 둔다.
 import { Environment, Share, graniteEvent } from '@apps-in-toss/web-framework';
+import { attachBanner } from './ads.js';
 
 const APP_SCHEME = 'intoss://gantry';
 const LAUNCH_KEYS = ['race', 'tab'];
@@ -27,6 +28,7 @@ function readLaunchParams() {
 export function createTossPlatform() {
   const launch = new Map(Object.entries(readLaunchParams()));
   return {
+    attachBanner,
     launchParam: (name) => launch.get(name) ?? null,
     clearLaunchParam: (name) => { launch.delete(name); },
     onSystemBack(handler) {

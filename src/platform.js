@@ -14,12 +14,16 @@ export const IS_TOSS = import.meta.env.MODE === 'toss'
 // - onSystemBack(handler)  -> () => void       시스템 뒤로가기 구독. 반환 함수로 해제한다.
 // - shareRace({ id, title }) -> Promise<boolean>  앱 공유 시트로 공유했으면(또는 처리했으면) true.
 //                                                 false면 화면이 웹 공유(navigator.share·클립보드)로 간다.
+// - attachBanner(slot, element, { onRendered, onEmpty }) -> () => void
+//                                  배너 광고를 element에 붙이고, 반환 함수로 뗀다. 웹은 광고가 없어 아무것도 하지 않는다.
+//                                  광고가 그려지면 onRendered, 없거나(no fill·실패·미지원) 못 그리면 onEmpty.
 // - 어떤 메서드도 throw하지 않는다.
 const webPlatform = {
   launchParam: () => null,
   clearLaunchParam: () => {},
   onSystemBack: () => () => {},
   shareRace: async () => false,
+  attachBanner: () => () => {},
 };
 
 let impl = webPlatform;
@@ -31,6 +35,7 @@ export function setPlatform(next) {
 export const launchParam = (name) => impl.launchParam(name);
 export const clearLaunchParam = (name) => impl.clearLaunchParam(name);
 export const shareRace = (args) => impl.shareRace(args);
+export const attachBanner = (slot, element, handlers) => impl.attachBanner(slot, element, handlers);
 
 // 시스템 뒤로가기. active일 때만 구독하고, 아니거나 언마운트되면 해제한다.
 // 구독하지 않은 상태에서는 플랫폼 기본 동작(토스: 미니앱 종료)이 된다.

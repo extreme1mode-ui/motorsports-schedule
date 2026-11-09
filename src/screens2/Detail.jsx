@@ -25,6 +25,7 @@ import { drawerWidth } from './drawer.js';
 import { Icon } from '../ui2/Icon.jsx';
 import { Dot, Band, ListHeader, LiveText, Progress, Roll, Photo, Seg, HeartBtn, CalBtn } from '../ui2/parts.jsx';
 import { joinDot } from '../ui2/hooks.js';
+import { AdBanner } from '../ui2/AdBanner.jsx';
 import { likeCount, formatCount, useLikes, COUNT_IN_HEART } from '../likes/likes.js';
 import { LikeInline } from '../likes/Likes.jsx';
 import { WxKeyLine, WxChip } from '../weather/Wx.jsx';
@@ -462,6 +463,8 @@ export function RaceDetailV2({ race, now, preferences, favorites, toggleFav, rac
       {hasSessions && <><Band /><Sessions race={race} now={at} preferences={preferences} /></>}
       {done && <><Band /><Broadcast race={race} /></>}
       <Venue race={race} now={at} />
+      {/* 토스: 배너 광고는 스크롤 내용 맨 끝(위 내용·아래 고정 바와 24px씩, 고정 바는 gx-dspace 안쪽이라 겹치지 않는다) */}
+      <AdBanner slot="detail" margin="24px 0" />
       <div className="gx-dspace" />
       <DetailBar race={race} now={at} preferences={preferences} favorites={favorites} toggleFav={toggleFav} races={races} onOpenRace={onOpenRace} />
     </div>

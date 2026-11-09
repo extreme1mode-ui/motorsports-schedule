@@ -16,6 +16,8 @@ import { getCategoryForSeries } from '../schedule/constants.js';
 import { Icon } from '../ui2/Icon.jsx';
 import { Dot, Chip, Seg, StateText, RaceRow, LiveText, GearBtn } from '../ui2/parts.jsx';
 import { joinDot } from '../ui2/hooks.js';
+import { IS_TOSS } from '../platform.js';
+import { AdBanner } from '../ui2/AdBanner.jsx';
 import { WxInline } from '../weather/Wx.jsx';
 import { raceWx, useWeather } from '../weather/forecast.js';
 
@@ -86,6 +88,7 @@ function WeekList({ races, now, today, preferences, onOpen, showPast, setShowPas
       <Icon n={showPast ? 'up' : 'down'} s={20} /><span>{showPast ? tr('schedule.pastHide') : tr('schedule.pastShow', { n: pastCount })}</span>
     </button>
   );
+  let rowNo = 0;   // 토스: 배너 광고는 목록의 5번째 경기 뒤(5개 미만이면 없음)
   return (
     <div className="gx-wklist" ref={(el) => { ref.current = el; if (listRef) listRef.current = el; }}>
       {pastCount > 0 && toggleBtn}
@@ -105,7 +108,8 @@ function WeekList({ races, now, today, preferences, onOpen, showPast, setShowPas
                 const st = getPrimarySession(r)?.startUtc;
                 const d = st ? dayOf(st, fmt.timeZone) : r.id;
                 const show = d !== prevDay; prevDay = d;
-                return <SchedRow key={r.id} race={r} now={now} today={today} onOpen={onOpen} showDate={show} isNext={r === next} mode={viewModeOf(preferences, r.series)} />;
+                const row = <SchedRow key={r.id} race={r} now={now} today={today} onOpen={onOpen} showDate={show} isNext={r === next} mode={viewModeOf(preferences, r.series)} />;
+                return IS_TOSS && ++rowNo === 5 ? <Fragment key={r.id}>{row}<AdBanner slot="schedule" /></Fragment> : row;
               })}
             </section>
             {/* 펼친 지난 목록 끝(이번 주말 바로 위)에도 접기 */}
