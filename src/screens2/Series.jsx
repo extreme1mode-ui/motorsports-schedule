@@ -2,7 +2,7 @@
 // 풀 히어로(화면 위 끝까지 사진) 안에 '시리즈' 제목·톱니 · 탭 · 시즌 · 시리즈 이름 · 지금 상태 한 줄 · 시즌 진행.
 // 아래로 내려 사진 안 탭이 지나가면 위에 탭만 있는 막대가 붙는다. 히어로 아래는 보는 범위 · (F1) 경기/드라이버 순위 ·
 // 남은 경기 → 지난 경기(4개 뒤 접기) → 취소된 경기. 데스크톱은 라운드 표(결정 12).
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import './screens2.css';
 import { useFormat } from '../use-format.js';
 import { useT } from '../i18n/index.js';
@@ -20,6 +20,8 @@ import { categoryChampions, isChampionCode, takeSeriesView } from '../champions/
 import { Icon } from '../ui2/Icon.jsx';
 import { Dot, Band, ListHeader, RaceRow, Tabs, LiveText, StateText, Photo, GearBtn } from '../ui2/parts.jsx';
 import { joinDot } from '../ui2/hooks.js';
+import { AdBanner } from '../ui2/AdBanner.jsx';
+import { IS_TOSS } from '../platform.js';
 
 const CATS = ['F1', 'ENDURANCE', 'WRC', 'GTWC'];
 const SERIES_OF = { F1: ['F1'], ENDURANCE: ['WEC', 'IMSA'], WRC: ['WRC'], GTWC: ['GTWC'] };
@@ -122,8 +124,9 @@ function Standings({ races, data, now }) {
   return (
     <section aria-label={tr('standings.title')}>
       <p className="gx-tl-note gx-t13">{tr('standings.after', { round: st.round, race: after ? fmt.race(after).shortName : '' })}</p>
-      {st.rows.map((x) => (
-        <div key={x.code} className={cx('gx-row gx-res-row', +x.p <= 3 && 'is-podium')}>
+      {st.rows.map((x, i) => (
+        <Fragment key={x.code}>
+        <div className={cx('gx-row gx-res-row', +x.p <= 3 && 'is-podium')}>
           <span className={cx('gx-res-p', +x.p <= 3 ? 'gx-t20' : 'gx-t17')}>{x.pt}</span>
           <span className="gx-res-av"><Avatar src={photoOf(data, x.code)} code={x.code} size={40} team={x.c} /></span>
           <span className="gx-row-c">
@@ -132,6 +135,9 @@ function Standings({ races, data, now }) {
           </span>
           <span className="gx-row-r gx-res-pts"><span className="gx-t17 gx-w600">{x.pts}</span><span className="gx-t13 gx-sub">{tr('results.points')}</span></span>
         </div>
+        {/* 토스: 배너 광고는 5위 뒤 */}
+        {IS_TOSS && i === 4 && <AdBanner slot="series" margin="24px 0" />}
+        </Fragment>
       ))}
     </section>
   );
@@ -142,6 +148,9 @@ function RoundTable({ list, multi, next, now, data, onOpen, preferences }) {
   const fmt = useFormat(); const tr = useT();
   const pod = list.some((r) => r.series === 'F1');
   const wrc = list.every((r) => r.series === 'WRC');
+  // 토스: 배너 광고는 5번째 줄 뒤(5개 미만이면 표 끝). 표 안이라 한 칸짜리 줄에 담는다
+  const adAt = Math.min(5, list.length);
+  const adRow = IS_TOSS && <tr><td colSpan={pod ? 5 : 4} style={{ padding: 0, borderBottom: 0, cursor: 'default' }}><AdBanner slot="series" margin="24px 0" /></td></tr>;
   return (
     <div className="gx-rtable-wrap">
       <table className="gx-rtable">
@@ -151,13 +160,13 @@ function RoundTable({ list, multi, next, now, data, onOpen, preferences }) {
           <th scope="col" className="is-r">{tr(wrc ? 'series.col.start.WRC' : 'series.col.start')}</th>
         </tr></thead>
         <tbody>
-          {list.map((r) => {
+          {list.map((r, i) => {
             const st = getRaceState(r, now); const cancelled = isCancelled(r);
             const start = getPrimarySession(r)?.startUtc;
             const L = fmt.race(r);
             const res = resultOf(data, r);
             const top = (res?.gp || []).filter((x) => ['1', '2', '3'].includes(String(x.pt))).slice(0, 3);
-            return (
+            const row = (
               <tr key={r.id} className={st === 'done' || cancelled ? 'is-dim' : undefined} onClick={() => onOpen(r)} role="button" tabIndex={0}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(r); } }}>
                 <td className="gx-t15 gx-sub">{getRoundNumber(r) || '—'}</td>
@@ -173,6 +182,7 @@ function RoundTable({ list, multi, next, now, data, onOpen, preferences }) {
                 </td>
               </tr>
             );
+            return IS_TOSS && i + 1 === adAt ? <Fragment key={r.id}>{row}{adRow}</Fragment> : row;
           })}
         </tbody>
       </table>
@@ -219,6 +229,11 @@ function SeriesBody({ cat, list, stats, now, preferences, data, onOpen, races })
   const onTab = (v) => { if (v !== tab) track('series_view_changed', { category: cat, view: v }); setTab(v); };
   // 2026 챔피언: 보는 범위 위, 히어로 바로 아래(확정·결정 중일 때만). F1은 결과 데이터가 온 뒤에(띠만 먼저 뜨지 않게)
   const champs = categoryChampions(cat, now).length && (cat !== 'F1' || data) ? <><SeriesChampions category={cat} now={now} /><Band /></> : null;
+  // 토스: 배너 광고는 다가오는 경기부터 센 5번째 경기 뒤(펼친 지난 경기·취소 포함 보이는 줄 순서). 5개 미만이면 목록 끝
+  const shownN = upcoming.length + (allDone ? done.length : Math.min(4, done.length)) + cancelled.length;
+  const adAt = Math.min(5, shownN);
+  let rowNo = 0;
+  const withAd = (row, key) => (IS_TOSS && ++rowNo === adAt ? <Fragment key={key}>{row}<AdBanner slot="series" margin="24px 0" /></Fragment> : row);
   return (
     <>
       {champs}
@@ -239,21 +254,21 @@ function SeriesBody({ cat, list, stats, now, preferences, data, onOpen, races })
         <>
           {upcoming.length > 0 && <>
             <ListHeader title={tr('series.upcoming')} sub={tr('list.count', { n: upcoming.length })} />
-            {upcoming.map((r) => <RaceRow key={r.id} race={r} now={now} onOpen={onOpen} lead={lead(r)} meta={joinDot([metaHead(r), place(r), r === stats.next ? fmt.relDay(startOfRace(r), now) : null])} right={upRight(r)} />)}
+            {upcoming.map((r) => withAd(<RaceRow key={r.id} race={r} now={now} onOpen={onOpen} lead={lead(r)} meta={joinDot([metaHead(r), place(r), r === stats.next ? fmt.relDay(startOfRace(r), now) : null])} right={upRight(r)} />, r.id))}
           </>}
           {done.length > 0 && <>
             <ListHeader title={tr('series.past')} sub={tr('series.pastSub', { n: done.length })} />
             {(allDone ? done : done.slice(0, 4)).map((r) => {
               const s = getPrimarySession(r)?.startUtc;
               const pod = <MiniPodium race={r} data={data} />;
-              return <RaceRow key={r.id} race={r} now={now} onOpen={onOpen} lead={lead(r)} meta={joinDot([metaHead(r), winner(r) || place(r)])}
-                right={resultOf(data, r) ? pod : <span className="gx-t13 gx-sub">{s ? fmt.dayDateNoDow(s) : ''}</span>} />;
+              return withAd(<RaceRow key={r.id} race={r} now={now} onOpen={onOpen} lead={lead(r)} meta={joinDot([metaHead(r), winner(r) || place(r)])}
+                right={resultOf(data, r) ? pod : <span className="gx-t13 gx-sub">{s ? fmt.dayDateNoDow(s) : ''}</span>} />, r.id);
             })}
             {done.length > 4 && <button type="button" className="gx-past-toggle gx-t15" aria-expanded={allDone} onClick={() => setAllDone(!allDone)}><Icon n={allDone ? 'up' : 'down'} s={20} />{allDone ? tr('series.pastHide') : tr('series.pastAll', { n: done.length })}</button>}
           </>}
           {cancelled.length > 0 && <>
             <ListHeader title={tr('series.cancelled')} sub={tr('list.count', { n: cancelled.length })} />
-            {cancelled.map((r) => <RaceRow key={r.id} race={r} now={now} onOpen={onOpen} lead={lead(r)} meta={joinDot([metaHead(r), place(r)])} />)}
+            {cancelled.map((r) => withAd(<RaceRow key={r.id} race={r} now={now} onOpen={onOpen} lead={lead(r)} meta={joinDot([metaHead(r), place(r)])} />, r.id))}
           </>}
         </>
       )}

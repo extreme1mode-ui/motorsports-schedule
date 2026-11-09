@@ -19,6 +19,7 @@ import { getPrimarySession, getRoundText } from '../schedule/utils.js';
 import { Icon } from '../ui2/Icon.jsx';
 import { Band, ListHeader, LiveText, RaceRow, HeartBtn, GearBtn } from '../ui2/parts.jsx';
 import { joinDot } from '../ui2/hooks.js';
+import { AdBanner } from '../ui2/AdBanner.jsx';
 
 const HOUR_MS = 3600000;
 const PAST_FOLD = 3;
@@ -219,6 +220,8 @@ export function FavoritesScreen({ races, myRaces, now, preferences, favorites, t
         </>
       )}
       {suggSec && <><Band />{suggSec}</>}
+      {/* 토스: 배너 광고는 화면 내용 맨 끝(빈 화면 추천 목록 뒤도) */}
+      <AdBanner slot="fav" margin="24px 0" />
     </div>
   );
 }

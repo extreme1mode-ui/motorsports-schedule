@@ -8,10 +8,13 @@
 // - 초기화 실패
 import { TossAds, isMinVersionSupported } from '@apps-in-toss/web-framework';
 
-// 광고 그룹 ID. 콘솔의 운영 ID는 하나라 두 자리에 같이 쓴다.
+// 광고 그룹 ID. 콘솔의 운영 ID는 하나라 모든 자리에 같이 쓴다.
 const LIVE_IDS = {
   schedule: 'ait.v2.live.46af688ac32d4d8e',   // 일정 탭
   detail: 'ait.v2.live.46af688ac32d4d8e',     // 경기 상세
+  home: 'ait.v2.live.46af688ac32d4d8e',       // 홈
+  series: 'ait.v2.live.46af688ac32d4d8e',     // 시리즈
+  fav: 'ait.v2.live.46af688ac32d4d8e',        // 저장
 };
 const TEST_ID = 'ait-ad-test-banner-id';
 const MIN_VERSION = { android: '5.241.0', ios: '5.241.0' };

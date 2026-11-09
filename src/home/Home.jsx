@@ -35,6 +35,7 @@ import { useShell } from '../shell/context.js';
 import { Icon } from '../ui2/Icon.jsx';
 import { Dot, LiveText, Progress, Roll, ListHeader, Band, RaceRow, Photo, GearBtn } from '../ui2/parts.jsx';
 import { joinDot, SEP } from '../ui2/hooks.js';
+import { AdBanner } from '../ui2/AdBanner.jsx';
 
 const HOUR_MS = 3600000;
 const sameMinute = (a, b) => Math.floor(new Date(a).getTime() / 60000) === Math.floor(new Date(b).getTime() / 60000);
@@ -501,6 +502,10 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
   const openers = useMemo(() => (plan.hero ? [] : nextSeasonOpeners(minute, preferences)), [plan.hero, minute, preferences]);
   const brk = openers.length ? <SeasonBreak list={openers} now={minute} onGo={onGo} /> : null;
   const daysToNext = openers.length ? Math.max(1, fmt.dayDiff(openers[0].t, minute)) : null;
+  // 토스: 배너 광고는 히어로(없으면 시즌 사이·빈 화면) 다음 첫 섹션 뒤. 히어로 바로 아래·화면 맨 위에는 두지 않는다
+  const firstSec = !IS_TOSS ? null : shell.desktop ? 'timeline'
+    : [[freshLast && last, 'last'], [plan.days.length > 0, 'timeline'], [champs, 'champs'], [popular, 'popular'], [!freshLast && last, 'last'], [disc, 'disc'], [plan.later.length > 0, 'later']].find(([on]) => on)?.[1];
+  const ad = (k) => (IS_TOSS && k === firstSec ? <AdBanner slot="home" margin="24px 0" /> : null);
   const head = (
     <div className="gx-home-top">
       <h1 className={shell.desktop ? 'gx-t30' : 'gx-t26'} data-view-title tabIndex={-1}><Roll>{daysToNext ? tr('home.break.title', { n: daysToNext }) : hl.title}</Roll></h1>
@@ -514,7 +519,7 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
         {head}
         {plan.hero ? <DeckDesktop deck={deck} states={states} curs={curs} openAt={openAt} actions={actions} onGo={onGo} now={minute} /> : brk || <Empty onGo={onGo} />}
         <div className="gx-dhome-grid">
-          <div className="gx-dhome-main">{timeline}{champs}</div>
+          <div className="gx-dhome-main">{timeline}{ad('timeline')}{champs}</div>
           <aside className="gx-rail" aria-label={tr('home.railAria')}>
             {last && <div className="gx-rail-card">{last}</div>}
             {popular && <div className="gx-rail-card">{popular}</div>}
@@ -538,13 +543,13 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
         </>
       )}
       {plan.hero ? <DeckMobile deck={deck} states={states} curs={curs} openAt={openAt} actions={actions} now={minute} /> : brk || <Empty onGo={onGo} />}
-      {freshLast && last && <><Band />{last}</>}
-      {plan.days.length > 0 && <><Band />{timeline}</>}
-      {champs && <><Band />{champs}</>}
-      {popular && <><Band />{popular}</>}
-      {!freshLast && last && <><Band />{last}</>}
-      {disc && <><Band />{disc}</>}
-      {plan.later.length > 0 && <><Band />{later}</>}
+      {freshLast && last && <><Band />{last}{ad('last')}</>}
+      {plan.days.length > 0 && <><Band />{timeline}{ad('timeline')}</>}
+      {champs && <><Band />{champs}{ad('champs')}</>}
+      {popular && <><Band />{popular}{ad('popular')}</>}
+      {!freshLast && last && <><Band />{last}{ad('last')}</>}
+      {disc && <><Band />{disc}{ad('disc')}</>}
+      {plan.later.length > 0 && <><Band />{later}{ad('later')}</>}
     </div>
   );
 }
