@@ -29,7 +29,7 @@ const lookAhead = (v) => 150 + 2.6 * v;    // 차 앞으로 보는 거리(m). �
 const css = (el, name) => getComputedStyle(el).getPropertyValue(name).trim();
 const wrapS = (s, L) => ((s % L) + L) % L;
 const angDiff = (a, b) => { let d = b - a; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; return d; };
-const reducedMotion = () => typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const reducedMotion = (c) => c?.motion === 'reduce' || (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 const lerp = (a, b, f) => a + (b - a) * f;
 const OVERVIEW = new Set(['ready', 'done', 'practiceDone']);
 const PRESSABLE = new Set(['lights', 'wait', 'go', 'run', 'practice']);
@@ -245,7 +245,7 @@ function LapGame({ id, onClose }) {
         s.tkChanged = false; s.zones = zonesOf(s.tk); s.mode = null;
         if (!OVERVIEW.has(s.phase)) { s.timers.forEach(clearTimeout); s.timers = []; s.run = newRun(); s.down = false; setP('ready'); }
       }
-      const tk = s.tk; const cfgN = s.cfg; const reduced = reducedMotion();
+      const tk = s.tk; const cfgN = s.cfg; const reduced = reducedMotion(cfgN);
       // ---- 물리: 달리는 동안만, 고정 간격으로 ----
       if ((s.phase === 'run' || s.phase === 'practice') && !s.frozen) {
         s.acc += Math.min(0.05, (now - s.last) / 1000); s.last = now;

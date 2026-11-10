@@ -6,16 +6,17 @@ import { DIFFICULTY, DIFF_KEYS, diffOf } from './engine.js';
 
 // 시안 이름
 //  learn  배우는 방법   text: 준비 카드의 글 · coach: 첫 바퀴 첫 진한 구간 두 곳에서 화면이 때를 알려 줌 · practice: 본 바퀴 전 짧은 연습
-//  zone   진한 구간     shade: 밝기만 · bars: 밝기 + 가로 줄무늬 · chevron: 밝기 + 진행 방향 화살
+//  zone   진한 구간     shade: 밝기만 · bars: 밝기 + 가로 줄무늬 · chevron: 밝기 + V자 무늬(꼭짓점이 차 쪽)
 //  slip   미끄러짐      push: 차가 밀리기만 · ring: 차 둘레에 차오르는 원 · marks: 타이어 자국 + 위쪽 알림
 //  delta  최고 기록과의 차이   off · corner: 코너를 지날 때마다 · live: 계속
 //  car    차 모양       car: 위에서 본 F1 차 · dot: 점
 //  haptic 진동          off · on: 코스 이탈과 결승선
 //  home   홈 자리       below: 시간표 바로 아래 · bottom: 홈 맨 아래 · week: 경기 주간에만 시간표 아래, 그 밖에는 맨 아래
-export const LAP_DEFAULTS = Object.freeze({ diff: 'normal', tune: null, learn: 'coach', zone: 'bars', slip: 'ring', delta: 'corner', car: 'car', haptic: 'off', home: 'week' });
+//  motion 데모 전용      auto: 기기 설정을 따름 · reduce: 줄인 움직임으로 보기(조절 판에서 기기 설정 없이 비교하려고)
+export const LAP_DEFAULTS = Object.freeze({ diff: 'normal', tune: null, learn: 'coach', zone: 'bars', slip: 'ring', delta: 'corner', car: 'car', haptic: 'off', home: 'week', motion: 'auto' });
 export const LAP_CHOICES = {
   diff: Object.keys(DIFFICULTY), learn: ['text', 'coach', 'practice'], zone: ['shade', 'bars', 'chevron'], slip: ['push', 'ring', 'marks'],
-  delta: ['off', 'corner', 'live'], car: ['car', 'dot'], haptic: ['off', 'on'], home: ['below', 'bottom', 'week'],
+  delta: ['off', 'corner', 'live'], car: ['car', 'dot'], haptic: ['off', 'on'], home: ['below', 'bottom', 'week'], motion: ['auto', 'reduce'],
 };
 const KEY = 'gantry.lapDemo';
 
