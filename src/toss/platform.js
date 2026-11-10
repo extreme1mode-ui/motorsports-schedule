@@ -1,6 +1,6 @@
 // 토스 플랫폼 구현. src/platform.js의 계약(launchParam·clearLaunchParam·onSystemBack·shareRace·attachBanner)을 채운다.
 // SDK 호출은 토스 밖에서 동기로 throw한다 — 그때는 웹 기본 동작(구독 없음·웹 공유)으로 둔다.
-import { Environment, Share, graniteEvent } from '@apps-in-toss/web-framework';
+import { Environment, Share, graniteEvent, File, Device } from '@apps-in-toss/web-framework';
 import { attachBanner } from './ads.js';
 
 const APP_SCHEME = 'intoss://gantry';
@@ -31,6 +31,16 @@ export function createTossPlatform() {
     attachBanner,
     launchParam: (name) => launch.get(name) ?? null,
     clearLaunchParam: (name) => { launch.delete(name); },
+    // 기록 카드: File.saveBase64(토스 앱 Android 5.218.0 · iOS 5.216.0 이상). 토스 밖이나 낮은 버전에서는 false
+    async saveImage({ dataUrl, fileName }) {
+      try { await File.saveBase64({ data: String(dataUrl).split(',')[1] || '', fileName, mimeType: 'image/png' }); return true; }
+      catch { return false; }
+    },
+    // 진동: Device.triggerHaptic. 이탈은 'error', 결승선은 'success'
+    haptic(kind) {
+      try { Device.triggerHaptic({ type: kind === 'off' ? 'error' : 'success' })?.catch?.(() => {}); }
+      catch { /* 토스 밖 */ }
+    },
     onSystemBack(handler) {
       try { return graniteEvent.addEventListener('backEvent', { onEvent: handler, onError: () => {} }); }
       catch { return () => {}; }

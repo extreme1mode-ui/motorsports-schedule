@@ -17,6 +17,8 @@ export const IS_TOSS = import.meta.env.MODE === 'toss'
 // - attachBanner(slot, element, { onRendered, onEmpty }) -> () => void
 //                                  배너 광고를 element에 붙이고, 반환 함수로 뗀다. 웹은 광고가 없어 아무것도 하지 않는다.
 //                                  광고가 그려지면 onRendered, 없거나(no fill·실패·미지원) 못 그리면 onEmpty.
+// - saveImage({ dataUrl, fileName }) -> Promise<boolean>  이미지를 기기에 저장했으면 true. 웹은 저장하지 않아 false.
+// - haptic(kind)          -> void             진동. kind: 'off' · 'finish'. 웹은 navigator.vibrate(되는 브라우저만).
 // - 어떤 메서드도 throw하지 않는다.
 const webPlatform = {
   launchParam: () => null,
@@ -24,6 +26,8 @@ const webPlatform = {
   onSystemBack: () => () => {},
   shareRace: async () => false,
   attachBanner: () => () => {},
+  saveImage: async () => false,
+  haptic: (kind) => { try { navigator.vibrate?.(kind === 'off' ? 40 : 20); } catch { /* 진동을 못 쓰는 브라우저 */ } },
 };
 
 let impl = webPlatform;
@@ -36,6 +40,8 @@ export const launchParam = (name) => impl.launchParam(name);
 export const clearLaunchParam = (name) => impl.clearLaunchParam(name);
 export const shareRace = (args) => impl.shareRace(args);
 export const attachBanner = (slot, element, handlers) => impl.attachBanner(slot, element, handlers);
+export const saveImage = (args) => impl.saveImage(args);
+export const haptic = (kind) => impl.haptic(kind);
 
 // 시스템 뒤로가기. active일 때만 구독하고, 아니거나 언마운트되면 해제한다.
 // 구독하지 않은 상태에서는 플랫폼 기본 동작(토스: 미니앱 종료)이 된다.

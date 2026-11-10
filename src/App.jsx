@@ -31,7 +31,7 @@ import { DemoClockSheet } from './demo/DemoClockSheet.jsx';
 import { IS_TOSS, launchParam, clearLaunchParam, useSystemBack } from './platform.js';
 import { LapLayer } from './lap/LapLayer.jsx';
 import { LapHub } from './lap/LapHub.jsx';
-import { openLap } from './lap/store.js';
+import { openLap, closeLap, useOpenLap } from './lap/store.js';
 import { demoClock } from './demo/clock.js';
 
 export default function Root() {
@@ -285,9 +285,12 @@ function App({ theme, setTheme, themePref, onShareLinkDone, startRedo, entry, on
   useScrollEdges(rootRef);
   useDevShellHook(shell);
   // 토스 시스템 뒤로(SPEC 9장): 시트 닫기 → 화면 스택(상세·설정·시리즈) → 홈이 아닌 탭은 홈 → 홈에서는 구독하지 않아 미니앱 종료
-  const backTarget = !IS_TOSS ? null : shell.sheet ? 'sheet' : stack.length ? 'stack' : view !== 'home' ? 'home' : null;
+  // '한 바퀴' 레이어가 열려 있으면 그것부터 닫는다
+  const lapOpen = useOpenLap();
+  const backTarget = !IS_TOSS ? null : lapOpen ? 'lap' : shell.sheet ? 'sheet' : stack.length ? 'stack' : view !== 'home' ? 'home' : null;
   useSystemBack(backTarget !== null, () => {
-    if (backTarget === 'sheet') shell.closeSheet();
+    if (backTarget === 'lap') closeLap();
+    else if (backTarget === 'sheet') shell.closeSheet();
     else if (backTarget === 'stack') back();
     else if (backTarget === 'home') onGo('home');
   });
