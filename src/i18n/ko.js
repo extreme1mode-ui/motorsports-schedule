@@ -690,4 +690,7 @@ export default {
   'lap.keys': '화면을 누르고 있으면 달려요. 스페이스 바나 위쪽 화살표를 누르고 있어도 돼요. 닫으려면 Esc를 누르세요.',
   'lap.hub.week': '이번 주말',
   'lap.home.left': '아직 달리지 않은 서킷이 {n}곳 있어요',
+  'lap.card.save': '이미지 저장',
+  'lap.card.saved': '이미지를 저장했어요.',
+  'lap.card.saveFail': '이 기기에서는 저장할 수 없어요. 화면을 캡처해 주세요.',
 };

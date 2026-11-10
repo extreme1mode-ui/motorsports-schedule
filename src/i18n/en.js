@@ -682,4 +682,7 @@ export default {
   'lap.keys': 'Press and hold the screen to drive. You can also hold the space bar or the up arrow. Press Esc to close.',
   'lap.hub.week': 'This weekend',
   'lap.home.left': '{n} {n|circuit|circuits} left to drive',
+  'lap.card.save': 'Save image',
+  'lap.card.saved': 'Image saved.',
+  'lap.card.saveFail': 'Saving is not available on this device. Take a screenshot instead.',
 };
