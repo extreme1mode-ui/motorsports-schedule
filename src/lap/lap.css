@@ -1,0 +1,70 @@
+/* '한 바퀴'. 토큰만 쓴다. 노랑 없음(신호등은 F1 빨강). */
+.gx .gx-lap { position: fixed; inset: 0; z-index: 300; display: flex; flex-direction: column; background: var(--bg); color: var(--text);
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; animation: gx-lap-in var(--d3) var(--e-out); }
+@keyframes gx-lap-in { from { opacity: 0; transform: translateY(12px); } }
+.gx .gx-lap-bar { flex: none; height: calc(52px + env(safe-area-inset-top, 0px)); padding: env(safe-area-inset-top, 0px) 12px 0 4px; display: flex; align-items: center; gap: 4px; }
+.gx .gx-lap-title { flex: 1; min-width: 0; }
+.gx .gx-lap-best { flex: none; color: var(--text2); font-variant-numeric: tabular-nums; }
+.gx .gx-lap-stage { position: relative; flex: 1; min-height: 0; touch-action: none; overflow: hidden; }
+.gx .gx-lap-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.gx .gx-lap-strip { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 var(--gutter) 8px; }
+.gx .gx-lap-time { font-size: var(--t30); line-height: 1.1; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.gx .gx-lap-mini { flex: none; display: block; }
+.gx .gx-lap-mini path { fill: none; stroke: var(--text3); stroke-width: 1.5; stroke-linejoin: round; }
+.gx .gx-lap-mini circle { fill: var(--f1); }
+/* 신호등: 무대 위쪽 가운데, 출발 전에만 */
+.gx .gx-lap-lights { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; padding: 12px 16px; border-radius: 999px; background: var(--bg); box-shadow: 0 0 0 1px var(--line); pointer-events: none; }
+.gx .gx-lap-lights i { width: 24px; height: 24px; border-radius: 50%; background: var(--fill2); }
+.gx .gx-lap-lights i.is-on { background: var(--f1); }
+/* 아래 줄: 속도 · 다음 코너. 트랙과 겹치지 않게 바탕을 깐다 */
+.gx .gx-lap-foot { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 12px var(--gutter) calc(16px + var(--gx-sab));
+  background: var(--bg); box-shadow: 0 -1px 0 var(--line); pointer-events: none; }
+.gx .gx-lap-speed, .gx .gx-lap-next { display: flex; align-items: baseline; gap: 4px; color: var(--text2); }
+.gx .gx-lap-speed b, .gx .gx-lap-next b { font-size: var(--t30); line-height: 1; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; min-width: 1ch; }
+.gx .gx-lap-speed b { min-width: 3ch; text-align: right; }
+.gx .gx-lap-speed em { font-style: normal; margin-left: 8px; padding: 2px 8px; border-radius: 6px; background: var(--fill); color: var(--text4); font-weight: 600; transition: background-color var(--d1) var(--e-std), color var(--d1) var(--e-std); }
+.gx .gx-lap-speed em[data-on="1"] { background: var(--brand); color: var(--onbrand); }
+.gx .gx-lap-msg { position: absolute; left: 50%; bottom: calc(92px + var(--gx-sab)); transform: translateX(-50%); margin: 0; padding: 10px 16px; border-radius: 12px;
+  background: var(--brand); color: var(--onbrand); white-space: nowrap; max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+/* 시작·결과 카드: 아래에 붙는 한 장 */
+.gx .gx-lap-card { position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; display: grid; gap: 16px; padding: 24px var(--gutter) calc(20px + var(--gx-sab)); background: var(--bg);
+  border-radius: var(--r-sheet) var(--r-sheet) 0 0; box-shadow: 0 -1px 0 var(--line), 0 -12px 32px rgba(16,18,24,.10); animation: gx-lap-card var(--d3) var(--e-out); }
+@keyframes gx-lap-card { from { transform: translateY(24px); opacity: 0; } }
+.gx .gx-lap-card > div:first-child { display: grid; gap: 2px; }
+.gx .gx-lap-card h2, .gx .gx-lap-card p { margin: 0; }
+.gx .gx-lap-how { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; color: var(--text2); }
+.gx .gx-lap-how li { display: flex; align-items: center; gap: 12px; text-wrap: pretty; }
+.gx .gx-lap-how i { flex: none; width: 28px; height: 10px; border-radius: 5px; background: var(--fill2); }
+.gx .gx-lap-how i.is-brake { background: var(--text4); }
+.gx .gx-lap-how i.is-light { width: 10px; margin: 0 9px; border-radius: 50%; background: var(--f1); }
+.gx .gx-lap-big { font-size: var(--t40); line-height: 1.15; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.gx .gx-lap-stats { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.gx .gx-lap-stats > div { display: grid; gap: 2px; padding: 12px 14px; border-radius: 12px; background: var(--callout); }
+.gx .gx-lap-stats dt { color: var(--text2); }
+.gx .gx-lap-stats dd { margin: 0; font-variant-numeric: tabular-nums; }
+.gx .gx-lap-acts { display: flex; gap: 8px; }
+.gx .gx-lap-acts .is-grow { flex: 1; }
+@media (min-width: 900px) {
+  .gx .gx-lap-card { left: 50%; right: auto; bottom: 32px; width: 440px; transform: translateX(-50%); border-radius: var(--r-sheet); box-shadow: 0 0 0 1px var(--line), 0 16px 40px rgba(16,18,24,.14); padding-bottom: 24px; animation: none; }
+  .gx .gx-lap-strip, .gx .gx-lap-foot { padding-left: 32px; padding-right: 32px; }
+}
+@media (prefers-reduced-motion: reduce) { .gx .gx-lap, .gx .gx-lap-card { animation: none; } }
+
+/* 목록 · 진입 줄의 작은 서킷 그림 */
+.gx .gx-lap-thumb { width: 44px; height: 44px; flex: none; border-radius: 12px; background: var(--fill); display: grid; place-items: center; color: var(--text); }
+.gx .gx-lap-thumb svg { display: block; }
+.gx .gx-lap-thumb path { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+.gx .gx-lap-ic path { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
+.gx .gx-lap-row .gx-row-r { font-variant-numeric: tabular-nums; }
+.gx .gx-lap-row > svg { color: var(--text3); flex: none; }
+.gx .gx-lap-hub-top { padding-top: 8px; }
+.gx .gx-lap-hub-note { margin: 12px var(--gutter) 24px; color: var(--text3); text-wrap: pretty; }
+.gx .is-desk.gx-lap-hub { --gutter: 0px; }
+.gx .is-desk.gx-lap-hub .gx-lap-hub-top { padding: 0 0 16px; }
+.gx .gx-rail-card .gx-lap-home { padding-bottom: 8px; }
+
+/* 기록 카드 */
+.gx .gx-lap-share { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: calc(16px + env(safe-area-inset-top, 0px)) var(--gutter) calc(20px + var(--gx-sab)); background: var(--bg); animation: gx-lap-in var(--d2) var(--e-out); }
+.gx .gx-lap-share img { flex: 0 1 auto; min-height: 0; max-width: 100%; max-height: calc(100% - 120px); aspect-ratio: 4 / 5; border-radius: 16px; box-shadow: 0 0 0 1px var(--line); -webkit-touch-callout: default; -webkit-user-select: auto; user-select: auto; }
+.gx .gx-lap-share p { margin: 0; color: var(--text2); text-align: center; text-wrap: pretty; }
+.gx .gx-lap-share .gx-lap-acts { width: 100%; max-width: 440px; }

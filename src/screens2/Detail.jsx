@@ -20,6 +20,8 @@ import { useF1Results, resultOf, photoOf, teamColor } from '../results/results.j
 import { Avatar } from '../results/ResultsUI.jsx';
 import { useCircuitMap, hasMap } from '../circuit-map/context.js';
 import { MapEntryButton } from '../circuit-map/CircuitMap.jsx';
+import { LapDetailRow } from '../lap/LapHub.jsx';
+import { lapTrackOfRace } from '../lap/store.js';
 import { drawerWidth } from './drawer.js';
 import { Icon } from '../ui2/Icon.jsx';
 import { Dot, Band, ListHeader, LiveText, Progress, Roll, Photo, Seg, HeartBtn, CalBtn } from '../ui2/parts.jsx';
@@ -263,6 +265,7 @@ function Venue({ race, now }) {
       <span className="gx-row-r"><Icon n="chev" s={20} className="gx-ter" /></span>
     </MapEntryButton>,
   );
+  if (lapTrackOfRace(race) && !isCancelled(race)) rows.push(<LapDetailRow key="lap" race={race} />);
   if (map && alive) rows.push(
     <button key="go" type="button" className="gx-row" role="switch" aria-checked={going} onClick={() => cm.toggleAttend(race)}>
       <span className="gx-bc-ic"><Icon n="flag" s={22} /></span>

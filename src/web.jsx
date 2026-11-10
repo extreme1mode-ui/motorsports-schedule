@@ -18,6 +18,7 @@ import { ShellContext } from './shell/context.js';
 import { useShellCore } from './shell/useShellCore.js';
 import { useDevShellHook } from './shell/dev-hook.js';
 import { ShellSheets } from './shell/ShellSheets.jsx';
+import { LapHub } from './lap/LapHub.jsx';
 import { activeElement, focusBack, trapTab, useScrollEdges } from './shell/utils.js';
 import './shell/shell.css';
 import { Snackbar } from './ui2/Snackbar.jsx';
@@ -152,7 +153,7 @@ export function WebApp({ theme, setTheme, themePref, onShareLinkDone, startRedo,
     onEntryDone?.();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const ctx = useMemo(() => ({
-    push: (route) => { if (route.t === 'settings') onGo('settings'); else if (route.t === 'series') onGo('series', route.cat); else setDstack((d) => [...d, route]); },
+    push: (route) => { if (route.t === 'settings') onGo('settings'); else if (route.t === 'series') onGo('series', route.cat); else if (route.t === 'laps') onGo('laps'); else setDstack((d) => [...d, route]); },
     back: backDrawer, openSettings: () => onGo('settings'), openSheet: shell.openSheet, toast: shell.toast, mem: shell.mem, desktop: true, go: onGo,
   }), [onGo, backDrawer, shell.openSheet, shell.toast, shell.mem]);
   const drawerOpen = dstack.length > 0;
@@ -184,6 +185,7 @@ export function WebApp({ theme, setTheme, themePref, onShareLinkDone, startRedo,
           {view === 'series' && <SeriesScreen races={raceList} onOpenRace={openFromSeries} now={now} preferences={preferences} seasonYear={safeSeasonYear} initialCategory={categoryFilter || undefined} />}
           {view === 'fav' && <FavoritesScreen races={raceList} myRaces={myRaces} now={now} preferences={preferences}
             favorites={favorites} onOpenRace={openFromSaved} toggleFav={toggleFav} />}
+          {view === 'laps' && <LapHub desktop />}
           {view === 'settings' && <SettingsScreen preferences={preferences} themePref={themePref} onRedo={startRedo} />}
         </div>
       </main>

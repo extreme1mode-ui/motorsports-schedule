@@ -1,0 +1,57 @@
+// '한 바퀴' 데이터와 기록. 트랙은 서킷 맵 데이터에서 뽑은 tracks.json(tools/build-lap-tracks.mjs), 이름은 시즌 파일의 그 경기에서 읽는다.
+import { useSyncExternalStore } from 'react';
+import RAW from './tracks.json' with { type: 'json' };
+import { prepareTrack } from './engine.js';
+import { storage } from '../storage/index.js';
+import { SEASON_RACES } from '../champions/champions.js';
+
+const BY_RACE = new Map(SEASON_RACES.map((r) => [r.id, r]));
+// 달릴 수 있는 서킷(라운드 순). race: 이름을 읽을 시즌 경기, turns: 코너 수
+export const LAP_TRACKS = RAW.map((t) => ({ id: t.id, raceId: t.raceId, round: t.round, race: BY_RACE.get(t.raceId) || null, turns: Object.keys(t.turns || {}).length, raw: t }))
+  .filter((t) => t.race);
+const BY_ID = new Map(LAP_TRACKS.map((t) => [t.id, t]));
+export const lapTrackOf = (id) => BY_ID.get(id) || null;
+export const lapTrackOfRace = (race) => (race ? LAP_TRACKS.find((t) => t.raceId === race.id || t.raceId === race.staticId) || null : null);
+
+const prepared = new Map();
+export function preparedTrack(id) {
+  if (!prepared.has(id)) { const t = BY_ID.get(id); if (!t) return null; prepared.set(id, prepareTrack(t.raw)); }
+  return prepared.get(id);
+}
+
+// 목록·카드용 작은 서킷 그림: 상자(w×h) 안에 맞춘 path
+export function outlinePath(id, w = 44, h = 44, pad = 4) {
+  const t = BY_ID.get(id); if (!t) return '';
+  const pts = t.raw.pts; let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const [x, y] of pts) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  const k = Math.min((w - pad * 2) / (x1 - x0), (h - pad * 2) / (y1 - y0));
+  const ox = (w - (x1 - x0) * k) / 2, oy = (h - (y1 - y0) * k) / 2;
+  return `${pts.map(([x, y], i) => `${i ? 'L' : 'M'}${((x - x0) * k + ox).toFixed(1)} ${((y - y0) * k + oy).toFixed(1)}`).join('')}Z`;
+}
+
+// ---------- 기록(이 기기) ----------
+const subs = new Set();
+let snap = null;
+const read = () => { if (!snap) { const v = storage.lap.read(); snap = v && typeof v === 'object' ? v : {}; } return snap; };
+export function lapRecords() { return read(); }
+export function saveLap(id, { ms, react, ghost }) {
+  const all = { ...read() }; const prev = all[id] || null;
+  const best = !prev || ms < prev.best;
+  all[id] = best
+    ? { best: ms, react, runs: (prev?.runs || 0) + 1, at: new Date().toISOString(), ghost }
+    : { ...prev, runs: (prev.runs || 0) + 1 };
+  snap = all; storage.lap.write(all);
+  subs.forEach((fn) => fn());
+  return { best, prev: prev ? prev.best : null };
+}
+const subscribe = (fn) => { subs.add(fn); return () => subs.delete(fn); };
+export function useLapRecords() { return useSyncExternalStore(subscribe, read, read); }
+
+// ---------- 열기(전체 화면 레이어). 어느 셸에서든 openLap(id)만 부르면 된다 ----------
+let openId = null;
+const openSubs = new Set();
+export function openLap(id) { if (BY_ID.has(id)) { openId = id; openSubs.forEach((fn) => fn()); } }
+export function closeLap() { openId = null; openSubs.forEach((fn) => fn()); }
+const subOpen = (fn) => { openSubs.add(fn); return () => openSubs.delete(fn); };
+const getOpen = () => openId;
+export function useOpenLap() { return useSyncExternalStore(subOpen, getOpen, getOpen); }

@@ -9,6 +9,7 @@ import { TimelineList } from './TimelineList.jsx';
 import { HomeChampions } from '../champions/Champions.jsx';
 import { homeChampions, nextSeasonOpeners } from '../champions/champions.js';
 import { SeasonBreak } from '../champions/SeasonBreak.jsx';
+import { LapHome } from '../lap/LapHub.jsx';
 import { likeCount, formatCount, popularRaces, useLikes, COUNT_IN_HEART } from '../likes/likes.js';
 import { Popular, LikeInline } from '../likes/Likes.jsx';
 import { WxCardTag, WxInline } from '../weather/Wx.jsx';
@@ -497,6 +498,8 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
   // 시즌 사이: 관심 시리즈에 남은 경기가 없으면 '예정된 경기가 없어요' 대신 다음 시즌 첫 경기
   const openers = useMemo(() => (plan.hero ? [] : nextSeasonOpeners(minute, preferences)), [plan.hero, minute, preferences]);
   const brk = openers.length ? <SeasonBreak list={openers} now={minute} onGo={onGo} /> : null;
+  // 서킷 한 바퀴: 다가오는 경기의 서킷을 미리 달려 보는 한 줄(시즌 사이에는 아직 안 달린 서킷)
+  const lap = <LapHome races={races} now={minute} />;
   const daysToNext = openers.length ? Math.max(1, fmt.dayDiff(openers[0].t, minute)) : null;
   const head = (
     <div className="gx-home-top">
@@ -513,6 +516,7 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
         <div className="gx-dhome-grid">
           <div className="gx-dhome-main">{timeline}{champs}</div>
           <aside className="gx-rail" aria-label={tr('home.railAria')}>
+            <div className="gx-rail-card">{lap}</div>
             {last && <div className="gx-rail-card">{last}</div>}
             {popular && <div className="gx-rail-card">{popular}</div>}
             {disc && <div className="gx-rail-card">{disc}</div>}
@@ -532,6 +536,7 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
       {plan.hero ? <DeckMobile deck={deck} states={states} curs={curs} openAt={openAt} actions={actions} now={minute} /> : brk || <Empty onGo={onGo} />}
       {freshLast && last && <><Band />{last}</>}
       {plan.days.length > 0 && <><Band />{timeline}</>}
+      <Band />{lap}
       {champs && <><Band />{champs}</>}
       {popular && <><Band />{popular}</>}
       {!freshLast && last && <><Band />{last}</>}

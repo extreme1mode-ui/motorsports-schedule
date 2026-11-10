@@ -28,6 +28,10 @@ import { storage } from './storage/index.js';
 import { setAppTitle } from './document-title.js';
 import { CircuitMapProvider } from './circuit-map/CircuitMap.jsx';
 import { DemoClockSheet } from './demo/DemoClockSheet.jsx';
+import { LapLayer } from './lap/LapGame.jsx';
+import { LapHub } from './lap/LapHub.jsx';
+import { openLap } from './lap/store.js';
+import { demoClock } from './demo/clock.js';
 
 export default function Root() {
   const prefs = usePreferences();
@@ -57,6 +61,13 @@ export default function Root() {
     document.documentElement.lang = locale;
     setAppTitle(t(locale, 'app.title'));
   }, [prefs.preferences.locale]);
+
+  // 데모 전용: 데모를 처음 열면 '한 바퀴'(라스베이거스)를 바로 보여 준다. 닫으면 홈이다. 실서비스 빌드에서는 돌지 않는다
+  useEffect(() => {
+    if (!demoClock.enabled) return;
+    try { if (sessionStorage.getItem('gantry.demo.lap')) return; sessionStorage.setItem('gantry.demo.lap', '1'); } catch { return; }
+    if (prefs.preferences.onboarded) openLap('lvg26');
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 방문 빈도·재방문율: 앱이 뜰 때 1회 (StrictMode의 이중 effect는 ref로 막는다).
   const openedRef = useRef(false);
@@ -119,6 +130,7 @@ export default function Root() {
         <div className="gx" style={{ display: 'contents' }}>
           {screen}
           <DemoClockSheet />
+          <LapLayer />
           <div id="gx-layer" className="gx-layer" />
         </div>
       </CircuitMapProvider>
@@ -280,6 +292,12 @@ function App({ theme, setTheme, themePref, onShareLinkDone, startRedo, entry, on
       return race ? <RaceDetailV2 race={race} now={now} races={raceList} onOpenRace={onOpenRace} onClose={isTop ? back : () => {}} favorites={favorites} toggleFav={toggleFav} preferences={preferences} /> : null;
     }
     if (r.t === 'settings') return <SettingsScreen preferences={preferences} themePref={themePref} onRedo={startRedo} />;
+    if (r.t === 'laps') return (
+      <>
+        <div className="gx-stack-bar"><button type="button" className="gx-iconbtn" aria-label={t(preferences.locale || 'ko', 'aria.back')} onClick={back}><Icon n="back" /></button></div>
+        <LapHub />
+      </>
+    );
     if (r.t === 'series') return (
       <>
         <div className="gx-stack-bar"><button type="button" className="gx-iconbtn" aria-label={t(preferences.locale || 'ko', 'aria.back')} onClick={back}><Icon n="back" /></button></div>
