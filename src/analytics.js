@@ -4,7 +4,9 @@
 // - 개발 모드(import.meta.env.DEV): 전송하지 않고 console.debug만.
 // - 프로덕션: VITE_ANALYTICS_KEY가 있을 때만 전송. 없으면 아무것도 안 함.
 // - navigator.doNotTrack이 켜져 있으면 전송하지 않는다 (GDPR 고려).
-// - 토스 빌드: 전송하지 않는다 (PostHog를 불러오지 않는다). 개발 모드 콘솔 출력은 그대로.
+// - 토스 빌드: 웹과 같은 이벤트·같은 규칙으로 보내고, 모든 이벤트에 platform='toss'를 붙인다.
+//   사람 구분은 우리가 만든 무작위 ID(storage.analyticsId)로 하고, PostHog는 메모리에만 둔다(persistence 'memory').
+//   토스 익명 사용자 키(tossUser)·토스 사용자 정보는 보내지 않는다. 이 분기는 웹 번들에서 빌드 때 지워진다.
 // - 이름·이메일 같은 식별 정보는 어디서도 넣지 않는다. 속성은 열거형 문자열·숫자·불리언·문자열 배열만 통과시키고 나머지는 버린다.
 // - 어떤 경우에도 앱을 죽이지 않는다 (전체 try/catch).
 
@@ -68,6 +70,21 @@ function flushQueue() {
   }
 }
 
+// 토스 계측 ID: 기기에 저장한 무작위 UUID. 없으면 만든다(randomUUID가 없으면 getRandomValues로 v4 꼴을 만든다).
+function analyticsId() {
+  let id = storage.analyticsId.read();
+  if (id) return id;
+  if (typeof crypto.randomUUID === 'function') id = crypto.randomUUID();
+  else {
+    const b = crypto.getRandomValues(new Uint8Array(16));
+    b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+    const h = [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
+    id = `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+  }
+  try { storage.analyticsId.write(id); } catch { /* 저장 실패여도 이번 실행은 이 ID로 보낸다 */ }
+  return id;
+}
+
 // posthog-js(gzip ~60KB)는 첫 이벤트 시점에 동적 import. 첫 페인트를 막지 않는다.
 function loadClient() {
   if (client || loading || failed) return;
@@ -84,11 +101,14 @@ function loadClient() {
         disable_surveys: true,
         disable_web_experiments: true,
         advanced_disable_flags: true,       // 기능 플래그를 안 쓰므로 init 시 /flags 요청 생략.
+        // 토스: 우리 ID로 시작하고, PostHog는 쿠키·localStorage에 아무것도 남기지 않는다.
+        ...(IS_TOSS ? { bootstrap: { distinctID: analyticsId() }, persistence: 'memory' } : {}),
       });
       // IP 기반 위치 추적 끄기. posthog-js 1.4xx에는 config 옵션이 없고(옛 `ip` 옵션은 @deprecated·무효),
       // 이벤트 속성 $geoip_disable=true가 서버의 GeoIP 변환을 건너뛰게 한다. register()로 모든 이벤트에 붙인다.
       // $ip 자체는 서버가 요청에서 채우므로 클라이언트에서 못 지운다 → 프로젝트 설정 "Discard client IP data"를 켜야 한다.
       posthog.register({ $geoip_disable: true });
+      if (IS_TOSS) posthog.register({ platform: 'toss' });   // 일간 리포트가 토스 방문자를 이것으로 센다
       client = posthog;
       flushQueue();
     })
@@ -110,7 +130,7 @@ export function track(event, props = {}) {
     if (typeof event !== 'string' || !event) return;
     const clean = sanitize(props);
     if (DEV) { console.debug(`[analytics] ${event} ${JSON.stringify(clean)}`); return; }   // 한 줄 문자열: 콘솔·로그 수집기에서 그대로 읽히게
-    if (IS_TOSS || !KEY || doNotTrack()) return;
+    if (!KEY || doNotTrack()) return;
     send(event, clean);
   } catch {
     // 계측 실패는 앱 동작에 영향을 주면 안 된다.

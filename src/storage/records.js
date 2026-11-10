@@ -71,4 +71,7 @@ export const RECORDS = {
   tossUser: { key: 'gantry.tossUser', scope: 'device', codec: text, fallback: () => null },
   // 토스 빌드가 /data/v1/에서 받아 둔 일정·결과 { files: { <이름>: { sha256, data } } }. 다음 시작 때 렌더 전에 끼운다(src/toss/data-feed.js).
   dataFeed: { key: 'gantry.dataFeed', scope: 'device', codec: json, fallback: () => null },
+  // 토스 계측용 무작위 ID(우리가 만든 UUID). PostHog distinct_id로만 쓴다 — 토스 사용자 키와 무관하다(src/analytics.js).
+  // 웹은 쓰지 않으므로 웹 번들에서는 빌드 때 지워진다.
+  ...(import.meta.env.MODE === 'toss' ? { analyticsId: { key: 'gantry.analyticsId', scope: 'device', codec: text, fallback: () => null } } : {}),
 };
