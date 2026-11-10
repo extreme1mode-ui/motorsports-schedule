@@ -202,10 +202,10 @@ function LapGame({ id, onClose }) {
           clearTimers(); resetRun(); const zz = name === 'coach' ? coachZones()[0] : z[Math.min(2, z.length - 1)];
           const sp = name === 'coach' ? zz.s0 + 10 : zz.s0 - 140; at(sp, s.tk.ideal[ix(sp)] * (name === 'coach' ? 1 : 0.97));
           if (name === 'coach') { s.firstRun = true; setFirstRun(true); } else s.coachIdx = 99;
-          if (s.best && name === 'run') { const tg = timeAt(s.best, sp); if (tg != null) { s.react = 0; s.run.t = tg + 0.31; setDelta({ sec: 0.31, ahead: false }); s.deltaUntil = performance.now() + 1e9; } }
+          if (s.best && name === 'run') { const tg = timeAt(s.best, sp); if (tg != null) { s.react = 0; s.run.t = tg + 0.31; if (s.cfg.delta !== 'off') { setDelta({ sec: 0.31, ahead: false }); s.deltaUntil = performance.now() + 1e9; } } }
           setP('run');
         } else if (name === 'slip') {
-          clearTimers(); resetRun(); const t = s.tk.turns[Math.min(3, s.tk.turns.length - 1)]; const sp = t.s - 6;
+          clearTimers(); resetRun(); const t = s.tk.turns.reduce((a, b) => (s.tk.vlim[b.i] < s.tk.vlim[a.i] ? b : a)); const sp = t.s - 6;   // 가장 느린 코너에서
           at(sp, s.tk.vlim[ix(sp)] * 1.18, { heat: 0.72, side: s.tk.k[ix(sp)] > 0 ? 1 : -1 }); s.run.off = s.run.side * 0.72 * (HALF_W - 1.5); s.coachIdx = 99; s.seedMarks = true; setP('run');
         } else if (name === 'off') {
           clearTimers(); resetRun(); const t = s.tk.turns[Math.min(3, s.tk.turns.length - 1)]; const sp = t.s + 14; const side = s.tk.k[ix(sp)] > 0 ? 1 : -1;
