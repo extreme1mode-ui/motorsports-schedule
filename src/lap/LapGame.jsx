@@ -34,6 +34,12 @@ const lerp = (a, b, f) => a + (b - a) * f;
 const OVERVIEW = new Set(['ready', 'done', 'practiceDone']);
 const PRESSABLE = new Set(['lights', 'wait', 'go', 'run', 'practice']);
 
+// 기록 카드 이미지 한 장(게시물 4:5 · 스토리 9:16)
+async function buildCard(format, track, r, lockupEl, text) {
+  const cv = await drawShareCard({ format, track, ms: r.ms, lockupEl, text });
+  return { fmt: format, url: cv.toDataURL('image/png'), canvas: cv, note: null };
+}
+
 export function LapLayer() {
   const id = useOpenLap();
   if (!id || !lapTrackOf(id)) return null;
@@ -54,6 +60,7 @@ function LapGame({ id, onClose }) {
   const [best, setBest] = useState(() => lapRecords()[id]?.best ?? null);
   const [firstRun, setFirstRun] = useState(() => isFirstVisit());
   const [card, setCard] = useState(null);          // { fmt, url, canvas, note }
+  const [demoCard, setDemoCard] = useState(null);  // 데모 바로 가기 전용 { f, n }
   const lockRef = useRef(null); const primary = useRef(null); const cardRef = useRef(null);
 
   const root = useRef(null); const canvas = useRef(null);
@@ -66,7 +73,7 @@ function LapGame({ id, onClose }) {
     return { d: outlinePath(id, w, h, pad), at: (x, y) => [(x - x0) * k + ox, (y - y0) * k + oy] };
   }, [id, tk]);
   const g = useRef(null);   // 게임 상태(리렌더와 무관)
-  if (!g.current) {
+  if (g.current === null) {
     g.current = { tk, zones: zonesOf(tk), run: newRun(), phase: 'ready', down: false, t0: 0, react: 0, acc: 0, last: 0, ghost: [], ghostNext: 0,
       best: lapRecords()[id]?.ghost || null, cam: null, from: null, mode: null, colors: null, theme: null, timers: [], raf: 0, frozen: false,
       coachIdx: 0, cueUntil: 0, cue: null, reactUntil: 0, deltaUntil: 0, deltaNext: 0, marks: [], rear: null, steer: 0, yaw: 0, msgKey: null,
@@ -96,7 +103,7 @@ function LapGame({ id, onClose }) {
     for (let i = 1; i <= LIGHTS; i += 1) later(() => setLit(i), LIGHT_EVERY * i);
     const hold = 400 + Math.random() * 1800;     // 다 켜진 뒤 꺼질 때까지: 0.4~2.2초 사이 아무 때나
     later(() => { setLit(0); g.current.t0 = performance.now(); setP('go'); }, LIGHT_EVERY * LIGHTS + hold);
-  }, [setP]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [setP]);
 
   // ---------- 연습(배우는 방법 '연습 구간'): 시간을 재지 않고 첫 진한 구간 두 곳까지 ----------
   const startPractice = useCallback(() => {
@@ -104,7 +111,7 @@ function LapGame({ id, onClose }) {
     const z = coachZones(); const s = g.current;
     s.practiceEnd = z.length ? z[z.length - 1].s1 + 120 : 600;
     s.last = performance.now(); setP('practice');
-  }, [setP]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [setP]);
 
   const finish = useCallback(() => {
     const s = g.current; const tkk = s.tk; const run = s.run;
@@ -133,14 +140,14 @@ function LapGame({ id, onClose }) {
     if (isDown && s.phase === 'go') { s.react = performance.now() - s.t0; s.last = performance.now(); s.reactUntil = performance.now() + 1400; setReactMs(Math.round(s.react)); setP('run'); }
     if (isDown && s.frozen) { s.frozen = false; s.last = performance.now(); s.acc = 0; }
     s.down = isDown;
-  }, [id, setP, startLights]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id, setP, startLights]);
 
   // 멈춤: 창이 가려지면(다른 앱 · 탭 · 화면 꺼짐) 달리던 중이면 멈추고, 신호등 중이면 준비로 돌아간다
   const pauseNow = useCallback(() => {
     const s = g.current; s.down = false;
     if (s.phase === 'run' || s.phase === 'practice') { s.pausedFrom = s.phase; setP('paused'); }
     else if (s.phase === 'lights' || s.phase === 'go' || s.phase === 'wait') { clearTimers(); setLit(0); setP('ready'); }
-  }, [setP]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [setP]);
   const resume = () => { const s = g.current; s.last = performance.now(); s.acc = 0; s.down = false; setP(s.pausedFrom || 'run'); };
   const restart = () => { if (g.current.pausedFrom === 'practice') startPractice(); else startLights(); };
   useEffect(() => {
@@ -161,7 +168,7 @@ function LapGame({ id, onClose }) {
     window.addEventListener('keydown', onKey, true); window.addEventListener('keyup', onKey, true);
     return () => { window.removeEventListener('keydown', onKey, true); window.removeEventListener('keyup', onKey, true); };
   }, [press, onClose, card]);
-  useEffect(() => { trackEvent('lap_opened', { track: id }); return () => clearTimers(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { trackEvent('lap_opened', { track: id }); return () => clearTimers(); }, [id]);
   // 카드가 뜨면 주 버튼으로 포커스(스페이스 · 엔터로 바로 누를 수 있게)
   useEffect(() => { if (!PRESSABLE.has(phase)) primary.current?.focus({ preventScroll: true }); }, [phase, firstRun]);
 
@@ -211,13 +218,13 @@ function LapGame({ id, onClose }) {
         else if (name === 'result-first') { const all = { ...lapRecords() }; delete all[id]; writeLapRecords(all); s.best = null; setBest(null); finishWith(30, 0.34); }
         else if (name === 'result-best' || name === 'card' || name === 'card-story') {
           const rec = fakeRecord(30, 0.41); writeLapRecords({ ...lapRecords(), [id]: rec }); s.best = rec.ghost; setBest(rec.best); finishWith(0, 0.27);
-          if (name !== 'result-best') setTimeout(() => makeCardRef.current?.(name === 'card-story' ? 'story' : 'post'), 250);
+          if (name !== 'result-best') setDemoCard((d) => ({ f: name === 'card-story' ? 'story' : 'post', n: (d?.n || 0) + 1 }));
         } else if (name === 'result-slower') { const rec = fakeRecord(0, 0.27); writeLapRecords({ ...lapRecords(), [id]: rec }); s.best = rec.ghost; setBest(rec.best); finishWith(30, 0.38); }
         return s.phase;
       },
     });
     return () => { for (const k of ['get', 'press', 'auto', 'state']) delete api[k]; };
-  }, [id, press, finish, setP]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id, press, finish, setP]);
 
   // ---------- 그리기 ----------
   useEffect(() => {
@@ -476,21 +483,25 @@ function LapGame({ id, onClose }) {
     };
     s.raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(s.raf);
-  }, [finish, tr, mini, buzz, setP]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [finish, tr, mini, buzz, setP]);
 
   // ---------- 기록 카드 ----------
-  const makeCard = useCallback(async (format = 'post') => {
+  const circuitName = L.circuit;
+  const cardText = (r) => ({ kicker: tr('lap.title'), circuit: circuitName, stats: tr('lap.card.stats', { react: (r.react / 1000).toFixed(3), offs: r.offs }), site: 'gantryracing.com' });
+  const makeCard = (format = 'post') => {
     if (!result) return;
     if (!card) trackEvent('lap_card_opened', { track: id });
-    const cv = await drawShareCard({
-      format, track: g.current.tk, ms: result.ms, lockupEl: lockRef.current,
-      text: { kicker: tr('lap.title'), circuit: L.circuit, stats: tr('lap.card.stats', { react: (result.react / 1000).toFixed(3), offs: result.offs }), site: 'gantryracing.com' },
-    });
-    setCard({ fmt: format, url: cv.toDataURL('image/png'), canvas: cv, note: null });
-  }, [result, card, id, tr, L.circuit]);
-  const makeCardRef = useRef(null);
-  useEffect(() => { makeCardRef.current = makeCard; }, [makeCard]);
-  const shareCard = useCallback(async () => {
+    buildCard(format, g.current.tk, result, lockRef.current, cardText(result)).then(setCard);
+  };
+  // 데모 바로 가기 '기록 카드': 결과가 나온 뒤 한 번 그린다
+  const demoDone = useRef(0);
+  useEffect(() => {
+    if (!demoCard || !result || demoDone.current === demoCard.n) return;
+    demoDone.current = demoCard.n;
+    const text = { kicker: tr('lap.title'), circuit: circuitName, stats: tr('lap.card.stats', { react: (result.react / 1000).toFixed(3), offs: result.offs }), site: 'gantryracing.com' };
+    buildCard(demoCard.f, g.current.tk, result, lockRef.current, text).then(setCard);
+  }, [demoCard, result, tr, circuitName]);
+  const shareCard = async () => {
     if (!card) return;
     trackEvent('lap_card_shared', { track: id });
     if (LAP_SAVE) {   // 토스: 공유 창 대신 기기에 저장
@@ -507,7 +518,7 @@ function LapGame({ id, onClose }) {
       if (e && e.name === 'AbortError') return;   // 공유 창을 그냥 닫았다
       setCard((c) => (c ? { ...c, note: tr('lap.card.fallback') } : c));
     }
-  }, [card, id, tr]);
+  };
 
   const stage = {
     onPointerDown: (e) => { if (e.target.closest('button, a')) return; e.preventDefault(); press(true); },
