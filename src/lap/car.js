@@ -1,6 +1,6 @@
 // '한 바퀴'의 차: 위에서 내려다본 F1 차 한 대. 캔버스에 그린다(그림 파일 없음).
 // 좌표는 차 길이 100칸 기준. 앞이 위(−y), 가운데가 (0, 50). 실제 차의 비율(길이 5.6m · 폭 2m 안팎)을 따르되,
-// 작은 화면에서 읽히도록 바퀴와 앞뒤 날개를 조금 키웠다. 특정 팀의 도색을 따라 하지 않는다: 몸통 한 색 + 탄소 검정 + 흰 헬멧.
+// 작은 화면에서 읽히도록 바퀴와 앞뒤 날개를 조금 키웠다. 특정 팀의 도색을 따라 하지 않는다: 몸통 F1 빨강 + 가운데 흰 줄 하나 + 탄소 검정 + 흰 헬멧.
 //
 // drawCar(ctx, { x, y, rot, len, steer, C, ghost })
 //   x, y   화면 좌표(차 가운데)   rot  화면에서의 방향(0이면 앞이 위, 시계 방향 +)
@@ -20,7 +20,7 @@ let S = null;
 function shapes() {
   if (S) return S;
   // 바닥판(탄소): 옆구리 아래로 조금 보인다
-  const floor = poly(mirror([[0, 34], [6.6, 34.6], [12.4, 38.4], [13.8, 42], [14, 62], [13.4, 71], [11.2, 77], [9.2, 78.6], [9.2, 92], [0, 93]]));
+  const floor = poly(mirror([[0, 36], [7, 36.4], [12.6, 39.4], [13.4, 43], [13.5, 61], [12.6, 70], [10.6, 76], [8.8, 78.4], [8.8, 92], [0, 93]]));
   // 앞날개: 가운데가 앞으로 나온 숟가락 모양 + 끝판
   const fwing = `M-17 4.6 Q-9 3.6 0 1.6 Q9 3.6 17 4.6 L17 8.4 Q9 7.8 0 6.4 Q-9 7.8 -17 8.4Z`;
   const fflap = `M-16.4 6.1 Q-9 5.4 -2.2 4.2 M16.4 6.1 Q9 5.4 2.2 4.2 M-16.4 7.4 Q-9 6.8 -2.2 5.6 M16.4 7.4 Q9 6.8 2.2 5.6`;
@@ -48,7 +48,7 @@ function shapes() {
   const rplates = rr(-11.2, 89.6, 1.8, 10, 0.8) + rr(9.4, 89.6, 1.8, 10, 0.8);
   const rain = rr(-1.2, 98.8, 2.4, 1.3, 0.4);
   // 몸통 위 빛(가운데 등줄기)과 상어 지느러미
-  const spine = 'M0 5 L0 30.6 M0 55 L0 90';
+  const spine = 'M0 3.4 L0 31 M0 54.8 L0 92.6';   // 가운데 흰 줄(도색): 노즈 끝에서 콕핏 앞까지, 엔진 덮개에서 뒤까지
   // 몸통 양옆 그늘(부피감): 옆구리 바깥 가장자리 안쪽으로
   const sideShade = poly([[11.4, 37.4], [12.6, 39.4], [12.9, 44], [12.4, 51], [11.2, 57], [9.2, 63], [7.2, 69.6], [5.8, 76], [4.9, 83], [3.6, 83], [4.4, 76], [5.6, 69.2], [7.4, 63], [9.2, 57], [10.2, 51], [10.6, 44], [10.2, 40]])
     + poly([[-11.4, 37.4], [-12.6, 39.4], [-12.9, 44], [-12.4, 51], [-11.2, 57], [-9.2, 63], [-7.2, 69.6], [-5.8, 76], [-4.9, 83], [-3.6, 83], [-4.4, 76], [-5.6, 69.2], [-7.4, 63], [-9.2, 57], [-10.2, 51], [-10.6, 44], [-10.2, 40]]);
@@ -93,7 +93,7 @@ export function drawCar(ctx, { x, y, rot = 0, len = 34, steer = 0, C, ghost = fa
   ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
   // 2) 탄소: 바닥판 · 디퓨저 · 서스펜션 · 빔 날개
   ctx.fillStyle = C.carbon; ctx.fill(s.floor); ctx.fill(s.diffuser);
-  ctx.strokeStyle = C.carbon; ctx.lineWidth = Math.max(0.8, 0.7 * px); ctx.stroke(s.susp);
+  ctx.strokeStyle = C.carbon; ctx.lineWidth = Math.max(0.5, 0.7 * px); ctx.stroke(s.susp);
   ctx.lineWidth = Math.max(1.6, 0.8 * px); ctx.stroke(s.beam);
   // 3) 바퀴(앞은 꺾임만큼 돈다). 안쪽 가는 선 두 줄로 접지면을 보인다
   ctx.fillStyle = C.tyre; ctx.strokeStyle = C.tread; ctx.lineWidth = Math.max(0.6, 0.45 * px);
@@ -105,7 +105,7 @@ export function drawCar(ctx, { x, y, rot = 0, len = 34, steer = 0, C, ghost = fa
   // 5) 몸통 + 등줄기 빛
   ctx.fillStyle = C.body; ctx.fill(s.body);
   ctx.fillStyle = C.shade; ctx.fill(s.sideShade);
-  ctx.strokeStyle = C.hi; ctx.lineWidth = Math.max(0.8, 1.1 * px); ctx.stroke(s.spine);
+  ctx.strokeStyle = C.hi; ctx.lineCap = 'butt'; ctx.lineWidth = Math.max(1.3, 0.9 * px); ctx.stroke(s.spine); ctx.lineCap = 'round';
   // 6) 구멍(옆구리 · 콕핏 · 흡입구), 거울, 헬멧, 헤일로, 꺼진 등
   ctx.fillStyle = C.carbon; ctx.fill(s.inlets); ctx.fill(s.cockpit); ctx.fill(s.airbox); ctx.fill(s.mirrors); ctx.fill(s.tcam);
   ctx.strokeStyle = C.carbon; ctx.lineWidth = Math.max(0.6, 0.5 * px); ctx.stroke(s.stalks);
@@ -128,7 +128,7 @@ export function carColors(css, el) {
     tyre: dark ? '#090A0D' : '#121317',
     tread: dark ? '#262A33' : '#34373F',
     helmet: '#F4F5F7',
-    hi: dark ? 'rgba(255,255,255,.22)' : 'rgba(255,255,255,.28)',
+    hi: 'rgba(255,255,255,.9)',
     shade: 'rgba(0,0,0,.16)',
     rain: dark ? '#3A0D0C' : '#2A0A09',
     edge: css(el, '--bg'),
