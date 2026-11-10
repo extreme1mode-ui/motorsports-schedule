@@ -18,6 +18,7 @@ import { drawCar, carColors, steerOf } from './car.js';
 import { GHOST_EVERY, timeAt, posAt, compareSectors, offCorners, zonesOf, simLap } from './analysis.js';
 import { useLapConfig, lapDiff } from './config.js';
 import { demoApi } from './demo.js';
+import { LAP_SAVE, lapHaptic, lapSaveImage } from './lap-platform.js';
 import { lapTrackOf, preparedTrack, lapRecords, saveLap, useOpenLap, closeLap, outlinePath, writeLapRecords, isFirstVisit } from './store.js';
 
 const LIGHTS = 5;
@@ -74,7 +75,7 @@ function LapGame({ id, onClose }) {
   const setP = useCallback((p) => { g.current.phase = p; setPhase(p); }, []);
   const clearTimers = () => { g.current.timers.forEach(clearTimeout); g.current.timers = []; };
   const later = (fn, ms) => { g.current.timers.push(setTimeout(fn, ms)); };
-  const buzz = useCallback((ms) => { if (g.current.cfg.haptic === 'on') { try { navigator.vibrate?.(ms); } catch { /* 진동을 못 쓰는 브라우저 */ } } }, []);
+  const buzz = useCallback((kind) => { if (g.current.cfg.haptic === 'on') lapHaptic(kind); }, []);
   // 처음 배우는 사람에게 때를 알려 줄 진한 구간 두 곳(출발 직후 30m 안에서 시작하는 구간은 건너뛴다)
   const coachZones = () => g.current.zones.filter((z) => z.s0 > 30).slice(0, 2);
 
@@ -115,7 +116,7 @@ function LapGame({ id, onClose }) {
     if (saved.best) { s.best = s.ghost.slice(); setBest(ms); }
     s.resultMarks = { offAt: run.offAt.slice(), sector: saved.best ? cmp?.gained : cmp?.lost };
     trackEvent('lap_finished', { track: id, ms, offs: run.offCount, best: saved.best });
-    buzz(20);
+    buzz('finish');
     setResult({ ms, react: Math.round(s.react), vmax: Math.round(run.vmax * 3.6), offs: run.offCount, offList, cmp, isBest: saved.best, prev: saved.prev });
     setFirstRun(false); setDelta(null);
     setP('done');
@@ -198,10 +199,13 @@ function LapGame({ id, onClose }) {
           setP('run');
         } else if (name === 'slip') {
           clearTimers(); resetRun(); const t = s.tk.turns[Math.min(3, s.tk.turns.length - 1)]; const sp = t.s - 6;
-          at(sp, s.tk.vlim[ix(sp)] * 1.18, { heat: 0.72, side: s.tk.k[ix(sp)] > 0 ? 1 : -1 }); s.run.off = s.run.side * 0.72 * (HALF_W - 1.5); s.coachIdx = 99; setP('run');
+          at(sp, s.tk.vlim[ix(sp)] * 1.18, { heat: 0.72, side: s.tk.k[ix(sp)] > 0 ? 1 : -1 }); s.run.off = s.run.side * 0.72 * (HALF_W - 1.5); s.coachIdx = 99; s.seedMarks = true; setP('run');
         } else if (name === 'off') {
           clearTimers(); resetRun(); const t = s.tk.turns[Math.min(3, s.tk.turns.length - 1)]; const sp = t.s + 14; const side = s.tk.k[ix(sp)] > 0 ? 1 : -1;
           at(sp, 9, { offTrack: true, offT: 0.9, offCount: 1, offAt: [sp], side, off: side * (HALF_W + 5.5) }); s.yaw = side * -0.45; s.down = false; s.coachIdx = 99; setP('run');
+        } else if (name === 'practice') {
+          clearTimers(); resetRun(); const zz = coachZones()[0]; const sp = zz.s0 - 40; at(sp, s.tk.ideal[ix(sp)]);
+          s.practiceEnd = coachZones().slice(-1)[0].s1 + 120; s.react = 0; setP('practice');
         } else if (name === 'paused') { clearTimers(); resetRun(); at(z[1].s0 - 60, 60); s.pausedFrom = 'run'; setP('paused'); }
         else if (name === 'practiceDone') { clearTimers(); resetRun(); setP('practiceDone'); }
         else if (name === 'result-first') { const all = { ...lapRecords() }; delete all[id]; writeLapRecords(all); s.best = null; setBest(null); finishWith(30, 0.34); }
@@ -256,7 +260,7 @@ function LapGame({ id, onClose }) {
               for (const t of tk.turns) if (prevS < t.s && s.run.s >= t.s) { const tb = timeAt(s.best, t.s); if (tb != null) { const d = total - tb; setDelta({ sec: Math.abs(d), ahead: d < 0 }); s.deltaUntil = now + 2400; } }
             }
           }
-          if (!wasOff && s.run.offTrack) buzz(40);
+          if (!wasOff && s.run.offTrack) buzz('off');
         }
         if (s.phase === 'run' && cfgN.delta === 'live' && s.best && now >= s.deltaNext) {
           const tb = timeAt(s.best, s.run.s); s.deltaNext = now + 250;
@@ -414,6 +418,16 @@ function LapGame({ id, onClose }) {
         const bx = cp.x - Math.cos(cp.th) * back, by = cp.y - Math.sin(cp.th) * back;
         const L1 = [bx + Math.sin(cp.th) * side, by - Math.cos(cp.th) * side], R1 = [bx - Math.sin(cp.th) * side, by + Math.cos(cp.th) * side];
         if (s.phase === 'run' && run.heat > 0.18 && !run.offTrack && s.rear) s.marks.push({ a: s.rear, b: [L1, R1], k: Math.min(1, run.heat), t: now });
+        if (s.seedMarks) {   // 데모 '미끄러짐' 바로 가기: 멈춘 그림에도 지나온 자국이 보이게 뒤 30m를 채운다
+          s.seedMarks = false; let prev = null;
+          for (let k = 20; k >= 0; k -= 1) {
+            const q = poseAt(tk, wrapS(carS - k * 1.6, tk.L), (run.off * (1 - k / 24) * latPx) / zoom);
+            const qx = q.x - Math.cos(q.th) * back, qy = q.y - Math.sin(q.th) * back;
+            const cur = [[qx + Math.sin(q.th) * side, qy - Math.cos(q.th) * side], [qx - Math.sin(q.th) * side, qy + Math.cos(q.th) * side]];
+            if (prev) s.marks.push({ a: prev, b: cur, k: run.heat * (1 - k / 22), t: now - 200 });
+            prev = cur;
+          }
+        }
         s.rear = [L1, R1]; s.marks = s.marks.filter((m) => now - m.t < 3000).slice(-400);
         ctx.lineCap = 'round'; ctx.lineWidth = Math.max(1.5, carLen * 0.07);
         for (const m of s.marks) {
@@ -479,6 +493,11 @@ function LapGame({ id, onClose }) {
   const shareCard = useCallback(async () => {
     if (!card) return;
     trackEvent('lap_card_shared', { track: id });
+    if (LAP_SAVE) {   // 토스: 공유 창 대신 기기에 저장
+      const ok = await lapSaveImage({ dataUrl: card.url, fileName: `gantry-${id}-${card.fmt}.png` });
+      setCard((c) => (c ? { ...c, note: tr(ok ? 'lap.card.saved' : 'lap.card.saveFail') } : c));
+      return;
+    }
     try {
       const blob = await new Promise((resolve) => card.canvas.toBlob(resolve, 'image/png'));
       const file = new File([blob], `gantry-${id}-${card.fmt}.png`, { type: 'image/png' });
@@ -606,7 +625,7 @@ function LapGame({ id, onClose }) {
           </div>
           {card.note && <p className="gx-t13" role="status">{card.note}</p>}
           <div className="gx-lap-acts">
-            <button type="button" className="gx-btn is-primary is-grow" onClick={shareCard}>{tr('lap.card.share')}</button>
+            <button type="button" className="gx-btn is-primary is-grow" onClick={shareCard}>{tr(LAP_SAVE ? 'lap.card.save' : 'lap.card.share')}</button>
             <button type="button" className="gx-btn is-weak" onClick={() => setCard(null)}>{tr('lap.done')}</button>
           </div>
         </div>
