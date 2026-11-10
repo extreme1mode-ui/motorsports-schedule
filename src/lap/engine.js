@@ -8,17 +8,30 @@ export const V_TOP = 94;             // 최고 속도(m/s) ≈ 338km/h
 const POWER = 937;                   // 가속 = min(TRACTION, POWER / v) − DRAG·v²
 const TRACTION = 12;
 const DRAG = POWER / (V_TOP * V_TOP * V_TOP);
-const BRAKE = 40;                    // 브레이크 감속(m/s²)
 const LIFT = 8;                      // 누른 채 코너 한계에 닿으면 이만큼만 줄인다(엔진 브레이크)
-const EASY = 0.74;                   // 안내 구간은 브레이크를 74%만 쓴다고 보고 일찍 시작한다
-export const HALF_W = 7.5;           // 트랙 반폭(m). 이보다 밀리면 코스 이탈
+export const HALF_W = 7.5;           // 트랙 반폭(m). 그림에 쓰는 값이다(이탈은 미끄러짐으로 정한다)
 const V_GRASS = 8;                   // 이탈하면 이 속도까지 떨어진다(≈30km/h)
-const OFF_HOLD = 2.6;                 // 이탈하면 적어도 이만큼(초)은 트랙 밖에 있다
 const SMOOTH_R = 5;                  // 둥글리기: ±5칸(±10m) 이동 평균을 세 번
 const SMOOTH_PASS = 3;
 
+// 난이도: 사람이 느끼는 어려움을 바꾸는 숫자만 모았다. prepareTrack(raw, diff)에 넘긴다.
+//   easy     안내 구간은 브레이크를 이 비율만 쓴다고 보고 일찍 시작한다. 작을수록 진한 구간이 길고 일찍 온다
+//   brake    손을 뗐을 때 감속(m/s²)
+//   offHold  이탈하면 적어도 이만큼(초)은 트랙 밖에 있다
+//   heatRate 코너 한계를 넘은 비율 × 이 값만큼 1초에 미끄러짐이 쌓인다. 1에 닿으면 이탈
+//   heatCool 한계 안에서는 1초에 이만큼 미끄러짐이 빠진다
+//   grip     옆으로 버티는 힘(latGrip)에 곱하는 값. 클수록 코너를 빨리 돈다
+export const DIFF_KEYS = ['easy', 'brake', 'offHold', 'heatRate', 'heatCool', 'grip'];
+export const DIFFICULTY = {
+  easy:   { easy: 0.58, brake: 40, offHold: 2.4, heatRate: 5.5, heatCool: 1.6, grip: 1 },
+  normal: { easy: 0.74, brake: 40, offHold: 2.6, heatRate: 6,   heatCool: 1.6, grip: 1 },
+  hard:   { easy: 0.84, brake: 40, offHold: 3.2, heatRate: 9,   heatCool: 1.2, grip: 0.96 },
+};
+export const diffOf = (d) => ({ ...DIFFICULTY.normal, ...(typeof d === 'string' ? DIFFICULTY[d] : d) });
+export const diffKey = (d) => DIFF_KEYS.map((k) => `${k}:${d[k]}`).join('|');
+
 // 속도가 붙을수록 옆으로 버티는 힘이 커진다(다운포스 흉내)
-const latGrip = (v) => G * Math.min(5.6, 2.1 + 3.5 * (v / 72) * (v / 72));
+const latGripBase = (v) => G * Math.min(5.6, 2.1 + 3.5 * (v / 72) * (v / 72));
 const accelOf = (v) => Math.min(TRACTION, POWER / Math.max(v, 1)) - DRAG * v * v;
 
 // 꺾은선을 DS 간격으로 다시 찍고(직선 보간), 닫힌 이동 평균으로 꼭짓점을 둥글린다. 스플라인처럼 바깥으로 부풀지 않는다
@@ -47,7 +60,8 @@ function resample(pts) {
   return { x, y, n, ds, L };
 }
 
-export function prepareTrack(raw) {
+export function prepareTrack(raw, difficulty = 'normal') {
+  const D = diffOf(difficulty); const latGrip = (v) => latGripBase(v) * D.grip;
   const src = raw.pts.slice();
   const f = src[0], l = src[src.length - 1];
   if (Math.hypot(f[0] - l[0], f[1] - l[1]) < 0.5) src.pop();   // 닫는 점이 한 번 더 들어 있으면 뺀다
@@ -83,8 +97,8 @@ export function prepareTrack(raw) {
     }
     return p;
   };
-  const ideal = profile(BRAKE * 0.95);
-  const easy = profile(BRAKE * EASY);
+  const ideal = profile(D.brake * 0.95);
+  const easy = profile(D.brake * D.easy);
   // 손을 떼야 하는 구간(안내): 엔진 브레이크만으로는 모자란 곳
   const brake = new Uint8Array(n);
   for (let i = 0; i < n; i += 1) { const a = easy[i], b = easy[(i + 1) % n]; brake[i] = (a * a - b * b) / (2 * ds) > LIFT * 1.15 ? 1 : 0; }
@@ -102,38 +116,39 @@ export function prepareTrack(raw) {
   const turns = Object.entries(raw.turns || {}).map(([num, s]) => ({ n: Number(num), s: Number(s), i: Math.round(Number(s) / ds) % n })).sort((a, b) => a.s - b.s);
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   for (let i = 0; i < n; i += 1) { x0 = Math.min(x0, x[i]); x1 = Math.max(x1, x[i]); y0 = Math.min(y0, y[i]); y1 = Math.max(y1, y[i]); }
-  return { id: raw.id, raceId: raw.raceId, n, ds, L, x, y, th, k, vlim, vcap, ideal, easy, brake, turns, box: [x0, y0, x1, y1] };
+  return { id: raw.id, raceId: raw.raceId, n, ds, L, x, y, th, k, vlim, vcap, ideal, easy, brake, turns, box: [x0, y0, x1, y1], D, latGrip };
 }
 
 export function newRun() {
-  return { s: 0, v: 0, off: 0, t: 0, done: false, offTrack: false, offT: 0, offCount: 0, vmax: 0, heat: 0, side: 1 };
+  return { s: 0, v: 0, off: 0, t: 0, done: false, offTrack: false, offT: 0, offCount: 0, offAt: [], vmax: 0, heat: 0, side: 1 };
 }
 
 // 한 스텝. throttle: 누르고 있는가.
 //  - 코너 안에서는 누르고 있어도 한계 속도로만 돈다. 문제는 너무 빠르게 들어왔을 때다.
 //  - 코너에서 필요한 옆 힘이 한계를 넘으면(r > 1) 미끄러짐(heat)이 쌓인다. 조금 넘으면 천천히, 많이 넘으면 바로.
-//  - heat가 1에 닿으면 코스 이탈: 30km/h까지 떨어지고 2초 동안은 가속이 안 된다. 제때 브레이크를 밟는 것보다 항상 손해다.
+//  - heat가 1에 닿으면 코스 이탈: 30km/h까지 떨어지고 offHold초 동안은 가속이 안 된다. 제때 브레이크를 밟는 것보다 항상 손해다.
 export function step(run, tr, throttle, dt) {
   if (run.done) return run;
+  const { D, latGrip } = tr;
   const i = Math.floor(run.s / tr.ds) % tr.n;
   const kap = tr.k[i]; let v = run.v;
   // 누르면 가속. 다만 코너 한계(vcap)에 닿으면 더 빨라지지 않고, 넘어 있으면 엔진 브레이크만큼만 줄인다 → 큰 감속은 손을 떼야 한다
   let a;
-  if (!throttle) a = v > tr.easy[i] ? -(BRAKE + DRAG * v * v) : -DRAG * v * v;   // 떼면 다음 코너에 맞는 속도까지만 줄이고, 그 아래로는 굴러간다
+  if (!throttle) a = v > tr.easy[i] ? -(D.brake + DRAG * v * v) : -DRAG * v * v;   // 떼면 다음 코너에 맞는 속도까지만 줄이고, 그 아래로는 굴러간다
   else if (v > tr.vcap[i]) a = -(LIFT + DRAG * v * v);
   else a = Math.min(accelOf(v), (tr.vcap[i] - v) / dt);
   const r = (v * v * Math.abs(kap)) / latGrip(v);
   if (run.offTrack) {
     run.offT += dt;
     a = v > V_GRASS ? -32 : 0;
-    if (run.offT >= OFF_HOLD && v <= V_GRASS + 0.5) { run.offTrack = false; run.heat = 0; }
+    if (run.offT >= D.offHold && v <= V_GRASS + 0.5) { run.offTrack = false; run.heat = 0; }
   } else if (r > 1) {
     run.side = kap > 0 ? 1 : -1;                 // 화면 좌표(y가 아래)에서 κ > 0은 오른쪽으로 굽는 것 → 바깥은 왼쪽(+)
-    run.heat += (r - 1) * 6 * dt;
+    run.heat += (r - 1) * D.heatRate * dt;
     a -= 5 + Math.min(14, (r - 1) * 12);         // 미끄러지며 속도를 잃는다
-    if (run.heat >= 1) { run.offTrack = true; run.offT = 0; run.offCount += 1; }
+    if (run.heat >= 1) { run.offTrack = true; run.offT = 0; run.offCount += 1; run.offAt.push(run.s); }
   } else {
-    run.heat = Math.max(0, run.heat - 1.6 * dt);
+    run.heat = Math.max(0, run.heat - D.heatCool * dt);
   }
   // 화면에 보이는 밀림: 트랙 안에서는 heat만큼(가장자리까지), 이탈하면 트랙 밖으로
   const target = run.offTrack ? run.side * (HALF_W + 5.5) : run.side * run.heat * (HALF_W - 1.5);

@@ -10,6 +10,8 @@ import { HomeChampions } from '../champions/Champions.jsx';
 import { homeChampions, nextSeasonOpeners } from '../champions/champions.js';
 import { SeasonBreak } from '../champions/SeasonBreak.jsx';
 import { LapHome } from '../lap/LapHub.jsx';
+import { lapHomePlace } from '../lap/place.js';
+import { useLapConfig } from '../lap/config.js';
 import { likeCount, formatCount, popularRaces, useLikes, COUNT_IN_HEART } from '../likes/likes.js';
 import { Popular, LikeInline } from '../likes/Likes.jsx';
 import { WxCardTag, WxInline } from '../weather/Wx.jsx';
@@ -500,6 +502,8 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
   const brk = openers.length ? <SeasonBreak list={openers} now={minute} onGo={onGo} /> : null;
   // 서킷 한 바퀴: 다가오는 경기의 서킷을 미리 달려 보는 한 줄(시즌 사이에는 아직 안 달린 서킷)
   const lap = <LapHome races={races} now={minute} />;
+  const lapCfg = useLapConfig();
+  const lapAt = lapHomePlace(races, minute, lapCfg.home);
   const daysToNext = openers.length ? Math.max(1, fmt.dayDiff(openers[0].t, minute)) : null;
   const head = (
     <div className="gx-home-top">
@@ -516,11 +520,12 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
         <div className="gx-dhome-grid">
           <div className="gx-dhome-main">{timeline}{champs}</div>
           <aside className="gx-rail" aria-label={tr('home.railAria')}>
-            <div className="gx-rail-card">{lap}</div>
+            {lapAt === 'below' && <div className="gx-rail-card">{lap}</div>}
             {last && <div className="gx-rail-card">{last}</div>}
             {popular && <div className="gx-rail-card">{popular}</div>}
             {disc && <div className="gx-rail-card">{disc}</div>}
             {plan.later.length > 0 && <div className="gx-rail-card">{later}</div>}
+            {lapAt === 'bottom' && <div className="gx-rail-card">{lap}</div>}
           </aside>
         </div>
       </div>
@@ -536,12 +541,13 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
       {plan.hero ? <DeckMobile deck={deck} states={states} curs={curs} openAt={openAt} actions={actions} now={minute} /> : brk || <Empty onGo={onGo} />}
       {freshLast && last && <><Band />{last}</>}
       {plan.days.length > 0 && <><Band />{timeline}</>}
-      <Band />{lap}
+      {lapAt === 'below' && <><Band />{lap}</>}
       {champs && <><Band />{champs}</>}
       {popular && <><Band />{popular}</>}
       {!freshLast && last && <><Band />{last}</>}
       {disc && <><Band />{disc}</>}
       {plan.later.length > 0 && <><Band />{later}</>}
+      {lapAt === 'bottom' && <><Band />{lap}</>}
     </div>
   );
 }

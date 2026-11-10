@@ -185,7 +185,7 @@ export function WebApp({ theme, setTheme, themePref, onShareLinkDone, startRedo,
           {view === 'series' && <SeriesScreen races={raceList} onOpenRace={openFromSeries} now={now} preferences={preferences} seasonYear={safeSeasonYear} initialCategory={categoryFilter || undefined} />}
           {view === 'fav' && <FavoritesScreen races={raceList} myRaces={myRaces} now={now} preferences={preferences}
             favorites={favorites} onOpenRace={openFromSaved} toggleFav={toggleFav} />}
-          {view === 'laps' && <LapHub desktop />}
+          {view === 'laps' && <LapHub desktop now={now} />}
           {view === 'settings' && <SettingsScreen preferences={preferences} themePref={themePref} onRedo={startRedo} />}
         </div>
       </main>

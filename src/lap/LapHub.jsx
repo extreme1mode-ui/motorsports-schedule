@@ -12,6 +12,7 @@ import { ListHeader } from '../ui2/parts.jsx';
 import { joinDot } from '../ui2/hooks.js';
 import { formatLap } from './engine.js';
 import { LAP_TRACKS, lapTrackOfRace, outlinePath, openLap, useLapRecords } from './store.js';
+import { isThisWeek } from './place.js';
 
 const cx = (...list) => list.filter(Boolean).join(' ');
 
@@ -22,7 +23,7 @@ export function LapThumb({ id }) {
 
 function open(id, source) { track('lap_entry_clicked', { track: id, source }); openLap(id); }
 
-export function LapHub({ desktop = false }) {
+export function LapHub({ desktop = false, now }) {
   const fmt = useFormat(); const tr = useT();
   const rec = useLapRecords();
   const done = LAP_TRACKS.filter((t) => rec[t.id]?.best != null).length;
@@ -40,7 +41,7 @@ export function LapHub({ desktop = false }) {
           <button type="button" key={t.id} className="gx-row gx-lap-row" onClick={() => open(t.id, 'hub')}>
             <LapThumb id={t.id} />
             <span className="gx-row-c">
-              <span className="gx-row-t gx-t17 gx-w600">{L.circuit}</span>
+              <span className="gx-row-t gx-t17 gx-w600">{L.circuit}{isThisWeek(t.race, +now) && <span className="gx-lap-tag">{tr('lap.hub.week')}</span>}</span>
               <span className="gx-row-s gx-t13">{joinDot([L.country, tr('lap.turns', { n: t.turns })])}</span>
             </span>
             {r?.best != null
@@ -60,19 +61,23 @@ export function LapHome({ races, now }) {
   const rec = useLapRecords();
   const pick = useMemo(() => {
     const alive = (races || []).filter((r) => !isCancelled(r) && !['done', 'cancelled'].includes(getRaceState(r, now)));
-    for (const r of alive) { const t = lapTrackOfRace(r); if (t) return { t, upcoming: true }; }
-    return { t: LAP_TRACKS.find((t) => rec[t.id]?.best == null) || LAP_TRACKS[0], upcoming: false };
+    for (const r of alive) { const t = lapTrackOfRace(r); if (t) return { t, upcoming: true, week: isThisWeek(r, now) }; }
+    return { t: LAP_TRACKS.find((t) => rec[t.id]?.best == null) || LAP_TRACKS[0], upcoming: false, week: false };
   }, [races, now, rec]);
   if (!pick.t) return null;
-  const { t, upcoming } = pick; const L = fmt.race(t.race); const r = rec[t.id];
+  const { t, upcoming, week } = pick; const L = fmt.race(t.race); const r = rec[t.id];
+  // 시즌이 끝나 다가오는 경기가 없을 때: 아직 안 달린 서킷 수
+  const left = LAP_TRACKS.filter((x) => rec[x.id]?.best == null).length;
+  const sub = r?.best != null ? tr('lap.mine', { time: formatLap(r.best) })
+    : upcoming ? tr('lap.home.before') : left > 0 && left < LAP_TRACKS.length ? tr('lap.home.left', { n: left }) : tr('lap.home.try');
   return (
     <section className="gx-lap-home" aria-labelledby="gx-lap-home-h">
       <ListHeader id="gx-lap-home-h" title={tr('lap.title')} action={tr('lap.all')} onAction={() => { track('lap_hub_opened', { source: 'home' }); shell.push({ t: 'laps' }); }} />
       <button type="button" className="gx-row gx-lap-row" onClick={() => open(t.id, 'home')}>
         <LapThumb id={t.id} />
         <span className="gx-row-c">
-          <span className="gx-row-t gx-t17 gx-w600">{L.circuit}</span>
-          <span className="gx-row-s gx-t13">{r?.best != null ? tr('lap.mine', { time: formatLap(r.best) }) : tr(upcoming ? 'lap.home.before' : 'lap.home.try')}</span>
+          <span className="gx-row-t gx-t17 gx-w600">{L.circuit}{week && <span className="gx-lap-tag">{tr('lap.hub.week')}</span>}</span>
+          <span className="gx-row-s gx-t13">{sub}</span>
         </span>
         <Icon n="chev" s={20} />
       </button>

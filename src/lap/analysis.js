@@ -1,0 +1,84 @@
+// '한 바퀴' 기록 읽기: 유령(0.1초마다 저장한 위치)으로 어느 거리에 몇 초에 닿았는지, 코너 사이 구간마다 얼마나 늦고 빨랐는지.
+// 시각은 신호등이 꺼진 때부터다(출발 반응 포함). DOM 없음.
+import { step, newRun } from './engine.js';
+
+export const GHOST_EVERY = 0.1;
+
+// 유령 기록에서 거리 s에 닿은 시각(초). 못 닿았으면 null
+export function timeAt(ghost, s) {
+  if (!ghost || ghost.length < 2) return null;
+  let lo = 0, hi = ghost.length - 1;
+  if (s > ghost[hi]) return null;
+  while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (ghost[mid] <= s) lo = mid; else hi = mid; }
+  const a = ghost[lo], b = ghost[hi]; const f = b > a ? (s - a) / (b - a) : 0;
+  return (lo + Math.max(0, Math.min(1, f))) * GHOST_EVERY;
+}
+
+// 유령 기록에서 시각 t(초)의 거리
+export function posAt(ghost, t) {
+  if (!ghost || ghost.length < 2) return null;
+  const f = t / GHOST_EVERY; const k = Math.floor(f);
+  if (k >= ghost.length - 1) return null;
+  return ghost[k] + (ghost[k + 1] - ghost[k]) * (f - k);
+}
+
+// 구간: 출발 → 코너 1 → … → 마지막 코너 → 결승선. 구간마다 [from 코너 번호 | null, to 코너 번호 | null, s0, s1]
+export function sectorsOf(tk) {
+  const pts = [{ n: null, s: 0 }, ...tk.turns.map((t) => ({ n: t.n, s: t.s })), { n: null, s: tk.L }];
+  const out = [];
+  for (let i = 1; i < pts.length; i += 1) out.push({ from: pts[i - 1].n, to: pts[i].n, s0: pts[i - 1].s, s1: pts[i].s });
+  return out;
+}
+
+// 이번 기록(cur)과 이전 최고 기록(best)을 구간마다 비교. 가장 많이 늦은 구간과 가장 많이 줄인 구간
+export function compareSectors(tk, cur, best, totalCur, totalBest) {
+  if (!best || best.length < 2) return null;
+  const at = (g, s, total) => (s >= tk.L - 0.01 ? total : timeAt(g, s));
+  let lost = null, gained = null;
+  for (const sec of sectorsOf(tk)) {
+    const c0 = sec.s0 <= 0 ? 0 : at(cur, sec.s0, totalCur), c1 = at(cur, sec.s1, totalCur);
+    const b0 = sec.s0 <= 0 ? 0 : at(best, sec.s0, totalBest), b1 = at(best, sec.s1, totalBest);
+    if ([c0, c1, b0, b1].some((v) => v == null)) continue;
+    const d = (c1 - c0) - (b1 - b0);
+    if (!lost || d > lost.d) lost = { ...sec, d };
+    if (!gained || d < gained.d) gained = { ...sec, d };
+  }
+  return { lost: lost && lost.d > 0.05 ? lost : null, gained: gained && gained.d < -0.05 ? gained : null };
+}
+
+// 코스를 벗어난 거리마다 가장 가까운 코너 번호(겹치면 하나)
+export function offCorners(tk, offAt) {
+  const out = [];
+  for (const s of offAt || []) {
+    let bestT = null, bestD = Infinity;
+    for (const t of tk.turns) { let d = Math.abs(t.s - s); d = Math.min(d, tk.L - d); if (d < bestD) { bestD = d; bestT = t; } }
+    if (bestT && !out.includes(bestT.n)) out.push(bestT.n);
+  }
+  return out;
+}
+
+// 진한 구간 목록(거리 순): { s0, s1 }
+export function zonesOf(tk) {
+  const out = []; const n = tk.n;
+  for (let i = 0; i < n; i += 1) {
+    if (tk.brake[i] && !tk.brake[(i - 1 + n) % n]) {
+      let j = i; while (tk.brake[j % n] && j < i + n) j += 1;
+      out.push({ s0: i * tk.ds, s1: j * tk.ds });
+    }
+  }
+  return out;
+}
+
+// 데모 상태 바로 가기용: 계산으로 한 바퀴. late: 진한 구간에서 이만큼(m) 늦게 손을 뗀다. react: 출발 반응(초)
+export function simLap(tk, { late = 0, react = 0.3, dt = 1 / 120 } = {}) {
+  const run = newRun(); const ghost = []; let next = 0; let zoneAt = -1; let guard = 0;
+  while (react >= next) { ghost.push(0); next += GHOST_EVERY; }
+  while (!run.done && guard < 120 * 900) {
+    const i = Math.floor(run.s / tk.ds) % tk.n;
+    let thr = true;
+    if (tk.brake[i]) { if (zoneAt < 0) zoneAt = run.s; thr = run.s - zoneAt < late ? true : run.v <= (late > 0 ? tk.ideal[i] : tk.easy[i]); } else zoneAt = -1;
+    step(run, tk, thr, dt); guard += 1;
+    while (react + run.t >= next) { ghost.push(run.s); next += GHOST_EVERY; }
+  }
+  return { run, ghost, react };
+}

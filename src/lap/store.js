@@ -1,7 +1,8 @@
 // '한 바퀴' 데이터와 기록. 트랙은 서킷 맵 데이터에서 뽑은 tracks.json(tools/build-lap-tracks.mjs), 이름은 시즌 파일의 그 경기에서 읽는다.
 import { useSyncExternalStore } from 'react';
 import RAW from './tracks.json' with { type: 'json' };
-import { prepareTrack } from './engine.js';
+import { prepareTrack, diffKey } from './engine.js';
+import { lapDiff } from './config.js';
 import { storage } from '../storage/index.js';
 import { SEASON_RACES } from '../champions/champions.js';
 
@@ -13,10 +14,12 @@ const BY_ID = new Map(LAP_TRACKS.map((t) => [t.id, t]));
 export const lapTrackOf = (id) => BY_ID.get(id) || null;
 export const lapTrackOfRace = (race) => (race ? LAP_TRACKS.find((t) => t.raceId === race.id || t.raceId === race.staticId) || null : null);
 
+// 준비한 트랙은 난이도마다 따로 둔다(진한 구간과 코너 한계가 난이도에 따라 달라진다)
 const prepared = new Map();
-export function preparedTrack(id) {
-  if (!prepared.has(id)) { const t = BY_ID.get(id); if (!t) return null; prepared.set(id, prepareTrack(t.raw)); }
-  return prepared.get(id);
+export function preparedTrack(id, diff = lapDiff()) {
+  const key = `${id}#${diffKey(diff)}`;
+  if (!prepared.has(key)) { const t = BY_ID.get(id); if (!t) return null; prepared.set(key, prepareTrack(t.raw, diff)); }
+  return prepared.get(key);
 }
 
 // 목록·카드용 작은 서킷 그림: 상자(w×h) 안에 맞춘 path
@@ -46,6 +49,10 @@ export function saveLap(id, { ms, react, ghost }) {
 }
 const subscribe = (fn) => { subs.add(fn); return () => subs.delete(fn); };
 export function useLapRecords() { return useSyncExternalStore(subscribe, read, read); }
+// 데모 조절 판의 '기록 지우기'와 상태 바로 가기가 쓴다
+export function writeLapRecords(all) { snap = all && typeof all === 'object' ? all : {}; storage.lap.write(snap); subs.forEach((fn) => fn()); }
+// 처음 온 사람인가: 이 기기에서 어느 서킷이든 한 번이라도 끝까지 달렸으면 아니다
+export const isFirstVisit = () => !Object.values(read()).some((r) => r && r.runs > 0);
 
 // ---------- 열기(전체 화면 레이어). 어느 셸에서든 openLap(id)만 부르면 된다 ----------
 let openId = null;
