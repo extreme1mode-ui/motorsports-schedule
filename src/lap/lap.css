@@ -10,6 +10,14 @@
   --lap-rubber: 0,0,0; --lap-mark: 0,0,0; --lap-smoke: 226,229,234; --lap-dust: 140,146,156; --lap-streak: 255,255,255; --lap-speed: 244,245,247;
   --lap-gantry: #C9CDD4; --lap-gantry-hi: rgba(255,255,255,.55); --lap-pod: #3A3F49; --lap-shadow: rgba(0,0,0,.4);
   --lap-board: #F4F5F7; --lap-board-edge: #0E1015; --lap-board-text: #14161C; --lap-ghost: rgba(244,245,247,.30); --lap-ring: rgba(255,255,255,.18);
+  /* 입체 화면 */
+  --lap-sky-top: #06080B; --lap-fog: #171B22; --lap-skyline: #1D222A; --lap-dot3: rgba(255,255,255,.10); --lap-pitlane: #20252D; --lap-patch: 255,255,255;
+  --lap-wall: #3A404B; --lap-wall-paint: #E9EBEE; --lap-wall-top: #5A616D; --lap-fence: rgba(200,205,215,.06); --lap-fence-line: rgba(200,205,215,.32); --lap-belt: #E9EBEE; --lap-tyre3: #07080A;
+  --lap-gantry-side: #8E949E; --lap-gantry-top: #E1E4E8; --lap-tree: #1B2420; --lap-tree-hi: #232F29; --lap-trunk: #2A2F36;
+  --lap-bld-lit: #262B33; --lap-bld-shade: #1A1E25; --lap-roof: #2D333C; --lap-roof-edge: #3A414C; --lap-roof-under: #13161B; --lap-window: rgba(225,232,245,.13);
+  --lap-stand-front: #2A3039; --lap-stand: #353B45; --lap-stand-back: #1E222A; --lap-crowd: #E9EBEE #9AA0AA #5A616D var(--f1) #C9CDD4 #3A3F47;
+  --lap-garage: #0A0C0F; --lap-glass: #2E3A4A; --lap-shadow-rgb: 0,0,0; --lap-env-shadow-a: .34; --lap-ghost-solid: #E9EBEE; --lap-ghost-a: .3;
+  --lap-carbon: #2B3039; --lap-tyre-car: #0B0C0F; --lap-rim: #3A3F48; --lap-rain-off: #3A0D0C; --lap-mirror: #59606B;
 }
 [data-theme="light"] .gx .gx-lap, [data-plat="toss"] .gx .gx-lap {
   --lap-ground: #FFFFFF; --lap-dot: rgba(16,18,24,.07); --lap-runoff: #EFF0F2; --lap-gravel: #E4E6EA; --lap-gravel-dot: rgba(16,18,24,.18);
@@ -20,6 +28,13 @@
   --lap-rubber: 0,0,0; --lap-mark: 0,0,0; --lap-smoke: 242,243,246; --lap-dust: 168,173,181; --lap-streak: 255,255,255; --lap-speed: 255,255,255;
   --lap-gantry: #14161C; --lap-gantry-hi: rgba(255,255,255,.3); --lap-pod: #3A3F47; --lap-shadow: rgba(16,18,24,.22);
   --lap-board: #FFFFFF; --lap-board-edge: #14161C; --lap-board-text: #14161C; --lap-ghost: rgba(255,255,255,.34); --lap-ring: rgba(255,255,255,.22);
+  --lap-sky-top: #E6EAF0; --lap-fog: #F5F6F8; --lap-skyline: #E3E7EC; --lap-dot3: rgba(16,18,24,.11); --lap-pitlane: #E2E4E8; --lap-patch: 255,255,255;
+  --lap-wall: #D3D7DD; --lap-wall-paint: #FFFFFF; --lap-wall-top: #F1F2F4; --lap-fence: rgba(20,24,30,.05); --lap-fence-line: rgba(20,24,30,.26); --lap-belt: #FFFFFF; --lap-tyre3: #1A1C21;
+  --lap-gantry-side: #2C3038; --lap-gantry-top: #3A3F47; --lap-tree: #D6DDD7; --lap-tree-hi: #E5EBE6; --lap-trunk: #B5BBB6;
+  --lap-bld-lit: #F2F3F5; --lap-bld-shade: #D9DCE1; --lap-roof: #E6E8EB; --lap-roof-edge: #CBCFD5; --lap-roof-under: #C2C6CD; --lap-window: rgba(20,24,30,.09);
+  --lap-stand-front: #C6CAD1; --lap-stand: #E2E4E8; --lap-stand-back: #D0D4DA; --lap-crowd: #14161C #5A616D #9AA0AA var(--f1) #FFFFFF #3A3F47;
+  --lap-garage: #2A2E35; --lap-glass: #B8C2CE; --lap-shadow-rgb: 16,18,24; --lap-env-shadow-a: .10; --lap-ghost-solid: #FFFFFF; --lap-ghost-a: .42;
+  --lap-carbon: #1A1C21; --lap-tyre-car: #121317; --lap-rim: #2E3239; --lap-rain-off: #2A0A09; --lap-mirror: #4A515C;
 }
 .gx .gx-lap { position: fixed; inset: 0; z-index: 300; display: flex; flex-direction: column; background: var(--bg); color: var(--text);
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; animation: gx-lap-in var(--d3) var(--e-out); }
@@ -78,6 +93,9 @@
 .gx .gx-lap-big-react b, .gx .gx-lap-big-finish b { font-size: var(--t40); line-height: 1.1; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
 .gx .gx-lap-big-react span, .gx .gx-lap-big-finish span { color: var(--text2); }
 .gx .gx-lap-big-finish { top: 34%; max-width: calc(100% - 32px); }
+/* left: 50%라서 줄어든 폭에 숫자가 줄바꿈되지 않게 */
+.gx .gx-lap-big-react, .gx .gx-lap-big-finish { width: max-content; }
+.gx .gx-lap-big-react b, .gx .gx-lap-big-finish b { white-space: nowrap; }
 @keyframes gx-lap-fade { from { opacity: 0; } }
 /* 결과 지도 범례 */
 .gx .gx-lap-maplegend { position: absolute; left: var(--gutter); top: 12px; display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 999px; background: var(--bg); box-shadow: 0 0 0 1px var(--line); color: var(--text2); pointer-events: none; }

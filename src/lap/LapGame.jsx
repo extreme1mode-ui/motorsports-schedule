@@ -17,6 +17,7 @@ import { HALF_W, newRun, step, poseAt, formatLap } from './engine.js';
 import { drawCar, carColors, steerOf } from './car.js';
 import { prepWorld, buildView, drawGround, drawTrack, drawStartMarks, drawGantry, drawBoards } from './world.js';
 import { newFx, addMarks, breakMarks, addPuff, drawMarks, drawPuffs, drawStreaks } from './fx.js';
+import { prep3d, camera as camera3, render3d, labels3d, rlAt, wallAtS, CAR3, addSparks } from './world3d.js';
 import { GHOST_EVERY, timeAt, posAt, compareSectors, offCorners, zonesOf, simLap } from './analysis.js';
 import { useLapConfig, lapDiff } from './config.js';
 import { demoApi } from './demo.js';
@@ -38,6 +39,11 @@ const lerp = (a, b, f) => a + (b - a) * f;
 const OVERVIEW = new Set(['ready', 'done', 'practiceDone']);
 const FINISH_MS = 1500;                    // 결승선을 지난 뒤 결과 카드가 뜨기까지(차는 그동안 속도를 줄이며 굴러간다)
 const PRESSABLE = new Set(['lights', 'wait', 'go', 'run', 'practice']);
+const NOSE3 = 2.62 * CAR3;                 // 입체 화면: 차 가운데에서 코끝까지(m)
+// 입체 카메라 두 개 사이(서킷 전체 ↔ 차 뒤): 높이와 초점 거리는 로그로, 방향은 짧은 쪽으로
+const lerpCam3 = (a, b, e) => ({ x: lerp(a.x, b.x, e), y: lerp(a.y, b.y, e), z: Math.exp(lerp(Math.log(a.z), Math.log(b.z), e)), yaw: a.yaw + angDiff(a.yaw, b.yaw) * e, pitch: lerp(a.pitch, b.pitch, e),
+  F: Math.exp(lerp(Math.log(a.F), Math.log(b.F), e)), ox: lerp(a.ox, b.ox, e), oy: lerp(a.oy, b.oy, e), mix: lerp(a.mix, b.mix, e) });
+const hexRgb = (c) => { const m = /^#?([0-9a-f]{6})$/i.exec((c || '').trim()); if (!m) return '128,128,128'; const v = m[1]; return `${parseInt(v.slice(0, 2), 16)},${parseInt(v.slice(2, 4), 16)},${parseInt(v.slice(4, 6), 16)}`; };
 
 // 기록 카드 이미지 한 장(게시물 4:5 · 스토리 9:16)
 async function buildCard(format, track, r, lockupEl, text) {
@@ -83,7 +89,8 @@ function LapGame({ id, onClose }) {
       best: lapRecords()[id]?.ghost || null, cam: null, from: null, mode: null, colors: null, theme: null, timers: [], raf: 0, frozen: false,
       coachIdx: 0, cueUntil: 0, cue: null, reactUntil: 0, deltaUntil: 0, deltaNext: 0, marks: [], rear: null, steer: 0, yaw: 0, msgKey: null,
       practiceEnd: 0, pausedFrom: null, resultMarks: null, prevFrame: 0, cfg, firstRun,
-      fx: newFx(), coast: null, glow: 0, aero: 0, accSm: 0, vPrev: 0, lit: 0, pacer: null, view: null, puffAt: 0 };
+      fx: newFx(), coast: null, glow: 0, aero: 0, accSm: 0, vPrev: 0, lit: 0, pacer: null, view: null, puffAt: 0,
+      cam3: null, from3: null, c3: null, view3: null, rain: 0, sparkS: 0, rnd: 7 };
   }
   const setP = useCallback((p) => { g.current.phase = p; setPhase(p); }, []);
   const clearTimers = () => { g.current.timers.forEach(clearTimeout); g.current.timers = []; };
@@ -96,7 +103,7 @@ function LapGame({ id, onClose }) {
     const s = g.current;
     s.run = newRun(); s.ghost = []; s.ghostNext = 0; s.acc = 0; s.down = false; s.react = 0; s.frozen = false;
     s.coachIdx = 0; s.cue = null; s.cueUntil = 0; s.reactUntil = 0; s.deltaUntil = 0; s.deltaNext = 0; s.yaw = 0; s.steer = 0; s.resultMarks = null;
-    s.fx = newFx(); s.coast = null; s.glow = 0; s.aero = 0; s.accSm = 0; s.vPrev = 0;
+    s.fx = newFx(); s.coast = null; s.glow = 0; s.aero = 0; s.accSm = 0; s.vPrev = 0; s.rain = 0; s.sparkS = 0;
     setResult(null); setDelta(null);
   };
 
@@ -203,6 +210,8 @@ function LapGame({ id, onClose }) {
       press,
       // 남은 구간을 안내대로(진한 구간에서 손을 뗌) 한 번에 달린다 — 결과 화면을 바로 보려는 시험용
       auto: () => { if (s.phase !== 'run') return; while (!s.run.done) { const i = Math.floor(s.run.s / s.tk.ds) % s.tk.n; step(s.run, s.tk, !s.tk.brake[i], DT); const total = s.react / 1000 + s.run.t; while (total >= s.ghostNext) { s.ghost.push(s.run.s); s.ghostNext += GHOST_EVERY; } } },
+      // 서킷의 아무 자리(m)에 멈춘 채로 세운다 — 그림 확인용
+      seek: (sp, v) => { clearTimers(); resetRun(); const i = Math.floor(wrapS(sp, s.tk.L) / s.tk.ds) % s.tk.n; at(sp, v ?? s.tk.ideal[i], { t: 3 }); s.coachIdx = 99; setP('run'); return s.phase; },
       // 상태 바로 가기. 그림을 남기려고 멈춘 채로 둔다(누르면 이어서 달린다)
       state: (name) => {
         const z = s.zones; const ix = (sp) => Math.floor(wrapS(sp, s.tk.L) / s.tk.ds) % s.tk.n;
@@ -220,13 +229,17 @@ function LapGame({ id, onClose }) {
         } else if (name === 'slip') {
           clearTimers(); resetRun(); const t = s.tk.turns.reduce((a, b) => (s.tk.vlim[b.i] < s.tk.vlim[a.i] ? b : a)); const sp = t.s - 6;   // 가장 느린 코너에서
           at(sp, s.tk.vlim[ix(sp)] * 1.18, { heat: 0.72, side: s.tk.k[ix(sp)] > 0 ? 1 : -1 }); s.run.off = s.run.side * 0.72 * (HALF_W - 1.5); s.coachIdx = 99;
-          { const ln = s.view?.len || 41, lp = s.view?.latPx || 3, zm = s.view?.zoom || 1.5; const half = (ln * 0.128) / lp; breakMarks(s.fx);
+          if (s.view3) {   // 입체 화면: 세계 m, 레이싱 라인 위에서 밀려난 자국
+            const W3 = prep3d(s.tk); const half = 0.76 * CAR3; breakMarks(s.fx);
+            for (let k = 26; k >= 0; k -= 1) { const rs = sp - NOSE3 - 1.7 * CAR3 - k * 1.4; const o = rlAt(W3, s.tk, rs) + s.run.off * (1 - k / 30); addMarks(s.fx, rs, o + half, o - half, 0.75 * (1 - k / 28), 'slide'); }
+          } else { const ln = s.view?.len || 41, lp = s.view?.latPx || 3, zm = s.view?.zoom || 1.5; const half = (ln * 0.128) / lp; breakMarks(s.fx);
             for (let k = 26; k >= 0; k -= 1) { const rs = sp - (ln * 0.85) / zm - k * 1.4; const o = s.run.off * (1 - k / 30); addMarks(s.fx, rs, o + half, o - half, 0.75 * (1 - k / 28), 'slide'); } }
           setP('run');
         } else if (name === 'off') {
           clearTimers(); resetRun(); const t = s.tk.turns[Math.min(3, s.tk.turns.length - 1)]; const sp = t.s + 14; const side = s.tk.k[ix(sp)] > 0 ? 1 : -1;
           at(sp, 9, { offTrack: true, offT: 0.9, offCount: 1, offAt: [sp], side, off: side * (HALF_W + 5.5) }); s.yaw = side * -0.45; s.down = false; s.coachIdx = 99;
-          { const nowP = performance.now(); for (let k = 0; k < 8; k += 1) addPuff(s.fx, sp - 6 - k * 2.5, side * (HALF_W + 5.5) + (k % 2 ? 0.8 : -0.8), 'dust', nowP - k * 90, 1.4); }
+          { const nowP = performance.now(); const W3 = s.view3 ? prep3d(s.tk) : null;
+            for (let k = 0; k < 8; k += 1) { const ps = sp - 6 - k * 2.5; let o = side * (HALF_W + 5.5); if (W3) { o += rlAt(W3, s.tk, ps); const lim = wallAtS(W3, s.tk, ps, side) - 1.4; o = Math.max(-lim, Math.min(lim, o)); } addPuff(s.fx, ps, o + (k % 2 ? 0.8 : -0.8), 'dust', nowP - k * 90, 1.4); } }
           setP('run');
         } else if (name === 'practice') {
           clearTimers(); resetRun(); const zz = coachZones()[0]; const sp = zz.s0 - 40; at(sp, s.tk.ideal[ix(sp)]);
@@ -241,7 +254,7 @@ function LapGame({ id, onClose }) {
         return s.phase;
       },
     });
-    return () => { for (const k of ['get', 'press', 'auto', 'state']) delete api[k]; };
+    return () => { for (const k of ['get', 'press', 'auto', 'state', 'seek']) delete api[k]; };
   }, [id, press, finish, setP]);
 
   // ---------- 그리기 ----------
@@ -262,6 +275,15 @@ function LapGame({ id, onClose }) {
         zone: t('zone'), zoneMark: t('zone-mark'), zoneLine: t('zone-line'), rubberRGB: t('rubber'), markRGB: t('mark'), smokeRGB: t('smoke'), dustRGB: t('dust'), streakRGB: t('streak'),
         gantry: t('gantry'), gantryHi: t('gantry-hi'), pod: t('pod'), red: css(el, '--f1'), shadow: t('shadow'), board: t('board'), boardEdge: t('board-edge'), boardText: t('board-text'),
         ghost: t('ghost'), speedRGB: t('speed'), ringBase: t('ring') };
+      // 입체 화면: 하늘 · 안개 · 벽 · 철망 · 나무 · 건물 · 관중석 · 그림자
+      const fog = t('fog'); const fogRGB = hexRgb(fog);
+      Object.assign(s.stage, { skyTop: t('sky-top'), fog, fogMid: `rgba(${fogRGB},.82)`, fogFar: `rgba(${fogRGB},.45)`, fogNone: `rgba(${fogRGB},0)`, skyline: t('skyline'), dot3: t('dot3'),
+        pitlane: t('pitlane'), patchRGB: t('patch'), wall: t('wall'), wallPaint: t('wall-paint'), wallTop: t('wall-top'), fence: t('fence'), fenceLine: t('fence-line'), belt: t('belt'), tyre3: t('tyre3'),
+        gantrySide: t('gantry-side'), gantryTop: t('gantry-top'), redRGB: hexRgb(css(el, '--f1')), tree: t('tree'), treeHi: t('tree-hi'), trunk: t('trunk'),
+        bldLit: t('bld-lit'), bldShade: t('bld-shade'), roof: t('roof'), roofEdge: t('roof-edge'), roofUnder: t('roof-under'), window: t('window'),
+        standFront: t('stand-front'), stand: t('stand'), standBack: t('stand-back'), crowd: t('crowd').split(/\s+/).filter(Boolean), garage: t('garage'), glass: t('glass'),
+        shadowRGB: t('shadow-rgb'), envShadowA: t('env-shadow-a'), ghostSolid: t('ghost-solid'), ghostA: Number(t('ghost-a')) || 0.4 });
+      s.colors.car3d = { body: css(el, '--f1'), carbon: t('carbon'), tyre: t('tyre-car'), rim: t('rim'), white: '#F4F5F7', rain: t('rain-off'), cockpit: '#0B0C0F', glass: t('mirror') };
       s.theme = themeKey();
     };
     const font = (px, wgt = 600) => `${wgt} ${px}px "Pretendard Variable", Pretendard, system-ui, sans-serif`;
@@ -315,10 +337,12 @@ function LapGame({ id, onClose }) {
         const straight = Math.abs(tk.k[(ii + 15) % tk.n]) < 1 / 450 && Math.abs(tk.k[ii]) < 1 / 450;
         const aeroT = (moving || s.phase === 'finish') && s.down && run.v > 55 && straight ? 1 : 0;
         s.aero += (aeroT - s.aero) * Math.min(1, fdt / 0.3);
-        if (moving && s.view && s.mode === 'chase') {
-          const { latPx: lp, zoom: zm, len: ln } = s.view;
-          const rearS = run.s - (ln * 0.85) / zm; const half = (ln * 0.128) / lp;
-          const oL = run.off + half, oR = run.off - half;
+        if (moving && (s.view || s.view3) && s.mode === 'chase') {
+          // 뒷바퀴 · 앞바퀴 자리(거리 m)와 옆 위치. 입체 화면은 세계 m(레이싱 라인 포함), 위에서 보는 화면은 보이는 미터
+          let rearS, frontS, half, latC;
+          if (s.view3) { const v3 = s.view3; rearS = v3.carS - 1.7 * CAR3; frontS = v3.carS + 1.7 * CAR3; half = 0.76 * CAR3; latC = v3.lat; }
+          else { const { latPx: lp, zoom: zm, len: ln } = s.view; rearS = run.s - (ln * 0.85) / zm; frontS = run.s - (ln * 0.17) / zm; half = (ln * 0.128) / lp; latC = run.off; }
+          const oL = latC + half, oR = latC - half;
           const lock = !s.down && tk.brake[ii] && run.v > tk.easy[ii] + 5 ? Math.min(1, (run.v - tk.easy[ii]) / 16) : 0;
           if (run.offTrack) {
             breakMarks(s.fx);
@@ -330,11 +354,19 @@ function LapGame({ id, onClose }) {
             addMarks(s.fx, rearS, oL, oR, Math.min(1, run.heat), 'slide');
             if (run.heat > 0.5 && now - s.puffAt > 80) { s.puffAt = now; addPuff(s.fx, rearS, run.side > 0 ? oL : oR, 'smoke', now); }
           } else if (lock > 0.15) {
-            const frontS = run.s - (ln * 0.17) / zm;
             addMarks(s.fx, frontS, oL - half * 0.1, oR + half * 0.1, lock * 0.8, 'lock');
             if (lock > 0.55 && now - s.puffAt > 90) { s.puffAt = now; addPuff(s.fx, frontS, oL, 'smoke', now, 0.8); addPuff(s.fx, frontS, oR, 'smoke', now, 0.8); }
           } else breakMarks(s.fx);
         }
+      }
+
+      // 불꽃(입체 화면): 시속 250km 넘게 직선의 이음매 · 진한 구간 시작을 지날 때 바닥판 뒤로 튄다. 아주 빠르면 가끔
+      if (s.view3 && s.phase === 'run' && !s.frozen && !run.offTrack && !reducedMotion(cfgN)) {
+        const W3 = prep3d(tk); const rnd = () => { s.rnd = (s.rnd * 16807) % 2147483647; return s.rnd / 2147483647; };
+        const a = s.sparkS, b = run.s;
+        if (b > a && run.v > 69) for (const bp of W3.bumps) if (bp > a && bp <= b) addSparks(s.fx, s.view3.car, run.v, now, 7 + Math.floor(rnd() * 9), rnd);
+        if (run.v > 86 && rnd() < fdt * 2.5) addSparks(s.fx, s.view3.car, run.v, now, 2, rnd);
+        s.sparkS = b;
       }
 
       // ---- 알림 하나: 이탈 > 배우기 안내 > 미끄러짐 > 출발 반응 ----
@@ -366,153 +398,265 @@ function LapGame({ id, onClose }) {
       const { dpr, w, h } = size();
       const carLen = Math.max(34, Math.min(50, w * 0.105));   // 차 길이(px): 390폭에서 41
       const over = OVERVIEW.has(s.phase);
-      let T;
-      if (over) {
-        // 카드가 덮지 않는 자리에 서킷 전체를 맞춘다: 카드가 아래에 있으면 그 위, 오른쪽에 있으면(폰을 눕혔을 때) 그 왼쪽
-        const [x0, y0, x1, y1] = tk.box; const pad = 24;
-        let left = 0, right = w, top = 8, bottom = h - 8;
-        const card = cardRef.current;
-        if (card) {
-          const cr = card.getBoundingClientRect(), sr = cv.getBoundingClientRect();
-          if (cr.left - sr.left > w * 0.25) right = Math.max(left + 160, cr.left - sr.left - 8);
-          else bottom = Math.max(top + 140, cr.top - sr.top - 8);
+      const nextT = tk.turns.find((t) => t.s > run.s + 4) || tk.turns[0];
+      const view3d = cfgN.view !== 'top' && !reduced;        // 입체(차 뒤 위에서) · 위에서 보기(v2). 줄인 움직임이면 위에서 보기
+      const P = s.stage;
+      const drawOverlays = (w2s, roadPx, zoom, ang, full) => {
+        // 결과: 이번 바퀴의 속도(밝을수록 빠름) · 가장 많이 늦은(또는 줄인) 구간 · 코스를 벗어난 곳
+        if (s.phase === 'done' && s.resultMarks) {
+          const gh = s.resultMarks.ghost; const pathS = (a0, b0) => { ctx.beginPath(); for (let i = Math.floor(a0 / tk.ds); i <= Math.ceil(b0 / tk.ds); i += 1) { const q = ((i % tk.n) + tk.n) % tk.n; const [X, Y] = w2s(tk.x[q], tk.y[q]); if (i === Math.floor(a0 / tk.ds)) ctx.moveTo(X, Y); else ctx.lineTo(X, Y); } };
+          if (gh && gh.length > 2) {
+            let vmax = 1; for (let k = 1; k < gh.length; k += 1) vmax = Math.max(vmax, (gh[k] - gh[k - 1]) / GHOST_EVERY);
+            ctx.lineCap = 'round'; ctx.lineWidth = Math.max(2.5, roadPx * 0.5);
+            for (let k = 1; k < gh.length; k += 1) {
+              if (gh[k] <= gh[k - 1]) continue;
+              const v0 = (gh[k] - gh[k - 1]) / GHOST_EVERY; const a0 = Math.pow(v0 / vmax, 2.2);
+              ctx.strokeStyle = `rgba(${P.speedRGB},${(0.12 + 0.88 * a0).toFixed(3)})`; pathS(gh[k - 1], gh[k]); ctx.stroke();
+            }
+          }
+          const sec = s.resultMarks.sector;
+          if (sec) { ctx.lineCap = 'round'; ctx.strokeStyle = C.text; ctx.lineWidth = 2; ctx.setLineDash([4, 3]); const hw2 = roadPx / 2 + 5;
+            for (const sgn of [1, -1]) { ctx.beginPath(); for (let i = Math.floor(sec.s0 / tk.ds); i <= Math.ceil(sec.s1 / tk.ds); i += 1) { const p2 = poseAt(tk, wrapS(i * tk.ds, tk.L), sgn * hw2 / zoom); const [X, Y] = w2s(p2.x, p2.y); if (i === Math.floor(sec.s0 / tk.ds)) ctx.moveTo(X, Y); else ctx.lineTo(X, Y); } ctx.stroke(); }
+            ctx.setLineDash([]); }
+          for (const sp of s.resultMarks.offAt) { const p2 = poseAt(tk, wrapS(sp, tk.L), 0); const [X, Y] = w2s(p2.x, p2.y); ctx.fillStyle = C.bg; ctx.strokeStyle = C.car; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(X, Y, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
         }
-        const zoom = Math.min((right - left - pad * 2) / (x1 - x0), (bottom - top - pad * 2) / (y1 - y0));
-        T = { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, ang: 0, zoom, ax: (left + right) / 2, ay: (top + bottom) / 2, mix: 0 };
-      } else {
+        // 출발선(멀리서 볼 때는 선 하나)
+        if (full) {
+          const p2 = poseAt(tk, 0, 0); const [X, Y] = w2s(p2.x, p2.y); const a2 = p2.th + ang; const nx = Math.sin(a2), ny = -Math.cos(a2); const hw2 = roadPx * 1.1;
+          ctx.strokeStyle = C.text; ctx.lineWidth = 2.5; ctx.lineCap = 'butt'; ctx.beginPath(); ctx.moveTo(X - nx * hw2, Y - ny * hw2); ctx.lineTo(X + nx * hw2, Y + ny * hw2); ctx.stroke();
+        }
+      };
+      if (view3d) {
+        // ===== 입체: 차 뒤 위에서 앞을 내려다본다. 준비 · 결과는 서킷 전체를 바로 위에서(북쪽이 위) =====
+        const W3 = prep3d(tk);
         const noseS = run.s + (s.coast ? s.coast.s : 0); const vv = s.coast ? s.coast.v : run.v;
-        const c = poseAt(tk, wrapS(noseS, tk.L), 0);
-        const ay = h * (h < 420 ? 0.7 : CAR_AY);
-        // 가속하면 조금 멀리, 브레이크를 밟으면 조금 가까이(덜컥이지 않게 0.35초로 고른 가속도)
-        let D = reduced ? 280 : lookAhead(vv) * (1 + Math.max(-1, Math.min(1, s.accSm / 14)) * 0.07);
-        if (s.phase === 'lights' || s.phase === 'go' || s.phase === 'wait') D = 150;   // 출발 전: 그리드에 가까이
-        // 앞쪽 코너 방향으로 화면을 조금 비켜, 빠져나갈 길이 더 보이게
-        const ni = Math.floor(wrapS(noseS, tk.L) / tk.ds); let kSum = 0; for (let q = 30; q <= 80; q += 10) kSum += tk.k[(ni + q) % tk.n];
-        const lead = reduced ? 0 : Math.max(-1, Math.min(1, (kSum / 6) * 700)) * w * 0.08;
-        T = { cx: c.x, cy: c.y, ang: reduced ? 0 : -c.th - Math.PI / 2, zoom: ay / D, ax: w / 2 - lead, ay, mix: 1 };
-      }
-      const mode = over ? 'over' : 'chase';
-      if (s.mode !== mode) { s.mode = mode; s.from = s.cam && !reduced ? { ...s.cam } : null; s.tt = 0; }
-      let cam = T;
-      if (mode === 'chase' && s.cam && !reduced) {
-        cam = { ...T, ang: s.cam.ang + angDiff(s.cam.ang, T.ang) * (1 - Math.exp(-fdt / 0.13)), zoom: s.cam.zoom + (T.zoom - s.cam.zoom) * (1 - Math.exp(-fdt / 0.28)), ax: s.cam.ax + (T.ax - s.cam.ax) * (1 - Math.exp(-fdt / 0.5)) };
-      }
-      if (s.from) { s.tt += fdt; const u = Math.min(1, s.tt / 0.34); cam = lerpCam(s.from, cam, 1 - (1 - u) ** 3); if (u >= 1) s.from = null; }
-      s.cam = cam;
-      const { ang, zoom, ax, ay, mix } = cam;
-      const cosA = Math.cos(ang), sinA = Math.sin(ang);
-      const w2s = (x, y) => { const dx = (x - cam.cx) * zoom, dy = (y - cam.cy) * zoom; return [ax + dx * cosA - dy * sinA, ay + dx * sinA + dy * cosA]; };
-      const roadPx = Math.max(2 * HALF_W * zoom, lerp(6, carLen * 1.12, mix));   // 길은 차보다 조금 넓게(실제 비율보다 굵게 그린다)
-      const latPx = roadPx / (2 * HALF_W);
-
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const full = mix < 0.999;
-      const reach = Math.hypot(w, h) / zoom;
-      const backM = (h - ay) / zoom + 90;
-      const nose = run.s + (s.coast ? s.coast.s : 0);
-      const nIdx = Math.floor(wrapS(nose, tk.L) / tk.ds);
-      const i0 = full ? 0 : nIdx - Math.round(backM / tk.ds);
-      const i1 = full ? tk.n : nIdx + Math.round(Math.min(tk.L * 0.9, reach) / tk.ds);
-      const inWin = (sp) => { if (full) return true; let d = sp - nose; if (d < -tk.L / 2) d += tk.L; if (d > tk.L / 2) d -= tk.L; return d > -backM && d < reach; };
-      const P = s.stage; const W = prepWorld(tk);
-      const V = buildView({ tk, w2s, ang, zoom, latPx, roadPx, i0, i1, full, step: full ? 2 : 1, detail: mix });
-      const carW = carLen * 0.36;
-      // 땅 · 런오프 · 자갈밭 · 방호벽 · 아스팔트 · 고무 자국 · 진한 구간 · 흰 선 · 연석
-      drawGround(ctx, V, P, w, h);
-      drawTrack(ctx, V, P, W, { zone: cfgN.zone });
-      drawStartMarks(ctx, V, P, carLen, carW);
-      drawMarks(ctx, V, P, s.fx);
-      // 결과: 이번 바퀴의 속도(밝을수록 빠름) · 가장 많이 늦은(또는 줄인) 구간 · 코스를 벗어난 곳
-      if (s.phase === 'done' && s.resultMarks) {
-        const gh = s.resultMarks.ghost; const pathS = (a0, b0) => { ctx.beginPath(); for (let i = Math.floor(a0 / tk.ds); i <= Math.ceil(b0 / tk.ds); i += 1) { const q = ((i % tk.n) + tk.n) % tk.n; const [X, Y] = w2s(tk.x[q], tk.y[q]); if (i === Math.floor(a0 / tk.ds)) ctx.moveTo(X, Y); else ctx.lineTo(X, Y); } };
-        if (gh && gh.length > 2) {
-          let vmax = 1; for (let k = 1; k < gh.length; k += 1) vmax = Math.max(vmax, (gh[k] - gh[k - 1]) / GHOST_EVERY);
-          ctx.lineCap = 'round'; ctx.lineWidth = Math.max(2.5, roadPx * 0.5);
-          for (let k = 1; k < gh.length; k += 1) {
-            if (gh[k] <= gh[k - 1]) continue;
-            const v0 = (gh[k] - gh[k - 1]) / GHOST_EVERY; const a0 = Math.pow(v0 / vmax, 2.2);
-            ctx.strokeStyle = `rgba(${P.speedRGB},${(0.12 + 0.88 * a0).toFixed(3)})`; pathS(gh[k - 1], gh[k]); ctx.stroke();
+        const carS = noseS - NOSE3;
+        const nIdx = Math.floor(wrapS(noseS, tk.L) / tk.ds);
+        const kAhead = tk.k[(nIdx + Math.round(6 / tk.ds)) % tk.n];
+        // 차의 옆 위치: 레이싱 라인(코너 앞 바깥 → 꼭짓점 안쪽 → 바깥) + 미끄러져 밀린 만큼. 벽을 넘지 않는다
+        let lat = rlAt(W3, tk, carS) + run.off;
+        { const lim = wallAtS(W3, tk, carS, lat >= 0 ? 1 : -1) - 1.2 * CAR3; lat = Math.max(-lim, Math.min(lim, lat)); }
+        const yawT = run.offTrack ? s.yaw : (run.heat > 0 ? Math.sign(kAhead) * run.heat * 0.24 : 0);
+        s.steer += (steerOf(kAhead) - s.steer) * Math.min(1, fdt * 10); s.yaw += (yawT - s.yaw) * Math.min(1, fdt * 6);
+        if (!run.offTrack && run.heat <= 0 && Math.abs(s.yaw) < 0.002) s.yaw = 0;
+        const moving = (s.phase === 'run' || s.phase === 'practice') && !s.frozen;
+        s.rain += ((moving && !s.down ? 1 : 0) - s.rain) * Math.min(1, fdt / 0.15);
+        const kv = smooth01(vv / 94);
+        let T;
+        if (over) {
+          const [x0, y0, x1, y1] = tk.box; const pad = 24;
+          let left = 0, right = w, top = 8, bottom = h - 8;
+          const card = cardRef.current;
+          if (card) {
+            const cr = card.getBoundingClientRect(), sr = cv.getBoundingClientRect();
+            if (cr.left - sr.left > w * 0.25) right = Math.max(left + 160, cr.left - sr.left - 8);
+            else bottom = Math.max(top + 140, cr.top - sr.top - 8);
+          }
+          const zoom = Math.min((right - left - pad * 2) / (x1 - x0), (bottom - top - pad * 2) / (y1 - y0)); const ALT = 2600;
+          T = { x: (x0 + x1) / 2, y: (y0 + y1) / 2, z: ALT, yaw: -Math.PI / 2, pitch: Math.PI / 2, F: zoom * ALT, ox: (left + right) / 2, oy: (top + bottom) / 2, mix: 0 };
+        } else {
+          // 출발 전에는 낮고 가까이(그리드 · 신호등), 달리면 빠를수록 조금 멀리 · 넓게(시야가 넓어지며 속도가 붙는다). 가속하면 뒤로 조금 밀린다
+          const pre = s.phase === 'lights' || s.phase === 'go' || s.phase === 'wait';
+          const fov = ((56 + 7 * kv) * Math.PI) / 180;
+          // 머리핀처럼 급한 코너에서는 카메라가 벽 너머로 나가지 않게 가까이 · 높이 올라간다
+          let kBack = 0; for (let q2 = -18; q2 <= 4; q2 += 2) kBack = Math.max(kBack, Math.abs(tk.k[((nIdx + q2) % tk.n + tk.n) % tk.n]));
+          const tight = smooth01((kBack - 1 / 60) / (1 / 14 - 1 / 60));
+          const Dc = (pre ? 23 : 30 + 8 * kv + Math.max(-1, Math.min(1, s.accSm / 14)) * 2.4) * (1 - 0.12 * tight);
+          const beta = ((pre ? 22 : 34 - 2 * kv + 16 * tight) * Math.PI) / 180;
+          const F = Math.max(h, w * 0.9) / 2 / Math.tan(fov / 2);
+          const yawW = poseAt(tk, wrapS(carS + 10, tk.L), 0).th;
+          let kSum = 0; for (let q2 = 30; q2 <= 80; q2 += 10) kSum += tk.k[(nIdx + q2) % tk.n];
+          const lead = Math.max(-1, Math.min(1, (kSum / 6) * 700)) * w * 0.06;
+          T = { yaw: yawW, Dc, beta, pitch: Math.max((9 * Math.PI) / 180, beta - (25 * Math.PI) / 180),   // 카메라가 높아지면 시선도 함께 숙인다(차 크기가 그대로 보이게)
+             F, ox: w / 2 - lead, yCar: h * (h < 420 ? 0.74 : 0.66), mix: 1 };
+        }
+        const mode = over ? 'over' : 'chase';
+        if (s.mode !== mode) { s.mode = mode; s.from3 = s.cam3 ? lerpCam3(s.cam3, s.cam3, 0) : null; s.tt = 0; s.c3 = null; }
+        let cam;
+        if (mode === 'chase') {
+          const ease = (tau) => 1 - Math.exp(-fdt / tau);
+          const c3 = s.c3 ? { ...T, yaw: s.c3.yaw + angDiff(s.c3.yaw, T.yaw) * ease(0.22), Dc: lerp(s.c3.Dc, T.Dc, ease(0.35)), beta: lerp(s.c3.beta, T.beta, ease(0.35)), F: lerp(s.c3.F, T.F, ease(0.35)), ox: lerp(s.c3.ox, T.ox, ease(0.5)) } : T;
+          s.c3 = c3;
+          // 카메라는 차 옆 위치의 절반만 따라간다 → 레이싱 라인을 탈 때 차가 화면에서 좌우로 움직인다
+          const cg = poseAt(tk, wrapS(carS, tk.L), lat * 0.5);
+          const B = c3.Dc * Math.cos(c3.beta), H = c3.Dc * Math.sin(c3.beta);
+          cam = { x: cg.x - Math.cos(c3.yaw) * B, y: cg.y - Math.sin(c3.yaw) * B, z: H, yaw: c3.yaw, pitch: c3.pitch, F: c3.F, ox: c3.ox, oy: c3.yCar - c3.F * Math.tan(c3.beta - c3.pitch), mix: 1 };
+        } else cam = T;
+        if (s.from3) { s.tt += fdt; const u = Math.min(1, s.tt / 0.34); cam = lerpCam3(s.from3, cam, 1 - (1 - u) ** 3); if (u >= 1) s.from3 = null; }
+        camera3(cam); s.cam3 = cam;
+        const mix = cam.mix;
+        const pxm = (cam.F * Math.max(0.05, Math.sin(cam.pitch))) / cam.z;          // 화면 가운데 바닥의 1m(px)
+        const q = Math.max(1, 6 / (2 * HALF_W) / pxm);                              // 멀리서 볼 때 길을 6px보다 가늘지 않게: 옆으로만 키운다
+        const S3 = CAR3 * Math.max(1, (carLen * 0.55) / (5.25 * CAR3) / pxm);        // 멀리서 볼 때 차도 읽히게
+        const cp = poseAt(tk, wrapS(carS, tk.L), lat * q);
+        const dl = (rlAt(W3, tk, carS + 3) - rlAt(W3, tk, carS - 3)) / 6;
+        const carTh = cp.th - Math.atan(dl * q) + s.yaw;
+        const car = { x: cp.x, y: cp.y, th: carTh, S: S3, s: carS, steer: s.steer, brake: s.glow || 0, aero: s.aero || 0, rain: s.rain, spin: noseS, blur: smooth01((vv - 6) / 26),
+          roll: Math.max(-0.03, Math.min(0.03, ((vv * vv * kAhead) / 9.8) * 0.006)), pitch: s.accSm < 0 ? Math.max(-0.012, (s.accSm / 40) * 0.012) : Math.min(0.006, (s.accSm / 12) * 0.006),
+          C: C.car3d, dot: cfgN.car === 'dot' };
+        // 옅은 차: 내 최고 기록(없으면 안내대로 달린 차)
+        let ghost = null;
+        const ghostLap = s.best || s.pacer;
+        if (ghostLap && (s.phase === 'run' || s.phase === 'go' || s.phase === 'paused' || s.phase === 'finish') && mix > 0.5) {
+          const total = s.phase === 'go' ? (now - s.t0) / 1000 : s.react / 1000 + run.t + (s.coast ? s.coast.t : 0);
+          const gs = posAt(ghostLap, total);
+          if (gs != null) {
+            const gS = gs - NOSE3; const gp = poseAt(tk, wrapS(gS, tk.L), rlAt(W3, tk, gS) * q); const gdl = (rlAt(W3, tk, gS + 3) - rlAt(W3, tk, gS - 3)) / 6;
+            ghost = { x: gp.x, y: gp.y, th: gp.th - Math.atan(gdl), S: S3, steer: steerOf(tk.k[(Math.floor(wrapS(gs, tk.L) / tk.ds) + 3) % tk.n]), C: C.car3d };
           }
         }
-        const sec = s.resultMarks.sector;
-        if (sec) { ctx.lineCap = 'round'; ctx.strokeStyle = C.text; ctx.lineWidth = 2; ctx.setLineDash([4, 3]); const hw2 = roadPx / 2 + 5;
-          for (const sgn of [1, -1]) { ctx.beginPath(); for (let i = Math.floor(sec.s0 / tk.ds); i <= Math.ceil(sec.s1 / tk.ds); i += 1) { const p2 = poseAt(tk, wrapS(i * tk.ds, tk.L), sgn * hw2 / zoom); const [X, Y] = w2s(p2.x, p2.y); if (i === Math.floor(sec.s0 / tk.ds)) ctx.moveTo(X, Y); else ctx.lineTo(X, Y); } ctx.stroke(); }
-          ctx.setLineDash([]); }
-        for (const sp of s.resultMarks.offAt) { const p2 = poseAt(tk, wrapS(sp, tk.L), 0); const [X, Y] = w2s(p2.x, p2.y); ctx.fillStyle = C.bg; ctx.strokeStyle = C.car; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(X, Y, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
-      }
-      // 출발선(멀리서 볼 때는 선 하나)
-      if (full) {
-        const p2 = poseAt(tk, 0, 0); const [X, Y] = w2s(p2.x, p2.y); const a2 = p2.th + ang; const nx = Math.sin(a2), ny = -Math.cos(a2); const hw2 = roadPx * 1.1;
-        ctx.strokeStyle = C.text; ctx.lineWidth = 2.5; ctx.lineCap = 'butt'; ctx.beginPath(); ctx.moveTo(X - nx * hw2, Y - ny * hw2); ctx.lineTo(X + nx * hw2, Y + ny * hw2); ctx.stroke();
-      }
-      // 코너 번호: 트랙 바깥쪽에 둥근 표, 글자는 바로 세워서. 다음 코너는 채운 표
-      const nextT = tk.turns.find((t) => t.s > run.s + 4) || tk.turns[0];
-      const tagR = lerp(8, 12, mix);
-      ctx.font = font(Math.round(lerp(10, 13, mix))); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      for (const t of tk.turns) {
-        if (!full && !inWin(t.s)) continue;
-        const side = tk.k[t.i] > 0 ? 1 : -1;
-        const p2 = poseAt(tk, t.s, side * (roadPx / 2 + lerp(4, latPx * 3.2, mix) + tagR) / zoom); const [X, Y] = w2s(p2.x, p2.y);
-        if (X < -20 || X > w + 20 || Y < -20 || Y > h + 20) continue;
-        const on = mix > 0.5 && nextT && t.n === nextT.n && (s.phase === 'run' || s.phase === 'practice');
-        ctx.fillStyle = on ? C.text : C.bg; ctx.beginPath(); ctx.arc(X, Y, tagR, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = on ? C.bg : C.line2; ctx.lineWidth = on ? 1.5 : 1; ctx.stroke();
-        ctx.fillStyle = on ? C.bg : C.text2; ctx.fillText(String(t.n), X, Y + 0.5);
-      }
-      drawBoards(ctx, V, P, W, font);
-      // 처음 배우는 사람: 손을 뗄 자리에 '손 떼기' 표
-      const coaching = s.phase === 'practice' || ((s.phase === 'run' || s.phase === 'go' || s.phase === 'lights') && cfgN.learn === 'coach' && s.firstRun);
-      if (coaching && mix > 0.5) {
-        const zs = coachZones();
-        for (let k = s.coachIdx; k < zs.length; k += 1) {
-          if (!inWin(zs[k].s0)) continue;
-          const p2 = poseAt(tk, wrapS(zs[k].s0 + 3, tk.L), 0); const [X, Y] = w2s(p2.x, p2.y); const a2 = p2.th + ang;
-          const label = tr('lap.zone.tag');
-          ctx.font = font(13); const tw = ctx.measureText(label).width + 16; const th2 = 24;
-          ctx.save(); ctx.translate(X + Math.cos(a2) * 16, Y + Math.sin(a2) * 16);
-          ctx.fillStyle = C.text; ctx.beginPath(); ctx.roundRect?.(-tw / 2, -th2 / 2, tw, th2, 12); ctx.fill();
-          ctx.strokeStyle = C.bg; ctx.lineWidth = 1.5; ctx.stroke();
-          ctx.fillStyle = C.bg; ctx.fillText(label, 0, 1); ctx.restore();
-        }
-      }
-      drawGantry(ctx, V, P, s.lit || 0, 'shadow');
-      drawPuffs(ctx, V, P, s.fx, now);
-      // 내 최고 기록(같은 모양의 옅은 차). 기록이 없으면 안내대로 달린 차
-      const len = carLen * lerp(0.55, 1, mix);
-      const ghostLap = s.best || s.pacer;
-      if (ghostLap && (s.phase === 'run' || s.phase === 'go' || s.phase === 'paused' || s.phase === 'finish') && mix > 0.5) {
-        const total = s.phase === 'go' ? (now - s.t0) / 1000 : s.react / 1000 + run.t + (s.coast ? s.coast.t : 0);
-        const gs = posAt(ghostLap, total);
-        if (gs != null) {
-          const gp = poseAt(tk, wrapS(gs - (len * 0.5) / zoom, tk.L), 0); const [X, Y] = w2s(gp.x, gp.y);
-          if (cfgN.car === 'dot') { ctx.strokeStyle = P.ghost; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X, Y, Math.max(5, len * 0.17), 0, Math.PI * 2); ctx.stroke(); }
-          else drawCar(ctx, { x: X, y: Y, rot: gp.th + ang + Math.PI / 2, len, C: { ...C.car3, ghost: P.ghost }, ghost: true });
-        }
-      }
-      // 차: 앞바퀴는 굽은 정도만큼 꺾이고, 미끄러지면 뒤가 바깥으로 돈다
-      const carS = wrapS(nose - (len * 0.5) / zoom, tk.L);
-      const cp = poseAt(tk, carS, (run.off * latPx) / zoom);
-      const kAhead = tk.k[(nIdx + Math.round(6 / tk.ds)) % tk.n];
-      const yawT = run.offTrack ? s.yaw : (run.heat > 0 ? Math.sign(kAhead) * run.heat * 0.24 : 0);
-      if (reduced) { s.steer = steerOf(kAhead); s.yaw = yawT; } else { s.steer += (steerOf(kAhead) - s.steer) * Math.min(1, fdt * 10); s.yaw += (yawT - s.yaw) * Math.min(1, fdt * 6); }
-      if (!run.offTrack && run.heat <= 0 && Math.abs(s.yaw) < 0.002) s.yaw = 0;
-      const [cx, cy] = w2s(cp.x, cp.y);
-      const carRot = cp.th + ang + Math.PI / 2 + s.yaw;
-      if (mix > 0.5 && (s.phase === 'run' || s.phase === 'finish')) drawStreaks(ctx, s.fx, P, { x: cx, y: cy, rot: carRot, len }, run.v + (s.coast ? s.coast.v - run.v : 0), fdt, reduced);
-      if (cfgN.car === 'dot') {
-        const r = Math.max(6, len * 0.2); ctx.fillStyle = C.car; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = C.bg; ctx.lineWidth = 2; ctx.stroke();
+        // 미끄러짐 '원': 차 둘레 바닥에 그린 원이 차오른다. 다 차면 코스 이탈
+        const under = cfgN.slip === 'ring' && mix > 0.5 && !run.offTrack && run.heat > 0.02 ? (c2) => {
+          const ring = (a0, a1) => { c2.beginPath(); let pen = false; for (let k = 0; k <= 40; k += 1) { const a = a0 + ((a1 - a0) * k) / 40; const X = cp.x + Math.cos(carTh + a) * 3.7 * CAR3, Y = cp.y + Math.sin(carTh + a) * 3.7 * CAR3; const pr = cam.project(X, Y, 0.05); if (!pr) { pen = false; continue; } if (pen) c2.lineTo(pr[0], pr[1]); else { c2.moveTo(pr[0], pr[1]); pen = true; } } c2.stroke(); };
+          c2.globalAlpha = Math.min(1, run.heat * 5); c2.lineCap = 'round'; c2.lineWidth = 4;
+          c2.strokeStyle = P.ringBase; ring(0, Math.PI * 2);
+          c2.strokeStyle = C.car; ring(-Math.PI / 2, -Math.PI / 2 + Math.min(1, run.heat) * Math.PI * 2);
+          c2.globalAlpha = 1;
+        } : null;
+        const w2s3 = (x, y) => cam.project(x, y, 0) || [-1e4, -1e4];
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        // 그리기가 무거운 기기: 달리는 동안 평균 12ms를 1.5초 넘게 넘으면 땅 점 · 관중 · 건물 층 줄 · 흐림을 끈다(이 레이어를 닫을 때까지)
+        s.heavy = mix > 0.99 && s.cost > 12 ? (s.heavy || 0) + 1 : 0; if (s.heavy > 90) s.lite = true;
+        const R = { w, h, dpr, canvas: cv, cam, tk, W3, P, C, detail: mix, q, zone: cfgN.zone, now, fdt, fx: s.fx, lit: s.lit || 0, car, ghost, font, under, lite: !!s.lite,
+          blur: mix > 0.9 && (s.phase === 'run' || s.phase === 'finish') ? smooth01((vv - 50) / 40) : 0,
+          far: mix > 0.5 ? 1500 : 1e9, fog: mix > 0.3 ? [230 + (1 - mix) * 4000, 1000 + (1 - mix) * 8000] : null,
+          overlay: mix < 0.3 ? () => drawOverlays(w2s3, Math.max(2 * HALF_W * pxm, 6), pxm, 0, true) : null };
+        render3d(ctx, R);
+        // 코너 번호(다음 코너는 채운 표) · 처음 배우는 사람의 '손 떼기' 표
+        const coaching = s.phase === 'practice' || ((s.phase === 'run' || s.phase === 'go' || s.phase === 'lights') && cfgN.learn === 'coach' && s.firstRun);
+        const tagR = lerp(8, 12, mix);
+        const turnsL = tk.turns.map((t) => ({ n: t.n, s: t.s, side: tk.k[t.i] > 0 ? 1 : -1, r: tagR, on: mix > 0.5 && nextT && t.n === nextT.n && (s.phase === 'run' || s.phase === 'practice') }));
+        const coachL = coaching && mix > 0.5 ? coachZones().slice(s.coachIdx).filter((z) => z.s0 + 3 > noseS + 4).map((z) => ({ s: z.s0, label: tr('lap.zone.tag') })) : [];   // 이미 지난 표는 차 위에 겹치지 않게 뺀다
+        labels3d(ctx, cam, tk, W3, { ...R, zoomOver: pxm }, { turns: turnsL, coach: coachL, font, C });
+        s.view = null;
+        s.view3 = { carS, lat, car: { x: cp.x, y: cp.y, th: carTh, S: S3 } };
       } else {
-        drawCar(ctx, { x: cx, y: cy, rot: carRot, len, steer: s.steer, C: C.car3, spin: nose, spinFade: mix > 0.5 ? Math.max(0, 1 - run.v / 22) : 0, brake: s.glow || 0, aero: s.aero || 0 });
+      s.view3 = null;
+        let T;
+        if (over) {
+          // 카드가 덮지 않는 자리에 서킷 전체를 맞춘다: 카드가 아래에 있으면 그 위, 오른쪽에 있으면(폰을 눕혔을 때) 그 왼쪽
+          const [x0, y0, x1, y1] = tk.box; const pad = 24;
+          let left = 0, right = w, top = 8, bottom = h - 8;
+          const card = cardRef.current;
+          if (card) {
+            const cr = card.getBoundingClientRect(), sr = cv.getBoundingClientRect();
+            if (cr.left - sr.left > w * 0.25) right = Math.max(left + 160, cr.left - sr.left - 8);
+            else bottom = Math.max(top + 140, cr.top - sr.top - 8);
+          }
+          const zoom = Math.min((right - left - pad * 2) / (x1 - x0), (bottom - top - pad * 2) / (y1 - y0));
+          T = { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, ang: 0, zoom, ax: (left + right) / 2, ay: (top + bottom) / 2, mix: 0 };
+        } else {
+          const noseS = run.s + (s.coast ? s.coast.s : 0); const vv = s.coast ? s.coast.v : run.v;
+          const c = poseAt(tk, wrapS(noseS, tk.L), 0);
+          const ay = h * (h < 420 ? 0.7 : CAR_AY);
+          // 가속하면 조금 멀리, 브레이크를 밟으면 조금 가까이(덜컥이지 않게 0.35초로 고른 가속도)
+          let D = reduced ? 280 : lookAhead(vv) * (1 + Math.max(-1, Math.min(1, s.accSm / 14)) * 0.07);
+          if (s.phase === 'lights' || s.phase === 'go' || s.phase === 'wait') D = 150;   // 출발 전: 그리드에 가까이
+          // 앞쪽 코너 방향으로 화면을 조금 비켜, 빠져나갈 길이 더 보이게
+          const ni = Math.floor(wrapS(noseS, tk.L) / tk.ds); let kSum = 0; for (let q = 30; q <= 80; q += 10) kSum += tk.k[(ni + q) % tk.n];
+          const lead = reduced ? 0 : Math.max(-1, Math.min(1, (kSum / 6) * 700)) * w * 0.08;
+          T = { cx: c.x, cy: c.y, ang: reduced ? 0 : -c.th - Math.PI / 2, zoom: ay / D, ax: w / 2 - lead, ay, mix: 1 };
+        }
+        const mode = over ? 'over' : 'chase';
+        if (s.mode !== mode) { s.mode = mode; s.from = s.cam && !reduced ? { ...s.cam } : null; s.tt = 0; }
+        let cam = T;
+        if (mode === 'chase' && s.cam && !reduced) {
+          cam = { ...T, ang: s.cam.ang + angDiff(s.cam.ang, T.ang) * (1 - Math.exp(-fdt / 0.13)), zoom: s.cam.zoom + (T.zoom - s.cam.zoom) * (1 - Math.exp(-fdt / 0.28)), ax: s.cam.ax + (T.ax - s.cam.ax) * (1 - Math.exp(-fdt / 0.5)) };
+        }
+        if (s.from) { s.tt += fdt; const u = Math.min(1, s.tt / 0.34); cam = lerpCam(s.from, cam, 1 - (1 - u) ** 3); if (u >= 1) s.from = null; }
+        s.cam = cam;
+        const { ang, zoom, ax, ay, mix } = cam;
+        const cosA = Math.cos(ang), sinA = Math.sin(ang);
+        const w2s = (x, y) => { const dx = (x - cam.cx) * zoom, dy = (y - cam.cy) * zoom; return [ax + dx * cosA - dy * sinA, ay + dx * sinA + dy * cosA]; };
+        const roadPx = Math.max(2 * HALF_W * zoom, lerp(6, carLen * 1.12, mix));   // 길은 차보다 조금 넓게(실제 비율보다 굵게 그린다)
+        const latPx = roadPx / (2 * HALF_W);
+
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const full = mix < 0.999;
+        const reach = Math.hypot(w, h) / zoom;
+        const backM = (h - ay) / zoom + 90;
+        const nose = run.s + (s.coast ? s.coast.s : 0);
+        const nIdx = Math.floor(wrapS(nose, tk.L) / tk.ds);
+        const i0 = full ? 0 : nIdx - Math.round(backM / tk.ds);
+        const i1 = full ? tk.n : nIdx + Math.round(Math.min(tk.L * 0.9, reach) / tk.ds);
+        const inWin = (sp) => { if (full) return true; let d = sp - nose; if (d < -tk.L / 2) d += tk.L; if (d > tk.L / 2) d -= tk.L; return d > -backM && d < reach; };
+        const W = prepWorld(tk);
+        const V = buildView({ tk, w2s, ang, zoom, latPx, roadPx, i0, i1, full, step: full ? 2 : 1, detail: mix });
+        const carW = carLen * 0.36;
+        // 땅 · 런오프 · 자갈밭 · 방호벽 · 아스팔트 · 고무 자국 · 진한 구간 · 흰 선 · 연석
+        drawGround(ctx, V, P, w, h);
+        drawTrack(ctx, V, P, W, { zone: cfgN.zone });
+        drawStartMarks(ctx, V, P, carLen, carW);
+        drawMarks(ctx, V, P, s.fx);
+        drawOverlays(w2s, roadPx, zoom, ang, full);
+        // 코너 번호: 트랙 바깥쪽에 둥근 표, 글자는 바로 세워서. 다음 코너는 채운 표
+        const tagR = lerp(8, 12, mix);
+        ctx.font = font(Math.round(lerp(10, 13, mix))); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        for (const t of tk.turns) {
+          if (!full && !inWin(t.s)) continue;
+          const side = tk.k[t.i] > 0 ? 1 : -1;
+          const p2 = poseAt(tk, t.s, side * (roadPx / 2 + lerp(4, latPx * 3.2, mix) + tagR) / zoom); const [X, Y] = w2s(p2.x, p2.y);
+          if (X < -20 || X > w + 20 || Y < -20 || Y > h + 20) continue;
+          const on = mix > 0.5 && nextT && t.n === nextT.n && (s.phase === 'run' || s.phase === 'practice');
+          ctx.fillStyle = on ? C.text : C.bg; ctx.beginPath(); ctx.arc(X, Y, tagR, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = on ? C.bg : C.line2; ctx.lineWidth = on ? 1.5 : 1; ctx.stroke();
+          ctx.fillStyle = on ? C.bg : C.text2; ctx.fillText(String(t.n), X, Y + 0.5);
+        }
+        drawBoards(ctx, V, P, W, font);
+        // 처음 배우는 사람: 손을 뗄 자리에 '손 떼기' 표
+        const coaching = s.phase === 'practice' || ((s.phase === 'run' || s.phase === 'go' || s.phase === 'lights') && cfgN.learn === 'coach' && s.firstRun);
+        if (coaching && mix > 0.5) {
+          const zs = coachZones();
+          for (let k = s.coachIdx; k < zs.length; k += 1) {
+            if (!inWin(zs[k].s0)) continue;
+            const p2 = poseAt(tk, wrapS(zs[k].s0 + 3, tk.L), 0); const [X, Y] = w2s(p2.x, p2.y); const a2 = p2.th + ang;
+            const label = tr('lap.zone.tag');
+            ctx.font = font(13); const tw = ctx.measureText(label).width + 16; const th2 = 24;
+            ctx.save(); ctx.translate(X + Math.cos(a2) * 16, Y + Math.sin(a2) * 16);
+            ctx.fillStyle = C.text; ctx.beginPath(); ctx.roundRect?.(-tw / 2, -th2 / 2, tw, th2, 12); ctx.fill();
+            ctx.strokeStyle = C.bg; ctx.lineWidth = 1.5; ctx.stroke();
+            ctx.fillStyle = C.bg; ctx.fillText(label, 0, 1); ctx.restore();
+          }
+        }
+        drawGantry(ctx, V, P, s.lit || 0, 'shadow');
+        drawPuffs(ctx, V, P, s.fx, now);
+        // 내 최고 기록(같은 모양의 옅은 차). 기록이 없으면 안내대로 달린 차
+        const len = carLen * lerp(0.55, 1, mix);
+        const ghostLap = s.best || s.pacer;
+        if (ghostLap && (s.phase === 'run' || s.phase === 'go' || s.phase === 'paused' || s.phase === 'finish') && mix > 0.5) {
+          const total = s.phase === 'go' ? (now - s.t0) / 1000 : s.react / 1000 + run.t + (s.coast ? s.coast.t : 0);
+          const gs = posAt(ghostLap, total);
+          if (gs != null) {
+            const gp = poseAt(tk, wrapS(gs - (len * 0.5) / zoom, tk.L), 0); const [X, Y] = w2s(gp.x, gp.y);
+            if (cfgN.car === 'dot') { ctx.strokeStyle = P.ghost; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X, Y, Math.max(5, len * 0.17), 0, Math.PI * 2); ctx.stroke(); }
+            else drawCar(ctx, { x: X, y: Y, rot: gp.th + ang + Math.PI / 2, len, C: { ...C.car3, ghost: P.ghost }, ghost: true });
+          }
+        }
+        // 차: 앞바퀴는 굽은 정도만큼 꺾이고, 미끄러지면 뒤가 바깥으로 돈다
+        const carS = wrapS(nose - (len * 0.5) / zoom, tk.L);
+        const cp = poseAt(tk, carS, (run.off * latPx) / zoom);
+        const kAhead = tk.k[(nIdx + Math.round(6 / tk.ds)) % tk.n];
+        const yawT = run.offTrack ? s.yaw : (run.heat > 0 ? Math.sign(kAhead) * run.heat * 0.24 : 0);
+        if (reduced) { s.steer = steerOf(kAhead); s.yaw = yawT; } else { s.steer += (steerOf(kAhead) - s.steer) * Math.min(1, fdt * 10); s.yaw += (yawT - s.yaw) * Math.min(1, fdt * 6); }
+        if (!run.offTrack && run.heat <= 0 && Math.abs(s.yaw) < 0.002) s.yaw = 0;
+        const [cx, cy] = w2s(cp.x, cp.y);
+        const carRot = cp.th + ang + Math.PI / 2 + s.yaw;
+        if (mix > 0.5 && (s.phase === 'run' || s.phase === 'finish')) drawStreaks(ctx, s.fx, P, { x: cx, y: cy, rot: carRot, len }, run.v + (s.coast ? s.coast.v - run.v : 0), fdt, reduced);
+        if (cfgN.car === 'dot') {
+          const r = Math.max(6, len * 0.2); ctx.fillStyle = C.car; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = C.bg; ctx.lineWidth = 2; ctx.stroke();
+        } else {
+          drawCar(ctx, { x: cx, y: cy, rot: carRot, len, steer: s.steer, C: C.car3, spin: nose, spinFade: mix > 0.5 ? Math.max(0, 1 - run.v / 22) : 0, brake: s.glow || 0, aero: s.aero || 0 });
+        }
+        drawGantry(ctx, V, P, s.lit || 0, 'beam');
+        // 미끄러짐 '원': 차 둘레에 차오르는 원. 다 차면 코스 이탈
+        if (cfgN.slip === 'ring' && mix > 0.5 && !run.offTrack && run.heat > 0.02) {
+          const r = len * 0.66; ctx.globalAlpha = Math.min(1, run.heat * 5); ctx.lineCap = 'round';
+          ctx.strokeStyle = P.ringBase; ctx.lineWidth = 3.5; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+          ctx.strokeStyle = C.car; ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.min(1, run.heat) * Math.PI * 2); ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+        s.view = { latPx, zoom, len };
       }
-      drawGantry(ctx, V, P, s.lit || 0, 'beam');
-      // 미끄러짐 '원': 차 둘레에 차오르는 원. 다 차면 코스 이탈
-      if (cfgN.slip === 'ring' && mix > 0.5 && !run.offTrack && run.heat > 0.02) {
-        const r = len * 0.66; ctx.globalAlpha = Math.min(1, run.heat * 5); ctx.lineCap = 'round';
-        ctx.strokeStyle = P.ringBase; ctx.lineWidth = 3.5; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
-        ctx.strokeStyle = C.car; ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.min(1, run.heat) * Math.PI * 2); ctx.stroke();
-        ctx.globalAlpha = 1;
-      }
-      s.view = { latPx, zoom, len };
       s.cost = (s.cost || 0) * 0.95 + (performance.now() - tStart) * 0.05;   // 그리기에 든 시간(ms, 평균) — 데모의 get()이 읽는다
 
       // ---- 숫자(DOM에 바로) ----
