@@ -124,7 +124,12 @@ function model() {
     line([sx * 0.31, 0.05, 0.96], [sx * 0.33, -0.2, 0.72], 0.06, 'carbon');
   }
   line([0, 0.76, 0.68], [0, 0.66, 0.93], 0.06, 'carbon');
-  const balls = [{ c: [0, 0.08, 0.86], r: 0.135, col: 'white' }];
+  // 노즈 끝 피토관(가는 막대)
+  line([0, 2.7, 0.31], [0, 2.98, 0.33], 0.014, 'carbon');
+  // 배기구(엔진 덮개 뒤 아래, 뒤를 본다)
+  { const ring8 = []; for (let k = 0; k < 8; k += 1) { const a = (k / 8) * Math.PI * 2; ring8.push([Math.cos(a) * 0.065, -2.075, 0.47 + Math.sin(a) * 0.055]); } face(ring8, 'cockpit', { two: true, bias: -0.03 }); }
+  // 헬멧: 흰색 + 위로 지나는 빨간 줄
+  const balls = [{ c: [0, 0.08, 0.86], r: 0.135, col: 'white', stripe: true }];
   // 면 법선(로컬)과 바깥 방향 맞추기
   for (const f of F) {
     const p = f.v.map((i) => V[i]); let nx = 0, ny = 0, nz = 0;
@@ -153,7 +158,8 @@ function rgbOf(c) {
   rgbCache.set(c, out);
   return out;
 }
-const shade = (rgb, b) => `rgb(${Math.min(255, Math.round(rgb[0] * b))},${Math.min(255, Math.round(rgb[1] * b))},${Math.min(255, Math.round(rgb[2] * b))})`;
+const shade = (rgb, b, sp = 0) => `rgb(${Math.min(255, Math.round(rgb[0] * b + 255 * sp))},${Math.min(255, Math.round(rgb[1] * b + 255 * sp))},${Math.min(255, Math.round(rgb[2] * b + 255 * sp))})`;
+const GLOSS = { body: 0.42, white: 0.3, carbon: 0.16, cockpit: 0.1 };   // 도장은 반짝이고 탄소는 덜, 타이어는 없음
 
 // ---------- 그리기 ----------
 let PV = new Float32Array(0); let PW = new Float32Array(0);
@@ -192,7 +198,11 @@ export function drawCar3d(ctx, cam, o) {
     const vis = (cam.x - cx) * nx + (cam.y - cy) * ny + (cam.z - cz) * nz;
     if (vis < 0) { if (!f.two) continue; nx = -nx; ny = -ny; nz = -nz; }
     const lit = Math.max(0, -(nx * SUN[0] + ny * SUN[1] + nz * SUN[2]));
-    items.push({ z: z + f.bias, f, b: 0.6 + 0.5 * lit });
+    // 반짝임(도장 면): 빛과 눈 사이 방향에 면이 맞을수록
+    let sp = 0; const gl = GLOSS[f.col] || 0;
+    if (gl && !flat) { let vx = cam.x - cx, vy = cam.y - cy, vz = cam.z - cz; const vl = Math.hypot(vx, vy, vz) || 1; vx /= vl; vy /= vl; vz /= vl;
+      let hx = vx - SUN[0], hy = vy - SUN[1], hz = vz - SUN[2]; const hl = Math.hypot(hx, hy, hz) || 1; const nh = Math.max(0, (nx * hx + ny * hy + nz * hz) / hl); sp = gl * Math.pow(nh, 26); }
+    items.push({ z: z + f.bias, f, b: 0.6 + 0.5 * lit, sp });
   }
   for (const l of M.L) {
     const ia = projLocal(l.a, o, S, fX, fY, rX, rY, cam), ib = projLocal(l.b, o, S, fX, fY, rX, rY, cam); if (!ia || !ib) continue;
@@ -204,7 +214,7 @@ export function drawCar3d(ctx, cam, o) {
   for (const it of items) {
     if (it.f) {
       const f = it.f; const rgb = flat || (f.part === 'rain' ? mixRgb(col('rain'), rgbOf(C.body), o.rain || 0) : col(f.col));
-      const fill = flat ? `rgb(${rgb[0]},${rgb[1]},${rgb[2]})` : shade(rgb, f.part === 'rain' ? 1 + (o.rain || 0) * 0.3 : it.b);
+      const fill = flat ? `rgb(${rgb[0]},${rgb[1]},${rgb[2]})` : shade(rgb, f.part === 'rain' ? 1 + (o.rain || 0) * 0.3 : it.b, it.sp);
       ctx.beginPath();
       for (let q = 0; q < f.v.length; q += 1) { const i = f.v[q]; if (q) ctx.lineTo(PV[i * 3], PV[i * 3 + 1]); else ctx.moveTo(PV[i * 3], PV[i * 3 + 1]); }
       ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
@@ -217,7 +227,9 @@ export function drawCar3d(ctx, cam, o) {
     } else if (it.ball) {
       const r = Math.max(1, (it.ball.r * S * cam.F) / it.p[2]);
       ctx.fillStyle = flat ? `rgb(${flat.join(',')})` : shade(col(it.ball.col), 1); ctx.beginPath(); ctx.arc(it.p[0], it.p[1], r, 0, Math.PI * 2); ctx.fill();
-      if (!flat) { ctx.fillStyle = 'rgba(0,0,0,.14)'; ctx.beginPath(); ctx.arc(it.p[0] + r * 0.25, it.p[1] + r * 0.3, r * 0.75, 0, Math.PI * 2); ctx.fill(); }
+      if (!flat) { ctx.fillStyle = 'rgba(0,0,0,.14)'; ctx.beginPath(); ctx.arc(it.p[0] + r * 0.25, it.p[1] + r * 0.3, r * 0.75, 0, Math.PI * 2); ctx.fill();
+        if (it.ball.stripe && r > 2.5) { const a = projLocal([0, 0.2, 0.99], o, S, fX, fY, rX, rY, cam), b = projLocal([0, -0.05, 0.99], o, S, fX, fY, rX, rY, cam);
+          if (a && b) { ctx.save(); ctx.beginPath(); ctx.arc(it.p[0], it.p[1], r, 0, Math.PI * 2); ctx.clip(); ctx.strokeStyle = C.body; ctx.lineWidth = Math.max(1, r * 0.32); ctx.lineCap = 'butt'; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); ctx.restore(); } } }
     }
   }
   // 뒤 빨간 등: 손을 뗀 동안 은은하게(깜빡이지 않는다)

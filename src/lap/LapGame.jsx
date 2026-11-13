@@ -17,7 +17,7 @@ import { HALF_W, newRun, step, poseAt, formatLap } from './engine.js';
 import { drawCar, carColors, steerOf } from './car.js';
 import { prepWorld, buildView, drawGround, drawTrack, drawStartMarks, drawGantry, drawBoards } from './world.js';
 import { newFx, addMarks, breakMarks, addPuff, drawMarks, drawPuffs, drawStreaks } from './fx.js';
-import { prep3d, camera as camera3, render3d, labels3d, rlAt, wallAtS, CAR3, addSparks } from './world3d.js';
+import { prep3d, camera as camera3, render3d, labels3d, rlAt, wallAtS, kerbAtS, CAR3, addSparks } from './world3d.js';
 import { GHOST_EVERY, timeAt, posAt, compareSectors, offCorners, zonesOf, simLap } from './analysis.js';
 import { useLapConfig, lapDiff, paceOf } from './config.js';
 import { demoApi } from './demo.js';
@@ -282,7 +282,9 @@ function LapGame({ id, onClose }) {
         gantrySide: t('gantry-side'), gantryTop: t('gantry-top'), redRGB: hexRgb(css(el, '--f1')), tree: t('tree'), treeHi: t('tree-hi'), trunk: t('trunk'),
         bldLit: t('bld-lit'), bldShade: t('bld-shade'), roof: t('roof'), roofEdge: t('roof-edge'), roofUnder: t('roof-under'), window: t('window'),
         standFront: t('stand-front'), stand: t('stand'), standBack: t('stand-back'), crowd: t('crowd').split(/\s+/).filter(Boolean), garage: t('garage'), glass: t('glass'),
-        shadowRGB: t('shadow-rgb'), envShadowA: t('env-shadow-a'), ghostSolid: t('ghost-solid'), ghostA: Number(t('ghost-a')) || 0.4 });
+        shadowRGB: t('shadow-rgb'), envShadowA: t('env-shadow-a'), ghostSolid: t('ghost-solid'), ghostA: Number(t('ghost-a')) || 0.4,
+        marble: t('marble'), kerbLip: t('kerb-lip'), ao: t('ao'), gravelDot3: t('gravel-dot3'), guide: t('guide'), booth: t('booth'), boothShade: t('booth-shade'), panel: t('panel'),
+        lamp: t('lamp'), lampHead: t('lamp-head'), lampHeadOn: t('lamp-head-on'), lampGlowRGB: t('lamp-glow'), night: Number(t('night')) === 1, hoard: t('hoard'), hoardMark: t('hoard-mark') });
       s.colors.car3d = { body: css(el, '--f1'), carbon: t('carbon'), tyre: t('tyre-car'), rim: t('rim'), white: '#F4F5F7', rain: t('rain-off'), cockpit: '#0B0C0F', glass: t('mirror') };
       s.theme = themeKey();
     };
@@ -358,6 +360,11 @@ function LapGame({ id, onClose }) {
             addMarks(s.fx, frontS, oL - half * 0.1, oR + half * 0.1, lock * 0.8, 'lock');
             if (lock > 0.55 && now - s.puffAt > 90) { s.puffAt = now; addPuff(s.fx, frontS, oL, 'smoke', now, 0.8); addPuff(s.fx, frontS, oR, 'smoke', now, 0.8); }
           } else breakMarks(s.fx);
+          // 연석을 타면 바퀴 뒤로 옅은 먼지(입체 화면)
+          if (s.view3 && !run.offTrack) {
+            const W3 = prep3d(tk); const sd = latC >= 0 ? 1 : -1;
+            if (Math.abs(latC) + half > HALF_W - 0.2 && kerbAtS(W3, tk, rearS, sd) && now - (s.kerbAt || 0) > 70) { s.kerbAt = now; addPuff(s.fx, rearS, latC + sd * half, 'kerb', now, 0.55); }
+          }
         }
       }
 
@@ -519,6 +526,7 @@ function LapGame({ id, onClose }) {
         // 그리기가 무거운 기기: 달리는 동안 평균 12ms를 1.5초 넘게 넘으면 땅 점 · 관중 · 건물 층 줄 · 흐림을 끈다(이 레이어를 닫을 때까지)
         s.heavy = mix > 0.99 && s.cost > 12 ? (s.heavy || 0) + 1 : 0; if (s.heavy > 90) s.lite = true;
         const R = { w, h, dpr, canvas: cv, cam, tk, W3, P, C, detail: mix, q, zone: cfgN.zone, now, fdt: fdt * TS, fx: s.fx, lit: s.lit || 0, car, ghost, font, under, lite: !!s.lite,
+          guide: cfgN.line === 'guide' && (s.phase === 'run' || s.phase === 'practice' || s.phase === 'go' || s.phase === 'lights' || s.phase === 'paused'),
           blur: mix > 0.9 && (s.phase === 'run' || s.phase === 'finish') ? smooth01((vv * TS - 70) / 60) : 0,   // 화면에서 흐르는 빠르기(게임 속도 × 빠르기) 기준
           far: mix > 0.5 ? 1500 : 1e9, fog: mix > 0.3 ? [230 + (1 - mix) * 4000, 1000 + (1 - mix) * 8000] : null,
           overlay: mix < 0.3 ? () => drawOverlays(w2s3, Math.max(2 * HALF_W * pxm, 6), pxm, 0, true) : null };

@@ -18,6 +18,9 @@
   --lap-stand-front: #2A3039; --lap-stand: #353B45; --lap-stand-back: #1E222A; --lap-crowd: #E9EBEE #9AA0AA #5A616D var(--f1) #C9CDD4 #3A3F47;
   --lap-garage: #0A0C0F; --lap-glass: #2E3A4A; --lap-shadow-rgb: 0,0,0; --lap-env-shadow-a: .34; --lap-ghost-solid: #E9EBEE; --lap-ghost-a: .3;
   --lap-carbon: #2B3039; --lap-tyre-car: #0B0C0F; --lap-rim: #3A3F48; --lap-rain-off: #3A0D0C; --lap-mirror: #59606B;
+  --lap-marble: rgba(0,0,0,.55); --lap-kerb-lip: rgba(0,0,0,.35); --lap-ao: rgba(0,0,0,.28); --lap-gravel-dot3: rgba(255,255,255,.16); --lap-guide: rgba(244,245,247,.85);
+  --lap-booth: #2E333C; --lap-booth-shade: #23272F; --lap-panel: #0B0D10; --lap-lamp: #4A505A; --lap-lamp-head: #5A616D; --lap-lamp-head-on: #F4F7FF; --lap-lamp-glow: 235,240,255; --lap-night: 1;
+  --lap-hoard: #0B0D10; --lap-hoard-mark: #E9EBEE;
 }
 [data-theme="light"] .gx .gx-lap, [data-plat="toss"] .gx .gx-lap {
   --lap-ground: #FFFFFF; --lap-dot: rgba(16,18,24,.07); --lap-runoff: #EFF0F2; --lap-gravel: #E4E6EA; --lap-gravel-dot: rgba(16,18,24,.18);
@@ -35,6 +38,9 @@
   --lap-stand-front: #C6CAD1; --lap-stand: #E2E4E8; --lap-stand-back: #D0D4DA; --lap-crowd: #14161C #5A616D #9AA0AA var(--f1) #FFFFFF #3A3F47;
   --lap-garage: #2A2E35; --lap-glass: #B8C2CE; --lap-shadow-rgb: 16,18,24; --lap-env-shadow-a: .10; --lap-ghost-solid: #FFFFFF; --lap-ghost-a: .42;
   --lap-carbon: #1A1C21; --lap-tyre-car: #121317; --lap-rim: #2E3239; --lap-rain-off: #2A0A09; --lap-mirror: #4A515C;
+  --lap-marble: rgba(10,12,16,.6); --lap-kerb-lip: rgba(16,18,24,.28); --lap-ao: rgba(16,18,24,.10); --lap-gravel-dot3: rgba(16,18,24,.22); --lap-guide: rgba(255,255,255,.92);
+  --lap-booth: #FFFFFF; --lap-booth-shade: #E3E6EA; --lap-panel: #14161C; --lap-lamp: #8C929C; --lap-lamp-head: #5A616D; --lap-lamp-head-on: #FFFFFF; --lap-lamp-glow: 235,240,255; --lap-night: 0;
+  --lap-hoard: #14161C; --lap-hoard-mark: #FFFFFF;
 }
 .gx .gx-lap { position: fixed; inset: 0; z-index: 300; display: flex; flex-direction: column; background: var(--bg); color: var(--text);
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; animation: gx-lap-in var(--d3) var(--e-out); }
