@@ -13,12 +13,13 @@ import { DIFFICULTY, DIFF_KEYS, diffOf } from './engine.js';
 //  haptic 진동          off · on: 코스 이탈과 결승선
 //  home   홈 자리       below: 시간표 바로 아래 · bottom: 홈 맨 아래 · week: 경기 주간에만 시간표 아래, 그 밖에는 맨 아래
 //  pacer  기록이 없을 때  guide: 안내대로 달린 차가 옅게 같이 달림 · off
+//  pace   빠르기       게임 시간이 실제 시간보다 몇 배 빨리 가는지. 1 · 1.3 · 1.6 · 2. 기록은 게임 시간(실제 랩 타임 같은 숫자), 한 바퀴에 실제로 걸리는 시간만 줄어든다
 //  view   화면         3d: 차 뒤 위에서 앞을 내려다봄(원근) · top: 위에서 내려다봄(v2). 줄인 움직임이면 언제나 top
 //  motion 데모 전용      auto: 기기 설정을 따름 · reduce: 줄인 움직임으로 보기(조절 판에서 기기 설정 없이 비교하려고)
-export const LAP_DEFAULTS = Object.freeze({ diff: 'normal', tune: null, learn: 'coach', zone: 'bars', slip: 'ring', delta: 'corner', car: 'car', haptic: 'off', home: 'week', pacer: 'guide', view: '3d', motion: 'auto' });
+export const LAP_DEFAULTS = Object.freeze({ diff: 'normal', tune: null, learn: 'coach', zone: 'bars', slip: 'ring', delta: 'corner', car: 'car', haptic: 'off', home: 'week', pacer: 'guide', view: '3d', pace: '1.6', motion: 'auto' });
 export const LAP_CHOICES = {
   diff: Object.keys(DIFFICULTY), learn: ['text', 'coach', 'practice'], zone: ['shade', 'bars', 'chevron'], slip: ['push', 'ring', 'marks'],
-  delta: ['off', 'corner', 'live'], car: ['car', 'dot'], haptic: ['off', 'on'], home: ['below', 'bottom', 'week'], pacer: ['guide', 'off'], view: ['3d', 'top'], motion: ['auto', 'reduce'],
+  delta: ['off', 'corner', 'live'], car: ['car', 'dot'], haptic: ['off', 'on'], home: ['below', 'bottom', 'week'], pacer: ['guide', 'off'], view: ['3d', 'top'], pace: ['1', '1.3', '1.6', '2'], motion: ['auto', 'reduce'],
 };
 const KEY = 'gantry.lapDemo';
 
@@ -42,6 +43,7 @@ let cfg = load();
 const subs = new Set();
 export const lapConfig = () => cfg;
 // 지금 난이도 숫자(묶음 + 직접 조절한 값)
+export const paceOf = (c = cfg) => Number(c?.pace) || 1.6;
 export const lapDiff = (c = cfg) => ({ ...diffOf(c.diff), ...(c.tune || {}) });
 export function setLapConfig(patch) {
   if (!demoClock.enabled) return cfg;

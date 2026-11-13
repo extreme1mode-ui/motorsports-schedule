@@ -19,7 +19,7 @@ import { prepWorld, buildView, drawGround, drawTrack, drawStartMarks, drawGantry
 import { newFx, addMarks, breakMarks, addPuff, drawMarks, drawPuffs, drawStreaks } from './fx.js';
 import { prep3d, camera as camera3, render3d, labels3d, rlAt, wallAtS, CAR3, addSparks } from './world3d.js';
 import { GHOST_EVERY, timeAt, posAt, compareSectors, offCorners, zonesOf, simLap } from './analysis.js';
-import { useLapConfig, lapDiff } from './config.js';
+import { useLapConfig, lapDiff, paceOf } from './config.js';
 import { demoApi } from './demo.js';
 import { LAP_SAVE, lapHaptic, lapSaveImage } from './lap-platform.js';
 import { lapTrackOf, preparedTrack, lapRecords, saveLap, useOpenLap, closeLap, outlinePath, writeLapRecords, isFirstVisit } from './store.js';
@@ -299,9 +299,10 @@ function LapGame({ id, onClose }) {
         if (!OVERVIEW.has(s.phase)) { s.timers.forEach(clearTimeout); s.timers = []; s.run = newRun(); s.down = false; setP('ready'); }
       }
       const tk = s.tk; const cfgN = s.cfg; const reduced = reducedMotion(cfgN);
+      const TS = paceOf(cfgN);   // 빠르기: 게임 시간이 실제 시간보다 이만큼 빨리 간다. 기록 · 속도 · 시계는 게임 시간(실제 랩 타임 같은 숫자)
       // ---- 물리: 달리는 동안만, 고정 간격으로 ----
       if ((s.phase === 'run' || s.phase === 'practice') && !s.frozen) {
-        s.acc += Math.min(0.05, (now - s.last) / 1000); s.last = now;
+        s.acc += Math.min(0.05, (now - s.last) / 1000) * TS; s.last = now;
         while (s.acc >= DT && !s.run.done) {
           const wasOff = s.run.offTrack; const prevS = s.run.s;
           step(s.run, tk, s.down, DT); s.acc -= DT;
@@ -325,11 +326,11 @@ function LapGame({ id, onClose }) {
       if (s.deltaUntil && now > s.deltaUntil) { s.deltaUntil = 0; setDelta(null); }
       const run = s.run; const C = s.colors;
       // 결승선을 지난 뒤 굴러가는 거리
-      if (s.phase === 'finish' && s.coast) { s.coast.t += fdt; s.coast.v = Math.max(0, s.coast.v - 24 * fdt); s.coast.s += s.coast.v * fdt; }
+      if (s.phase === 'finish' && s.coast) { const gdt = fdt * TS; s.coast.t += gdt; s.coast.v = Math.max(0, s.coast.v - 24 * gdt); s.coast.s += s.coast.v * gdt; }
       // ---- 차와 길의 반응: 브레이크 빛 · 날개 · 타이어 자국 · 연기 · 먼지(같은 프레임에 바로) ----
       {
         const moving = (s.phase === 'run' || s.phase === 'practice') && !s.frozen;
-        const accInst = moving ? (run.v - s.vPrev) / Math.max(fdt, 1 / 240) : 0; s.vPrev = run.v;
+        const accInst = moving ? (run.v - s.vPrev) / Math.max(fdt * TS, 1 / 240) : 0; s.vPrev = run.v;   // 게임 시간 기준 가속도
         s.accSm += (accInst - s.accSm) * Math.min(1, fdt / 0.35);
         const ii = Math.floor(wrapS(run.s, tk.L) / tk.ds) % tk.n;
         const glowT = moving && !s.down && accInst < -12 ? Math.min(1, -accInst / 38) : 0;
@@ -382,7 +383,7 @@ function LapGame({ id, onClose }) {
           if (z) {
             if (run.s >= z.s0 && run.s <= z.s1) cue = s.down ? 'lift' : 'liftOk';
             else if (run.s > z.s1) { s.coachIdx += 1; s.cueUntil = now + 1600; s.cue = s.coachIdx >= zs.length ? 'solo' : 'press'; }
-            else if ((z.s0 - run.s) / Math.max(run.v, 8) < 1.8) cue = 'soon';
+            else if ((z.s0 - run.s) / Math.max(run.v, 8) / TS < 1.8) cue = 'soon';   // 실제 1.8초 전에 알린다
           }
           if (!cue && s.cue && now < s.cueUntil) { cue = s.cue === 'press' && s.down ? null : s.cue; if (s.cue === 'press' && s.down) s.cueUntil = 0; }
         }
@@ -457,12 +458,12 @@ function LapGame({ id, onClose }) {
         } else {
           // 출발 전에는 낮고 가까이(그리드 · 신호등), 달리면 빠를수록 조금 멀리 · 넓게(시야가 넓어지며 속도가 붙는다). 가속하면 뒤로 조금 밀린다
           const pre = s.phase === 'lights' || s.phase === 'go' || s.phase === 'wait';
-          const fov = ((56 + 7 * kv) * Math.PI) / 180;
+          const fov = ((56 + 10 * kv) * Math.PI) / 180;   // 빠를수록 시야가 넓어진다(56 → 66°)
           // 머리핀처럼 급한 코너에서는 카메라가 벽 너머로 나가지 않게 가까이 · 높이 올라간다
           let kBack = 0; for (let q2 = -18; q2 <= 4; q2 += 2) kBack = Math.max(kBack, Math.abs(tk.k[((nIdx + q2) % tk.n + tk.n) % tk.n]));
           const tight = smooth01((kBack - 1 / 60) / (1 / 14 - 1 / 60));
-          const Dc = (pre ? 23 : 30 + 8 * kv + Math.max(-1, Math.min(1, s.accSm / 14)) * 2.4) * (1 - 0.12 * tight);
-          const beta = ((pre ? 22 : 34 - 2 * kv + 16 * tight) * Math.PI) / 180;
+          const Dc = (pre ? 23 : 30 + 4 * kv + Math.max(-1, Math.min(1, s.accSm / 14)) * 2.4) * (1 - 0.12 * tight);
+          const beta = ((pre ? 22 : 34 - 5 * kv + 16 * tight) * Math.PI) / 180;   // 빠를수록 조금 낮게: 가까운 땅이 더 빨리 흐른다
           const F = Math.max(h, w * 0.9) / 2 / Math.tan(fov / 2);
           const yawW = poseAt(tk, wrapS(carS + 10, tk.L), 0).th;
           let kSum = 0; for (let q2 = 30; q2 <= 80; q2 += 10) kSum += tk.k[(nIdx + q2) % tk.n];
@@ -491,7 +492,7 @@ function LapGame({ id, onClose }) {
         const cp = poseAt(tk, wrapS(carS, tk.L), lat * q);
         const dl = (rlAt(W3, tk, carS + 3) - rlAt(W3, tk, carS - 3)) / 6;
         const carTh = cp.th - Math.atan(dl * q) + s.yaw;
-        const car = { x: cp.x, y: cp.y, th: carTh, S: S3, s: carS, steer: s.steer, brake: s.glow || 0, aero: s.aero || 0, rain: s.rain, spin: noseS, blur: smooth01((vv - 6) / 26),
+        const car = { x: cp.x, y: cp.y, th: carTh, S: S3, s: carS, steer: s.steer, brake: s.glow || 0, aero: s.aero || 0, rain: s.rain, spin: noseS, blur: smooth01((vv * TS - 6) / 26),
           roll: Math.max(-0.03, Math.min(0.03, ((vv * vv * kAhead) / 9.8) * 0.006)), pitch: s.accSm < 0 ? Math.max(-0.012, (s.accSm / 40) * 0.012) : Math.min(0.006, (s.accSm / 12) * 0.006),
           C: C.car3d, dot: cfgN.car === 'dot' };
         // 옅은 차: 내 최고 기록(없으면 안내대로 달린 차)
@@ -517,8 +518,8 @@ function LapGame({ id, onClose }) {
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         // 그리기가 무거운 기기: 달리는 동안 평균 12ms를 1.5초 넘게 넘으면 땅 점 · 관중 · 건물 층 줄 · 흐림을 끈다(이 레이어를 닫을 때까지)
         s.heavy = mix > 0.99 && s.cost > 12 ? (s.heavy || 0) + 1 : 0; if (s.heavy > 90) s.lite = true;
-        const R = { w, h, dpr, canvas: cv, cam, tk, W3, P, C, detail: mix, q, zone: cfgN.zone, now, fdt, fx: s.fx, lit: s.lit || 0, car, ghost, font, under, lite: !!s.lite,
-          blur: mix > 0.9 && (s.phase === 'run' || s.phase === 'finish') ? smooth01((vv - 50) / 40) : 0,
+        const R = { w, h, dpr, canvas: cv, cam, tk, W3, P, C, detail: mix, q, zone: cfgN.zone, now, fdt: fdt * TS, fx: s.fx, lit: s.lit || 0, car, ghost, font, under, lite: !!s.lite,
+          blur: mix > 0.9 && (s.phase === 'run' || s.phase === 'finish') ? smooth01((vv * TS - 70) / 60) : 0,   // 화면에서 흐르는 빠르기(게임 속도 × 빠르기) 기준
           far: mix > 0.5 ? 1500 : 1e9, fog: mix > 0.3 ? [230 + (1 - mix) * 4000, 1000 + (1 - mix) * 8000] : null,
           overlay: mix < 0.3 ? () => drawOverlays(w2s3, Math.max(2 * HALF_W * pxm, 6), pxm, 0, true) : null };
         render3d(ctx, R);
@@ -550,7 +551,7 @@ function LapGame({ id, onClose }) {
           const c = poseAt(tk, wrapS(noseS, tk.L), 0);
           const ay = h * (h < 420 ? 0.7 : CAR_AY);
           // 가속하면 조금 멀리, 브레이크를 밟으면 조금 가까이(덜컥이지 않게 0.35초로 고른 가속도)
-          let D = reduced ? 280 : lookAhead(vv) * (1 + Math.max(-1, Math.min(1, s.accSm / 14)) * 0.07);
+          let D = (reduced ? 280 : lookAhead(vv) * (1 + Math.max(-1, Math.min(1, s.accSm / 14)) * 0.07)) * Math.min(1.3, Math.sqrt(TS));   // 빠르기만큼 조금 더 멀리(실제 시간으로 보는 거리가 줄지 않게)
           if (s.phase === 'lights' || s.phase === 'go' || s.phase === 'wait') D = 150;   // 출발 전: 그리드에 가까이
           // 앞쪽 코너 방향으로 화면을 조금 비켜, 빠져나갈 길이 더 보이게
           const ni = Math.floor(wrapS(noseS, tk.L) / tk.ds); let kSum = 0; for (let q = 30; q <= 80; q += 10) kSum += tk.k[(ni + q) % tk.n];
