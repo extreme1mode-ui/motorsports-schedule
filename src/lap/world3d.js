@@ -318,7 +318,9 @@ export function render3d(ctx, R) {
     for (const odd of [0, 1]) fillBands(odd ? P.kerbA : P.kerbB, () => {
       for (const kb of base.kerbs) for (const [a, b] of spans(runs, tk, kb.i0 * tk.ds, kb.i1 * tk.ds)) {
         const fl = kb.side > 0 ? W3.edgeL : W3.edgeR;
-        for (let j = Math.floor(a / 2) * 2; j < b; j += 2) { if (((Math.floor(j / 2) % 2) + 2) % 2 !== odd) continue; if (!fl[mod(j, n)] || !fl[mod(j + 2, n)]) continue; const ja = Math.max(a, j), jb = Math.min(b, j + 2); if (jb > ja) band(ctx, cam, tk, W3, ja, jb, kb.side * (HALF_W - 0.25) * q, kb.side * (HALF_W + 1.7) * q); }
+        for (let j = Math.floor(a / 2) * 2; j < b; j += 2) { if (((Math.floor(j / 2) % 2) + 2) % 2 !== odd) continue; if (!fl[mod(j, n)] || !fl[mod(j + 2, n)]) continue;
+          if (Math.max(Math.abs(tk.k[mod(j, n)]), Math.abs(tk.k[mod(j + 2, n)])) * (HALF_W + 1.7) * q > 0.7 && kb.side * tk.k[mod(j, n)] < 0) continue;   /* 머리핀 꼭짓점: 연석 띠가 접히는 자리는 비운다 */
+          const ja = Math.max(a, j), jb = Math.min(b, j + 2); if (jb > ja) band(ctx, cam, tk, W3, ja, jb, kb.side * (HALF_W - 0.25) * q, kb.side * (HALF_W + 1.7) * q); }
       }
     });
     // 출발: 체크무늬 두 줄 · 그리드 칸(8m 간격, 좌우 엇갈림)
