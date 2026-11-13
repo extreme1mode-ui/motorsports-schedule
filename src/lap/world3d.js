@@ -438,7 +438,7 @@ export function render3d(ctx, R) {
   if (ghost) {
     if (!proj(cam, ghost.x, ghost.y, 0.5)) { /* 화면 밖 */ } else {
       const depth = PZ;
-      items.push({ z: depth, draw: () => drawGhost(ctx, cam, ghost, R) });
+      items.push({ z: depth + 4, draw: () => drawGhost(ctx, cam, ghost, R) });   // 내 차와 겹치면 옅은 차가 아래에 깔린다
     }
   }
   if (carOpt) {
