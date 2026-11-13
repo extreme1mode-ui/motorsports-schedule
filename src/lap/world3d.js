@@ -349,15 +349,17 @@ export function render3d(ctx, R) {
     ctx.globalAlpha = decoA;
     // 보수 자국 · 레이싱 라인(타이어 고무로 진해진 길) · 브레이크 고무 자국
     for (const pt of W3.patches) { ctx.fillStyle = `rgba(${P.patchRGB},${pt.a})`; ctx.beginPath(); for (const [a, b] of spans(runs, tk, pt.s0, pt.s1)) band(ctx, cam, tk, W3, a, b, pt.o0 * q, (pt.o0 + pt.w) * q); ctx.fill(); }
-    // 레이싱 라인: 가운데 옅은 띠 + 바퀴 두 줄의 고무. 브레이크 구간 · 코너에서 진하고 직선에서 옅다(고무 양을 네 단계로 묶어 칠한다)
+    // 레이싱 라인: 가운데 옅은 띠(한 번에) + 바퀴 두 줄의 고무. 바퀴 자국만 고무 양을 네 단계로 묶어 칠한다(브레이크 구간 · 코너 진하게, 직선 옅게).
+    // 달릴 때 450m보다 먼 바퀴 자국은 1px 남짓이라 그리지 않는다(칠하는 넓이를 줄여 느린 기기 부담을 덜기)
     const rlOff = (j) => { const i = Math.floor(j), u = j - i; const r0 = W3.rl[mod(i, n)], r1 = W3.rl[mod(i + 1, n)]; return (r0 + (r1 - r0) * u) * q; };
+    ctx.fillStyle = `rgba(${P.rubberRGB},0.085)`; ctx.beginPath(); whole((a, b) => bandVar(ctx, cam, tk, W3, a, b, rlOff, 1.75 * q)); ctx.fill();
+    const zMax = q > 1 ? Infinity : 450; const lv = [[], [], [], []];
+    whole((a, b) => { for (let j0 = Math.floor(a / 6) * 6; j0 < b; j0 += 6) { const ja = Math.max(a, j0), jb = Math.min(b, j0 + 6); if (jb <= ja || CZs[mod(Math.floor(ja), n)] > zMax) continue; lv[Math.min(3, Math.floor(W3.rI[mod(j0 + 3, n)] * 4))].push(ja, jb); } });
     for (let lvl = 0; lvl < 4; lvl += 1) {
-      const I = (lvl + 0.5) / 4;
-      for (const [alpha, offs, half] of [[0.05 + 0.07 * I, [0], 1.75], [0.04 + 0.13 * I, [-0.85, 0.85], 0.3]]) {
-        ctx.fillStyle = `rgba(${P.rubberRGB},${alpha.toFixed(3)})`; ctx.beginPath();
-        whole((a, b) => { for (let j0 = Math.floor(a / 6) * 6; j0 < b; j0 += 6) { if (Math.min(3, Math.floor(W3.rI[mod(j0 + 3, n)] * 4)) !== lvl) continue; const ja = Math.max(a, j0), jb = Math.min(b, j0 + 6); if (jb > ja) for (const sd of offs) bandVar(ctx, cam, tk, W3, ja, jb, (j) => rlOff(j) + sd * q, half * q); } });
-        ctx.fill();
-      }
+      const c = lv[lvl]; if (!c.length) continue;
+      ctx.fillStyle = `rgba(${P.rubberRGB},${(0.04 + 0.13 * (lvl + 0.5) / 4).toFixed(3)})`; ctx.beginPath();
+      for (let k = 0; k < c.length; k += 2) for (const sd of [-0.85, 0.85]) bandVar(ctx, cam, tk, W3, c[k], c[k + 1], (j) => rlOff(j) + sd * q, 0.3 * q);
+      ctx.fill();
     }
     // 마블: 라인 밖 코너 바깥쪽의 타이어 부스러기(가까이서만)
     ctx.fillStyle = P.marble; ctx.beginPath();
@@ -399,7 +401,7 @@ export function render3d(ctx, R) {
     fillBands(P.kerbLip, () => {
       for (const kb of base.kerbs) for (const [a, b] of spans(runs, tk, kb.i0 * tk.ds, kb.i1 * tk.ds)) {
         const fl = kb.side > 0 ? W3.edgeL : W3.edgeR;
-        for (let j = Math.floor(a / 2) * 2; j < b; j += 2) { if (!fl[mod(j, n)] || !fl[mod(j + 2, n)]) continue;
+        for (let j = Math.floor(a / 2) * 2; j < b; j += 2) { if (!fl[mod(j, n)] || !fl[mod(j + 2, n)] || CZs[mod(j, n)] > 350) continue;
           if (Math.max(Math.abs(tk.k[mod(j, n)]), Math.abs(tk.k[mod(j + 2, n)])) * (HALF_W + 1.95) * q > 0.7 && kb.side * tk.k[mod(j, n)] < 0) continue;
           const ja = Math.max(a, j), jb = Math.min(b, j + 2); if (jb > ja) band(ctx, cam, tk, W3, ja, jb, kb.side * (HALF_W + 1.7) * q, kb.side * (HALF_W + 1.95) * q); }
       }
@@ -414,9 +416,13 @@ export function render3d(ctx, R) {
         for (let j = Math.ceil(a / 5) * 5; j < b; j += 5) { const w0 = wv[mod(j, n)]; band(ctx, cam, tk, W3, j, Math.min(b, j + 0.08), pt.side * (w0 + 6.2) * q, pt.side * (w0 + 10.8) * q); }
       }
     });
-    // 벽 밑 그늘(벽이 땅에 닿는 자리)
+    // 벽 밑 그늘(벽이 땅에 닿는 자리). 달릴 때는 350m 안만(멀면 1px 아래)
     ctx.fillStyle = P.ao; ctx.beginPath();
-    for (const r of runs) for (const sd of [1, -1]) wallRuns(tk, W3, r, sd, q, (ja, jb) => bandVar(ctx, cam, tk, W3, ja, jb, (j) => { const i = Math.floor(j), u = j - i; const wv = sd > 0 ? W3.wl : W3.wr; return sd * (wv[mod(i, n)] + (wv[mod(i + 1, n)] - wv[mod(i, n)]) * u - 0.5) * q; }, 0.5 * q));
+    const aoMax = q > 1 ? Infinity : 350;
+    for (const r of runs) for (const sd of [1, -1]) wallRuns(tk, W3, r, sd, q, (ja, jb) => {
+      const off = (j) => { const i = Math.floor(j), u = j - i; const wv = sd > 0 ? W3.wl : W3.wr; return sd * (wv[mod(i, n)] + (wv[mod(i + 1, n)] - wv[mod(i, n)]) * u - 0.5) * q; };
+      let st = null; for (let j = ja; j <= jb; j += 1) { const near = CZs[mod(j, n)] < aoMax; if (near && st == null) st = j; if ((!near || j === jb) && st != null) { if (j > st) bandVar(ctx, cam, tk, W3, st, j, off, 0.5 * q); st = null; } }
+    });
     ctx.fill();
     // 자갈 알갱이(가까이서만)
     if (!W3.street && !R.lite) {
@@ -475,7 +481,7 @@ export function render3d(ctx, R) {
         const ok0 = wp(tk, W3, j, o0) && !WCL; const ax = WX, ay = WY; const ok1 = wp(tk, W3, j2, o1) && !WCL; const bx = WX, by = WY;
         if (ok0 && ok1 && proj(cam, (ax + bx) / 2, (ay + by) / 2, 1) && PZ > 12) {
           const depth = PZ; const painted = (W3.paint[i0] & (sd > 0 ? 1 : 2)) !== 0; const post = Math.floor(j / 4) !== Math.floor(j2 / 4) || st >= 4;
-          const hoardOn = !painted && W3.hoard[i0] && W3.hoard[i1]; const mark = hoardOn && depth < 150 && Math.floor(j / 6) !== Math.floor(j2 / 6);
+          const hoardOn = !painted && depth < 450 && W3.hoard[i0] && W3.hoard[i1]; const mark = hoardOn && depth < 150 && Math.floor(j / 6) !== Math.floor(j2 / 6);
           items.push({ z: depth, sx: PX, half: 6, draw: () => wallSeg(ctx, cam, P, ax, ay, bx, by, wallH, fenceH, painted, j, post, 1 - fogK(depth), hoardOn, mark) });
         }
         j = j2;
@@ -500,7 +506,7 @@ export function render3d(ctx, R) {
     for (const mp of W3.marshals) for (const [a] of spans(runs, tk, mp.s, mp.s + 0.01)) {
       const i0 = mod(Math.round(a), n); const wv = (mp.side > 0 ? W3.wl : W3.wr)[i0];
       if (!wp(tk, W3, a, mp.side * (wv + 2.4) * q) || WCL) continue; const X = WX, Y = WY;
-      if (!inView(X, Y, 1.3, 80)) continue; const depth = PZ; const fa = 1 - fogK(depth); if (fa <= 0.02) continue;
+      if (!inView(X, Y, 1.3, 80) || PZ > 450) continue; const depth = PZ; const fa = 1 - fogK(depth); if (fa <= 0.02) continue;
       const b = { x: X, y: Y, hx: 1.5, hy: 1.2, a: tk.th[i0], h: 3.0 };
       items.push({ z: depth, sx: PX, half: (2 * cam.F) / depth, draw: () => booth(ctx, cam, P, b, mp.side, fa) });
     }
@@ -509,7 +515,7 @@ export function render3d(ctx, R) {
       const i0 = mod(Math.round(a), n); const wv = (lp.side > 0 ? W3.wl : W3.wr)[i0];
       if (!wp(tk, W3, a, lp.side * (wv + 0.7) * q) || WCL) continue; const X = WX, Y = WY;
       if (!wp(tk, W3, a, lp.side * (wv - 2.2) * q)) continue; const HX = WX, HY = WY;
-      if (!inView(X, Y, 6, 80)) continue; const depth = PZ; const fa = 1 - fogK(depth); if (fa <= 0.02) continue;
+      if (!inView(X, Y, 6, 80) || PZ > 400) continue; const depth = PZ; const fa = 1 - fogK(depth); if (fa <= 0.02) continue;
       items.push({ z: depth, sx: PX, half: 4, draw: () => lampPost(ctx, cam, P, X, Y, HX, HY, fa) });
     }
     // 출발 갠트리
@@ -736,7 +742,7 @@ function lampPost(ctx, cam, P, X, Y, HX, HY, fa) {
   ctx.lineWidth = Math.max(1, (0.22 * cam.F) / a[2]); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
   ctx.lineWidth = Math.max(1, (0.14 * cam.F) / b[2]); ctx.beginPath(); ctx.moveTo(b[0], b[1]); ctx.lineTo(c[0], c[1]); ctx.stroke();
   const r = Math.max(1.2, Math.min(5, (0.35 * cam.F) / c[2]));
-  if (P.night) { const R5 = Math.min(26, r * 5); const g = ctx.createRadialGradient(c[0], c[1], 0, c[0], c[1], R5); g.addColorStop(0, `rgba(${P.lampGlowRGB},.5)`); g.addColorStop(1, `rgba(${P.lampGlowRGB},0)`); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(c[0], c[1], R5, 0, TAU); ctx.fill(); }
+  if (P.night && a[2] < 300) { const R5 = Math.min(26, r * 5); const g = ctx.createRadialGradient(c[0], c[1], 0, c[0], c[1], R5); g.addColorStop(0, `rgba(${P.lampGlowRGB},.5)`); g.addColorStop(1, `rgba(${P.lampGlowRGB},0)`); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(c[0], c[1], R5, 0, TAU); ctx.fill(); }
   ctx.fillStyle = P.night ? P.lampHeadOn : P.lampHead; ctx.beginPath(); ctx.ellipse(c[0], c[1] + r * 0.2, r * 1.3, r * 0.55, 0, 0, TAU); ctx.fill();
   ctx.globalAlpha = prevA;
 }
