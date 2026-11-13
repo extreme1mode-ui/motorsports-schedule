@@ -76,6 +76,7 @@ function LapGame({ id, onClose }) {
 
   const root = useRef(null); const canvas = useRef(null);
   const timeEl = useRef(null); const speedEl = useRef(null); const pedalEl = useRef(null); const nextEl = useRef(null); const dotEl = useRef(null); const barEl = useRef(null); const progEl = useRef(null); const progGhostEl = useRef(null);
+  const gasEl = useRef(null); const [gasTip, setGasTip] = useState(false); const gasTipT = useRef(0);
   // 위 줄의 작은 전체 그림(84×56): 트랙 좌표 → 그림 좌표
   const mini = useMemo(() => {
     const [x0, y0, x1, y1] = tk.box; const w = 84, h = 56, pad = 5;
@@ -676,6 +677,11 @@ function LapGame({ id, onClose }) {
         const st = s.phase === 'run' || s.phase === 'practice' ? (s.down && !run.offTrack ? 'on' : 'off') : 'idle';
         if (pedalEl.current.dataset.state !== st) { pedalEl.current.dataset.state = st; pedalEl.current.textContent = tr(st === 'off' ? 'lap.pedal.off' : 'lap.pedal'); }
       }
+      // 가속 페달: 누르는 동안 눌림, 코스 이탈로 가속할 수 없는 동안 흐리게, '지금 누르세요'에는 테두리
+      if (gasEl.current) {
+        const st = s.phase === 'go' ? 'go' : s.phase === 'run' || s.phase === 'practice' ? (run.offTrack ? 'lock' : s.down ? 'on' : 'off') : s.down ? 'on' : 'idle';
+        if (gasEl.current.dataset.state !== st) gasEl.current.dataset.state = st;
+      }
       if (dotEl.current) { const c = poseAt(tk, wrapS(run.s, tk.L), 0); const [mx, my] = mini.at(c.x, c.y); dotEl.current.setAttribute('cx', mx.toFixed(1)); dotEl.current.setAttribute('cy', my.toFixed(1)); }
       if (nextEl.current) { const v = nextT ? String(nextT.n) : ''; if (nextEl.current.textContent !== v) nextEl.current.textContent = v; }
       // 한 바퀴 진행 막대: 내 차(채움)와 옅은 차(빈 원)
@@ -726,8 +732,21 @@ function LapGame({ id, onClose }) {
     }
   };
 
+  // 페달 밖을 눌렀을 때('페달만'): 달리지 않고 페달 위에 '여기를 누르고 있으면 달려요'를 1.6초
+  const pointGas = () => { setGasTip(true); clearTimeout(gasTipT.current); gasTipT.current = setTimeout(() => setGasTip(false), 1600); };
+  useEffect(() => () => clearTimeout(gasTipT.current), []);
+  const gas = {
+    onPointerDown: (e) => { e.preventDefault(); try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* 이미 뗐다 */ } setGasTip(false); press(true); },
+    onPointerUp: () => press(false), onPointerCancel: () => press(false), onLostPointerCapture: () => press(false),
+    onContextMenu: (e) => e.preventDefault(),
+  };
+  const showGas = cfg.pedal !== 'off' && PRESSABLE.has(phase);
   const stage = {
-    onPointerDown: (e) => { if (e.target.closest('button, a')) return; e.preventDefault(); press(true); },
+    onPointerDown: (e) => {
+      if (e.target.closest('button, a')) return; e.preventDefault();
+      if (cfg.pedal === 'only') { if (PRESSABLE.has(g.current.phase)) pointGas(); return; }
+      press(true);
+    },
     onPointerUp: () => press(false), onPointerCancel: () => press(false), onPointerLeave: () => press(false),
     onContextMenu: (e) => e.preventDefault(),
   };
@@ -772,6 +791,15 @@ function LapGame({ id, onClose }) {
       </div>
       <div className="gx-lap-stage" {...stage}>
         <canvas ref={canvas} aria-hidden="true" />
+        {showGas && (
+          <div className="gx-lap-gaswrap">
+            {(gasTip || (firstRun && (phase === 'lights' || phase === 'wait' || phase === 'go'))) && <span className="gx-lap-gas-tip gx-t13" aria-hidden="true">{tr('lap.pedal.tip')}</span>}
+            <button type="button" className="gx-lap-gas" ref={gasEl} data-state="idle" aria-label={tr('lap.pedal.aria')} {...gas}>
+              <span className="gx-lap-gas-plate" aria-hidden="true"><i /><b>{tr('lap.pedal')}</b></span>
+            </button>
+            <span className="gx-lap-gas-key" aria-hidden="true">{tr('lap.pedal.key')}</span>
+          </div>
+        )}
         {(phase === 'lights' || phase === 'wait' || phase === 'go') && (
           <span className="gx-lap-lights" role="img" aria-label={tr('lap.lights', { n: lit })}>
             <i className="gx-lap-beam" />
@@ -794,7 +822,7 @@ function LapGame({ id, onClose }) {
               {cfg.car !== 'dot' && (best != null || cfg.pacer !== 'off') && <span className="gx-t13 gx-lap-legend"><i aria-hidden="true" />{tr(best != null ? 'lap.ghost.best' : 'lap.ghost.pacer')}</span>}</div>
             {learn && (
               <ul className="gx-lap-how gx-t15">
-                <li><i className="is-road" />{tr('lap.how.hold')}</li>
+                {cfg.pedal === 'off' ? <li><i className="is-road" />{tr('lap.how.hold')}</li> : <li><i className="is-gas" />{tr('lap.how.pedal')}</li>}
                 <li><i className={`is-brake is-${cfg.zone}`} />{tr(learn === 'coach' ? 'lap.how.coach' : 'lap.how.lift')}</li>
                 {learn === 'practice' ? <li><i className="is-flag" />{tr('lap.how.practice')}</li> : <li><i className="is-light" />{tr('lap.how.lights')}</li>}
               </ul>
@@ -838,7 +866,7 @@ function LapGame({ id, onClose }) {
           </section>
         )}
       </div>
-      <p className="gx-vh" id="gx-lap-keys">{tr('lap.keys')}</p>
+      <p className="gx-vh" id="gx-lap-keys">{tr(cfg.pedal === 'off' ? 'lap.keys' : 'lap.keys.pedal')}</p>
       <span className="gx-vh" ref={lockRef} aria-hidden="true"><GantryLockup height={14} /></span>
       {card && (
         <div className="gx-lap-share" role="dialog" aria-modal="true" aria-label={tr('lap.card.open')}>

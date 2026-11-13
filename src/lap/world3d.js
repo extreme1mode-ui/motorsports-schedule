@@ -27,6 +27,29 @@ const SH = [SUN[0] / -SUN[2], SUN[1] / -SUN[2]];   // 높이 1m당 그림자가 
 export const CAR3 = 1.3;                             // 차를 실제보다 이만큼 크게(작은 화면에서 읽히게)
 const RUNOFF = 8;                                    // 상설 서킷: 흰 선 바깥 포장 런오프 폭
 
+// 레이싱 라인(+ 왼쪽, m): 길 안(±lim)에서 곡률 제곱합이 가장 작은 선. 실제 F1처럼 코너 앞 바깥 → 꼭짓점 안쪽 → 빠져나가며 바깥,
+// 곧은 길에서는 곧게 이어진다. 중심선 점마다 '양옆 두 점씩으로 본 매끈한 자리'(-1, 4, 4, -1)/6 쪽으로 옮기고 길 안으로 자르기를 되풀이한다.
+// 긴 굽이부터 잡도록 64칸 건너뛰기부터 1칸까지 좁혀 간다. 급한 코너 안쪽은 반지름의 70%까지만(띠가 접히지 않게)
+function racingLine(tk, NX, NY, lim) {
+  const n = tk.n; const lo = new Float64Array(n), hi = new Float64Array(n);
+  for (let i = 0; i < n; i += 1) {
+    // 굽음: 데이터의 tk.k와 중심선 모양(앞뒤 4m) 가운데 급한 쪽
+    const a = mod(i - 2, n), c = mod(i + 2, n); const ax = tk.x[a], ay = tk.y[a], bx = tk.x[i], by = tk.y[i], cx = tk.x[c], cy = tk.y[c];
+    const d = Math.hypot(bx - ax, by - ay) * Math.hypot(cx - bx, cy - by) * Math.hypot(cx - ax, cy - ay);
+    const kg = d > 0 ? (2 * ((bx - ax) * (cy - ay) - (by - ay) * (cx - ax))) / d : 0;
+    const k = Math.abs(kg) > Math.abs(tk.k[i]) ? kg : tk.k[i]; const cap = 0.7 / Math.max(1e-6, Math.abs(k));
+    hi[i] = k < 0 ? Math.min(lim, cap) : lim; lo[i] = k > 0 ? -Math.min(lim, cap) : -lim;   // o · k < 0 이 안쪽
+  }
+  const o = new Float32Array(n); const Px = Float64Array.from(tk.x), Py = Float64Array.from(tk.y);
+  for (const st of [64, 32, 16, 8, 4, 2, 1]) for (let it = 0; it < 60; it += 1) for (let i = 0; i < n; i += 1) {
+    const a = mod(i - 2 * st, n), b = mod(i - st, n), c = mod(i + st, n), d = mod(i + 2 * st, n);
+    const tx = (4 * (Px[b] + Px[c]) - Px[a] - Px[d]) / 6, ty = (4 * (Py[b] + Py[c]) - Py[a] - Py[d]) / 6;
+    const v = Math.max(lo[i], Math.min(hi[i], (tx - tk.x[i]) * NX[i] + (ty - tk.y[i]) * NY[i]));
+    o[i] = v; Px[i] = tk.x[i] + NX[i] * v; Py[i] = tk.y[i] + NY[i] * v;
+  }
+  return o;
+}
+
 // ---------- 서킷마다 한 번 ----------
 const cache = new WeakMap();
 export function prep3d(tk) {
@@ -38,12 +61,8 @@ export function prep3d(tk) {
   const conv = (arr, { r, w }) => { const out = new Float32Array(n); for (let i = 0; i < n; i += 1) { let a = 0; for (let j = -r; j <= r; j += 1) a += arr[mod(i + j, n)] * w[j + r]; out[i] = a; } return out; };
   const NX = new Float32Array(n), NY = new Float32Array(n);
   for (let i = 0; i < n; i += 1) { NX[i] = Math.sin(tk.th[i]); NY[i] = -Math.cos(tk.th[i]); }
-  // 레이싱 라인: 코너 앞에서 바깥 → 꼭짓점에서 안쪽 → 빠져나가며 바깥(+ 왼쪽). 좁은 평균과 넓은 평균의 차이로 만든다
-  const k1 = conv(tk.k, gauss(10)), k2 = conv(tk.k, gauss(42));
-  const lim = HALF_W - 1.0;   // 꼭짓점에서 안쪽 바퀴가 연석에 올라탈 만큼(차 폭의 절반 1.24m)
-  let rl = new Float32Array(n);
-  for (let i = 0; i < n; i += 1) rl[i] = -lim * Math.tanh(260 * (k1[i] - k2[i]));
-  rl = conv(rl, gauss(8));
+  const k1 = conv(tk.k, gauss(10));
+  const rl = conv(racingLine(tk, NX, NY, HALF_W - 1.0), gauss(5));   // 꼭짓점에서 안쪽 바퀴가 연석에 올라탈 만큼(차 폭의 절반 1.24m)
   // 벽: 왼쪽(+) · 오른쪽(−)까지의 거리. 자갈밭이 있으면 그 뒤로 물린다
   const baseW = street ? HALF_W + 2.6 : HALF_W + RUNOFF + 5;
   const wallL = new Float32Array(n).fill(baseW), wallR = new Float32Array(n).fill(baseW);
