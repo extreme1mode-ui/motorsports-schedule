@@ -498,9 +498,9 @@ function LapGame({ id, onClose }) {
         let ghost = null;
         const ghostLap = s.best || s.pacer;
         if (ghostLap && (s.phase === 'run' || s.phase === 'go' || s.phase === 'paused' || s.phase === 'finish') && mix > 0.5) {
-          const total = s.phase === 'go' ? (now - s.t0) / 1000 : s.react / 1000 + run.t + (s.coast ? s.coast.t : 0);
+          const total = Math.max(0, s.phase === 'go' ? (now - s.t0) / 1000 : s.react / 1000 + run.t + (s.coast ? s.coast.t : 0));
           const gs = posAt(ghostLap, total);
-          if (gs != null) {
+          if (gs != null && Number.isFinite(gs)) {
             const gS = gs - NOSE3; const gp = poseAt(tk, wrapS(gS, tk.L), rlAt(W3, tk, gS) * q); const gdl = (rlAt(W3, tk, gS + 3) - rlAt(W3, tk, gS - 3)) / 6;
             ghost = { x: gp.x, y: gp.y, th: gp.th - Math.atan(gdl), S: S3, steer: steerOf(tk.k[(Math.floor(wrapS(gs, tk.L) / tk.ds) + 3) % tk.n]), C: C.car3d };
           }

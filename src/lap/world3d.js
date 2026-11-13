@@ -181,6 +181,15 @@ function band(ctx, cam, tk, W3, ja, jb, oA, oB, zA = 0, zB = 0, step = 1) {
   flush();
   return any;
 }
+// 가운데가 j마다 달라지는 띠(레이싱 라인처럼): 가운데 off(j) ± half
+function bandVar(ctx, cam, tk, W3, ja, jb, off, half) {
+  if (jb <= ja) return;
+  if (BA.length < (jb - ja + 4) * 2) { BA = new Float32Array((jb - ja + 64) * 2); BB = new Float32Array((jb - ja + 64) * 2); }
+  let cnt = 0;
+  const flush = () => { if (cnt >= 2) { ctx.moveTo(BA[0], BA[1]); for (let k = 1; k < cnt; k += 1) ctx.lineTo(BA[k * 2], BA[k * 2 + 1]); for (let k = cnt - 1; k >= 0; k -= 1) ctx.lineTo(BB[k * 2], BB[k * 2 + 1]); ctx.closePath(); } cnt = 0; };
+  const at = (j) => { const o = off(j); if (wp(tk, W3, j, o - half) && proj(cam, WX, WY, 0)) { const ax = PX, ay = PY; if (wp(tk, W3, j, o + half) && proj(cam, WX, WY, 0)) { BA[cnt * 2] = ax; BA[cnt * 2 + 1] = ay; BB[cnt * 2] = PX; BB[cnt * 2 + 1] = PY; cnt += 1; return; } } flush(); };
+  at(ja); for (let j = Math.floor(ja) + 1; j < jb; j += 1) at(j); at(jb); flush();
+}
 // 거리 범위(m)를 보이는 구간들의 펼친 j 범위로(바퀴 경계를 넘는 구간까지)
 function spans(runs, tk, s0, s1) {
   const out = []; const L = tk.L;
@@ -221,7 +230,6 @@ export function render3d(ctx, R) {
       }
     }
   }
-  const sOf = (j) => j * tk.ds;
   // 안개: 멀수록 땅 색으로
   const fogA = R.fog ? R.fog[0] : 1e9, fogB = R.fog ? R.fog[1] : 2e9;
   const fogK = (z) => clamp01((z - fogA) / (fogB - fogA));
@@ -284,7 +292,7 @@ export function render3d(ctx, R) {
     // 보수 자국 · 레이싱 라인(타이어 고무로 진해진 길) · 브레이크 고무 자국
     for (const pt of W3.patches) { ctx.fillStyle = `rgba(${P.patchRGB},${pt.a})`; ctx.beginPath(); for (const [a, b] of spans(runs, tk, pt.s0, pt.s1)) band(ctx, cam, tk, W3, a, b, pt.o0 * q, (pt.o0 + pt.w) * q); ctx.fill(); }
     ctx.fillStyle = `rgba(${P.rubberRGB},0.16)`; ctx.beginPath();
-    whole((a, b) => { const s0 = Math.floor(a); for (let j = s0; j < b; j += 4) { const i0 = mod(j, n); const o = W3.rl[i0] * q; band(ctx, cam, tk, W3, Math.max(a, j), Math.min(b, j + 4), o - 1.5 * q, o + 1.5 * q); } });
+    whole((a, b) => bandVar(ctx, cam, tk, W3, a, b, (j) => { const i = Math.floor(j), u = j - i; const r0 = W3.rl[mod(i, n)], r1 = W3.rl[mod(i + 1, n)]; return (r0 + (r1 - r0) * u) * q; }, 1.5 * q));
     ctx.fill();
     for (const r of base.rubber) { ctx.fillStyle = `rgba(${P.rubberRGB},${r.a})`; ctx.beginPath(); for (const [a, b] of spans(runs, tk, r.s0, r.s1)) { const o = (W3.rl[mod(Math.round(b), n)] + r.off * 0.5) * q; for (const sd of [-0.95, 0.95]) band(ctx, cam, tk, W3, a, b, o + (sd - 0.17) * q, o + (sd + 0.17) * q); } ctx.fill(); }
     ctx.globalAlpha = 1;
@@ -367,7 +375,7 @@ export function render3d(ctx, R) {
       if (!proj(cam, tk.x[i0], tk.y[i0], 6)) continue; const depth = PZ;
       items.push({ z: depth, wide: true, draw: () => gantry(ctx, cam, P, tk, W3, i0, R.lit || 0, q) });
       // 빔 그림자(길 위)
-      addQuadShadow(shadowPath, cam, tk, W3, i0, q, 6); anyShadow = true;
+      addQuadShadow(shadowPath, cam, tk, W3, i0, q, 6);
       break;
     }
     // 관중석 · 피트 건물(메인 직선)
@@ -664,7 +672,7 @@ function drawGhost(ctx, cam, g, R) {
     x0 = Math.min(x0, PX); x1 = Math.max(x1, PX); y0 = Math.min(y0, PY); y1 = Math.max(y1, PY);
   }
   x0 = Math.floor(Math.max(0, x0 - 4)); y0 = Math.floor(Math.max(0, y0 - 4)); x1 = Math.ceil(Math.min(R.w, x1 + 4)); y1 = Math.ceil(Math.min(R.h, y1 + 4));
-  if (x1 <= x0 || y1 <= y0) return;
+  if (!(x1 > x0 && y1 > y0)) return;   // NaN도 여기서 걸러진다
   const dpr = R.dpr; const cw = Math.ceil((x1 - x0) * dpr), ch = Math.ceil((y1 - y0) * dpr);
   if (!ghostCv || ghostCv.width < cw || ghostCv.height < ch) { const W = Math.max(cw, ghostCv ? ghostCv.width : 0), H = Math.max(ch, ghostCv ? ghostCv.height : 0); ghostCv = Object.assign(document.createElement('canvas'), { width: W, height: H }); }
   const gx = ghostCv.getContext('2d'); gx.setTransform(1, 0, 0, 1, 0, 0); gx.clearRect(0, 0, cw, ch); gx.setTransform(dpr, 0, 0, dpr, -x0 * dpr, -y0 * dpr);
