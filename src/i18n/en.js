@@ -685,4 +685,7 @@ export default {
   'lap.card.save': 'Save image',
   'lap.card.saved': 'Image saved.',
   'lap.card.saveFail': 'Saving is not available on this device. Take a screenshot instead.',
+  'lap.ghost.best': 'The faint car is your best lap.',
+  'lap.ghost.pacer': 'The faint car follows the guide.',
+  'lap.result.map': 'Brighter means faster',
 };

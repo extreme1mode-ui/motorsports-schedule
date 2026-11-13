@@ -2,10 +2,13 @@
 // 좌표는 차 길이 100칸 기준. 앞이 위(−y), 가운데가 (0, 50). 실제 차의 비율(길이 5.6m · 폭 2m 안팎)을 따르되,
 // 작은 화면에서 읽히도록 바퀴와 앞뒤 날개를 조금 키웠다. 특정 팀의 도색을 따라 하지 않는다: 몸통 F1 빨강 + 가운데 흰 줄 하나 + 탄소 검정 + 흰 헬멧.
 //
-// drawCar(ctx, { x, y, rot, len, steer, C, ghost })
+// drawCar(ctx, { x, y, rot, len, steer, C, ghost, spin, brake, aero })
 //   x, y   화면 좌표(차 가운데)   rot  화면에서의 방향(0이면 앞이 위, 시계 방향 +)
 //   len    화면에서의 차 길이(px)  steer 앞바퀴 꺾임(라디안, 오른쪽 +)
-//   C      { body, carbon, tyre, helmet, edge, hi, shadow }   ghost  true면 윤곽 하나만(내 최고 기록)
+//   C      { body, carbon, tyre, helmet, hi, shadow, ghost }   ghost  true면 윤곽 하나만(내 최고 기록)
+//   spin   달린 거리(m). 느릴 때 타이어 위 가는 줄이 굴러 바퀴가 도는 게 보인다(빠르면 흐려져 사라진다)
+//   brake  0~1. 브레이크 디스크가 달아오르는 빛(바퀴 안쪽)
+//   aero   0~1. 직선에서 앞뒤 날개 플랩이 열린다(2026 규정의 직선 모드). 1이면 다 열림
 
 const P = (d) => (typeof Path2D === 'undefined' ? null : new Path2D(d));
 const mirror = (pts) => [...pts, ...pts.slice().reverse().map(([x, y]) => [-x, y])];
@@ -71,7 +74,7 @@ function tyres(ctx, s, steer, fill, sweep) {
   }
 }
 
-export function drawCar(ctx, { x, y, rot = 0, len = 34, steer = 0, C, ghost = false }) {
+export function drawCar(ctx, { x, y, rot = 0, len = 34, steer = 0, C, ghost = false, spin = 0, spinFade = 1, brake = 0, aero = 0 }) {
   const s = shapes(); if (!s.body) return;
   const k = len / 100; const px = 1 / k;            // px: 화면 1px을 차 칸으로
   ctx.save();
@@ -85,12 +88,22 @@ export function drawCar(ctx, { x, y, rot = 0, len = 34, steer = 0, C, ghost = fa
     ctx.restore();
     return;
   }
-  // 1) 바깥선과 그림자: 길 색과 상관없이 차가 떨어져 보이게. 덩어리를 모두 굵게 그은 뒤 위를 채운다
-  ctx.shadowColor = C.shadow; ctx.shadowBlur = 3; ctx.shadowOffsetY = 1.2;   // 그림자는 화면 기준(카메라가 돌아도 빛은 위에서)
-  ctx.strokeStyle = C.edge; ctx.lineWidth = 2.2 * px;
-  for (const p of s.hull) ctx.stroke(p);
-  tyres(ctx, s, steer, (p) => ctx.stroke(p));
+  // 1) 그림자: 덩어리를 그림자와 함께 한 번 칠한다(위를 다시 칠하므로 그림자만 남는다). 빛은 화면 위에서
+  ctx.shadowColor = C.shadow; ctx.shadowBlur = 4; ctx.shadowOffsetY = 2;
+  ctx.fillStyle = C.carbon;
+  for (const p of s.hull) ctx.fill(p);
+  tyres(ctx, s, steer, (p) => ctx.fill(p));
   ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+  // 브레이크 빛: 바퀴 안쪽 디스크 자리가 붉게 달아오른다
+  if (brake > 0.02) {
+    for (const [hx, hy, r] of [[FT.x - FT.w / 2 - 1.2, FT.y, 6], [RT.x - RT.w / 2 - 1.4, RT.y, 5]]) {
+      for (const sx of [-1, 1]) {
+        const gx = sx * hx; const gr = ctx.createRadialGradient(gx, hy, 0, gx, hy, r);
+        gr.addColorStop(0, `rgba(255,110,60,${(0.85 * brake).toFixed(3)})`); gr.addColorStop(1, 'rgba(255,60,30,0)');
+        ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(gx, hy, r, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+  }
   // 2) 탄소: 바닥판 · 디퓨저 · 서스펜션 · 빔 날개
   ctx.fillStyle = C.carbon; ctx.fill(s.floor); ctx.fill(s.diffuser);
   ctx.strokeStyle = C.carbon; ctx.lineWidth = Math.max(0.5, 0.7 * px); ctx.stroke(s.susp);
@@ -98,10 +111,27 @@ export function drawCar(ctx, { x, y, rot = 0, len = 34, steer = 0, C, ghost = fa
   // 3) 바퀴(앞은 꺾임만큼 돈다). 안쪽 가는 선 두 줄로 접지면을 보인다
   ctx.fillStyle = C.tyre; ctx.strokeStyle = C.tread; ctx.lineWidth = Math.max(0.6, 0.45 * px);
   tyres(ctx, s, steer, (p) => ctx.fill(p), len >= 44 ? (p) => ctx.stroke(p) : null);
+  // 바퀴가 도는 줄: 굴러간 거리만큼 아래로 흐른다. 빠르면(spinFade → 0) 사라진다
+  if (spinFade > 0.03) {
+    ctx.save(); ctx.globalAlpha = spinFade * 0.9; ctx.strokeStyle = C.tread; ctx.lineWidth = Math.max(0.7, 0.55 * px); ctx.lineCap = 'butt';
+    for (const [t, steerA] of [[FT, steer], [RT, 0]]) {
+      const circ = Math.PI * 0.72; const phase = ((spin % circ) / circ) * (t.h / 2);
+      for (const sx of [-1, 1]) {
+        ctx.save(); ctx.translate(sx * t.x, t.y); ctx.rotate(steerA);
+        ctx.beginPath(); ctx.rect(-t.w / 2, -t.h / 2, t.w, t.h); ctx.clip();
+        ctx.beginPath(); for (let yy = -t.h / 2 - t.h / 2 + phase; yy < t.h / 2; yy += t.h / 2) { ctx.moveTo(-t.w / 2, yy); ctx.lineTo(t.w / 2, yy); }
+        ctx.stroke(); ctx.restore();
+      }
+    }
+    ctx.restore();
+  }
   // 4) 날개: 앞날개 본판(몸통 색) + 플랩 선(탄소) + 끝판, 뒷날개 본판 + 플랩 + 끝판
   ctx.fillStyle = C.body; ctx.fill(s.fwing); ctx.fill(s.rwing);
   ctx.fillStyle = C.carbon; ctx.fill(s.fplates); ctx.fill(s.rplates);
-  ctx.strokeStyle = C.carbon; ctx.lineWidth = Math.max(0.55, 0.5 * px); ctx.stroke(s.fflap); ctx.stroke(s.rflap);
+  // 플랩: 직선 모드에서 열리면 뒤로 물러나고 가늘어진다
+  ctx.strokeStyle = C.carbon; ctx.lineWidth = Math.max(0.55, 0.5 * px) * (1 - aero * 0.45);
+  ctx.save(); ctx.translate(0, aero * 0.9); ctx.stroke(s.fflap); ctx.restore();
+  ctx.save(); ctx.translate(0, aero * 1.8); ctx.stroke(s.rflap); ctx.restore();
   // 5) 몸통 + 등줄기 빛
   ctx.fillStyle = C.body; ctx.fill(s.body);
   ctx.fillStyle = C.shade; ctx.fill(s.sideShade);
@@ -131,8 +161,7 @@ export function carColors(css, el) {
     hi: 'rgba(255,255,255,.9)',
     shade: 'rgba(0,0,0,.16)',
     rain: dark ? '#3A0D0C' : '#2A0A09',
-    edge: css(el, '--bg'),
-    shadow: dark ? 'rgba(0,0,0,.55)' : 'rgba(16,18,24,.28)',
+    shadow: 'rgba(0,0,0,.5)',
     ghost: dark ? 'rgba(165,169,180,.34)' : 'rgba(86,91,103,.30)',
   };
 }

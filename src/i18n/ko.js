@@ -693,4 +693,7 @@ export default {
   'lap.card.save': '이미지 저장',
   'lap.card.saved': '이미지를 저장했어요.',
   'lap.card.saveFail': '이 기기에서는 저장할 수 없어요. 화면을 캡처해 주세요.',
+  'lap.ghost.best': '옅은 차는 내 최고 기록이에요.',
+  'lap.ghost.pacer': '옅은 차는 안내대로 달렸을 때예요.',
+  'lap.result.map': '밝을수록 빨랐던 곳이에요',
 };

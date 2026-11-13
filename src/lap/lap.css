@@ -1,4 +1,26 @@
-/* '한 바퀴'. 토큰만 쓴다. 노랑 없음(신호등 · 차는 F1 빨강). */
+/* '한 바퀴'. 토큰만 쓴다. 노랑 없음(신호등 · 차 · 연석은 F1 빨강). */
+/* 무대(캔버스) 색. 화면 테마를 따른다: 다크가 기본, 라이트 · 토스는 아래에서 바꾼다.
+   흰(또는 검은) 땅 위에 진한 아스팔트 띠, 흰 선과 빨강 · 흰 연석. 진한 구간은 아스팔트보다 더 진하게 + 흰 무늬 */
+.gx .gx-lap {
+  --lap-ground: #0E1015; --lap-dot: rgba(255,255,255,.05); --lap-runoff: #161A21; --lap-gravel: #1C2028; --lap-gravel-dot: rgba(255,255,255,.12);
+  --lap-barrier: #3B414C; --lap-post: #5A616D; --lap-tyre: #4B515C;
+  --lap-asphalt: #2D323B; --lap-grain-a: rgba(255,255,255,.05); --lap-grain-b: rgba(0,0,0,.28);
+  --lap-line: #E9EBEE; --lap-check: #0E1015; --lap-kerb-b: #E9EBEE;
+  --lap-zone: #111317; --lap-zone-mark: rgba(233,235,238,.8); --lap-zone-line: #F4F5F7;
+  --lap-rubber: 0,0,0; --lap-mark: 0,0,0; --lap-smoke: 226,229,234; --lap-dust: 140,146,156; --lap-streak: 255,255,255; --lap-speed: 244,245,247;
+  --lap-gantry: #C9CDD4; --lap-gantry-hi: rgba(255,255,255,.55); --lap-pod: #3A3F49; --lap-shadow: rgba(0,0,0,.4);
+  --lap-board: #F4F5F7; --lap-board-edge: #0E1015; --lap-board-text: #14161C; --lap-ghost: rgba(244,245,247,.30); --lap-ring: rgba(255,255,255,.18);
+}
+[data-theme="light"] .gx .gx-lap, [data-plat="toss"] .gx .gx-lap {
+  --lap-ground: #FFFFFF; --lap-dot: rgba(16,18,24,.07); --lap-runoff: #EFF0F2; --lap-gravel: #E4E6EA; --lap-gravel-dot: rgba(16,18,24,.18);
+  --lap-barrier: #C3C7CE; --lap-post: #A6ABB4; --lap-tyre: #8C929C;
+  --lap-asphalt: #3A3F47; --lap-grain-a: rgba(255,255,255,.06); --lap-grain-b: rgba(0,0,0,.22);
+  --lap-line: #FFFFFF; --lap-check: #14161C; --lap-kerb-b: #FFFFFF;
+  --lap-zone: #191C21; --lap-zone-mark: rgba(255,255,255,.84); --lap-zone-line: #FFFFFF;
+  --lap-rubber: 0,0,0; --lap-mark: 0,0,0; --lap-smoke: 242,243,246; --lap-dust: 168,173,181; --lap-streak: 255,255,255; --lap-speed: 255,255,255;
+  --lap-gantry: #14161C; --lap-gantry-hi: rgba(255,255,255,.3); --lap-pod: #3A3F47; --lap-shadow: rgba(16,18,24,.22);
+  --lap-board: #FFFFFF; --lap-board-edge: #14161C; --lap-board-text: #14161C; --lap-ghost: rgba(255,255,255,.34); --lap-ring: rgba(255,255,255,.22);
+}
 .gx .gx-lap { position: fixed; inset: 0; z-index: 300; display: flex; flex-direction: column; background: var(--bg); color: var(--text);
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; animation: gx-lap-in var(--d3) var(--e-out); }
 @keyframes gx-lap-in { from { opacity: 0; transform: translateY(12px); } }
@@ -25,6 +47,11 @@
 .gx .gx-lap-pedal[data-state="on"] { background: var(--brand); color: var(--onbrand); box-shadow: none; }
 .gx .gx-lap-pedal[data-state="idle"] { visibility: hidden; }
 .gx .gx-lap-mini { flex: none; display: block; }
+/* 한 바퀴 진행 막대: 위 줄 맨 아래 가는 선. 채움 = 내 차, 빈 원 = 옅은 차 */
+.gx .gx-lap-prog { position: absolute; left: var(--gutter); right: var(--gutter); bottom: -1px; height: 3px; border-radius: 2px; background: var(--fill2); pointer-events: none; }
+.gx .gx-lap-prog > i { position: absolute; inset: 0; border-radius: inherit; background: var(--text); transform-origin: 0 50%; transform: scaleX(0); }
+.gx .gx-lap-prog > b { position: absolute; top: 50%; left: 0; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: var(--bg); box-shadow: inset 0 0 0 2px var(--text3); opacity: 0; }
+.gx .gx-lap:is([data-phase="ready"], [data-phase="done"], [data-phase="practiceDone"], [data-phase="practice"]) .gx-lap-prog { visibility: hidden; }
 .gx .gx-lap-mini path { fill: none; stroke: var(--text3); stroke-width: 1.5; stroke-linejoin: round; }
 .gx .gx-lap-mini circle { fill: var(--f1); }
 
@@ -44,6 +71,19 @@
 .gx .gx-lap-msg-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,.22); }
 .gx .gx-lap-msg-bar > i { position: absolute; inset: 0; background: var(--onbrand); transform-origin: 0 50%; transform: scaleX(0); }
 [data-theme="dark"] .gx .gx-lap-msg-bar { background: rgba(0,0,0,.18); }
+
+/* 출발 반응 · 결승 기록: 무대 가운데 큰 숫자. 튀지 않고 260ms에 나타났다 사라진다 */
+.gx .gx-lap-big-react, .gx .gx-lap-big-finish { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 2px; padding: 14px 22px 12px; border-radius: 16px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent); box-shadow: 0 0 0 1px var(--line), 0 12px 32px rgba(16,18,24,.12); pointer-events: none; text-align: center; animation: gx-lap-fade var(--d3) var(--e-out); }
+.gx .gx-lap-big-react b, .gx .gx-lap-big-finish b { font-size: var(--t40); line-height: 1.1; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.gx .gx-lap-big-react span, .gx .gx-lap-big-finish span { color: var(--text2); }
+.gx .gx-lap-big-finish { top: 34%; max-width: calc(100% - 32px); }
+@keyframes gx-lap-fade { from { opacity: 0; } }
+/* 결과 지도 범례 */
+.gx .gx-lap-maplegend { position: absolute; left: var(--gutter); top: 12px; display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 999px; background: var(--bg); box-shadow: 0 0 0 1px var(--line); color: var(--text2); pointer-events: none; }
+.gx .gx-lap-maplegend i { width: 28px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, rgba(var(--lap-speed), .15), rgba(var(--lap-speed), 1)), var(--lap-asphalt); background-blend-mode: normal; box-shadow: inset 0 0 0 1px var(--line); }
+.gx .gx-lap-legend { display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; color: var(--text3); }
+.gx .gx-lap-legend i { width: 10px; height: 16px; border-radius: 3px; background: var(--lap-ghost); box-shadow: inset 0 0 0 1px var(--line); background-color: var(--lap-asphalt); background-image: linear-gradient(var(--lap-ghost), var(--lap-ghost)); }
 
 /* 시작 · 결과 · 멈춤 카드: 아래에 붙는 한 장 */
 .gx .gx-lap-card { position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; display: grid; gap: 16px; padding: 24px var(--gutter) calc(20px + var(--gx-sab)); background: var(--bg);
@@ -90,7 +130,7 @@
   .gx .gx-lap-stage { grid-column: 2; }
   .gx .gx-lap-card { left: auto; right: 16px; bottom: 12px; width: min(420px, calc(100% - 32px)); border-radius: var(--r-sheet); max-height: calc(100% - 24px); overflow: auto; padding-bottom: 16px; }
 }
-@media (prefers-reduced-motion: reduce) { .gx .gx-lap, .gx .gx-lap-card, .gx .gx-lap-share { animation: none; } .gx .gx-lap-pedal { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .gx .gx-lap, .gx .gx-lap-card, .gx .gx-lap-share, .gx .gx-lap-big-react, .gx .gx-lap-big-finish { animation: none; } .gx .gx-lap-pedal { transition: none; } }
 
 /* 목록 · 진입 줄의 작은 서킷 그림 */
 .gx .gx-lap-thumb { width: 44px; height: 44px; flex: none; border-radius: 12px; background: var(--fill); display: grid; place-items: center; color: var(--text); }

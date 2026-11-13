@@ -12,11 +12,12 @@ import { DIFFICULTY, DIFF_KEYS, diffOf } from './engine.js';
 //  car    차 모양       car: 위에서 본 F1 차 · dot: 점
 //  haptic 진동          off · on: 코스 이탈과 결승선
 //  home   홈 자리       below: 시간표 바로 아래 · bottom: 홈 맨 아래 · week: 경기 주간에만 시간표 아래, 그 밖에는 맨 아래
+//  pacer  기록이 없을 때  guide: 안내대로 달린 차가 옅게 같이 달림 · off
 //  motion 데모 전용      auto: 기기 설정을 따름 · reduce: 줄인 움직임으로 보기(조절 판에서 기기 설정 없이 비교하려고)
-export const LAP_DEFAULTS = Object.freeze({ diff: 'normal', tune: null, learn: 'coach', zone: 'bars', slip: 'ring', delta: 'corner', car: 'car', haptic: 'off', home: 'week', motion: 'auto' });
+export const LAP_DEFAULTS = Object.freeze({ diff: 'normal', tune: null, learn: 'coach', zone: 'bars', slip: 'ring', delta: 'corner', car: 'car', haptic: 'off', home: 'week', pacer: 'guide', motion: 'auto' });
 export const LAP_CHOICES = {
   diff: Object.keys(DIFFICULTY), learn: ['text', 'coach', 'practice'], zone: ['shade', 'bars', 'chevron'], slip: ['push', 'ring', 'marks'],
-  delta: ['off', 'corner', 'live'], car: ['car', 'dot'], haptic: ['off', 'on'], home: ['below', 'bottom', 'week'], motion: ['auto', 'reduce'],
+  delta: ['off', 'corner', 'live'], car: ['car', 'dot'], haptic: ['off', 'on'], home: ['below', 'bottom', 'week'], pacer: ['guide', 'off'], motion: ['auto', 'reduce'],
 };
 const KEY = 'gantry.lapDemo';
 
