@@ -15,6 +15,7 @@ const busy = new Set();
 
 // 못 보낸 기록이 있으면 보낸다. 돌려주는 것: 서버 답({ pid, week, all_ms, week_ms }) 또는 null
 export async function flushLap(id) {
+  if (import.meta.env.MODE === 'toss') return null;   // 빌드 때 상수로 접혀 토스 번들에는 아래(supabase-js 청크)가 들어가지 않는다
   if (!submitOn() || busy.has(id)) return null;
   const p = lapRecords()[id]?.pend; if (!p) return null;
   busy.add(id);
