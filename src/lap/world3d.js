@@ -4,7 +4,7 @@
 // 카메라에서 먼 것부터 그린다. 주변 풍경(관중석 · 피트 · 나무 · 건물 · 먼 스카이라인 · 광고 다리 · 마셜 · 런오프 심볼 · 구름 그림자)은
 // 계산으로 만든 장식이다. 실제 서킷의 배치가 아니다.
 // 흔들림 · 번쩍임은 없다. 빠를수록 소실점에서 바깥으로 땅이 흐려진다(줄인 움직임에서는 이 화면을 쓰지 않는다).
-// 움직이는 장식은 마셜 깃발(옅은 차가 뒤에 붙으면 파랑, 결승선에서 체크) · 관중석 깃발 · 구름 그림자뿐이고 모두 천천히 움직인다.
+// 움직이는 장식은 마셜 깃발(옅은 차가 뒤에 붙으면 파랑, 결승선에서 체크) · 관중석 깃발 · 피트 담 팀 사람들의 팔(결승 때) · 구름 그림자뿐이고 모두 천천히 움직인다.
 import { HALF_W } from './engine.js';
 import { prepWorld } from './world.js';
 import { MARK_FADE } from './fx.js';
@@ -29,6 +29,7 @@ export const SUN = (() => { const v = [0.32, 0.5, -0.8]; const l = Math.hypot(..
 const SH = [SUN[0] / -SUN[2], SUN[1] / -SUN[2]];   // 높이 1m당 그림자가 바닥에서 밀리는 거리
 export const CAR3 = 1.3;                             // 차를 실제보다 이만큼 크게(작은 화면에서 읽히게)
 const RUNOFF = 8;                                    // 상설 서킷: 흰 선 바깥 포장 런오프 폭
+const CREW_S = [-40, 14];                            // 피트 담의 팀 사람들이 서는 곳(출발선 기준 m). 이 사이에는 피트 월 스탠드를 두지 않는다
 
 // 레이싱 라인(+ 왼쪽, m): 길 안(±lim)에서 곡률 제곱합이 가장 작은 선. 실제 F1처럼 코너 앞 바깥 → 꼭짓점 안쪽 → 빠져나가며 바깥,
 // 곧은 길에서는 곧게 이어진다. 중심선 점마다 '양옆 두 점씩으로 본 매끈한 자리'(-1, 4, 4, -1)/6 쪽으로 옮기고 길 안으로 자르기를 되풀이한다.
@@ -223,7 +224,18 @@ export function prep3d(tk) {
   const clouds = [];
   for (let k = 0; k < 14; k += 1) { const r = 90 + R() * 130; const shape = []; for (let a = 0; a < 12; a += 1) shape.push(0.72 + R() * 0.45); clouds.push({ x: bx0 - 300 + R() * (bx1 - bx0 + 600), y: by0 - 300 + R() * (by1 - by0 + 600), r, shape }); }
   const wind = (() => { const a = R() * TAU; return [Math.cos(a) * 3.2, Math.sin(a) * 3.2]; })();
-  const out = { base, street, rl, rI, wl, wr, okL, okR, edgeL, edgeR, NX, NY, paint, infield, stand, pit, trees, blds, SKY, bumps, patches, boards, kerbF, marbles, hoard, marshals, lamps, pitLines, bridges, logos, clouds, wind };
+  // 피트 담의 팀 사람들: 결승선 앞 40m ~ 뒤 14m, 피트 담 바로 뒤에 두셋씩 모여 선다(결승선 마셜 자리는 비운다). 팀 옷 색은 다섯 가지 가운데 한 무리에 하나
+  // 따로 뽑는다(위 구름 · 바람 자리가 바뀌지 않게)
+  const crew = [];
+  { const Rc = rng(hash(`${tk.id}|crew`)); const s0 = Math.max(pit.s0 + 4, CREW_S[0]), s1 = Math.min(pit.s1 - 4, CREW_S[1]); let kit = Math.floor(Rc() * 5); let left = 0;
+    for (let sM = s0; sM < s1; sM += 0.75 + Rc() * 0.5) {
+      if (left <= 0) { sM += 1.6 + Rc() * 2.4; left = 2 + Math.floor(Rc() * 3); kit = (kit + 1 + Math.floor(Rc() * 3)) % 5; if (sM >= s1) break; }
+      const i = mod(Math.round(sM / ds), n);
+      if (Math.abs(sM + 4) < 1.4 || !(pit.side > 0 ? okL : okR)[i]) { left = 0; continue; }
+      crew.push({ s: sM, kit, h: 0.95 + Rc() * 0.1, up: 0.55 + Rc() * 0.45, ph: Rc() * TAU, late: Rc() * 0.25 }); left -= 1;
+    }
+  }
+  const out = { base, street, rl, rI, wl, wr, okL, okR, edgeL, edgeR, NX, NY, paint, infield, stand, pit, trees, blds, SKY, bumps, patches, boards, kerbF, marbles, hoard, marshals, lamps, pitLines, bridges, logos, clouds, wind, crew };
   cache.set(tk, out);
   return out;
 }
@@ -595,6 +607,14 @@ export function render3d(ctx, R) {
         if (!proj(cam, FX, FY, 2) || PZ > 330) continue; const dz = PZ; const fa = 1 - fogK(dz); if (fa <= 0.02) continue; const sx = PX;
         items.push({ z: dz, sx, half: (1.5 * cam.F) / dz, draw: () => marshalFig(ctx, cam, P, FX, FY, 1.0, tk.th[i0], pt.side, R.flags && R.flags.cheq ? 'cheq' : null, R.now / 1000, fa) });
       }
+      // 팀 사람들: 피트 담 바로 뒤. 마지막 320m부터(체크 깃발과 같은 때) 담 아래 턱에 올라서며 두 팔을 든다
+      if (!R.lite && P.crew && P.crew.length) for (const cr of W3.crew) for (const [a] of spans(runs, tk, wrapM(cr.s, tk.L), wrapM(cr.s, tk.L) + 0.01)) {
+        const i0 = mod(Math.round(a), n); const wv = (pt.side > 0 ? W3.wl : W3.wr)[i0];
+        if (!(pt.side > 0 ? W3.okL : W3.okR)[i0] || !wp(tk, W3, a, pt.side * (wv + 0.6) * q) || WCL) continue; const FX = WX, FY = WY;
+        if (!proj(cam, FX, FY, 1) || PZ > 220) continue; const dz = PZ; const fa = 1 - fogK(dz); if (fa <= 0.02) continue; const sx = PX;
+        const up = Math.max(0, Math.min(1, ((R.crewUp || 0) - cr.late) / (1 - cr.late))) * cr.up;
+        items.push({ z: dz + 2.5, sx, half: (1.2 * cam.F) / dz, draw: () => crewFig(ctx, cam, P, FX, FY, tk.th[i0], cr, up, R.now / 1000, fa) });   // 담 뒤: 담 조각보다 먼저 그려 담이 다리를 가린다
+      }
     }
     // 가로등(시가지): 기둥 + 길 위로 뻗은 팔 + 등
     for (const lp of W3.lamps) for (const [a] of spans(runs, tk, lp.s, lp.s + 0.01)) {
@@ -879,6 +899,30 @@ function marshalFig(ctx, cam, P, X, Y, z0, th, side, flag, t, fa) {
   ctx.globalAlpha = prevA;
 }
 
+// 피트 담의 팀 사람(팀 옷 · 어두운 바지 · 헤드셋): 길을 보고 선다. up(0~1)만큼 담 아래 턱에 올라서고 두 팔을 V로 든다(든 팔은 천천히 좌우로).
+// 마셜처럼 실제보다 1.3배
+function crewFig(ctx, cam, P, X, Y, th, cr, up, t, fa) {
+  const K = CAR3 * cr.h; const fX = Math.cos(th), fY = Math.sin(th);
+  const z0 = 0.45 * up; const arm = Math.min(1, up * 1.8); const ease = arm * arm * (3 - 2 * arm);
+  const pr = (x, y, z) => (proj(cam, x, y, z) ? [PX, PY, PZ] : null);
+  const foot = pr(X, Y, z0), hip = pr(X, Y, z0 + 0.92 * K), neck = pr(X, Y, z0 + 1.42 * K), head = pr(X, Y, z0 + 1.62 * K); if (!foot || !hip || !neck || !head) return;
+  const wpx = (m, d) => Math.max(1, (m * K * cam.F) / d);
+  const prevA = ctx.globalAlpha; ctx.globalAlpha = prevA * fa; ctx.lineCap = 'round';
+  const seg = (a, b, wM, col) => { ctx.strokeStyle = col; ctx.lineWidth = wpx(wM, a[2]); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); };
+  const kit = P.crew[cr.kit % P.crew.length];
+  seg(foot, hip, 0.3, P.headset); seg(hip, neck, 0.44, kit);
+  const sz = z0 + 1.36 * K; const sway = 0.07 * K * Math.sin(t * TAU * 1.05 + cr.ph) * ease;
+  for (const sd of [-1, 1]) {
+    const sh = pr(X + fX * sd * 0.19 * K, Y + fY * sd * 0.19 * K, sz); if (!sh) continue;
+    const along = sd * (0.1 + 0.32 * ease) * K + sway; const hz = sz + (-0.6 + 1.18 * ease) * K;
+    const hand = pr(X + fX * (sd * 0.19 * K + along), Y + fY * (sd * 0.19 * K + along), hz); if (hand) seg(sh, hand, 0.11, kit);
+  }
+  const hr = wpx(0.12, head[2]);
+  ctx.fillStyle = P.marshalHead; ctx.beginPath(); ctx.arc(head[0], head[1], hr, 0, TAU); ctx.fill();
+  if (hr > 2.2) { ctx.strokeStyle = P.headset; ctx.lineWidth = Math.max(1, hr * 0.35); ctx.beginPath(); ctx.arc(head[0], head[1], hr * 1.05, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke(); }
+  ctx.globalAlpha = prevA;
+}
+
 // 벽 한 조각: 콘크리트(코너 근처는 빨강 · 흰 줄) + 위 철망(옅은 면 · 기둥 · 윗줄)
 function wallSeg(ctx, cam, P, ax, ay, bx, by, wallH, fenceH, painted, j, post, fa, hoardOn, mark) {
   if (fa <= 0.02) return;
@@ -1090,6 +1134,7 @@ function blockItems(ctx, items, cam, tk, W3, runs, P, fogK, shadowPath, q, lite,
   const pt = W3.pit; const ps = pt.side;
   // 피트 월 스탠드: 피트 담 위 팀 자리(지붕 달린 작은 상자) 16m마다
   segs({ s0: pt.s0 + 20, s1: pt.s1 - 20 }, 16, (ja) => {
+    { let sR = wrapM(ja * tk.ds, tk.L); if (sR > tk.L / 2) sR -= tk.L; if (sR > CREW_S[0] - 3 && sR < CREW_S[1] + 3) return; }   // 결승선 앞뒤는 팀 사람들 자리
     const wv = (ps > 0 ? W3.wl : W3.wr)[mod(Math.round(ja), n)];
     if (!wp(tk, W3, ja, ps * (wv + 1.0) * q)) return; const X = WX, Y = WY; if (!proj(cam, X, Y, 1.2)) return; const depth = PZ; const fa = 1 - fogK(depth); if (fa <= 0.02 || depth > 400) return;
     const b = { x: X, y: Y, hx: 1.6, hy: 0.7, a: tk.th[mod(Math.round(ja), n)], h: 2.5 };

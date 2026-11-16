@@ -22,6 +22,7 @@
   --lap-booth: #2E333C; --lap-booth-shade: #23272F; --lap-panel: #0B0D10; --lap-lamp: #4A505A; --lap-lamp-head: #5A616D; --lap-lamp-head-on: #F4F7FF; --lap-lamp-glow: 235,240,255; --lap-night: 1;
   --lap-hoard: #0B0D10; --lap-hoard-mark: #E9EBEE;
   --lap-paint: rgba(255,255,255,.1); --lap-debris: rgba(150,156,166,.85); --lap-cloud-a: 0; --lap-marshal: #F07A2C; --lap-marshal-head: #9AA0AA; --lap-flag-pole: #8E949E; --lap-flag-blue: #3D74FF;
+  --lap-crew: #E9EBEE #24324F var(--f1) #6B717C #C9CDD4; --lap-headset: #07080A;
   --lap-led-g: #2FCB6A; --lap-led-b: #5A82FF;
 }
 [data-theme="light"] .gx .gx-lap, [data-plat="toss"] .gx .gx-lap {
@@ -44,6 +45,7 @@
   --lap-booth: #FFFFFF; --lap-booth-shade: #E3E6EA; --lap-panel: #14161C; --lap-lamp: #8C929C; --lap-lamp-head: #5A616D; --lap-lamp-head-on: #FFFFFF; --lap-lamp-glow: 235,240,255; --lap-night: 0;
   --lap-hoard: #14161C; --lap-hoard-mark: #FFFFFF;
   --lap-paint: rgba(16,18,24,.15); --lap-debris: rgba(226,229,234,.92); --lap-cloud-a: .09; --lap-marshal: #F26B1D; --lap-marshal-head: #3A3F47; --lap-flag-pole: #5A616D; --lap-flag-blue: #2459E8;
+  --lap-crew: #14161C #24324F var(--f1) #5A616D #3A3F47; --lap-headset: #07080A;
   --lap-led-g: #1FA855; --lap-led-b: #2F62F0;
 }
 .gx .gx-lap-boot { position: fixed; inset: 0; z-index: 300; background: var(--bg); }   /* 게임 코드를 받는 동안(처음 열 때 한 번) */
@@ -76,7 +78,7 @@
 /* 한 바퀴 진행 막대: 위 줄 맨 아래 가는 선. 채움 = 내 차, 빈 원 = 옅은 차 */
 .gx .gx-lap-prog { position: absolute; left: var(--gutter); right: var(--gutter); bottom: -1px; height: 3px; border-radius: 2px; background: var(--fill2); pointer-events: none; }
 .gx .gx-lap-prog > i { position: absolute; inset: 0; border-radius: inherit; background: var(--text); transform-origin: 0 50%; transform: scaleX(0); }
-.gx .gx-lap-prog > b { position: absolute; top: 50%; left: 0; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: var(--bg); box-shadow: inset 0 0 0 2px var(--text3); opacity: 0; }
+.gx .gx-lap-prog > b { position: absolute; top: 50%; left: 0; width: 9px; height: 9px; border-radius: 50%; background: var(--bg); box-shadow: inset 0 0 0 2px var(--text3); opacity: 0; }
 .gx .gx-lap:is([data-phase="ready"], [data-phase="done"], [data-phase="practiceDone"], [data-phase="practice"]) .gx-lap-prog { visibility: hidden; }
 .gx .gx-lap-mini path { fill: none; stroke: var(--text3); stroke-width: 1.5; stroke-linejoin: round; }
 .gx .gx-lap-mini circle { fill: var(--f1); }
@@ -224,3 +226,72 @@
 .gx .gx-lap-share img.is-story { aspect-ratio: 9 / 16; }
 .gx .gx-lap-share p { margin: 0; color: var(--text2); text-align: center; text-wrap: pretty; }
 .gx .gx-lap-share .gx-lap-acts { width: 100%; max-width: 440px; }
+
+/* ---------- 홈 카드(덱 바로 아래): 어두운 무대 위 서킷 그림 · 이번 주 1위 · 달려 보기. 점이 처음 한 번 서킷을 돈다 ---------- */
+.gx .gx-lap-promo-card { position: relative; display: flex; align-items: center; gap: 16px; width: calc(100% - 2 * var(--gutter)); margin: 0 var(--gutter) 16px; padding: 16px; border: 0; border-radius: var(--r-deck);
+  background: #14161C; color: #FFFFFF; font: inherit; text-align: left; cursor: pointer; overflow: hidden; }
+.gx .gx-lap-promo-card::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: #FFFFFF; opacity: 0; pointer-events: none; transition: opacity var(--d2) var(--e-std); }
+.gx .gx-lap-promo-card:active { transform: scale(.985); transition: transform var(--d1) var(--e-std); }
+.gx .gx-lap-promo-card:active::after { opacity: .06; }
+@media (hover: hover) and (pointer: fine) { .gx .gx-lap-promo-card:hover::after { opacity: .05; } }
+.gx .gx-lap-promo-map { position: relative; flex: none; width: 112px; height: 84px; }
+.gx .gx-lap-promo-map svg { display: block; }
+.gx .gx-lap-promo-map path { fill: none; stroke: rgba(255,255,255,.88); stroke-width: 2.2; stroke-linejoin: round; }
+.gx .gx-lap-promo-dot { position: absolute; left: 0; top: 0; width: 9px; height: 9px; border-radius: 50%; background: var(--f1); box-shadow: 0 0 0 2px #14161C; offset-distance: 0%; offset-rotate: 0deg; offset-anchor: 50% 50%; }
+.gx .gx-lap-promo.is-run .gx-lap-promo-dot { animation: gx-lap-promo-run 2800ms cubic-bezier(.35, 0, .25, 1) both; }
+@keyframes gx-lap-promo-run { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+.gx .gx-lap-promo-c { min-width: 0; flex: 1; display: grid; gap: 2px; }
+.gx .gx-lap-promo-k { color: rgba(255,255,255,.66); }
+.gx .gx-lap-promo-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gx .gx-lap-promo-l { font-variant-numeric: tabular-nums; }
+.gx .gx-lap-promo-s { color: rgba(255,255,255,.66); }
+.gx .gx-lap-promo-cta { justify-self: start; display: inline-flex; align-items: center; gap: 2px; margin-top: 8px; min-height: 36px; padding: 0 10px 0 14px; border-radius: 18px; background: #FFFFFF; color: #14161C; }
+.gx .gx-rail-card .gx-lap-promo-card { width: 100%; margin: 0 0 8px; flex-direction: column; align-items: flex-start; gap: 12px; }   /* 데스크톱 오른쪽 칸: 좁아서 그림 위 · 글 아래 */
+.gx .gx-rail-card .gx-lap-promo-c { width: 100%; }
+.gx .gx-rail-card .gx-lap-promo { padding-bottom: 8px; }
+/* 다크(기본)에서는 바탕보다 한 단계 밝게, 라이트 · 토스는 챔피언 카드와 같은 #14161C */
+.gx .gx-lap-promo-card { background: #1A1D24; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+[data-theme="light"] .gx .gx-lap-promo-card, [data-plat="toss"] .gx .gx-lap-promo-card { background: #14161C; box-shadow: none; }
+@media (prefers-reduced-motion: reduce) { .gx .gx-lap-promo.is-run .gx-lap-promo-dot { animation: none; } .gx .gx-lap-promo-card:active { transform: none; } }
+
+/* ---------- 순위표 ---------- */
+/* 준비 · 결과 카드의 한 줄(누르면 순위표) */
+.gx .gx-lap-brow-btn { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 56px; padding: 8px 8px 8px 14px; border: 0; border-radius: 12px; background: var(--fill); color: var(--text); font: inherit; text-align: left; cursor: pointer; position: relative; }
+.gx .gx-lap-brow-btn::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: currentColor; opacity: 0; pointer-events: none; transition: opacity var(--d2) var(--e-std); }
+.gx .gx-lap-brow-btn:active::after { opacity: .1; }
+@media (hover: hover) and (pointer: fine) { .gx .gx-lap-brow-btn:hover::after { opacity: .06; } }
+.gx .gx-lap-brow-btn .gx-row-c { flex: 1; min-width: 0; display: grid; gap: 1px; font-variant-numeric: tabular-nums; }
+.gx .gx-lap-brow-btn > svg { flex: none; color: var(--text3); }
+/* 순위표 화면(레이어 안 전체) */
+.gx .gx-lap-board { position: absolute; inset: 0; z-index: 6; display: flex; flex-direction: column; background: var(--bg); padding-bottom: var(--gx-sab); animation: gx-lap-in var(--d3) var(--e-out); }
+.gx .gx-lap-bhead { flex: none; display: flex; align-items: center; gap: 4px; height: calc(56px + env(safe-area-inset-top, 0px)); padding: env(safe-area-inset-top, 0px) 12px 0 4px; }
+.gx .gx-lap-bhead-t { min-width: 0; display: grid; }
+.gx .gx-lap-bhead h2 { margin: 0; }
+.gx .gx-lap-bseg { margin: 4px var(--gutter) 0; align-self: flex-start; }
+.gx .gx-lap-bsub { margin: 8px var(--gutter) 4px; color: var(--text2); }
+.gx .gx-lap-blist { position: relative; flex: 1; min-height: 0; margin: 0; padding: 0 0 8px; list-style: none; overflow-y: auto; overscroll-behavior: contain; }
+.gx .gx-lap-blist.is-out { flex: none; overflow: visible; padding: 0; border-top: 1px solid var(--line); }
+.gx .gx-lap-brow { display: grid; grid-template-columns: minmax(40px, auto) minmax(0, 1fr) auto 64px; align-items: center; gap: 8px; min-height: 48px; padding: 0 var(--gutter); font-variant-numeric: tabular-nums; }
+.gx .gx-lap-brow + .gx-lap-brow { box-shadow: inset 0 1px 0 var(--line); }
+.gx .gx-lap-brow.is-me { background: var(--fill); box-shadow: none; }
+.gx .gx-lap-brow.is-me + .gx-lap-brow { box-shadow: none; }
+.gx .gx-lap-brank { text-align: left; color: var(--text); }
+.gx .gx-lap-bname { color: var(--text); }
+.gx .gx-lap-bname .gx-lap-tag { font-style: normal; }
+.gx .gx-lap-btime { text-align: right; }
+.gx .gx-lap-bgap { text-align: right; color: var(--text2); }
+@media (max-width: 400px) {   /* 좁은 폰: 차이를 기록 아래로(이름 끝 숫자가 잘리지 않게) */
+  .gx .gx-lap-brow { grid-template-columns: minmax(32px, auto) minmax(0, 1fr) auto; grid-template-rows: auto auto; row-gap: 0; min-height: 52px; padding-top: 6px; padding-bottom: 6px; }
+  .gx .gx-lap-brank, .gx .gx-lap-bname { grid-row: 1 / span 2; }
+  .gx .gx-lap-btime { grid-column: 3; grid-row: 1; }
+  .gx .gx-lap-bgap { grid-column: 3; grid-row: 2; line-height: 16px; }
+}
+.gx .gx-lap-bempty { margin: 24px var(--gutter); color: var(--text2); text-wrap: pretty; }
+.gx .gx-lap-bnote { flex: none; margin: 0; padding: 12px var(--gutter) 16px; color: var(--text2); border-top: 1px solid var(--line); text-wrap: pretty; }
+@media (min-width: 900px) {
+  .gx .gx-lap-board { padding-top: 16px; }
+  .gx .gx-lap-board > * { width: 600px; max-width: 100%; margin-left: auto; margin-right: auto; box-sizing: border-box; }
+  .gx .gx-lap-board > .gx-lap-bsub, .gx .gx-lap-board > .gx-lap-bempty { padding: 0 var(--gutter); }
+  .gx .gx-lap-board > .gx-lap-bseg { width: auto; margin-left: max(var(--gutter), calc(50% - 300px + var(--gutter))); margin-right: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .gx .gx-lap-board { animation: none; } }

@@ -4,7 +4,8 @@
 import { demoClock } from '../demo/clock.js';
 import { prepareTrack, botLap, formatLap } from './engine.js';
 import { lapConfig, lapDiff, setLapConfig } from './config.js';
-import { LAP_TRACKS, openLap, closeLap, writeLapRecords } from './store.js';
+import { LAP_TRACKS, openLap, closeLap, openLapId, writeLapRecords } from './store.js';
+import { myPlayer, nameOf, resetPlayer } from './player.js';
 
 const api = {};
 export function demoApi() { return demoClock.enabled ? api : null; }
@@ -16,7 +17,12 @@ if (demoClock.enabled && typeof window !== 'undefined') {
     close: () => closeLap(),
     config: (patch) => setLapConfig(patch || {}),
     getConfig: () => ({ ...lapConfig(), numbers: lapDiff() }),
-    clear: () => writeLapRecords({}),
+    // 기록 지우기: 순위표의 나(이름)도 지워 처음 온 사람으로. 레이어가 열려 있으면 다시 열어 화면 속 최고 기록도 비운다
+    clear: () => { const o = openLapId(); writeLapRecords({}); resetPlayer(); if (o) { closeLap(); setTimeout(() => openLap(o), 30); } },
+    // 새 이름으로(기록은 그대로)
+    newName: () => { resetPlayer(); return true; },
+    // 지금 이 기기의 나: { id, name }
+    player: () => { const p = myPlayer(false); return p ? { id: p.id, ko: nameOf(p.id, 'ko'), en: nameOf(p.id, 'en') } : null; },
     // 지금 숫자로 계산: 안내대로(진한 구간에서 손을 뗌) · 누르기만. id를 안 주면 13곳 모두
     sim: (id) => {
       const D = lapDiff();

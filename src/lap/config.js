@@ -11,7 +11,8 @@ import { DIFFICULTY, DIFF_KEYS, diffOf } from './engine.js';
 //  delta  최고 기록과의 차이   off · corner: 코너를 지날 때마다 · live: 계속
 //  car    차 모양       car: 위에서 본 F1 차 · dot: 점
 //  haptic 진동          off · on: 코스 이탈과 결승선. 기본은 웹 off(iOS Safari는 진동이 없다) · 토스 on(Device.triggerHaptic)
-//  home   홈 자리       below: 시간표 바로 아래 · bottom: 홈 맨 아래 · week: 경기 주간에만 시간표 아래, 그 밖에는 맨 아래
+//  home   홈 자리       top: 내 주말 덱 바로 아래 큰 카드(늘) · below: 시간표 바로 아래 줄 · bottom: 홈 맨 아래 줄 · week: 경기 주간에만 시간표 아래 줄, 그 밖에는 맨 아래(v3)
+//  board  데모 전용 순위표  sample: 계산으로 만든 다른 사람 기록 + 내 기록 · empty: 내 기록만(아직 아무도 안 달린 주). 실서비스 빌드는 다른 사람 기록을 만들지 않는다
 //  pacer  기록이 없을 때  guide: 안내대로 달린 차가 옅게 같이 달림 · off
 //  pace   빠르기       게임 시간이 실제 시간보다 몇 배 빨리 가는지. 1 · 1.3 · 1.6 · 2. 기록은 게임 시간(실제 랩 타임 같은 숫자), 한 바퀴에 실제로 걸리는 시간만 줄어든다
 //  line   레이싱 라인   rubber: 길에 남은 고무 자국만 · guide: 차 앞 220m에 안내 선(손을 떼는 구간은 빨강)
@@ -21,10 +22,10 @@ import { DIFFICULTY, DIFF_KEYS, diffOf } from './engine.js';
 //  finish 결승 카메라   tv: 결승선을 지나면 길가 TV 카메라 한 장면 · chase: 차 뒤 카메라 그대로(v3)
 //  view   화면         3d: 차 뒤 위에서 앞을 내려다봄(원근) · top: 위에서 내려다봄(v2). 줄인 움직임이면 언제나 top
 //  motion 데모 전용      auto: 기기 설정을 따름 · reduce: 줄인 움직임으로 보기(조절 판에서 기기 설정 없이 비교하려고)
-export const LAP_DEFAULTS = Object.freeze({ diff: 'normal', tune: null, learn: 'coach', zone: 'bars', slip: 'ring', delta: 'corner', car: 'car', haptic: import.meta.env.MODE === 'toss' ? 'on' : 'off', home: 'week', pacer: 'guide', view: '3d', pace: '1.6', line: 'rubber', pedal: 'both', sound: 'on', rev: 'on', finish: 'tv', motion: 'auto' });
+export const LAP_DEFAULTS = Object.freeze({ diff: 'normal', tune: null, learn: 'coach', zone: 'bars', slip: 'ring', delta: 'corner', car: 'car', haptic: import.meta.env.MODE === 'toss' ? 'on' : 'off', home: 'top', pacer: 'guide', view: '3d', pace: '1.6', line: 'rubber', pedal: 'both', sound: 'on', rev: 'on', finish: 'tv', board: 'sample', motion: 'auto' });
 export const LAP_CHOICES = {
   diff: Object.keys(DIFFICULTY), learn: ['text', 'coach', 'practice'], zone: ['shade', 'bars', 'chevron'], slip: ['push', 'ring', 'marks'],
-  delta: ['off', 'corner', 'live'], car: ['car', 'dot'], haptic: ['off', 'on'], home: ['below', 'bottom', 'week'], pacer: ['guide', 'off'], view: ['3d', 'top'], pace: ['1', '1.3', '1.6', '2'], line: ['rubber', 'guide'], pedal: ['both', 'only', 'off'], sound: ['on', 'off'], rev: ['on', 'off'], finish: ['tv', 'chase'], motion: ['auto', 'reduce'],
+  delta: ['off', 'corner', 'live'], car: ['car', 'dot'], haptic: ['off', 'on'], home: ['top', 'below', 'bottom', 'week'], pacer: ['guide', 'off'], view: ['3d', 'top'], pace: ['1', '1.3', '1.6', '2'], line: ['rubber', 'guide'], pedal: ['both', 'only', 'off'], sound: ['on', 'off'], rev: ['on', 'off'], finish: ['tv', 'chase'], board: ['sample', 'empty'], motion: ['auto', 'reduce'],
 };
 const KEY = 'gantry.lapDemo';
 

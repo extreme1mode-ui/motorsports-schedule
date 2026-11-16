@@ -1,5 +1,5 @@
 // '서킷 한 바퀴' 목록(달릴 수 있는 서킷 전부, 라운드 순) + 홈·상세의 진입 줄.
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import '../screens2/screens2.css';
 import './lap.css';
 import { useFormat } from '../use-format.js';
@@ -14,6 +14,7 @@ import { formatLap } from './engine.js';
 import { LAP_TRACKS, lapTrackOfRace, outlinePath, openLap, useLapRecords } from './store.js';
 import { isThisWeek } from './place.js';
 import { preloadLapGame } from './load-game.js';
+import { useBoard, boardOf } from './board.js';
 
 const cx = (...list) => list.filter(Boolean).join(' ');
 
@@ -30,6 +31,9 @@ export function LapHub({ desktop = false, now }) {
   const fmt = useFormat(); const tr = useT();
   const rec = useLapRecords();
   const done = LAP_TRACKS.filter((t) => rec[t.id]?.best != null).length;
+  // 이번 주 내 순위(달린 서킷만)
+  const minute = Math.floor(+now / 60000);
+  const ranks = useMemo(() => Object.fromEntries(LAP_TRACKS.filter((t) => rec[t.id]?.wk).map((t) => [t.id, boardOf(t.id, 'week', minute * 60000 + 59999, rec).me?.rank])), [rec, minute]);
   return (
     <div className={cx('gx-screen gx-lap-hub', desktop && 'is-desk')}>
       <div className="gx-tab-top gx-lap-hub-top">
@@ -48,7 +52,7 @@ export function LapHub({ desktop = false, now }) {
               <span className="gx-row-s gx-t13">{joinDot([L.country, tr('lap.turns', { n: t.turns })])}</span>
             </span>
             {r?.best != null
-              ? <span className="gx-row-r"><span className="gx-t15 gx-w600">{formatLap(r.best)}</span><span className="gx-t13 gx-sub">{tr('lap.runs', { n: r.runs || 1 })}</span></span>
+              ? <span className="gx-row-r"><span className="gx-t15 gx-w600">{formatLap(r.best)}</span><span className="gx-t13 gx-sub">{ranks[t.id] ? tr('lap.board.weekRank', { n: ranks[t.id] }) : tr('lap.runs', { n: r.runs || 1 })}</span></span>
               : <Icon n="chev" s={20} />}
           </button>
         );
@@ -58,15 +62,57 @@ export function LapHub({ desktop = false, now }) {
   );
 }
 
-// 홈: 다가오는 경기 중 달릴 수 있는 첫 서킷(없으면 아직 안 달린 서킷, 다 달렸으면 첫 서킷) 한 줄 + '모든 서킷'
+// 홈에서 보여 줄 서킷: 다가오는 경기 중 달릴 수 있는 첫 서킷(없으면 아직 안 달린 서킷, 다 달렸으면 첫 서킷)
+function lapPick(races, now, rec) {
+  const alive = (races || []).filter((r) => !isCancelled(r) && !['done', 'cancelled'].includes(getRaceState(r, now)));
+  for (const r of alive) { const t = lapTrackOfRace(r); if (t) return { t, upcoming: true, week: isThisWeek(r, now) }; }
+  return { t: LAP_TRACKS.find((t) => rec[t.id]?.best == null) || LAP_TRACKS[0], upcoming: false, week: false };
+}
+
+// 홈 맨 위(내 주말 덱 바로 아래) 카드: 그 서킷 그림 · 이번 주 1위(또는 내 순위) · '달려 보기'.
+// 카드가 처음 화면에 보일 때 한 번, 빨간 점이 서킷을 한 바퀴 돈다(2.8초, 줄인 움직임이면 없음)
+export function LapPromo({ races, now }) {
+  const fmt = useFormat(); const tr = useT(); const shell = useShell();
+  const rec = useLapRecords();
+  const pick = useMemo(() => lapPick(races, now, rec), [races, now, rec]);
+  const b = useBoard(pick.t?.id, 'week', now);
+  const d = useMemo(() => (pick.t ? outlinePath(pick.t.id, 112, 84, 8) : ''), [pick.t]);
+  const ref = useRef(null); const [run, setRun] = useState(false);
+  useEffect(() => {
+    const el = ref.current; if (!el || run) return undefined;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches || typeof window.IntersectionObserver === 'undefined') return undefined;
+    const io = new window.IntersectionObserver((es) => { if (es.some((e) => e.intersectionRatio >= 0.6)) { setRun(true); io.disconnect(); } }, { threshold: [0.6] });
+    io.observe(el); return () => io.disconnect();
+  }, [run]);
+  if (!pick.t) return null;
+  const { t, upcoming, week } = pick; const L = fmt.race(t.race);
+  const line = b?.me ? `${tr('lap.board.myRank', { n: b.me.rank })} · ${formatLap(b.me.ms)}`
+    : b?.top ? tr('lap.board.top', { time: formatLap(b.top.ms) }) : tr(upcoming ? 'lap.home.before' : 'lap.home.try');
+  return (
+    <section className={cx('gx-lap-promo', run && 'is-run')} ref={ref} aria-labelledby="gx-lap-promo-h">
+      <ListHeader id="gx-lap-promo-h" title={tr('lap.title')} action={tr('lap.all')} onAction={() => { track('lap_hub_opened', { source: 'home' }); shell.push({ t: 'laps' }); }} />
+      <button type="button" className="gx-lap-promo-card" {...WARM} onClick={() => open(t.id, 'promo')}>
+        <span className="gx-lap-promo-map" aria-hidden="true">
+          <svg width="112" height="84" viewBox="0 0 112 84"><path d={d} /></svg>
+          <i className="gx-lap-promo-dot" style={{ offsetPath: `path('${d}')` }} />
+        </span>
+        <span className="gx-lap-promo-c">
+          <span className="gx-t13 gx-lap-promo-k">{week ? tr('lap.hub.week') : L.country}</span>
+          <span className="gx-t17 gx-w600 gx-lap-promo-t">{L.circuit}</span>
+          <span className="gx-t15 gx-lap-promo-l">{line}</span>
+          {b?.count > 1 && <span className="gx-t13 gx-lap-promo-s">{tr('lap.promo.count', { n: b.count.toLocaleString(fmt.locale) })}</span>}
+          <span className="gx-lap-promo-cta gx-t15 gx-w600">{tr('lap.promo.cta')}<Icon n="chev" s={18} /></span>
+        </span>
+      </button>
+    </section>
+  );
+}
+
+// 홈 줄(자리 시안 below · bottom · week): 그 서킷 한 줄 + '모든 서킷'
 export function LapHome({ races, now }) {
   const fmt = useFormat(); const tr = useT(); const shell = useShell();
   const rec = useLapRecords();
-  const pick = useMemo(() => {
-    const alive = (races || []).filter((r) => !isCancelled(r) && !['done', 'cancelled'].includes(getRaceState(r, now)));
-    for (const r of alive) { const t = lapTrackOfRace(r); if (t) return { t, upcoming: true, week: isThisWeek(r, now) }; }
-    return { t: LAP_TRACKS.find((t) => rec[t.id]?.best == null) || LAP_TRACKS[0], upcoming: false, week: false };
-  }, [races, now, rec]);
+  const pick = useMemo(() => lapPick(races, now, rec), [races, now, rec]);
   if (!pick.t) return null;
   const { t, upcoming, week } = pick; const L = fmt.race(t.race); const r = rec[t.id];
   // 시즌이 끝나 다가오는 경기가 없을 때: 아직 안 달린 서킷 수

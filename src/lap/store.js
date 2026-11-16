@@ -38,12 +38,14 @@ const subs = new Set();
 let snap = null;
 const read = () => { if (!snap) { const v = storage.lap.read(); snap = v && typeof v === 'object' ? v : {}; } return snap; };
 export function lapRecords() { return read(); }
-export function saveLap(id, { ms, react, ghost }) {
+// wkKey: 이번 주 key(board.js weekOf). 이번 주 가장 빠른 기록을 따로 둔다(순위표 '이번 주')
+export function saveLap(id, { ms, react, ghost, wkKey = null }) {
   const all = { ...read() }; const prev = all[id] || null;
   const best = !prev || ms < prev.best;
+  const wk = wkKey ? (prev?.wk && prev.wk.key === wkKey && prev.wk.ms <= ms ? prev.wk : { key: wkKey, ms }) : prev?.wk;
   all[id] = best
-    ? { best: ms, react, runs: (prev?.runs || 0) + 1, at: new Date().toISOString(), ghost }
-    : { ...prev, runs: (prev.runs || 0) + 1 };
+    ? { best: ms, react, runs: (prev?.runs || 0) + 1, at: new Date().toISOString(), ghost, ...(wk ? { wk } : {}) }
+    : { ...prev, runs: (prev.runs || 0) + 1, ...(wk ? { wk } : {}) };
   snap = all; storage.lap.write(all);
   subs.forEach((fn) => fn());
   return { best, prev: prev ? prev.best : null };
@@ -62,4 +64,5 @@ export function openLap(id) { if (BY_ID.has(id)) { preloadLapGame(); openId = id
 export function closeLap() { openId = null; openSubs.forEach((fn) => fn()); }
 const subOpen = (fn) => { openSubs.add(fn); return () => openSubs.delete(fn); };
 const getOpen = () => openId;
+export const openLapId = getOpen;
 export function useOpenLap() { return useSyncExternalStore(subOpen, getOpen, getOpen); }

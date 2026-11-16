@@ -18,6 +18,9 @@ import { drawCar, carColors, steerOf } from './car.js';
 import { prepWorld, buildView, drawGround, drawTrack, drawStartMarks, drawGantry, drawBoards } from './world.js';
 import { newFx, carryFx, addDebris, addMarks, breakMarks, addPuff, drawMarks, drawPuffs, drawStreaks } from './fx.js';
 import { createEngine, revLeds } from './gearbox.js';
+import { LapBoard } from './LapBoard.jsx';
+import { boardOf, weekOf, useBoard } from './board.js';
+import { myPlayer, nameOf } from './player.js';
 import { prep3d, camera as camera3, render3d, labels3d, rlAt, wallAtS, kerbAtS, CAR3, addSparks, STREET } from './world3d.js';
 import { createLapSound, renderLog, renderScenes, wavBytes } from './sound.js';
 import { GHOST_EVERY, timeAt, posAt, compareSectors, offCorners, zonesOf, simLap } from './analysis.js';
@@ -80,6 +83,11 @@ function LapGame({ id, onClose }) {
   const [firstRun, setFirstRun] = useState(() => isFirstVisit());
   const [card, setCard] = useState(null);          // { fmt, url, canvas, note }
   const [demoCard, setDemoCard] = useState(null);  // 데모 바로 가기 전용 { f, n }
+  const [board, setBoard] = useState(null);        // 순위표: null · 'week' · 'all'
+  const boardFrom = useRef(null);
+  const wkBoard = useBoard(id, 'week', Date.now());
+  const openBoard = (e, p = 'week') => { boardFrom.current = e?.currentTarget || null; setBoard(p); };
+  const closeBoard = () => { setBoard(null); setTimeout(() => boardFrom.current?.focus?.({ preventScroll: true }), 0); };
   const lockRef = useRef(null); const primary = useRef(null); const cardRef = useRef(null);
 
   const root = useRef(null); const canvas = useRef(null);
@@ -156,12 +164,16 @@ function LapGame({ id, onClose }) {
     const prev = lapRecords()[id] || null;
     const cmp = prev?.ghost ? compareSectors(tkk, s.ghost, prev.ghost, ms / 1000, prev.best / 1000) : null;
     const offList = offCorners(tkk, run.offAt);
-    const saved = saveLap(id, { ms, react: Math.round(s.react), ghost: s.ghost.map((v) => Math.round(v)) });
+    // 순위표: 처음 끝까지 달리면 이름(나)을 만들고, 이번 주 순위가 저장 전후로 어떻게 바뀌었는지
+    const before = boardOf(id, 'week').me; myPlayer(true);
+    const saved = saveLap(id, { ms, react: Math.round(s.react), ghost: s.ghost.map((v) => Math.round(v)), wkKey: weekOf(Date.now()).key });
+    const after = boardOf(id, 'week');
     if (saved.best) { s.best = s.ghost.slice(); setBest(ms); }
     s.resultMarks = { offAt: run.offAt.slice(), sector: saved.best ? cmp?.gained : cmp?.lost, ghost: s.ghost.slice() };
     trackEvent('lap_finished', { track: id, ms, offs: run.offCount, best: saved.best });
     buzz('finish'); snd.current.event('finish', { best: !!saved.best });
-    setResult({ ms, react: Math.round(s.react), vmax: Math.round(run.vmax * 3.6), offs: run.offCount, offList, cmp, isBest: saved.best, prev: saved.prev });
+    setResult({ ms, react: Math.round(s.react), vmax: Math.round(run.vmax * 3.6), offs: run.offCount, offList, cmp, isBest: saved.best, prev: saved.prev,
+      rank: after.me ? { n: after.me.rank, count: after.count, before: before ? before.rank : null, pid: after.me.pid } : null });
     setFirstRun(false); setDelta(null);
     // 결승선을 지난 뒤: 차가 속도를 줄이며 1.5초 굴러가는 동안 가운데 큰 기록 → 서킷 전체와 결과 카드
     if (instant) { s.coast = null; setP('done'); return; }
@@ -198,7 +210,7 @@ function LapGame({ id, onClose }) {
 
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === 'Escape') { e.stopPropagation(); if (card) setCard(null); else onClose(); return; }
+      if (e.key === 'Escape') { e.stopPropagation(); if (board) closeBoard(); else if (card) setCard(null); else onClose(); return; }
       if (e.key !== ' ' && e.key !== 'ArrowUp') return;
       if (!PRESSABLE.has(g.current.phase)) return;   // 준비 · 결과 · 멈춤에서는 버튼이 스페이스를 받는다
       e.preventDefault();
@@ -207,7 +219,7 @@ function LapGame({ id, onClose }) {
     };
     window.addEventListener('keydown', onKey, true); window.addEventListener('keyup', onKey, true);
     return () => { window.removeEventListener('keydown', onKey, true); window.removeEventListener('keyup', onKey, true); };
-  }, [press, onClose, card]);
+  }, [press, onClose, card, board]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { trackEvent('lap_opened', { track: id }); return () => clearTimers(); }, [id]);
   // 카드가 뜨면 주 버튼으로 포커스(스페이스 · 엔터로 바로 누를 수 있게)
   useEffect(() => { if (!PRESSABLE.has(phase)) primary.current?.focus({ preventScroll: true }); }, [phase, firstRun]);
@@ -219,7 +231,7 @@ function LapGame({ id, onClose }) {
     const at = (sPos, v, extra = {}) => { s.run = { ...newRun(), s: sPos, v, ...extra }; s.frozen = true; s.down = true; s.react = 280; s.reactUntil = 0; s.cam = null; };
     const fakeRecord = (late, react) => {
       const r = simLap(s.tk, { late, react }); const ms = Math.round((r.react + r.run.t) * 1000);
-      return { best: ms, react: Math.round(react * 1000), runs: 3, at: new Date().toISOString(), ghost: r.ghost.map((v) => Math.round(v)) };
+      return { best: ms, react: Math.round(react * 1000), runs: 3, at: new Date().toISOString(), ghost: r.ghost.map((v) => Math.round(v)), wk: { key: weekOf(Date.now()).key, ms } };
     };
     const finishWith = (late, react) => {
       const r = simLap(s.tk, { late, react }); clearTimers(); resetRun();
@@ -247,7 +259,7 @@ function LapGame({ id, onClose }) {
       // 상태 바로 가기. 그림을 남기려고 멈춘 채로 둔다(누르면 이어서 달린다)
       state: (name) => {
         const z = s.zones; const ix = (sp) => Math.floor(wrapS(sp, s.tk.L) / s.tk.ds) % s.tk.n;
-        setCard(null); setDelta(null);
+        setCard(null); setDelta(null); setBoard(null);
         if (name === 'ready') { clearTimers(); resetRun(false); setLit(0); setP('ready'); }
         else if (name === 'lights') { clearTimers(); resetRun(false); setLit(3); setP('lights'); }
         else if (name === 'jump') { clearTimers(); resetRun(false); setLit(0); setP('wait'); }
@@ -282,6 +294,8 @@ function LapGame({ id, onClose }) {
         else if (name === 'result-best' || name === 'card' || name === 'card-story') {
           const rec = fakeRecord(30, 0.41); writeLapRecords({ ...lapRecords(), [id]: rec }); s.best = rec.ghost; setBest(rec.best); finishWith(0, 0.27);
           if (name !== 'result-best') setDemoCard((d) => ({ f: name === 'card-story' ? 'story' : 'post', n: (d?.n || 0) + 1 }));
+        } else if (name === 'board' || name === 'board-all') {   // 순위표: 이번 주 처음 올라간 결과 위에 연다
+          const rec = fakeRecord(30, 0.41); writeLapRecords({ ...lapRecords(), [id]: rec }); s.best = rec.ghost; setBest(rec.best); finishWith(0, 0.27); setBoard(name === 'board' ? 'week' : 'all');
         } else if (name === 'result-slower') { const rec = fakeRecord(0, 0.27); writeLapRecords({ ...lapRecords(), [id]: rec }); s.best = rec.ghost; setBest(rec.best); finishWith(30, 0.38); }
         return s.phase;
       },
@@ -317,7 +331,8 @@ function LapGame({ id, onClose }) {
         shadowRGB: t('shadow-rgb'), envShadowA: t('env-shadow-a'), ghostSolid: t('ghost-solid'), ghostA: Number(t('ghost-a')) || 0.4,
         marble: t('marble'), kerbLip: t('kerb-lip'), ao: t('ao'), gravelDot3: t('gravel-dot3'), guide: t('guide'), booth: t('booth'), boothShade: t('booth-shade'), panel: t('panel'),
         lamp: t('lamp'), lampHead: t('lamp-head'), lampHeadOn: t('lamp-head-on'), lampGlowRGB: t('lamp-glow'), night: Number(t('night')) === 1, hoard: t('hoard'), hoardMark: t('hoard-mark'),
-        paint: t('paint'), debris: t('debris'), cloudA: Number(t('cloud-a')) || 0, marshal: t('marshal'), marshalHead: t('marshal-head'), flagPole: t('flag-pole'), flagBlue: t('flag-blue') });
+        paint: t('paint'), debris: t('debris'), cloudA: Number(t('cloud-a')) || 0, marshal: t('marshal'), marshalHead: t('marshal-head'), flagPole: t('flag-pole'), flagBlue: t('flag-blue'),
+        crew: t('crew').split(/\s+/).filter(Boolean), headset: t('headset') });
       s.colors.car3d = { body: css(el, '--f1'), carbon: t('carbon'), tyre: t('tyre-car'), rim: t('rim'), white: '#F4F5F7', rain: t('rain-off'), cockpit: '#0B0C0F', glass: t('mirror') };
       s.theme = themeKey();
     };
@@ -565,6 +580,8 @@ function LapGame({ id, onClose }) {
         const moving = (s.phase === 'run' || s.phase === 'practice') && !s.frozen;
         s.rain += ((moving && !s.down ? 1 : 0) - s.rain) * Math.min(1, fdt / 0.15);
         { const ct = s.phase === 'finish' ? 1 : 0; s.cheer = (s.cheer || 0) + (ct - (s.cheer || 0)) * Math.min(1, fdt / (ct > (s.cheer || 0) ? 0.35 : 1.2)); }
+        // 피트 담 팀 사람들: 결승선 마셜이 체크 깃발을 드는 때(마지막 320m)부터 담에 올라 팔을 든다
+        { const ct = s.flagTest === 'cheq' || (s.phase === 'run' && tk.L - run.s < 320) || s.phase === 'finish' ? 1 : 0; s.crewUp = (s.crewUp || 0) + (ct - (s.crewUp || 0)) * Math.min(1, fdt / (ct > (s.crewUp || 0) ? 0.35 : 1.2)); }
         const kv = smooth01(vv / 94);
         let T;
         if (over) {
@@ -661,7 +678,7 @@ function LapGame({ id, onClose }) {
           blur: mix > 0.9 && !tvOn && (s.phase === 'run' || s.phase === 'finish') ? smooth01((vv * TS - 70) / 60) : 0,   // 화면에서 흐르는 빠르기(게임 속도 × 빠르기) 기준
           // 깃발: 옅은 차가 뒤에 30m 안으로 붙으면 앞쪽 마셜이 파랑, 결승선 320m 앞부터 결승선 마셜이 체크. 관중은 결승 때 일어선다
           flags: s.flagTest ? { blue: s.flagTest === 'blue', cheq: s.flagTest === 'cheq' } : { blue: s.phase === 'run' && !!ghostSnd && ghostSnd.d < -2 && ghostSnd.d > -30, cheq: (s.phase === 'run' && tk.L - run.s < 320) || s.phase === 'finish' },
-          cheer: s.cheer || 0,
+          cheer: s.cheer || 0, crewUp: s.crewUp || 0,
           far: mix > 0.5 ? 1500 : 1e9, fog: mix > 0.3 ? [230 + (1 - mix) * 4000, 1000 + (1 - mix) * 8000] : null,
           overlay: mix < 0.3 ? () => drawOverlays(w2s3, Math.max(2 * HALF_W * pxm, 6), pxm, 0, true) : null };
         render3d(ctx, R);
@@ -972,6 +989,11 @@ function LapGame({ id, onClose }) {
                 {learn === 'practice' ? <li><i className="is-flag" />{tr('lap.how.practice')}</li> : <li><i className="is-light" />{tr('lap.how.lights')}</li>}
               </ul>
             )}
+            <button type="button" className="gx-lap-brow-btn" onClick={(e) => openBoard(e)}>
+              <span className="gx-row-c"><span className="gx-t15 gx-w600">{wkBoard?.top ? tr('lap.board.top', { time: formatLap(wkBoard.top.ms) }) : tr('lap.board.first')}</span>
+                {wkBoard?.me && <span className="gx-t13 gx-sub">{tr('lap.board.myRank', { n: wkBoard.me.rank })}</span>}</span>
+              <span className="gx-t15 gx-sub">{tr('lap.board.title')}</span><Icon n="chev" s={20} />
+            </button>
             {learn === 'practice'
               ? <div className="gx-lap-acts is-col"><button type="button" ref={primary} className="gx-btn is-primary is-full" onClick={startPractice}>{tr('lap.practice')}</button><button type="button" className="gx-textbtn gx-t15 gx-lap-skip" onClick={startLights}>{tr('lap.skip')}</button></div>
               : <button type="button" ref={primary} className="gx-btn is-primary is-full" onClick={startLights}>{tr('lap.start')}</button>}
@@ -999,6 +1021,15 @@ function LapGame({ id, onClose }) {
               <span className={`gx-t15 gx-lap-verdict${result.isBest && result.prev != null ? ' is-best' : ''}`}>{verdict}</span>
             </div>
             {insight && <p className="gx-lap-insight gx-t15">{insight}</p>}
+            {result.rank && (
+              <button type="button" className="gx-lap-brow-btn is-rank" onClick={(e) => openBoard(e)}>
+                <span className="gx-row-c">
+                  <span className="gx-t17 gx-w600"><Roll>{tr('lap.board.weekRank', { n: result.rank.n })}</Roll><span className="gx-t13 gx-sub"> {tr('lap.board.of', { n: result.rank.count.toLocaleString(fmt.locale) })}</span></span>
+                  <span className="gx-t13 gx-sub">{[nameOf(result.rank.pid, fmt.locale), result.rank.before == null ? tr('lap.board.joined') : result.rank.before > result.rank.n ? tr('lap.board.up', { n: result.rank.before }) : null].filter(Boolean).join(' · ')}</span>
+                </span>
+                <span className="gx-t15 gx-sub">{tr('lap.board.title')}</span><Icon n="chev" s={20} />
+              </button>
+            )}
             <dl className="gx-lap-stats">
               <div><dt className="gx-t13">{tr('lap.stat.react')}</dt><dd className="gx-t17 gx-w600">{tr('lap.stat.reactV', { sec: (result.react / 1000).toFixed(3) })}</dd></div>
               <div><dt className="gx-t13">{tr('lap.stat.vmax')}</dt><dd className="gx-t17 gx-w600">{result.vmax}km/h</dd></div>
@@ -1029,6 +1060,7 @@ function LapGame({ id, onClose }) {
           </div>
         </div>
       )}
+      {board && <LapBoard key={board} id={id} circuit={L.circuit} start={board} onClose={closeBoard} />}
     </div>
   );
 }
