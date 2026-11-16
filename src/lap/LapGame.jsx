@@ -1032,7 +1032,9 @@ function LapGame({ id, onClose }) {
 
         {phase === 'ready' && (
           <section className="gx-lap-card is-ready" ref={cardRef} aria-labelledby="gx-lap-h">
-            {/* 기록 세 칸: 내 최고 · 이번 주 내 순위 · 이번 주 1위(마리오 카트 타임 어택의 기록 · 목표처럼). 누르면 순위표 */}
+            {/* 기록 세 칸: 내 최고 · 이번 주 내 순위 · 이번 주 1위(마리오 카트 타임 어택의 기록 · 목표처럼). 누르면 순위표.
+                짧은 화면에서는 위 내용만 카드 안에서 넘기고 출발 버튼은 늘 보인다(소개 장면이 위에 남게) */}
+            <div className="gx-lap-scroll">
             <div className="gx-lap-tiles-h"><span className="gx-t15 gx-w600">{tr('lap.tile.title')}</span>
               <button type="button" className="gx-textbtn gx-t15 gx-lap-more" onClick={(e) => openBoard(e)}>{tr('lap.board.title')}<Icon n="chev" s={18} /></button></div>
             <dl className="gx-lap-tiles">
@@ -1051,10 +1053,11 @@ function LapGame({ id, onClose }) {
                 {learn === 'practice' ? <li><i className="is-flag" />{tr('lap.how.practice')}</li> : <li><i className="is-light" />{tr('lap.how.lights')}</li>}
               </ul>
             )}
+            {learn && <p className="gx-t13 gx-ter">{tr('lap.note')}</p>}
+            </div>
             {learn === 'practice'
               ? <div className="gx-lap-acts is-col"><button type="button" ref={primary} className="gx-btn is-primary is-full" onClick={startPractice}>{tr('lap.practice')}</button><button type="button" className="gx-textbtn gx-t15 gx-lap-skip" onClick={startLights}>{tr('lap.skip')}</button></div>
               : <button type="button" ref={primary} className="gx-btn is-primary is-full" onClick={startLights}>{tr('lap.start')}</button>}
-            {learn && <p className="gx-t13 gx-ter">{tr('lap.note')}</p>}
           </section>
         )}
         {phase === 'practiceDone' && (
@@ -1073,7 +1076,7 @@ function LapGame({ id, onClose }) {
         {phase === 'done' && result && (
           <section className="gx-lap-card is-result" ref={cardRef} aria-labelledby="gx-lap-r">
             {/* 위에서부터: 기록 → 이번 주 순위(한 칸씩 올라감) · 다음 목표 → 구간 기록 → 한 줄 이야기 → 숫자 셋. 아래 버튼 줄은 늘 보인다 */}
-            <div className="gx-lap-res-body" ref={resBody}>
+            <div className="gx-lap-scroll gx-lap-res-body" ref={resBody}>
               <div>
                 <span className="gx-t13 gx-sub gx-lap-res-k" id="gx-lap-r">{tr('lap.result.label', { name: L.circuit })}{result.isBest && result.prev != null && <em className="gx-lap-newbest gx-t13 gx-w700">{tr('lap.result.newBest')}</em>}</span>
                 <b className="gx-lap-big"><Roll>{formatLap(result.ms)}</Roll></b>

@@ -202,10 +202,13 @@
 .gx .gx-lap-card.is-ready .gx-lap-legend { margin-top: -6px; }
 
 /* 결과 카드: 위 내용은 카드 안에서 넘기고(서킷 그림이 위에 남게), 버튼 줄은 늘 아래에 */
-.gx .gx-lap-card.is-result { display: flex; flex-direction: column; gap: 12px; max-height: calc(100% - 180px); padding-top: 20px; }
-.gx .gx-lap-res-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 18px; margin: 0 calc(-1 * var(--gutter)); padding: 0 var(--gutter) 12px;
+.gx .gx-lap-card:is(.is-result, .is-ready) { display: flex; flex-direction: column; gap: 12px; max-height: calc(100% - 180px); padding-top: 20px; }
+.gx .gx-lap-card.is-ready { max-height: calc(100% - 150px); }
+.gx .gx-lap-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; align-content: start; gap: 16px; margin: 0 calc(-1 * var(--gutter)); padding: 0 var(--gutter) 12px;
   -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 16px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 16px), transparent); }
-.gx .gx-lap-card.is-result > .gx-lap-acts { flex: none; }
+.gx .gx-lap-res-body { gap: 18px; }
+.gx .gx-lap-card:is(.is-result, .is-ready) > :not(.gx-lap-scroll) { flex: none; }
+@media (max-height: 700px) { .gx .gx-lap-plate-t { font-size: var(--t22); } .gx .gx-lap-plate { gap: 0; } }
 .gx .gx-lap-res-k { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .gx .gx-lap-newbest { font-style: normal; padding: 2px 8px; border-radius: 6px; background: var(--f1); color: #FFFFFF; animation: gx-lap-plate var(--d3) var(--e-out) 260ms both; }   /* 마리오 카트의 'NEW RECORD'처럼. 빨강 바탕 흰 글씨 */
 /* 이번 주 순위: 내 줄 둘레 세 줄. 내 줄은 진한 바탕. 올라갔으면 내 줄이 아래에서 올라오고 앞질러진 줄이 내려간다 */
@@ -251,6 +254,7 @@
   .gx .gx-lap-rev { left: 24px; bottom: 24px; }
   .gx .gx-lap-card { left: 50%; right: auto; bottom: 32px; width: 440px; transform: translateX(-50%); border-radius: var(--r-sheet); box-shadow: 0 0 0 1px var(--line), 0 16px 40px rgba(16,18,24,.14); padding-bottom: 24px; animation: none; }
   .gx .gx-lap-card.is-result { max-height: min(600px, calc(100% - 280px)); }   /* 위에 서킷 그림이 남게 */
+  .gx .gx-lap-card.is-ready { max-height: calc(100% - 200px); }
   .gx .gx-lap-tile-v { font-size: var(--t20); }
 }
 /* 폰을 눕히면: 숫자를 왼쪽 열로, 무대는 오른쪽 전체 */
@@ -266,7 +270,8 @@
   .gx .gx-lap-gas-plate { padding: 11px 11px 8px; }
   .gx .gx-lap-gas-plate > i { height: 40px; }
   .gx .gx-lap-card { left: auto; right: 16px; bottom: 12px; width: min(420px, calc(100% - 32px)); border-radius: var(--r-sheet); max-height: calc(100% - 24px); overflow: auto; padding-bottom: 16px; }
-  .gx .gx-lap-card.is-result { max-height: calc(100% - 24px); overflow: hidden; }
+  .gx .gx-lap-card:is(.is-result, .is-ready) { max-height: calc(100% - 24px); overflow: hidden; }
+  .gx .gx-lap-plate { flex: none; align-content: start; align-self: stretch; }
   .gx .gx-lap-plate-t { font-size: var(--t20); -webkit-line-clamp: 3; }
   .gx .gx-lap-tile-v { font-size: var(--t17); }
 }
