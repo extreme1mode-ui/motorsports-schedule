@@ -158,7 +158,7 @@ export function prep3d(tk) {
     }
   } else {
     const [hLo, hHi] = TALL[tk.id] || [12, 60];
-    const sp = 30;
+    const sp = 30; const bgrid = new Map();
     for (let y = by0 - 230; y < by1 + 230; y += sp) for (let x = bx0 - 230; x < bx1 + 230; x += sp) {
       const px = x + (R() - 0.5) * 8, py = y + (R() - 0.5) * 8;
       const { d, i } = field(px, py); if (i < 0 || d > 240) continue;
@@ -166,10 +166,15 @@ export function prep3d(tk) {
       const hx = 6 + R() * 6.5, hy = 6 + R() * 6.5; const rad = Math.hypot(hx, hy);
       if (d - rad < w0 + 7) continue;
       if (inBlock(i, side, 30) && d - rad < w0 + 40) continue;
+      // 다른 건물과 겹치지 않게(겹친 상자는 그리는 순서가 카메라에 따라 뒤바뀌어 면이 깜빡인다). 60m 칸으로 이웃만 본다
+      const gk = `${Math.floor(px / 60)},${Math.floor(py / 60)}`; let clash = false;
+      for (let gx = -1; gx <= 1 && !clash; gx += 1) for (let gy = -1; gy <= 1 && !clash; gy += 1) for (const o of bgrid.get(`${Math.floor(px / 60) + gx},${Math.floor(py / 60) + gy}`) || []) if (Math.hypot(o.x - px, o.y - py) < o.rad + rad + 2) { clash = true; break; }
+      if (clash) continue;
       const far = clamp01((d - rad - w0 - 7) / 110);          // 길에서 멀수록 높게(가까운 건물이 앞 코너를 가리지 않게)
       const tall = R() < 0.18 ? 1 : R() * 0.45;
       const hgt = hLo + (hHi - hLo) * tall * (0.25 + 0.75 * far);
-      blds.push({ x: px, y: py, hx, hy, a: tk.th[i], h: Math.max(8, Math.min(hgt, 14 + far * 400)), lit: R() });
+      const bd = { x: px, y: py, hx, hy, a: tk.th[i], h: Math.max(8, Math.min(hgt, 14 + far * 400)), lit: R(), rad }; blds.push(bd);
+      if (!bgrid.has(gk)) bgrid.set(gk, []); bgrid.get(gk).push(bd);
     }
   }
   // 먼 스카이라인: 방위 0.5°마다 높이(라디안). 시가지는 건물 실루엣, 상설은 낮은 언덕과 숲
@@ -338,6 +343,25 @@ function bandVar(ctx, cam, tk, W3, ja, jb, off, half) {
   at(ja); for (let j = Math.floor(ja) + 1; j < jb; j += 1) at(j); at(jb); flush();
 }
 const wrapM = (sM, L) => ((sM % L) + L) % L;
+// 되풀이 무늬(연석 · 칠한 벽 · 타이어 벽 · 철망 기둥)의 진하기 단계: 한 칸이 화면에서 px만큼일 때. 1.2px 아래는 0(가운데 색만), 4.2px 위는 다(LV). 단계 사이가 작아 바뀌는 순간이 눈에 띄지 않는다
+const LV = 6;
+// 거리로 나타나는 것(어느 거리 안에서만 그리는 것)은 끝 거리 near → far 사이에서 서서히: 1(가까움) → 0(far). 문턱에서 툭 나타나지 않게
+const nearA = (z, near, far) => clamp01((far - z) / (far - near));
+// 밤 가로등 빛 웅덩이 그림(가운데 밝고 가장자리로 부드럽게 사라지는 원). 색이 바뀔 때만 새로 만든다
+let poolSpr = null, poolKey = '';
+function poolSprite(rgb) {
+  if (poolSpr && poolKey === rgb) return poolSpr;
+  const c = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(64, 64) : Object.assign(document.createElement('canvas'), { width: 64, height: 64 });
+  const x = c.getContext('2d'); const g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, `rgba(${rgb},1)`); g.addColorStop(0.35, `rgba(${rgb},.62)`); g.addColorStop(0.7, `rgba(${rgb},.18)`); g.addColorStop(1, `rgba(${rgb},0)`);
+  x.fillStyle = g; x.fillRect(0, 0, 64, 64); poolSpr = c; poolKey = rgb; return c;
+}
+// 움직임 흐림 흉내: 한 프레임에 차가 MB m 나아갈 때 화면의 점(px, py, 깊이 z)이 움직이는 px ≈ 화면 가운데에서 떨어진 만큼 × MB / z.
+// 폭 wpx인 가는 것(철망 기둥 · 나무 줄기 · 사람 점 · 마블)이 제 폭보다 많이 움직이면 그만큼 옅게(흐림이 있었다면 넓고 옅게 번졌을 것). 가는 것이 띄엄띄엄 튀어 반짝이지 않게
+// 코너에서는 카메라가 도는 만큼(MBR px: 화면 전체가 옆으로 흐른다)도 더한다
+let MB = 0, MBX = 0, MBY = 0, MBR = 0, lastYaw = null;
+const mbA = (px, py, z, wpx) => { if ((MB <= 0 && MBR <= 0) || z <= 0) return 1; const m = (Math.hypot(px - MBX, py - MBY) * MB) / z + MBR; return wpx / (wpx + Math.max(0, m - wpx * 0.5)); };
+const stripeLv = (px) => Math.max(0, Math.min(LV, Math.round(((px - 1.2) / 3) * LV)));
 // j 순으로 놓인 것 가운데 펼친 범위 [a, b]에 드는 것만(바퀴 경계를 넘어도)
 function eachSorted(arr, a, b, n, fn) {
   for (const sh of [-n, 0, n]) {
@@ -374,6 +398,8 @@ let ghostCv = null;
 export function render3d(ctx, R) {
   const { w, h, cam, tk, W3, P } = R; const n = tk.n; const base = W3.base;
   const q = R.q || 1; const det = R.detail; const show = det > 0.5; const decoA = clamp01((det - 0.5) * 2);
+  MB = Math.min(4, Math.max(0, (R.vv || 0) * (R.fdt || 0))); MBX = cam.ox; MBY = cam.oy;
+  { let dy = lastYaw == null ? 0 : cam.yaw - lastYaw; dy -= Math.round(dy / TAU) * TAU; lastYaw = cam.yaw; MBR = MB > 0 && Math.abs(dy) < 0.08 ? Math.abs(dy) * cam.F : 0; }   // 화면이 바뀌는 순간(카메라 전환)의 큰 회전은 빼고
   if (CZs.length < n) { CXs = new Float32Array(n); CYs = new Float32Array(n); CZs = new Float32Array(n); VIS = new Uint8Array(n); }
   // 1) 중심선을 화면으로 · 보이는 구간(이어진 번호 묶음)
   const far = R.far || 1e9; const tanH = (Math.max(cam.ox, w - cam.ox) + 40) / cam.F; let all = true;
@@ -420,16 +446,15 @@ export function render3d(ctx, R) {
     const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
     const x0 = Math.floor(Math.min(...xs) / g), x1 = Math.ceil(Math.max(...xs) / g), y0 = Math.floor(Math.min(...ys) / g), y1 = Math.ceil(Math.max(...ys) / g);
     if ((x1 - x0) * (y1 - y0) < 4000) {
-      ctx.fillStyle = P.dot3;
-      for (const band2 of [[0, 50], [50, 100], [100, dMax]]) {
-        ctx.globalAlpha = decoA * (band2[0] === 0 ? 1 : band2[0] === 50 ? 0.7 : 0.4); ctx.beginPath();
-        for (let gy = y0; gy <= y1; gy += 1) for (let gx = x0; gx <= x1; gx += 1) {
-          const r1 = h2(gx, gy); const X = (gx + r1) * g, Y = (gy + h2(gy, gx)) * g;
-          if (!proj(cam, X, Y, 0) || PZ < band2[0] || PZ >= band2[1] || PX < -4 || PX > w + 4 || PY > h + 4) continue;
-          const sz = Math.max(0.8, Math.min(3.2, (0.16 * cam.F) / PZ)); ctx.rect(PX - sz / 2, PY - sz / 2, sz, sz);
-        }
-        ctx.fill();
+      // 진하기는 거리로 이어지게(가까이 1 → 150m에서 0), 6단계로 묶어 칠한다. 예전처럼 50 · 100m에서 한꺼번에 옅어지면 점들이 툭툭 바뀐다
+      ctx.fillStyle = P.dot3; const dB = [[], [], [], [], [], []];
+      for (let gy = y0; gy <= y1; gy += 1) for (let gx = x0; gx <= x1; gx += 1) {
+        const r1 = h2(gx, gy); const X = (gx + r1) * g, Y = (gy + h2(gy, gx)) * g;
+        if (!proj(cam, X, Y, 0) || PZ >= dMax || PX < -4 || PX > w + 4 || PY > h + 4) continue;
+        const sz = Math.max(0.8, Math.min(3.2, (0.16 * cam.F) / PZ)); const a = (PZ < 40 ? 1 : 1 - ((PZ - 40) / (dMax - 40)) * 0.75) * nearA(PZ, dMax - 25, dMax) * Math.max(0.4, mbA(PX, PY, PZ, sz));
+        const k = Math.round(a * 6); if (k > 0) dB[k - 1].push(PX - sz / 2, PY - sz / 2, sz);
       }
+      for (let k = 0; k < 6; k += 1) { const L = dB[k]; if (!L.length) continue; ctx.globalAlpha = decoA * ((k + 1) / 6); ctx.beginPath(); for (let u = 0; u < L.length; u += 3) ctx.rect(L[u], L[u + 1], L[u + 2], L[u + 2]); ctx.fill(); }
       ctx.globalAlpha = 1;
     }
   }
@@ -456,6 +481,8 @@ export function render3d(ctx, R) {
   // 아스팔트
   fillBands(P.asphalt, () => whole((a, b) => band(ctx, cam, tk, W3, a, b, -hw, hw)));
   if (show) {
+    // 길 가장자리 그늘: 가장자리 1.6m를 아주 옅게 두 번(바깥으로 갈수록 짙다). 길이 둥글게 솟은 느낌
+    ctx.globalAlpha = decoA * 0.07; fillBands('#000', () => whole((a, b) => { for (const sd of [1, -1]) { band(ctx, cam, tk, W3, a, b, sd * (hw - 1.6 * q), sd * hw); band(ctx, cam, tk, W3, a, b, sd * (hw - 0.7 * q), sd * hw); } }));
     ctx.globalAlpha = decoA;
     // 보수 자국 · 레이싱 라인(타이어 고무로 진해진 길) · 브레이크 고무 자국
     for (const pt of W3.patches) { ctx.fillStyle = `rgba(${P.patchRGB},${pt.a})`; ctx.beginPath(); for (const [a, b] of spans(runs, tk, pt.s0, pt.s1)) band(ctx, cam, tk, W3, a, b, pt.o0 * q, (pt.o0 + pt.w) * q); ctx.fill(); }
@@ -472,25 +499,29 @@ export function render3d(ctx, R) {
       ctx.fill();
     }
     // 마블: 라인 밖 코너 바깥쪽의 타이어 부스러기(가까이서만)
-    ctx.fillStyle = P.marble; ctx.beginPath();
+    // 멀어지면(80 → 110m) 서서히 사라지고, 빨리 지나가면 옅게(움직임 흐림 흉내). 진하기 4단계로 묶어 칠한다
+    const mbB = [[], [], [], []];
     for (const r of runs) eachSorted(W3.marbles, r.a, r.a + r.m - 1, n, (mb, jj) => {
       if (!wp(tk, W3, jj, mb.o * q) || !proj(cam, WX, WY, 0) || PZ > 110) return;
-      const sz = Math.max(0.8, Math.min(2.4, (mb.r * 2 * cam.F) / PZ)); ctx.rect(PX - sz / 2, PY - sz / 2, sz, sz);
+      const sz = Math.max(0.8, Math.min(2.4, (mb.r * 2 * cam.F) / PZ)); const k = Math.round(clamp01((110 - PZ) / 30) * mbA(PX, PY, PZ, sz) * 4); if (k > 0) mbB[k - 1].push(PX - sz / 2, PY - sz / 2, sz);
     });
-    ctx.fill();
+    ctx.fillStyle = P.marble;
+    for (let k = 0; k < 4; k += 1) { const L = mbB[k]; if (!L.length) continue; ctx.globalAlpha = decoA * ((k + 1) / 4); ctx.beginPath(); for (let u = 0; u < L.length; u += 3) ctx.rect(L[u], L[u + 1], L[u + 2], L[u + 2]); ctx.fill(); }
+    ctx.globalAlpha = decoA;
     for (const r of base.rubber) { ctx.fillStyle = `rgba(${P.rubberRGB},${r.a})`; ctx.beginPath(); for (const [a, b] of spans(runs, tk, r.s0, r.s1)) { const o = (W3.rl[mod(Math.round(b), n)] + r.off * 0.5) * q; for (const sd of [-0.95, 0.95]) band(ctx, cam, tk, W3, a, b, o + (sd - 0.17) * q, o + (sd + 0.17) * q); } ctx.fill(); }
     ctx.globalAlpha = 1;
   }
-  // 진한 구간 + 무늬 + 손을 떼는 선
+  // 진한 구간 + 무늬 + 손을 떼는 선. 얇은 가로 줄은 한 프레임에 지나가는 길이만큼 늘이고 그만큼 옅게(움직임 흐림 흉내: 줄보다 빨리 지나가면 줄이 띄엄띄엄 튀어 보인다)
+  const smJ = Math.min(4, Math.max(0, (R.vv || 0) * (R.fdt || 0))) / tk.ds;
   for (const z of base.zones) for (const [a, b] of spans(runs, tk, z.s0, z.s1)) {
     fillBands(P.zone, () => band(ctx, cam, tk, W3, a, b, -hw, hw));
     if (!show || R.zone === 'shade') continue;
-    ctx.globalAlpha = decoA; ctx.fillStyle = P.zoneMark; ctx.beginPath();
+    ctx.globalAlpha = decoA * (R.zone === 'bars' ? 0.3 / (0.3 + smJ) : 1); ctx.fillStyle = P.zoneMark; ctx.beginPath();
     const jz0 = z.s0 / tk.ds; const shift = Math.round((a - jz0) / (tk.L / tk.ds)) * (tk.L / tk.ds);
-    if (R.zone === 'bars') { for (let sM = 7; sM < z.s1 - z.s0 - 1; sM += 9) { const j = jz0 + shift + sM / tk.ds; if (j < a || j + 0.3 > b) continue; band(ctx, cam, tk, W3, j, j + 0.3, -hw * 0.62, hw * 0.62); } }
+    if (R.zone === 'bars') { for (let sM = 7; sM < z.s1 - z.s0 - 1; sM += 9) { const j = jz0 + shift + sM / tk.ds; if (j < a || j + 0.3 > b) continue; band(ctx, cam, tk, W3, Math.max(a, j - smJ), j + 0.3, -hw * 0.62, hw * 0.62); } }
     else { for (let sM = 9; sM < z.s1 - z.s0 - 3; sM += 14) { const j = jz0 + shift + sM / tk.ds; if (j < a || j + 2 > b) continue; for (const sd of [1, -1]) chevron(ctx, cam, tk, W3, j, sd, hw); } }
     ctx.fill();
-    const jl = jz0 + shift; if (jl >= a - 0.01 && jl + 0.5 <= b) fillBands(P.zoneLine, () => band(ctx, cam, tk, W3, jl, jl + 0.5, -hw, hw));
+    const jl = jz0 + shift; if (jl >= a - 0.01 && jl + 0.5 <= b) { ctx.globalAlpha = decoA * (0.5 / (0.5 + smJ)); fillBands(P.zoneLine, () => band(ctx, cam, tk, W3, Math.max(a, jl - smJ), jl + 0.5, -hw, hw)); }
     ctx.globalAlpha = 1;
   }
   if (show) {
@@ -498,15 +529,22 @@ export function render3d(ctx, R) {
     // 흰 선(트랙 한계)
     const edgeRuns = (a, b, sd, fn) => { const fl = sd > 0 ? W3.edgeL : W3.edgeR; let st = null; for (let j = Math.floor(a); j <= Math.ceil(b); j += 1) { const ok = fl[mod(j, n)] === 1; if (ok && st == null) st = Math.max(a, j); if ((!ok || j >= Math.ceil(b)) && st != null) { fn(st, Math.min(b, j)); st = null; } } };
     fillBands(P.line, () => whole((a, b) => { for (const sd of [1, -1]) edgeRuns(a, b, sd, (ja, jb) => band(ctx, cam, tk, W3, ja, jb, sd * (HALF_W - 0.6) * q, sd * (HALF_W - 0.3) * q)); }));
-    // 연석: 빨강 · 흰색이 번갈아(4m)
-    for (const odd of [0, 1]) fillBands(odd ? P.kerbA : P.kerbB, () => {
-      for (const kb of base.kerbs) for (const [a, b] of spans(runs, tk, kb.i0 * tk.ds, kb.i1 * tk.ds)) {
-        const fl = kb.side > 0 ? W3.edgeL : W3.edgeR;
-        for (let j = Math.floor(a / 2) * 2; j < b; j += 2) { if (((Math.floor(j / 2) % 2) + 2) % 2 !== odd) continue; if (!fl[mod(j, n)] || !fl[mod(j + 2, n)]) continue;
-          if (Math.max(Math.abs(tk.k[mod(j, n)]), Math.abs(tk.k[mod(j + 2, n)])) * (HALF_W + 1.7) * q > 0.7 && kb.side * tk.k[mod(j, n)] < 0) continue;   /* 머리핀 꼭짓점: 연석 띠가 접히는 자리는 비운다 */
-          const ja = Math.max(a, j), jb = Math.min(b, j + 2); if (jb > ja) band(ctx, cam, tk, W3, ja, jb, kb.side * (HALF_W - 0.25) * q, kb.side * (HALF_W + 1.7) * q); }
+    // 연석: 빨강 · 흰색이 번갈아(4m). 멀어서 한 칸이 화면에서 몇 px 안 되면(밉맵처럼) 두 색의 가운데 색으로 서서히 — 화소보다 작은 줄무늬가 화소에 걸려 반짝이지 않게
+    const kS = [];
+    for (const kb of base.kerbs) for (const [a, b] of spans(runs, tk, kb.i0 * tk.ds, kb.i1 * tk.ds)) {
+      const fl = kb.side > 0 ? W3.edgeL : W3.edgeR;
+      for (let j = Math.floor(a / 2) * 2; j < b; j += 2) { const i0 = mod(j, n), i2 = mod(j + 2, n); if (!fl[i0] || !fl[i2]) continue;
+        if (Math.max(Math.abs(tk.k[i0]), Math.abs(tk.k[i2])) * (HALF_W + 1.7) * q > 0.7 && kb.side * tk.k[i0] < 0) continue;   /* 머리핀 꼭짓점: 연석 띠가 접히는 자리는 비운다 */
+        const ja = Math.max(a, j), jb = Math.min(b, j + 2); if (jb <= ja) continue;
+        kS.push({ ja, jb, odd: mod(Math.floor(j / 2), 2), lv: VIS[i0] && VIS[i2] ? stripeLv(Math.hypot(CXs[i2] - CXs[i0], CYs[i2] - CYs[i0])) : LV, o0: kb.side * (HALF_W - 0.25) * q, o1: kb.side * (HALF_W + 1.7) * q });
       }
-    });
+    }
+    fillBands(P.kerbMix, () => { for (const k of kS) if (k.lv < LV) band(ctx, cam, tk, W3, k.ja, k.jb, k.o0, k.o1); });
+    for (let lv = 1; lv <= LV; lv += 1) for (const odd of [0, 1]) {
+      let any = false; for (const k of kS) if (k.lv === lv && k.odd === odd) { any = true; break; } if (!any) continue;
+      ctx.globalAlpha = decoA * (lv / LV); fillBands(odd ? P.kerbA : P.kerbB, () => { for (const k of kS) if (k.lv === lv && k.odd === odd) band(ctx, cam, tk, W3, k.ja, k.jb, k.o0, k.o1); });
+    }
+    ctx.globalAlpha = decoA;
     // 연석 바깥 턱(살짝 솟은 연석의 그늘)
     fillBands(P.kerbLip, () => {
       for (const kb of base.kerbs) for (const [a, b] of spans(runs, tk, kb.i0 * tk.ds, kb.i1 * tk.ds)) {
@@ -536,18 +574,19 @@ export function render3d(ctx, R) {
     ctx.fill();
     // 자갈 알갱이(가까이서만)
     if (!W3.street && !R.lite) {
-      ctx.fillStyle = P.gravelDot3; ctx.beginPath();
+      ctx.fillStyle = P.gravelDot3; const gB = [[], [], [], []];   // 90 → 120m에서 서서히 사라진다(4단계)
       for (const gz of base.gravel) for (const [a, b] of spans(runs, tk, gz.i0 * tk.ds, gz.i1 * tk.ds)) {
         for (let j = Math.ceil(a / 0.6) * 0.6; j < b; j += 0.6) {
           const i0 = mod(Math.round(j), n); if (CZs[i0] > 120) continue;
           for (let k = 0; k < gz.depth; k += 1.1) { const hh = h2(Math.round(j * 10), k * 10 + gz.i0); const o = gz.side * (HALF_W + 2.4 + k + hh * 0.9) * q;
-            if (!wp(tk, W3, j + hh * 0.5, o) || !proj(cam, WX, WY, 0)) continue; const sz = Math.max(0.7, Math.min(2, (0.12 * cam.F) / PZ)); ctx.rect(PX - sz / 2, PY - sz / 2, sz, sz); }
+            if (!wp(tk, W3, j + hh * 0.5, o) || !proj(cam, WX, WY, 0)) continue; const sz = Math.max(0.7, Math.min(2, (0.12 * cam.F) / PZ)); const kk = Math.round(nearA(PZ, 90, 120) * 4); if (kk > 0) gB[kk - 1].push(PX - sz / 2, PY - sz / 2, sz); }
         }
       }
-      ctx.fill();
+      for (let k = 0; k < 4; k += 1) { const L = gB[k]; if (!L.length) continue; ctx.globalAlpha = decoA * ((k + 1) / 4); ctx.beginPath(); for (let u = 0; u < L.length; u += 3) ctx.rect(L[u], L[u + 1], L[u + 2], L[u + 2]); ctx.fill(); }
+      ctx.globalAlpha = decoA;
     }
     // 출발: 체크무늬 두 줄 · 그리드 칸(8m 간격, 좌우 엇갈림)
-    startMarks(ctx, cam, tk, W3, runs, P, q);
+    startMarks(ctx, cam, tk, W3, runs, P, q, smJ);
     // 레이싱 라인 안내(고르면): 차 앞 220m에 4m마다 앞을 가리키는 V자. 손을 떼는 구간은 빨강, 멀수록 옅게(칠한 선과 헷갈리지 않게 V자로)
     if (R.guide && R.car) {
       const s0 = R.car.s + 7; const lat = (sM) => rlAt(W3, tk, sM) * q;
@@ -567,6 +606,22 @@ export function render3d(ctx, R) {
     }
     // 타이어 자국(레이어를 닫을 때까지, 지난 바퀴는 옅게) · 자갈밭에서 끌려 나온 자갈
     drawMarks3d(ctx, cam, tk, W3, R.fx, P, q, R.car);
+    // 밤: 가로등 아래 길에 떨어지는 빛(등 바로 아래 둥근 빛, 반지름 10m). 260m 안, 200m부터 서서히
+    if (P.night && W3.lamps.length && !R.lite) {
+      const spr = poolSprite(P.lampGlowRGB); const prevOp = ctx.globalCompositeOperation; ctx.globalCompositeOperation = 'lighter';
+      for (const lp of W3.lamps) for (const [a] of spans(runs, tk, lp.s, lp.s + 0.01)) {
+        const i0 = mod(Math.round(a), n); const wv = (lp.side > 0 ? W3.wl : W3.wr)[i0];
+        if (!wp(tk, W3, a, lp.side * (wv - 3.4) * q)) continue; const X = WX, Y = WY;
+        if (!proj(cam, X, Y, 0) || PZ > 260 || PZ < 4) continue; const cx = PX, cy = PY, dz = PZ;
+        const tx = Math.cos(tk.th[i0]), ty = Math.sin(tk.th[i0]); const RR = 10;
+        if (!proj(cam, X + tx * RR, Y + ty * RR, 0)) continue; const ux = PX - cx, uy = PY - cy;
+        if (!proj(cam, X - ty * RR, Y + tx * RR, 0)) continue; const vx = PX - cx, vy = PY - cy;
+        if (Math.abs(ux) + Math.abs(uy) + Math.abs(vx) + Math.abs(vy) < 2) continue;
+        ctx.globalAlpha = decoA * 0.2 * nearA(dz, 200, 260) * clamp01((dz - 4) / 8);
+        ctx.save(); ctx.transform(ux, uy, vx, vy, cx, cy); ctx.drawImage(spr, -1, -1, 2, 2); ctx.restore();
+      }
+      ctx.globalCompositeOperation = prevOp; ctx.globalAlpha = decoA;
+    }
     // 구름 그림자(낮): 바닥에만 옅게. 바깥 테두리와 안쪽을 두 번 칠해 가장자리가 부드럽다
     if (!P.night && !R.lite && P.cloudA > 0 && R.now != null) {
       const tt = R.now / 1000; const [cx0, cy0, cx1, cy1] = tk.box; const M = 600; const WW = cx1 - cx0 + 2 * M, HH = cy1 - cy0 + 2 * M;
@@ -594,29 +649,32 @@ export function render3d(ctx, R) {
     // 벽 · 철망 · 타이어 벽(구간마다 한 조각)
     for (const r of runs) for (const sd of [1, -1]) {
       const warr = sd > 0 ? W3.wl : W3.wr; const wallH = W3.street ? 1.1 : 0.95; const fenceH = W3.street ? 4.2 : 3.4;
+      // 조각 경계는 서킷에 붙은 번호(2 · 4 · 8칸의 배수)에 맞춘다. 보이는 구간의 시작에 맞추면 차가 움직일 때마다 경계 · 기둥 · 줄무늬가 밀려 깜빡인다
       let j = r.a; const end = r.a + r.m - 1;
       while (j < end) {
         const i0 = mod(j, n); const zc = CZs[i0];
-        const st = zc < 90 ? 2 : zc < 220 ? 4 : 8; const j2 = Math.min(end, j + st);
+        const pnt = (W3.paint[i0] & (sd > 0 ? 1 : 2)) !== 0;
+        const st = pnt && zc < 260 ? 2 : zc < 90 ? 2 : zc < 220 ? 4 : 8; const j2 = Math.min(end, (Math.floor(j / st) + 1) * st);
         const i1 = mod(j2, n); const o0 = sd * warr[i0] * q, o1 = sd * warr[i1] * q;
         const okA = sd > 0 ? W3.okL : W3.okR; if (!okA[i0] || !okA[i1]) { j = j2; continue; }
         // 급한 코너(반지름 35m 아래)의 안쪽 · 작은 섬(벽이 중심에서 6m 안)에는 벽을 세우지 않는다(머리핀 안쪽에서 벽이 차를 가리지 않게)
         const kI = Math.abs(tk.k[i0]) > Math.abs(tk.k[i1]) ? tk.k[i0] : tk.k[i1]; if (o0 * kI < 0 && (Math.abs(o0) > 1 / Math.abs(kI) - 6 || Math.abs(kI) > 1 / 35)) { j = j2; continue; }
         const ok0 = wp(tk, W3, j, o0) && !WCL; const ax = WX, ay = WY; const ok1 = wp(tk, W3, j2, o1) && !WCL; const bx = WX, by = WY;
         if (ok0 && ok1 && proj(cam, (ax + bx) / 2, (ay + by) / 2, 1) && PZ > 12) {
-          const depth = PZ; const painted = (W3.paint[i0] & (sd > 0 ? 1 : 2)) !== 0; const post = Math.floor(j / 4) !== Math.floor(j2 / 4) || st >= 4;
-          const hoardOn = !painted && depth < 450 && W3.hoard[i0] && W3.hoard[i1]; const mark = hoardOn && depth < 150 && Math.floor(j / 6) !== Math.floor(j2 / 6);
-          items.push({ z: depth, sx: PX, half: 6, draw: () => wallSeg(ctx, cam, P, ax, ay, bx, by, wallH, fenceH, painted, j, post, 1 - fogK(depth), hoardOn, mark) });
+          const depth = PZ; const painted = pnt ? (st > 2 ? 2 : 1) : 0; const post = mod(j, 4) === 0 ? (j2 - j) * tk.ds : 0;   // 기둥: 8m마다(서킷 번호 기준). 값은 조각 길이(m, 기둥 간격 환산용). 먼 칠한 벽(긴 조각)은 두 색을 섞은 한 색
+          const hoardOn = !painted && depth < 450 && W3.hoard[i0] && W3.hoard[i1]; const mark = hoardOn && depth < 150 && Math.floor(j / 6) !== Math.floor(j2 / 6) ? nearA(depth, 115, 150) : 0;   // 갠트리 심볼: 115 → 150m에서 서서히
+          const jS = j;   // 그릴 때(정렬 뒤)의 j는 이미 다음 조각으로 넘어가 있다: 조각의 번호를 따로 잡아 둔다(안 그러면 모든 칠한 조각이 같은 색이 되어 벽 전체가 빨강 ↔ 흰색으로 깜빡인다)
+          items.push({ z: depth, sx: PX, half: 6, draw: () => wallSeg(ctx, cam, P, ax, ay, bx, by, wallH, fenceH, painted, jS, post, 1 - fogK(depth), hoardOn, mark) });
         }
         j = j2;
       }
     }
     if (!W3.street) for (const gz of base.gravel) for (const [a, b] of spans(runs, tk, gz.i0 * tk.ds, gz.i1 * tk.ds)) {
-      for (let j = a; j < b; j += 2) {
-        const j2 = Math.min(b, j + 2); const i0 = mod(Math.round(j), n); const warr = gz.side > 0 ? W3.wl : W3.wr; const o = gz.side * (warr[i0] - 1.3) * q;
-        if (!wp(tk, W3, j, o) || WCL) continue; const ax = WX, ay = WY; if (!wp(tk, W3, j2, o) || WCL) continue; const bx = WX, by = WY;
-        if (!proj(cam, (ax + bx) / 2, (ay + by) / 2, 0.5)) continue; const depth = PZ;
-        items.push({ z: depth - 0.5, draw: () => tyreSeg(ctx, cam, P, ax, ay, bx, by, Math.floor(j / 1.5) % 2, 1 - fogK(depth)) });
+      for (let j = a; j < b;) {   // 2칸(4m)마다, 서킷 번호에 맞춰
+        const j2 = Math.min(b, (Math.floor(j / 2) + 1) * 2); const jc = j; j = j2; const i0 = mod(Math.round(jc), n); const warr = gz.side > 0 ? W3.wl : W3.wr; const o = gz.side * (warr[i0] - 1.3) * q;
+        if (!wp(tk, W3, jc, o) || WCL) continue; const ax = WX, ay = WY; if (!wp(tk, W3, j2, o) || WCL) continue; const bx = WX, by = WY;
+        if (!proj(cam, (ax + bx) / 2, (ay + by) / 2, 0.5)) continue; const depth = PZ; const odd = mod(Math.floor(jc / 2), 2);
+        items.push({ z: depth - 0.5, draw: () => tyreSeg(ctx, cam, P, ax, ay, bx, by, odd, 1 - fogK(depth)) });
       }
     }
     // 브레이크 보드 3 · 2 · 1
@@ -624,21 +682,21 @@ export function render3d(ctx, R) {
       const i0 = mod(Math.round(a), n); const warr = bd.side > 0 ? W3.wl : W3.wr; const o = bd.side * Math.min(HALF_W + 3, warr[i0] - 0.7) * q;
       if (!wp(tk, W3, a, o) || WCL) continue; const X = WX, Y = WY;
       if (!inView(X, Y, 1.5, 60)) continue; const depth = PZ;
-      items.push({ z: depth, sx: PX, half: (1.2 * cam.F) / depth, draw: () => board(ctx, cam, P, tk, X, Y, tk.th[i0], bd.num, R.font, 1 - fogK(depth)) });
+      items.push({ z: depth - 0.3, sx: PX, half: (1.2 * cam.F) / depth, draw: () => board(ctx, cam, P, tk, X, Y, tk.th[i0], bd.num, R.font, 1 - fogK(depth)) });   // 벽 앞
     }
     // 마셜 포스트: 벽 뒤 작은 초소(창 · 꺼진 신호판)
     for (const mp of W3.marshals) for (const [a] of spans(runs, tk, mp.s, mp.s + 0.01)) {
       const i0 = mod(Math.round(a), n); const wv = (mp.side > 0 ? W3.wl : W3.wr)[i0];
       if (!wp(tk, W3, a, mp.side * (wv + 2.4) * q) || WCL) continue; const X = WX, Y = WY;
-      if (!inView(X, Y, 1.3, 80) || PZ > 450) continue; const depth = PZ; const fa = 1 - fogK(depth); if (fa <= 0.02) continue;
+      if (!inView(X, Y, 1.3, 80) || PZ > 450) continue; const depth = PZ; const fa = (1 - fogK(depth)) * nearA(depth, 390, 450); if (fa <= 0.02) continue;
       const b = { x: X, y: Y, hx: 1.5, hy: 1.2, a: tk.th[i0], h: 3.0 };
-      items.push({ z: depth, sx: PX, half: (2 * cam.F) / depth, draw: () => booth(ctx, cam, P, b, mp.side, fa) });
+      items.push({ z: depth + 1.5, sx: PX, half: (2 * cam.F) / depth, draw: () => booth(ctx, cam, P, b, mp.side, fa) });   // 벽 뒤: 벽 조각보다 먼저
       // 마셜(사람): 초소 앞쪽(다가오는 쪽) 벽 바로 뒤. 옅은 차가 뒤에 바짝 붙으면 차 앞 400m 안의 마셜이 파랑 깃발을 흔든다
       if (depth < 330 && wp(tk, W3, a - 2.6 / tk.ds, mp.side * (wv + 0.9) * q) && !WCL) {
         const FX = WX, FY = WY; if (!proj(cam, FX, FY, 1)) continue; const dz = PZ; const sx = PX;
         let ahead = R.car ? mp.s - R.car.s : -1; if (ahead < -tk.L / 2) ahead += tk.L; if (ahead > tk.L / 2) ahead -= tk.L;
         const flag = R.flags && R.flags.blue && ahead > 0 && ahead < 400 ? 'blue' : null;
-        items.push({ z: dz, sx, half: (1.5 * cam.F) / dz, draw: () => marshalFig(ctx, cam, P, FX, FY, 0, tk.th[i0], mp.side, flag, R.now / 1000 + mp.s * 0.013, fa) });
+        const fm = fa * nearA(dz, 280, 330); if (fm > 0.02) items.push({ z: dz + 1, sx, half: (1.5 * cam.F) / dz, draw: () => marshalFig(ctx, cam, P, FX, FY, 0, tk.th[i0], mp.side, flag, R.now / 1000 + mp.s * 0.013, fm) });   // 벽 뒤. 280 → 330m에서 서서히
       }
     }
     // 결승선 마셜: 피트 담 위, 출발선 4m 앞. 마지막 직선에 들어서면 체크 깃발을 흔든다
@@ -646,14 +704,14 @@ export function render3d(ctx, R) {
       for (const [a] of spans(runs, tk, sF, sF + 0.01)) {
         const i0 = mod(Math.round(a), n); const wv = (pt.side > 0 ? W3.wl : W3.wr)[i0];
         if (!(pt.side > 0 ? W3.okL : W3.okR)[i0] || !wp(tk, W3, a, pt.side * (wv + 0.15) * q) || WCL) continue; const FX = WX, FY = WY;
-        if (!proj(cam, FX, FY, 2) || PZ > 330) continue; const dz = PZ; const fa = 1 - fogK(dz); if (fa <= 0.02) continue; const sx = PX;
+        if (!proj(cam, FX, FY, 2) || PZ > 330) continue; const dz = PZ; const fa = (1 - fogK(dz)) * nearA(dz, 280, 330); if (fa <= 0.02) continue; const sx = PX;
         items.push({ z: dz, sx, half: (1.5 * cam.F) / dz, draw: () => marshalFig(ctx, cam, P, FX, FY, 1.0, tk.th[i0], pt.side, R.flags && R.flags.cheq ? 'cheq' : null, R.now / 1000, fa) });
       }
       // 팀 사람들: 피트 담 바로 뒤. 마지막 320m부터(체크 깃발과 같은 때) 담 아래 턱에 올라서며 두 팔을 든다
       if (!R.lite && P.crew && P.crew.length) for (const cr of W3.crew) for (const [a] of spans(runs, tk, wrapM(cr.s, tk.L), wrapM(cr.s, tk.L) + 0.01)) {
         const i0 = mod(Math.round(a), n); const wv = (pt.side > 0 ? W3.wl : W3.wr)[i0];
         if (!(pt.side > 0 ? W3.okL : W3.okR)[i0] || !wp(tk, W3, a, pt.side * (wv + 0.6) * q) || WCL) continue; const FX = WX, FY = WY;
-        if (!proj(cam, FX, FY, 1) || PZ > 220 || PZ < 6) continue; const dz = PZ; const fa = 1 - fogK(dz); if (fa <= 0.02) continue; const sx = PX;   // 카메라에 너무 붙은 사람은 그리지 않는다(준비 화면 소개 카메라)
+        if (!proj(cam, FX, FY, 1) || PZ > 220 || PZ < 6) continue; const dz = PZ; const fa = (1 - fogK(dz)) * nearA(dz, 180, 220) * clamp01((dz - 6) / 6); if (fa <= 0.02) continue; const sx = PX;   // 카메라에 너무 붙은 사람은 그리지 않는다(준비 화면 소개 카메라)
         const up = Math.max(0, Math.min(1, ((R.crewUp || 0) - cr.late) / (1 - cr.late))) * cr.up;
         items.push({ z: dz + 2.5, sx, half: (1.2 * cam.F) / dz, draw: () => crewFig(ctx, cam, P, FX, FY, tk.th[i0], cr, up, R.now / 1000, fa) });   // 담 뒤: 담 조각보다 먼저 그려 담이 다리를 가린다
       }
@@ -663,8 +721,8 @@ export function render3d(ctx, R) {
       const i0 = mod(Math.round(a), n); const wv = (lp.side > 0 ? W3.wl : W3.wr)[i0];
       if (!wp(tk, W3, a, lp.side * (wv + 0.7) * q) || WCL) continue; const X = WX, Y = WY;
       if (!wp(tk, W3, a, lp.side * (wv - 2.2) * q)) continue; const HX = WX, HY = WY;
-      if (!inView(X, Y, 6, 80) || PZ > 400) continue; const depth = PZ; const fa = 1 - fogK(depth); if (fa <= 0.02) continue;
-      items.push({ z: depth, sx: PX, half: 4, draw: () => lampPost(ctx, cam, P, X, Y, HX, HY, fa) });
+      if (!inView(X, Y, 6, 80) || PZ > 400) continue; const depth = PZ; const fa = (1 - fogK(depth)) * nearA(depth, 330, 400); if (fa <= 0.02) continue;
+      items.push({ z: depth + 0.8, sx: PX, half: 4, draw: () => lampPost(ctx, cam, P, X, Y, HX, HY, fa) });   // 기둥은 벽 뒤
     }
     // 출발 갠트리
     for (const [a] of spans(runs, tk, 0, 0.01)) {
@@ -690,17 +748,21 @@ export function render3d(ctx, R) {
       if (Math.abs(dx * cam.rx + dy * cam.ry) > fwd * tanH * 1.4 + 20) continue;
       if (!proj(cam, t.x, t.y, t.h)) continue; const depth = PZ; const cx = PX, cy = PY; const rp = (t.r * cam.F) / PZ;
       if (cx < -rp || cx > w + rp || cy - rp > h || cy + rp < -10) continue;
-      const fa = 1 - fogK(depth); if (fa <= 0.02) continue;
+      const fa = (1 - fogK(depth)) * clamp01((rp - 0.9) / 1.2); if (fa <= 0.02) continue;   // 1px쯤으로 작은 먼 나무는 옅게 · 없게(점이 반짝이며 떨린다). 먼 숲은 스카이라인이 그린다
       items.push({ z: depth, sx: cx, half: rp, draw: () => tree(ctx, cam, P, t, cx, cy, rp, fa) });
-      if (depth < 400) { ellipseShadow(shadowPath, cam, t.x + SH[0] * t.h * 0.75, t.y + SH[1] * t.h * 0.75, t.r * 1.05); anyShadow = true; }
+      if (depth < 650) { ellipseShadow(shadowPath, cam, t.x + SH[0] * t.h * 0.75, t.y + SH[1] * t.h * 0.75, t.r * 1.05); anyShadow = true; }   // 그림자는 안개가 짙어지는 데까지(가까이서 툭 생기지 않게)
     }
     // 건물(시가지)
     for (const b of W3.blds) {
       const dx = b.x - camGX, dy = b.y - camGY; const fwd = dx * cam.dx + dy * cam.dy; if (fwd < -30 || fwd > far + 60) continue;
       if (Math.abs(dx * cam.rx + dy * cam.ry) > Math.max(0, fwd) * tanH * 1.4 + 60) continue;
-      if (!proj(cam, b.x, b.y, b.h * 0.5)) continue; const depth = PZ; const fa = 1 - fogK(depth); if (fa <= 0.02) continue;
-      items.push({ z: depth, sx: PX, half: (Math.max(b.hx, b.hy) * 1.4 * cam.F) / depth, draw: () => building(ctx, cam, P, b, fa, R.lite ? 1e9 : depth) });
-      if (depth < 500) { bldShadow(shadowPath, cam, b); anyShadow = true; }
+      if (!proj(cam, b.x, b.y, b.h * 0.5)) continue; const depth = PZ; const sx = PX; const fa = 1 - fogK(depth); if (fa <= 0.02) continue;
+      // 그리는 순서: 상자에서 카메라에 가장 가까운 바닥 점의 깊이(가운데 깊이로 하면 크기가 다른 이웃 건물과 순서가 뒤바뀐다)
+      const ca = Math.cos(b.a), sa = Math.sin(b.a); const lx = (camGX - b.x) * ca + (camGY - b.y) * sa, ly = -(camGX - b.x) * sa + (camGY - b.y) * ca;
+      const qx = Math.max(-b.hx, Math.min(b.hx, lx)), qy = Math.max(-b.hy, Math.min(b.hy, ly));
+      const nz = (b.x + qx * ca - qy * sa - camGX) * cam.dx + (b.y + qx * sa + qy * ca - camGY) * cam.dy;
+      items.push({ z: Math.max(1, nz) + 0.01 * depth, sx, half: (Math.max(b.hx, b.hy) * 1.4 * cam.F) / depth, draw: () => building(ctx, cam, P, b, fa, R.lite ? 1e9 : depth) });
+      if (depth < 900) { bldShadow(shadowPath, cam, b); anyShadow = true; }
     }
     // 연기 · 먼지
     for (const p of R.fx.puffs) {
@@ -771,8 +833,13 @@ export function render3d(ctx, R) {
   const carIdx = items.findIndex((it) => it.car); const carIt = carIdx >= 0 ? items[carIdx] : null;
   for (let k = 0; k < items.length; k += 1) {
     const it = items[k];
-    const cover = carIt && k > carIdx && !it.car && (it.wide || (it.sx != null && Math.abs(it.sx - carIt.sx) < carIt.half + (it.half || 0)));
-    if (cover) { ctx.globalAlpha = it.z < 22 ? 0.18 : 0.4; it.draw(); ctx.globalAlpha = 1; } else it.draw();
+    // 얼마나 옅게: 차보다 앞선 거리(0 → 6m)와 화면에서 겹친 만큼에 따라 부드럽게(한 번에 바뀌면 지나갈 때 번쩍인다)
+    let cov = 0;
+    if (carIt && k > carIdx && !it.car) {
+      const ov = it.wide ? 1 : it.sx != null ? clamp01(1 - (Math.abs(it.sx - carIt.sx) - carIt.half) / Math.max(1, it.half || 0)) : 0;
+      const t = clamp01((carIt.z - it.z) / 6); cov = ov * t * t * (3 - 2 * t);
+    }
+    if (cov > 0.01) { ctx.globalAlpha = 1 - (1 - (it.z < 22 ? 0.18 : 0.4)) * cov; it.draw(); ctx.globalAlpha = 1; } else it.draw();
   }
   // 불꽃(차 뒤로 튄다)
   if (show && R.fx.sparks && R.fx.sparks.length) drawSparks(ctx, cam, R.fx, R.now, R.fdt);
@@ -786,23 +853,25 @@ function chevron(ctx, cam, tk, W3, j, sd, hw) {
   ctx.moveTo(pts[0][0], pts[0][1]); for (let k = 1; k < 4; k += 1) ctx.lineTo(pts[k][0], pts[k][1]); ctx.closePath();
 }
 
-function startMarks(ctx, cam, tk, W3, runs, P, q) {
+function startMarks(ctx, cam, tk, W3, runs, P, q, smJ = 0) {
   for (const [a] of spans(runs, tk, 0, 0.01)) {
     // 체크무늬: 폭 8칸 × 두 줄(뒤로)
     const nC = 8; const sq = (2 * HALF_W * q) / nC; const dj = sq / tk.ds;
+    // 빠르게 지나가면(한 프레임에 칸 길이의 절반보다 많이) 앞뒤 두 줄이 섞여 보이게: 아래 흰 칸 위에 검은 칸을 옅게
+    const mixK = clamp01((smJ - dj * 0.35) / (dj * 0.5));
     for (const odd of [0, 1]) {
-      ctx.fillStyle = odd ? P.check : P.line; ctx.beginPath();
-      for (let rr = 0; rr < 2; rr += 1) for (let c = 0; c < nC; c += 1) { if ((c + rr) % 2 !== odd) continue; const o0 = -HALF_W * q + c * sq; band(ctx, cam, tk, W3, a - (rr + 1) * dj, a - rr * dj, o0, o0 + sq); }
-      ctx.fill();
+      ctx.fillStyle = odd ? P.check : P.line; ctx.beginPath(); const pa = ctx.globalAlpha; if (odd) ctx.globalAlpha = pa * (1 - 0.5 * mixK);
+      for (let rr = 0; rr < 2; rr += 1) for (let c = 0; c < nC; c += 1) { if (!odd && mixK > 0) { if (c > 0 || rr > 0) continue; band(ctx, cam, tk, W3, a - 2 * dj, a, -HALF_W * q, HALF_W * q); continue; } if ((c + rr) % 2 !== odd) continue; const o0 = -HALF_W * q + c * sq; band(ctx, cam, tk, W3, a - (rr + 1) * dj, a - rr * dj, o0, o0 + sq); }
+      ctx.fill(); ctx.globalAlpha = pa;
     }
     // 그리드 칸: 8m마다, 좌우 엇갈림. ㄷ자(앞 가로선 + 양옆 짧은 선)
-    ctx.fillStyle = P.line; ctx.beginPath();
+    ctx.fillStyle = P.line; ctx.beginPath(); const pa2 = ctx.globalAlpha; ctx.globalAlpha = pa2 * (0.12 / (0.12 + smJ));   // 그리드 칸의 얇은 앞 선도 지나가는 만큼 옅게
     for (let k = 0; k < 7; k += 1) {
       const back = 3 + k * 8; const lat = (k % 2 ? 1 : -1) * HALF_W * 0.45 * q; const j = a - back / tk.ds; const half = 1.5 * q;
       band(ctx, cam, tk, W3, j - 0.12, j, lat - half, lat + half);
       for (const sd of [-1, 1]) band(ctx, cam, tk, W3, j - 1.6, j, lat + sd * half - 0.1 * q, lat + sd * half + 0.1 * q);
     }
-    ctx.fill();
+    ctx.fill(); ctx.globalAlpha = pa2;
     break;
   }
 }
@@ -968,10 +1037,22 @@ function crewFig(ctx, cam, P, X, Y, th, cr, up, t, fa) {
 // 벽 한 조각: 콘크리트(코너 근처는 빨강 · 흰 줄) + 위 철망(옅은 면 · 기둥 · 윗줄)
 function wallSeg(ctx, cam, P, ax, ay, bx, by, wallH, fenceH, painted, j, post, fa, hoardOn, mark) {
   if (fa <= 0.02) return;
-  const p = []; for (const [X, Y, Z] of [[ax, ay, 0], [bx, by, 0], [bx, by, wallH], [ax, ay, wallH], [bx, by, fenceH], [ax, ay, fenceH]]) { if (!proj(cam, X, Y, Z)) return; p.push([PX, PY]); }
+  const p = []; for (const [X, Y, Z] of [[ax, ay, 0], [bx, by, 0], [bx, by, wallH], [ax, ay, wallH], [bx, by, fenceH], [ax, ay, fenceH]]) { if (!proj(cam, X, Y, Z)) return; p.push([PX, PY, PZ]); }
   const quad = (a, b, c, d) => { ctx.beginPath(); ctx.moveTo(p[a][0], p[a][1]); ctx.lineTo(p[b][0], p[b][1]); ctx.lineTo(p[c][0], p[c][1]); ctx.lineTo(p[d][0], p[d][1]); ctx.closePath(); };
   const prevA = ctx.globalAlpha; ctx.globalAlpha = prevA * fa;
-  ctx.fillStyle = painted ? (Math.floor(j / 2) % 2 ? P.kerbA : P.wallPaint) : P.wall; quad(0, 1, 2, 3); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.6; ctx.stroke();
+  const segPx = Math.hypot(p[1][0] - p[0][0], p[1][1] - p[0][1]);   // 이 조각의 화면 폭: 좁으면 줄무늬 · 기둥을 옅게(밉맵처럼)
+  if (painted === 1) {
+    const c = stripeLv(segPx) / LV;
+    if (c < 1) { ctx.fillStyle = P.wallPaintMix; quad(0, 1, 2, 3); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.6; ctx.stroke(); }
+    if (c > 0) { ctx.globalAlpha = prevA * fa * c; ctx.fillStyle = mod(Math.floor(j / 2), 2) ? P.kerbA : P.wallPaint; quad(0, 1, 2, 3); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.6; ctx.stroke(); ctx.globalAlpha = prevA * fa; }
+  } else { ctx.fillStyle = painted === 2 ? P.wallPaintMix : P.wall; quad(0, 1, 2, 3); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.6; ctx.stroke(); }
+  {   // 해를 등진 면은 어둡게(코너를 따라 벽 면의 밝기가 서서히 바뀐다). 밤에는 조금 더
+    const ex = bx - ax, ey = by - ay; const el = Math.hypot(ex, ey) || 1; let nx = -ey / el, ny = ex / el;
+    if ((cam.x - (ax + bx) / 2) * nx + (cam.y - (ay + by) / 2) * ny < 0) { nx = -nx; ny = -ny; }
+    const sl = Math.hypot(SUN[0], SUN[1]) || 1; const lit = Math.max(0, -(nx * SUN[0] + ny * SUN[1]) / sl);
+    const sh = (1 - lit) * (P.night ? 0.2 : 0.15);
+    if (sh > 0.01) { ctx.globalAlpha = prevA * fa * sh; ctx.fillStyle = '#000'; quad(0, 1, 2, 3); ctx.fill(); ctx.globalAlpha = prevA * fa; }
+  }
   ctx.strokeStyle = P.wallTop; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(p[3][0], p[3][1]); ctx.lineTo(p[2][0], p[2][1]); ctx.stroke();
   ctx.fillStyle = P.fence; quad(3, 2, 4, 5); ctx.fill();
   if (hoardOn) {   // 광고판: 철망 아래쪽에 판, 12m마다 갠트리 심볼(빔 하나 + 5열 × 2행)
@@ -981,20 +1062,27 @@ function wallSeg(ctx, cam, P, ax, ay, bx, by, wallH, fenceH, painted, j, post, f
       const L = Math.hypot(bx - ax, by - ay) || 1; const ux = (bx - ax) / L, uy = (by - ay) / L; const mx = (ax + bx) / 2, my = (ay + by) / 2;
       const at = (t, Z) => (proj(cam, mx + ux * t, my + uy * t, Z) ? [PX, PY, PZ] : null);
       const b0 = at(-1.1, wallH + 1.2), b1 = at(1.1, wallH + 1.2), b2 = at(1.1, wallH + 1.34), b3 = at(-1.1, wallH + 1.34);
-      ctx.fillStyle = P.hoardMark;
+      ctx.fillStyle = P.hoardMark; ctx.globalAlpha = prevA * fa * mark;
       if (b0 && b1 && b2 && b3) { ctx.beginPath(); ctx.moveTo(b0[0], b0[1]); ctx.lineTo(b1[0], b1[1]); ctx.lineTo(b2[0], b2[1]); ctx.lineTo(b3[0], b3[1]); ctx.closePath(); ctx.fill(); }
       ctx.beginPath();
       for (let c = 0; c < 5; c += 1) for (const Z of [wallH + 0.88, wallH + 0.55]) { const p = at(-0.88 + c * 0.44, Z); if (!p) continue; const r = Math.max(0.6, (0.12 * cam.F) / p[2]); ctx.moveTo(p[0] + r, p[1]); ctx.arc(p[0], p[1], r, 0, TAU); }
-      ctx.fill();
+      ctx.fill(); ctx.globalAlpha = prevA * fa;
     }
   }
-  ctx.strokeStyle = P.fenceLine; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(p[5][0], p[5][1]); ctx.lineTo(p[4][0], p[4][1]); if (post) { ctx.moveTo(p[3][0], p[3][1]); ctx.lineTo(p[5][0], p[5][1]); } ctx.stroke();
+  ctx.strokeStyle = P.fenceLine; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(p[5][0], p[5][1]); ctx.lineTo(p[4][0], p[4][1]); ctx.stroke();
+  if (post) {   // 기둥(8m마다): 기둥 사이가 화면에서 좁으면 옅게. post = 이 조각이 몇 m인지(2 · 4 · 8칸 → 8m 간격으로 환산)
+    const gap = segPx * (8 / post); const pa = clamp01((gap - 4) / 6) * mbA((p[3][0] + p[5][0]) / 2, (p[3][1] + p[5][1]) / 2, p[5][2], 1);
+    if (pa > 0.02) { ctx.globalAlpha = prevA * fa * pa; ctx.beginPath(); ctx.moveTo(p[3][0], p[3][1]); ctx.lineTo(p[5][0], p[5][1]); ctx.stroke(); }
+  }
   ctx.globalAlpha = prevA;
 }
 function tyreSeg(ctx, cam, P, ax, ay, bx, by, odd, fa) {
   const p = []; for (const [X, Y, Z] of [[ax, ay, 0], [bx, by, 0], [bx, by, 0.9], [ax, ay, 0.9]]) { if (!proj(cam, X, Y, Z)) return; p.push([PX, PY]); }
   const prevA = ctx.globalAlpha; ctx.globalAlpha = prevA * fa;
-  ctx.fillStyle = odd ? P.kerbA : P.belt; ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]); for (let k = 1; k < 4; k += 1) ctx.lineTo(p[k][0], p[k][1]); ctx.closePath(); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.6; ctx.stroke();
+  const c = stripeLv(Math.hypot(p[1][0] - p[0][0], p[1][1] - p[0][1])) / LV;   // 좁으면 두 색의 가운데 색으로(연석과 같은 방식)
+  const quad = () => { ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]); for (let k = 1; k < 4; k += 1) ctx.lineTo(p[k][0], p[k][1]); ctx.closePath(); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.6; ctx.stroke(); };
+  if (c < 1) { ctx.fillStyle = P.tyreMix; quad(); }
+  if (c > 0) { ctx.globalAlpha = prevA * fa * c; ctx.fillStyle = odd ? P.kerbA : P.belt; quad(); ctx.globalAlpha = prevA * fa; }
   ctx.strokeStyle = P.tyre3; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(p[3][0], p[3][1]); ctx.lineTo(p[2][0], p[2][1]); ctx.stroke();
   ctx.globalAlpha = prevA;
 }
@@ -1036,8 +1124,9 @@ function lampPost(ctx, cam, P, X, Y, HX, HY, fa) {
   const a = cam.project(X, Y, 0), b = cam.project(X, Y, 11), c = cam.project(HX, HY, 11.2); if (!a || !b || !c) return;
   const prevA = ctx.globalAlpha; ctx.globalAlpha = prevA * fa;
   ctx.strokeStyle = P.lamp; ctx.lineCap = 'round';
-  ctx.lineWidth = Math.max(1, (0.22 * cam.F) / a[2]); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
-  ctx.lineWidth = Math.max(1, (0.14 * cam.F) / b[2]); ctx.beginPath(); ctx.moveTo(b[0], b[1]); ctx.lineTo(c[0], c[1]); ctx.stroke();
+  const pw = Math.max(1, (0.22 * cam.F) / a[2]); ctx.globalAlpha = prevA * fa * mbA((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, a[2], pw);
+  ctx.lineWidth = pw; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+  ctx.lineWidth = Math.max(1, (0.14 * cam.F) / b[2]); ctx.beginPath(); ctx.moveTo(b[0], b[1]); ctx.lineTo(c[0], c[1]); ctx.stroke(); ctx.globalAlpha = prevA * fa;
   const r = Math.max(1.2, Math.min(5, (0.35 * cam.F) / c[2]));
   if (P.night && a[2] < 300) { const R5 = Math.min(26, r * 5); const g = ctx.createRadialGradient(c[0], c[1], 0, c[0], c[1], R5); g.addColorStop(0, `rgba(${P.lampGlowRGB},.5)`); g.addColorStop(1, `rgba(${P.lampGlowRGB},0)`); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(c[0], c[1], R5, 0, TAU); ctx.fill(); }
   ctx.fillStyle = P.night ? P.lampHeadOn : P.lampHead; ctx.beginPath(); ctx.ellipse(c[0], c[1] + r * 0.2, r * 1.3, r * 0.55, 0, 0, TAU); ctx.fill();
@@ -1085,9 +1174,12 @@ function ellipseShadow(path, cam, X, Y, r) {
 }
 function tree(ctx, cam, P, t, cx, cy, rp, fa) {
   const prevA = ctx.globalAlpha; ctx.globalAlpha = prevA * fa;
-  if (proj(cam, t.x, t.y, 0)) { ctx.strokeStyle = P.trunk; ctx.lineWidth = Math.max(1, rp * 0.14); ctx.beginPath(); ctx.moveTo(PX, PY); ctx.lineTo(cx, cy + rp * 0.5); ctx.stroke(); }
-  ctx.fillStyle = P.tree; ctx.beginPath(); ctx.arc(cx, cy, rp, 0, TAU); ctx.fill();
-  if (rp > 3) { ctx.fillStyle = P.treeHi; ctx.beginPath(); ctx.arc(cx - rp * 0.24, cy - rp * 0.26, rp * 0.62, 0, TAU); ctx.fill(); }
+  if (proj(cam, t.x, t.y, 0)) { const tw = Math.max(1, rp * 0.14); ctx.globalAlpha = prevA * fa * mbA((PX + cx) / 2, (PY + cy) / 2, PZ, tw); ctx.strokeStyle = P.trunk; ctx.lineWidth = tw; ctx.beginPath(); ctx.moveTo(PX, PY); ctx.lineTo(cx, cy + rp * 0.5); ctx.stroke(); ctx.globalAlpha = prevA * fa; }
+  // 해 반대쪽(오른쪽 아래)은 그늘: 그늘색 원 위에 조금 비켜 작은 원을 겹쳐 오른쪽 아래만 초승달처럼 남긴다(가까워질수록 서서히)
+  const shA = rp > 2.5 ? clamp01((rp - 2.5) / 1.5) : 0;
+  if (shA > 0) { ctx.globalAlpha = prevA * fa * shA; ctx.fillStyle = P.treeShade; ctx.beginPath(); ctx.arc(cx, cy, rp, 0, TAU); ctx.fill(); ctx.globalAlpha = prevA * fa; ctx.fillStyle = P.tree; ctx.beginPath(); ctx.arc(cx - rp * 0.1 * shA, cy - rp * 0.1 * shA, rp * (1 - 0.08 * shA), 0, TAU); ctx.fill(); }
+  else { ctx.fillStyle = P.tree; ctx.beginPath(); ctx.arc(cx, cy, rp, 0, TAU); ctx.fill(); }
+  if (rp > 2.5) { ctx.globalAlpha = prevA * fa * clamp01((rp - 2.5) / 1.5); ctx.fillStyle = P.treeHi; ctx.beginPath(); ctx.arc(cx - rp * 0.24, cy - rp * 0.26, rp * 0.62, 0, TAU); ctx.fill(); }   // 밝은 쪽은 다가올수록 서서히
   ctx.globalAlpha = prevA;
 }
 function boxCorners(b) {
@@ -1121,11 +1213,32 @@ function building(ctx, cam, P, b, fa, depth) {
   for (const { k, lit } of walls) {
     const k2 = (k + 1) % 4; ctx.fillStyle = lit > 0.25 ? P.bldLit : P.bldShade;
     ctx.beginPath(); ctx.moveTo(bot[k][0], bot[k][1]); ctx.lineTo(bot[k2][0], bot[k2][1]); ctx.lineTo(top[k2][0], top[k2][1]); ctx.lineTo(top[k][0], top[k][1]); ctx.closePath(); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.6; ctx.stroke();
-    if (depth < 320) {
-      ctx.strokeStyle = P.window; ctx.lineWidth = 1; ctx.beginPath();
-      const floors = Math.floor(b.h / 3.6); const stepF = depth < 160 ? 1 : 2;
-      for (let f = 1; f < floors; f += stepF) { const t = (f * 3.6) / b.h; ctx.moveTo(bot[k][0] + (top[k][0] - bot[k][0]) * t, bot[k][1] + (top[k][1] - bot[k][1]) * t); ctx.lineTo(bot[k2][0] + (top[k2][0] - bot[k2][0]) * t, bot[k2][1] + (top[k2][1] - bot[k2][1]) * t); }
-      ctx.stroke();
+    // 층 줄: 층 사이가 화면에서 좁아지면 옅게(예전엔 160m에서 절반, 320m에서 모두 툭 사라졌다)
+    const floors = Math.floor(b.h / 3.6); const gapPx = Math.min(Math.hypot(top[k][0] - bot[k][0], top[k][1] - bot[k][1]), Math.hypot(top[k2][0] - bot[k2][0], top[k2][1] - bot[k2][1])) / Math.max(1, b.h / 3.6);
+    const la = depth < 1e8 ? clamp01((gapPx - 2.5) / 3) : 0;   // 가벼운 그리기(depth 1e9로 부른다)에서는 층 줄 · 창을 그리지 않는다
+    if (la > 0.03 && floors > 1) {
+      ctx.globalAlpha = prevA * fa * la; ctx.strokeStyle = P.window; ctx.lineWidth = 1; ctx.beginPath();
+      for (let f = 1; f < floors; f += 1) { const t = (f * 3.6) / b.h; ctx.moveTo(bot[k][0] + (top[k][0] - bot[k][0]) * t, bot[k][1] + (top[k][1] - bot[k][1]) * t); ctx.lineTo(bot[k2][0] + (top[k2][0] - bot[k2][0]) * t, bot[k2][1] + (top[k2][1] - bot[k2][1]) * t); }
+      ctx.stroke(); ctx.globalAlpha = prevA * fa;
+    }
+    // 밤: 불 켜진 창(층마다 3.2m 칸, 넷에 하나쯤). 건물 · 면 · 층 · 칸으로 정해져 늘 같은 창이 켜진다. 창이 화면에서 작아지면 옅게
+    if (depth < 420) {
+      const L = Math.hypot(cs[(k + 1) % 4][0] - cs[k][0], cs[(k + 1) % 4][1] - cs[k][1]); const cols = Math.max(1, Math.floor(L / 3.2));
+      const wPx = Math.hypot(bot[k2][0] - bot[k][0], bot[k2][1] - bot[k][1]) / cols; const wa = clamp01((Math.min(wPx, gapPx) - 1.6) / 2.4) * nearA(depth, 340, 420);
+      if (wa > 0.03 && floors > 1) {
+        const seed = Math.round(b.x * 7 + b.y * 13) + k * 101; const at = (u, v) => [bot[k][0] + (bot[k2][0] - bot[k][0]) * u + ((top[k][0] - bot[k][0]) + ((top[k2][0] - bot[k2][0]) - (top[k][0] - bot[k][0])) * u) * v, bot[k][1] + (bot[k2][1] - bot[k][1]) * u + ((top[k][1] - bot[k][1]) + ((top[k2][1] - bot[k2][1]) - (top[k][1] - bot[k][1])) * u) * v];
+        // 낮: 모든 창을 유리색(층 줄과 같은 색)으로 옅게, 몇 개는 조금 더 짙게(빛이 비친 창)
+        for (const [lvl, aMul] of P.night ? [[0, 0.5], [1, 0.26]] : [[2, 0.9], [0, 0.6]]) {
+          ctx.globalAlpha = prevA * fa * wa * aMul; ctx.fillStyle = P.night ? P.winLit : P.window; ctx.beginPath();
+          for (let f = 0; f < floors - 1; f += 1) for (let c = 0; c < cols; c += 1) {
+            const r = h2(seed + f * 31, c * 17 + 5); const on = r < 0.14 ? 0 : r < 0.3 ? 1 : -1; if (lvl !== 2 && on !== lvl) continue;
+            const u0 = (c + 0.22) / cols, u1 = (c + 0.78) / cols, v0 = (f * 3.6 + 1.0) / b.h, v1 = (f * 3.6 + 2.6) / b.h;
+            const p0 = at(u0, v0), p1 = at(u1, v0), p2 = at(u1, v1), p3 = at(u0, v1); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.lineTo(p3[0], p3[1]); ctx.closePath();
+          }
+          ctx.fill();
+        }
+        ctx.globalAlpha = prevA * fa;
+      }
     }
   }
   if (cam.z > b.h) { ctx.fillStyle = P.roof; ctx.beginPath(); ctx.moveTo(top[0][0], top[0][1]); for (let k = 1; k < 4; k += 1) ctx.lineTo(top[k][0], top[k][1]); ctx.closePath(); ctx.fill(); ctx.strokeStyle = P.roofEdge; ctx.lineWidth = 1; ctx.stroke(); }
@@ -1133,30 +1246,40 @@ function building(ctx, cam, P, b, fa, depth) {
 }
 // 관중석(바깥) · 피트 건물(내야): 메인 직선을 따라 10m 조각
 function blockItems(ctx, items, cam, tk, W3, runs, P, fogK, shadowPath, q, lite, cheer = 0, tSec = 0) {
-  const segs = (blk, len, fn) => { const s0 = blk.s0 < 0 ? blk.s0 + tk.L : blk.s0; for (const [a, b] of spans(runs, tk, s0, s0 + (blk.s1 - blk.s0))) for (let j = a; j < b; j += len / tk.ds) fn(j, Math.min(b, j + len / tk.ds)); };
+  // 조각은 블록 시작에서 len m마다(서킷에 붙은 자리). 보이는 범위 [a, b]로 자른 조각(ja, jb)과 원래 조각(wa, wb) · 번호 k를 넘긴다.
+  // 보이는 구간의 시작에 맞춰 나누면 차가 움직일 때마다 사람 점 · 차고 문 · 스탠드가 밀려 깜빡인다
+  const segs = (blk, len, fn) => {
+    const s0 = blk.s0 < 0 ? blk.s0 + tk.L : blk.s0; const dj = len / tk.ds; const j0 = s0 / tk.ds;
+    for (const [a, b] of spans(runs, tk, s0, s0 + (blk.s1 - blk.s0))) {
+      const o = j0 + Math.round((a - j0) / n) * n;
+      for (let k = Math.max(0, Math.floor((a - o) / dj)); o + k * dj < b; k += 1) { const wa = o + k * dj, wb = wa + dj; const ja = Math.max(a, wa), jb = Math.min(b, wb); if (jb - ja > 1e-3) fn(ja, jb, k, wa, wb); }
+    }
+  };
   const corner = (j, o, Z) => (wp(tk, W3, j, o) && proj(cam, WX, WY, Z) ? [PX, PY] : null);
   const quad = (pts, fill) => { if (pts.some((v) => !v)) return false; ctx.fillStyle = fill; ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); for (let k = 1; k < pts.length; k += 1) ctx.lineTo(pts[k][0], pts[k][1]); ctx.closePath(); ctx.fill(); ctx.strokeStyle = fill; ctx.lineWidth = 0.6; ctx.stroke(); return true; };
   const n = tk.n;
   // 관중석: 앞이 낮고 뒤가 높은 비탈(사람 점) + 뒤쪽 절반을 덮는 지붕
   const st = W3.stand; const sd = st.side;
-  segs(st, 10, (ja, jb) => {
-    const wv = (sd > 0 ? W3.wl : W3.wr)[mod(Math.round(ja), n)]; const o0 = sd * (wv + 3) * q, o1 = sd * (wv + 29) * q;
+  segs(st, 10, (ja, jb, kSeg, wa, wb) => {
+    const wv = (sd > 0 ? W3.wl : W3.wr)[mod(Math.round(wa), n)]; const o0 = sd * (wv + 3) * q, o1 = sd * (wv + 29) * q;
     if (!wp(tk, W3, (ja + jb) / 2, sd * (wv + 16) * q) || !proj(cam, WX, WY, 8)) return; const depth = PZ; const fa = 1 - fogK(depth); if (fa <= 0.02) return;
-    const seed = Math.floor(ja);
+    const seed = kSeg * 7 + 3;
     items.push({ z: depth, draw: () => { const prevA = ctx.globalAlpha; ctx.globalAlpha = prevA * fa;
       quad([corner(ja, o0, 0), corner(jb, o0, 0), corner(jb, o0, 2.4), corner(ja, o0, 2.4)], P.standFront);
       if (quad([corner(ja, o0, 2.4), corner(jb, o0, 2.4), corner(jb, o1, 15), corner(ja, o1, 15)], P.stand) && depth < 240 && !lite) {
         // 사람: 줄마다 점. 결승 때는 일어선다(0.35m 위로, 한 번). 드문드문 깃발(결승 때 더 크게 흔든다)
-        const rows = 9; const cols = 12; const flags = [];
+        const rows = 9; const cols = 12; const flags = []; const cA = clamp01(((0.55 * cam.F) / depth - 0.8) / 1.0); ctx.globalAlpha = prevA * fa * cA;   // 사람 점이 1px보다 작으면 옅게(먼 관중석이 반짝이지 않게)
         for (let r = 0; r < rows; r += 1) for (let c2 = 0; c2 < cols; c2 += 1) {
           const u = (c2 + 0.5) / cols, v = (r + 0.5) / rows; const hh = h2(seed * 31 + r, c2); if (hh < 0.18) continue;
+          const jp = wa + (wb - wa) * u; if (jp < ja || jp > jb) continue;   // 자른 조각 밖의 사람은 이웃 조각이 그린다
           const up = cheer * (hh > 0.3 ? 0.35 : 0);
-          const p = corner(ja + (jb - ja) * u, o0 + (o1 - o0) * v, 2.4 + 12.6 * v + 0.4 + up); if (!p) continue;
-          const sz = Math.max(1, (0.55 * cam.F) / PZ); ctx.fillStyle = P.crowd[Math.floor(hh * 97) % P.crowd.length];
+          const p = corner(jp, o0 + (o1 - o0) * v, 2.4 + 12.6 * v + 0.4 + up); if (!p) continue;
+          const sz = Math.max(1, (0.55 * cam.F) / PZ); ctx.fillStyle = P.crowd[Math.floor(hh * 97) % P.crowd.length]; ctx.globalAlpha = prevA * fa * cA * mbA(p[0], p[1], PZ, sz);
           if (sz < 5) ctx.fillRect(p[0] - sz / 2, p[1] - sz, sz, sz);
           else { ctx.beginPath(); ctx.roundRect ? ctx.roundRect(p[0] - sz * 0.42, p[1] - sz * 0.95, sz * 0.84, sz * 0.95, sz * 0.3) : ctx.rect(p[0] - sz * 0.42, p[1] - sz * 0.95, sz * 0.84, sz * 0.95); ctx.arc(p[0], p[1] - sz * 1.25, sz * 0.27, 0, TAU); ctx.fill(); }   // 가까우면 머리와 몸
-          if (hh > 0.955 && depth < 170) flags.push([ja + (jb - ja) * u, o0 + (o1 - o0) * v, 2.4 + 12.6 * v + 0.4 + up, hh]);
+          if (hh > 0.955 && depth < 170) flags.push([jp, o0 + (o1 - o0) * v, 2.4 + 12.6 * v + 0.4 + up, hh]);   // 깃발은 140 → 170m에서 서서히(아래)
         }
+        ctx.globalAlpha = prevA * fa * nearA(depth, 140, 170);
         for (const [jf, of, zf, hh] of flags) {
           const base = corner(jf, of, zf); const top = corner(jf, of, zf + 1.3); if (!base || !top) continue;
           ctx.strokeStyle = P.flagPole; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(base[0], base[1]); ctx.lineTo(top[0], top[1]); ctx.stroke();
@@ -1165,6 +1288,7 @@ function blockItems(ctx, items, cam, tk, W3, runs, P, fogK, shadowPath, q, lite,
           if (!a2 || !b2 || !c3) continue;
           ctx.fillStyle = [P.red, P.line, P.check][Math.floor(hh * 1000) % 3]; ctx.beginPath(); ctx.moveTo(top[0], top[1]); ctx.lineTo(a2[0], a2[1]); ctx.lineTo(b2[0], b2[1]); ctx.lineTo(c3[0], c3[1]); ctx.closePath(); ctx.fill();
         }
+        ctx.globalAlpha = prevA * fa;
       }
       quad([corner(ja, o1, 0), corner(jb, o1, 0), corner(jb, o1, 15), corner(ja, o1, 15)], P.standBack);
       // 지붕(뒤쪽 절반)과 기둥
@@ -1175,12 +1299,13 @@ function blockItems(ctx, items, cam, tk, W3, runs, P, fogK, shadowPath, q, lite,
   // 피트 건물: 길을 보는 벽에 차고 문 · 위층 유리 띠 · 지붕
   const pt = W3.pit; const ps = pt.side;
   // 피트 월 스탠드: 피트 담 위 팀 자리(지붕 달린 작은 상자) 16m마다
-  segs({ s0: pt.s0 + 20, s1: pt.s1 - 20 }, 16, (ja) => {
+  segs({ s0: pt.s0 + 20, s1: pt.s1 - 20 }, 16, (ja, jb, kSeg, wa) => {
+    if (wa < ja - 1e-3) return;   // 스탠드 자리(조각 시작)가 보이는 범위 밖
     { let sR = wrapM(ja * tk.ds, tk.L); if (sR > tk.L / 2) sR -= tk.L; if (sR > CREW_S[0] - 3 && sR < CREW_S[1] + 3) return; }   // 결승선 앞뒤는 팀 사람들 자리
     const wv = (ps > 0 ? W3.wl : W3.wr)[mod(Math.round(ja), n)];
     if (!wp(tk, W3, ja, ps * (wv + 1.0) * q)) return; const X = WX, Y = WY; if (!proj(cam, X, Y, 1.2)) return; const depth = PZ; const fa = 1 - fogK(depth); if (fa <= 0.02 || depth > 400) return;
     const b = { x: X, y: Y, hx: 1.6, hy: 0.7, a: tk.th[mod(Math.round(ja), n)], h: 2.5 };
-    items.push({ z: depth, sx: PX, half: (2 * cam.F) / depth, draw: () => { const prevA = ctx.globalAlpha; ctx.globalAlpha = prevA * fa; box3d(ctx, cam, P, b, P.booth, P.boothShade, P.panel); ctx.globalAlpha = prevA; } });
+    items.push({ z: depth + 1, sx: PX, half: (2 * cam.F) / depth, draw: () => { const prevA = ctx.globalAlpha; ctx.globalAlpha = prevA * fa; box3d(ctx, cam, P, b, P.booth, P.boothShade, P.panel); ctx.globalAlpha = prevA; } });   // 피트 담 뒤
   });
   // 레이스 컨트롤 탑: 피트 건물 뒤, 출발선 근처에 높게(위쪽은 유리)
   { const sT = Math.max(pt.s0 + 30, Math.min(pt.s1 - 30, 20)); const iT = mod(Math.round(wrapM(sT, tk.L) / tk.ds), n); const wv = (ps > 0 ? W3.wl : W3.wr)[iT];
@@ -1188,18 +1313,18 @@ function blockItems(ctx, items, cam, tk, W3, runs, P, fogK, shadowPath, q, lite,
       if (!wp(tk, W3, a, ps * (wv + 33) * q)) break; const X = WX, Y = WY; if (!proj(cam, X, Y, 12)) break; const depth = PZ; const fa = 1 - fogK(depth); if (fa <= 0.02) break;
       const b = { x: X, y: Y, hx: 7, hy: 5.5, a: tk.th[iT], h: 24 };
       items.push({ z: depth, sx: PX, half: (9 * cam.F) / depth, draw: () => { const prevA = ctx.globalAlpha; ctx.globalAlpha = prevA * fa; box3d(ctx, cam, P, b, P.bldLit, P.bldShade, P.roof); box3d(ctx, cam, P, { ...b, h: 23.9, hx: 7.05, hy: 5.55 }, P.glass, P.glass, P.roof); box3d(ctx, cam, P, { ...b, h: 18 }, P.bldLit, P.bldShade, P.roof); ctx.globalAlpha = prevA; } });
-      if (depth < 600) { bldShadow(shadowPath, cam, b); }
+      if (depth < 900) { bldShadow(shadowPath, cam, b); }
       break;
     }
   }
-  segs(pt, 12, (ja, jb) => {
-    const wv = (ps > 0 ? W3.wl : W3.wr)[mod(Math.round(ja), n)]; const o0 = ps * (wv + 11.5) * q, o1 = ps * (wv + 27) * q; const H = 10;
+  segs(pt, 12, (ja, jb, kSeg, wa, wb) => {
+    const wv = (ps > 0 ? W3.wl : W3.wr)[mod(Math.round(wa), n)]; const o0 = ps * (wv + 11.5) * q, o1 = ps * (wv + 27) * q; const H = 10;
     if (!wp(tk, W3, (ja + jb) / 2, ps * (wv + 18) * q) || !proj(cam, WX, WY, 5)) return; const depth = PZ; const fa = 1 - fogK(depth); if (fa <= 0.02) return;
     items.push({ z: depth, draw: () => { const prevA = ctx.globalAlpha; ctx.globalAlpha = prevA * fa;
       quad([corner(ja, o0, 0), corner(jb, o0, 0), corner(jb, o0, H), corner(ja, o0, H)], P.bldLit);
       // 차고 문(어둡게) · 유리 띠
-      const jm = (ja + jb) / 2; const dj = 2.6 / tk.ds;
-      quad([corner(jm - dj, o0 * 0.999, 0), corner(jm + dj, o0 * 0.999, 0), corner(jm + dj, o0 * 0.999, 4.6), corner(jm - dj, o0 * 0.999, 4.6)], P.garage);
+      const jm = (wa + wb) / 2; const dj = 2.6 / tk.ds;
+      if (jm - dj >= ja && jm + dj <= jb) quad([corner(jm - dj, o0 * 0.999, 0), corner(jm + dj, o0 * 0.999, 0), corner(jm + dj, o0 * 0.999, 4.6), corner(jm - dj, o0 * 0.999, 4.6)], P.garage);
       quad([corner(ja, o0 * 0.999, 6.4), corner(jb, o0 * 0.999, 6.4), corner(jb, o0 * 0.999, 8.8), corner(ja, o0 * 0.999, 8.8)], P.glass);
       if (cam.z > H) quad([corner(ja, o0, H), corner(jb, o0, H), corner(jb, o1, H), corner(ja, o1, H)], P.roof);
       ctx.globalAlpha = prevA; } });

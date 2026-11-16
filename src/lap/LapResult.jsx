@@ -12,7 +12,7 @@ const DELAY = 260, STEP = 110, MAX_STEPS = 8;
 const secText = (t) => (t >= 60 ? formatLap(t * 1000) : t.toFixed(3));
 
 // 순위 숫자: before → n
-function useCountDown(before, n, on) {
+export function useCountDown(before, n, on) {
   const [v, setV] = useState(on ? before : n);
   useEffect(() => {
     if (!on) { setV(n); return undefined; }
