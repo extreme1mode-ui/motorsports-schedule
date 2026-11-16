@@ -4,7 +4,7 @@
 import { demoClock } from '../demo/clock.js';
 import { prepareTrack, botLap, formatLap } from './engine.js';
 import { lapConfig, lapDiff, setLapConfig } from './config.js';
-import { LAP_TRACKS, openLap, closeLap, openLapId, writeLapRecords } from './store.js';
+import { LAP_TRACKS, openLap, closeLap, writeLapRecords } from './store.js';
 import { myPlayer, nameOf, resetPlayer } from './player.js';
 
 const api = {};
@@ -17,8 +17,8 @@ if (demoClock.enabled && typeof window !== 'undefined') {
     close: () => closeLap(),
     config: (patch) => setLapConfig(patch || {}),
     getConfig: () => ({ ...lapConfig(), numbers: lapDiff() }),
-    // 기록 지우기: 순위표의 나(이름)도 지워 처음 온 사람으로. 레이어가 열려 있으면 다시 열어 화면 속 최고 기록도 비운다
-    clear: () => { const o = openLapId(); writeLapRecords({}); resetPlayer(); if (o) { closeLap(); setTimeout(() => openLap(o), 30); } },
+    // 기록 지우기: 순위표의 나(이름)도 지워 처음 온 사람으로(열린 레이어는 기록이 사라진 것을 보고 화면 속 최고 기록을 비운다)
+    clear: () => { writeLapRecords({}); resetPlayer(); },
     // 새 이름으로(기록은 그대로)
     newName: () => { resetPlayer(); return true; },
     // 지금 이 기기의 나: { id, name }

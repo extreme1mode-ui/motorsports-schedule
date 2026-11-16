@@ -64,5 +64,4 @@ export function openLap(id) { if (BY_ID.has(id)) { preloadLapGame(); openId = id
 export function closeLap() { openId = null; openSubs.forEach((fn) => fn()); }
 const subOpen = (fn) => { openSubs.add(fn); return () => openSubs.delete(fn); };
 const getOpen = () => openId;
-export const openLapId = getOpen;
 export function useOpenLap() { return useSyncExternalStore(subOpen, getOpen, getOpen); }

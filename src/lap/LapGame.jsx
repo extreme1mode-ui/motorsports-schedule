@@ -27,7 +27,7 @@ import { GHOST_EVERY, timeAt, posAt, compareSectors, offCorners, zonesOf, simLap
 import { useLapConfig, lapDiff, paceOf } from './config.js';
 import { demoApi } from './demo.js';
 import { LAP_SAVE, lapHaptic, lapSaveImage } from './lap-platform.js';
-import { lapTrackOf, preparedTrack, lapRecords, saveLap, useOpenLap, closeLap, outlinePath, writeLapRecords, isFirstVisit } from './store.js';
+import { lapTrackOf, preparedTrack, lapRecords, useLapRecords, saveLap, useOpenLap, closeLap, outlinePath, writeLapRecords, isFirstVisit } from './store.js';
 
 const LIGHTS = 5;
 const LIGHT_EVERY = 1000;                  // 신호등 하나가 켜지는 간격(ms). 실제 F1도 1초마다 하나씩 켜진다
@@ -119,6 +119,9 @@ function LapGame({ id, onClose }) {
       cam3: null, from3: null, c3: null, view3: null, rain: 0, sparkS: 0, rnd: 7 };
   }
   const setP = useCallback((p) => { g.current.phase = p; setPhase(p); }, []);
+  // 이 서킷 기록이 지워지면(데모 조절 판 '기록 지우기') 화면 속 최고 기록 · 옅은 차도 비운다
+  const hasRec = !!useLapRecords()[id];
+  useEffect(() => { if (!hasRec) { g.current.best = null; setBest(null); } }, [hasRec]);
   const clearTimers = () => { g.current.timers.forEach(clearTimeout); g.current.timers = []; };
   const later = (fn, ms) => { g.current.timers.push(setTimeout(fn, ms)); };
   const buzz = useCallback((kind) => { if (g.current.cfg.haptic === 'on') lapHaptic(kind); }, []);
