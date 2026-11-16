@@ -17,7 +17,8 @@ import { HALF_W, newRun, step, poseAt, formatLap } from './engine.js';
 import { drawCar, carColors, steerOf } from './car.js';
 import { prepWorld, buildView, drawGround, drawTrack, drawStartMarks, drawGantry, drawBoards } from './world.js';
 import { newFx, addMarks, breakMarks, addPuff, drawMarks, drawPuffs, drawStreaks } from './fx.js';
-import { prep3d, camera as camera3, render3d, labels3d, rlAt, wallAtS, kerbAtS, CAR3, addSparks } from './world3d.js';
+import { prep3d, camera as camera3, render3d, labels3d, rlAt, wallAtS, kerbAtS, CAR3, addSparks, STREET } from './world3d.js';
+import { createLapSound, renderLog, renderScenes, wavBytes } from './sound.js';
 import { GHOST_EVERY, timeAt, posAt, compareSectors, offCorners, zonesOf, simLap } from './analysis.js';
 import { useLapConfig, lapDiff, paceOf } from './config.js';
 import { demoApi } from './demo.js';
@@ -43,6 +44,11 @@ const NOSE3 = 2.62 * CAR3;                 // 입체 화면: 차 가운데에서
 // 입체 카메라 두 개 사이(서킷 전체 ↔ 차 뒤): 높이와 초점 거리는 로그로, 방향은 짧은 쪽으로
 const lerpCam3 = (a, b, e) => ({ x: lerp(a.x, b.x, e), y: lerp(a.y, b.y, e), z: Math.exp(lerp(Math.log(a.z), Math.log(b.z), e)), yaw: a.yaw + angDiff(a.yaw, b.yaw) * e, pitch: lerp(a.pitch, b.pitch, e),
   F: Math.exp(lerp(Math.log(a.F), Math.log(b.F), e)), ox: lerp(a.ox, b.ox, e), oy: lerp(a.oy, b.oy, e), mix: lerp(a.mix, b.mix, e) });
+// 소리 켬 · 끔(이 기기에 기억). 저장된 값이 없으면 설정의 기본값
+const SOUND_KEY = 'gantry.lapSound';
+const readSound = () => { try { const v = localStorage.getItem(SOUND_KEY); return v === 'on' ? true : v === 'off' ? false : null; } catch { return null; } };
+// 마지막 코너를 지나 결승선까지(m). 코너가 없으면 마지막 600m
+const finalStretchOf = (tk) => (tk.turns.length ? tk.turns[tk.turns.length - 1].s + 40 : tk.L - 600);
 const hexRgb = (c) => { const m = /^#?([0-9a-f]{6})$/i.exec((c || '').trim()); if (!m) return '128,128,128'; const v = m[1]; return `${parseInt(v.slice(0, 2), 16)},${parseInt(v.slice(2, 4), 16)},${parseInt(v.slice(4, 6), 16)}`; };
 
 // 기록 카드 이미지 한 장(게시물 4:5 · 스토리 9:16)
@@ -77,6 +83,14 @@ function LapGame({ id, onClose }) {
   const root = useRef(null); const canvas = useRef(null);
   const timeEl = useRef(null); const speedEl = useRef(null); const pedalEl = useRef(null); const nextEl = useRef(null); const dotEl = useRef(null); const barEl = useRef(null); const progEl = useRef(null); const progGhostEl = useRef(null);
   const gasEl = useRef(null); const [gasTip, setGasTip] = useState(false); const gasTipT = useRef(0);
+  // 소리: 레이어가 열리면 재료를 쉬는 틈에 만들고, 손이 처음 닿을 때 켠다
+  const [soundOn, setSoundOn] = useState(() => readSound() ?? cfg.sound !== 'off');
+  const snd = useRef(null); if (snd.current === null) snd.current = createLapSound();
+  useEffect(() => { snd.current.enable(soundOn); }, [soundOn]);
+  useEffect(() => () => snd.current.close(), []);
+  const soundCfg = useRef(cfg.sound);
+  useEffect(() => { if (soundCfg.current !== cfg.sound) { soundCfg.current = cfg.sound; setSoundOn(cfg.sound !== 'off'); } }, [cfg.sound]);   // 데모 조절 판에서 바꾸면 바로
+  const toggleSound = () => { const v = !soundOn; setSoundOn(v); try { localStorage.setItem(SOUND_KEY, v ? 'on' : 'off'); } catch { /* 저장소 없음 */ } if (v) { snd.current.enable(true); snd.current.unlock(); } };
   // 위 줄의 작은 전체 그림(84×56): 트랙 좌표 → 그림 좌표
   const mini = useMemo(() => {
     const [x0, y0, x1, y1] = tk.box; const w = 84, h = 56, pad = 5;
@@ -105,6 +119,7 @@ function LapGame({ id, onClose }) {
     s.run = newRun(); s.ghost = []; s.ghostNext = 0; s.acc = 0; s.down = false; s.react = 0; s.frozen = false;
     s.coachIdx = 0; s.cue = null; s.cueUntil = 0; s.reactUntil = 0; s.deltaUntil = 0; s.deltaNext = 0; s.yaw = 0; s.steer = 0; s.resultMarks = null;
     s.fx = newFx(); s.coast = null; s.glow = 0; s.aero = 0; s.accSm = 0; s.vPrev = 0; s.rain = 0; s.sparkS = 0;
+    s.ghostSign = 0; s.passAt = 0; s.passKey = null; s.passUntil = 0; s.finalOn = false; s.finalUntil = 0; s.sndS = null; s.offSurface = null;
     setResult(null); setDelta(null);
   };
 
@@ -117,15 +132,15 @@ function LapGame({ id, onClose }) {
 
   // ---------- 신호등 ----------
   const startLights = useCallback(() => {
-    clearTimers(); resetRun(); setLit(0); setP('lights');
-    for (let i = 1; i <= LIGHTS; i += 1) later(() => setLit(i), LIGHT_EVERY * i);
+    snd.current.unlock(); clearTimers(); resetRun(); setLit(0); setP('lights');
+    for (let i = 1; i <= LIGHTS; i += 1) later(() => { setLit(i); snd.current.event('light', { n: i }); }, LIGHT_EVERY * i);
     const hold = 400 + Math.random() * 1800;     // 다 켜진 뒤 꺼질 때까지: 0.4~2.2초 사이 아무 때나
     later(() => { setLit(0); g.current.t0 = performance.now(); setP('go'); }, LIGHT_EVERY * LIGHTS + hold);
   }, [setP]);
 
   // ---------- 연습(배우는 방법 '연습 구간'): 시간을 재지 않고 첫 진한 구간 두 곳까지 ----------
   const startPractice = useCallback(() => {
-    clearTimers(); resetRun();
+    snd.current.unlock(); clearTimers(); resetRun();
     const z = coachZones(); const s = g.current;
     s.practiceEnd = z.length ? z[z.length - 1].s1 + 120 : 600;
     s.last = performance.now(); setP('practice');
@@ -141,7 +156,7 @@ function LapGame({ id, onClose }) {
     if (saved.best) { s.best = s.ghost.slice(); setBest(ms); }
     s.resultMarks = { offAt: run.offAt.slice(), sector: saved.best ? cmp?.gained : cmp?.lost, ghost: s.ghost.slice() };
     trackEvent('lap_finished', { track: id, ms, offs: run.offCount, best: saved.best });
-    buzz('finish');
+    buzz('finish'); snd.current.event('finish', { best: !!saved.best });
     setResult({ ms, react: Math.round(s.react), vmax: Math.round(run.vmax * 3.6), offs: run.offCount, offList, cmp, isBest: saved.best, prev: saved.prev });
     setFirstRun(false); setDelta(null);
     // 결승선을 지난 뒤: 차가 속도를 줄이며 1.5초 굴러가는 동안 가운데 큰 기록 → 서킷 전체와 결과 카드
@@ -152,24 +167,24 @@ function LapGame({ id, onClose }) {
 
   // ---------- 누르기 ----------
   const press = useCallback((isDown) => {
-    const s = g.current;
+    const s = g.current; if (isDown) snd.current.unlock();
     if (isDown && s.phase === 'lights') {          // 부정 출발
-      clearTimers(); setLit(0); trackEvent('lap_jump_start', { track: id });
+      clearTimers(); setLit(0); trackEvent('lap_jump_start', { track: id }); snd.current.event('jump');
       setP('wait'); later(() => startLights(), 1600);
       return;
     }
-    if (isDown && s.phase === 'go') { s.react = performance.now() - s.t0; s.last = performance.now(); s.reactUntil = performance.now() + 1400; setReactMs(Math.round(s.react)); setP('run'); }
+    if (isDown && s.phase === 'go') { snd.current.event('launch'); s.react = performance.now() - s.t0; s.last = performance.now(); s.reactUntil = performance.now() + 1400; setReactMs(Math.round(s.react)); setP('run'); }
     if (isDown && s.frozen) { s.frozen = false; s.last = performance.now(); s.acc = 0; }
     s.down = isDown;
   }, [id, setP, startLights]);
 
   // 멈춤: 창이 가려지면(다른 앱 · 탭 · 화면 꺼짐) 달리던 중이면 멈추고, 신호등 중이면 준비로 돌아간다
   const pauseNow = useCallback(() => {
-    const s = g.current; s.down = false;
+    const s = g.current; s.down = false; snd.current.suspend();
     if (s.phase === 'run' || s.phase === 'practice') { s.pausedFrom = s.phase; setP('paused'); }
     else if (s.phase === 'lights' || s.phase === 'go' || s.phase === 'wait') { clearTimers(); setLit(0); setP('ready'); }
   }, [setP]);
-  const resume = () => { const s = g.current; s.last = performance.now(); s.acc = 0; s.down = false; setP(s.pausedFrom || 'run'); };
+  const resume = () => { const s = g.current; s.last = performance.now(); s.acc = 0; s.down = false; snd.current.unlock(); snd.current.resume(); setP(s.pausedFrom || 'run'); };
   const restart = () => { if (g.current.pausedFrom === 'practice') startPractice(); else startLights(); };
   useEffect(() => {
     const onVis = () => { if (document.visibilityState === 'hidden') pauseNow(); };
@@ -209,6 +224,16 @@ function LapGame({ id, onClose }) {
     Object.assign(api, {
       get: () => { const i = Math.floor(s.run.s / s.tk.ds) % s.tk.n; return { id, phase: s.phase, s: s.run.s, v: s.run.v, brake: s.tk.brake[i], L: s.tk.L, offs: s.run.offCount, heat: s.run.heat, offTrack: s.run.offTrack, t: s.run.t, react: s.react, cost: s.cost }; },
       press,
+      // 소리(데모 · 시험): 지금 엔진 상태 · 상태 기록 켜기 · 기록으로 소리를 다시 만들어 WAV(base64)로
+      sound: () => { const m = snd.current.mixer?.m; return { ready: snd.current.ready, enabled: snd.current.enabled, state: snd.current.ctx?.state || null, rpm: m ? Math.round(m.rpm) : null, gear: m ? m.gear : null, load: m ? +m.load.toFixed(2) : null }; },
+      soundLog: (on) => { snd.current.setLog(on); return true; },
+      soundTest: (name) => snd.current.test(name),
+      soundRender: async (fromMs, seconds, scenes) => {
+        const ab = scenes ? await renderScenes(scenes) : await renderLog(snd.current.log || [], { seconds, t0: fromMs }); const bytes = wavBytes(ab); let bin = '';
+        for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+        return window.btoa(bin);
+      },
+      soundEvents: () => (snd.current.log || []).filter((e) => e.k === 'e').map((e) => ({ t: e.t, name: e.name })),
       // 남은 구간을 안내대로(진한 구간에서 손을 뗌) 한 번에 달린다 — 결과 화면을 바로 보려는 시험용
       auto: () => { if (s.phase !== 'run') return; while (!s.run.done) { const i = Math.floor(s.run.s / s.tk.ds) % s.tk.n; step(s.run, s.tk, !s.tk.brake[i], DT); const total = s.react / 1000 + s.run.t; while (total >= s.ghostNext) { s.ghost.push(s.run.s); s.ghostNext += GHOST_EVERY; } } },
       // 서킷의 아무 자리(m)에 멈춘 채로 세운다 — 그림 확인용
@@ -317,7 +342,13 @@ function LapGame({ id, onClose }) {
               for (const t of tk.turns) if (prevS < t.s && s.run.s >= t.s) { const tb = timeAt(s.best, t.s); if (tb != null) { const d = total - tb; setDelta({ sec: Math.abs(d), ahead: d < 0 }); s.deltaUntil = now + 2400; } }
             }
           }
-          if (!wasOff && s.run.offTrack) buzz('off');
+          if (!wasOff && s.run.offTrack) {
+            buzz('off');
+            // 벗어난 곳: 시가지는 벽, 상설은 자갈밭(그 코너 바깥에 있으면) 아니면 포장 런오프
+            const ri = Math.floor(wrapS(s.run.s, tk.L) / tk.ds); const side = s.run.side || 1;
+            s.offSurface = STREET.has(tk.id) ? 'wall' : prepWorld(tk).gravel.some((gz) => gz.side === side && ri >= gz.i0 - 10 && ri <= gz.i1 + 10) ? 'gravel' : 'runoff';
+            snd.current.event('off', { v: s.run.v, surface: s.offSurface });
+          }
         }
         if (s.phase === 'run' && cfgN.delta === 'live' && s.best && now >= s.deltaNext) {
           const tb = timeAt(s.best, s.run.s); s.deltaNext = now + 250;
@@ -331,6 +362,7 @@ function LapGame({ id, onClose }) {
       // 결승선을 지난 뒤 굴러가는 거리
       if (s.phase === 'finish' && s.coast) { const gdt = fdt * TS; s.coast.t += gdt; s.coast.v = Math.max(0, s.coast.v - 24 * gdt); s.coast.s += s.coast.v * gdt; }
       // ---- 차와 길의 반응: 브레이크 빛 · 날개 · 타이어 자국 · 연기 · 먼지(같은 프레임에 바로) ----
+      let sndLock = 0, sndKerb = 0, sndKerbSide = 0;
       {
         const moving = (s.phase === 'run' || s.phase === 'practice') && !s.frozen;
         const accInst = moving ? (run.v - s.vPrev) / Math.max(fdt * TS, 1 / 240) : 0; s.vPrev = run.v;   // 게임 시간 기준 가속도
@@ -347,7 +379,7 @@ function LapGame({ id, onClose }) {
           if (s.view3) { const v3 = s.view3; rearS = v3.carS - 1.7 * CAR3; frontS = v3.carS + 1.7 * CAR3; half = 0.76 * CAR3; latC = v3.lat; }
           else { const { latPx: lp, zoom: zm, len: ln } = s.view; rearS = run.s - (ln * 0.85) / zm; frontS = run.s - (ln * 0.17) / zm; half = (ln * 0.128) / lp; latC = run.off; }
           const oL = latC + half, oR = latC - half;
-          const lock = !s.down && tk.brake[ii] && run.v > tk.easy[ii] + 5 ? Math.min(1, (run.v - tk.easy[ii]) / 16) : 0;
+          const lock = !s.down && tk.brake[ii] && run.v > tk.easy[ii] + 5 ? Math.min(1, (run.v - tk.easy[ii]) / 16) : 0; sndLock = lock;
           if (run.offTrack) {
             breakMarks(s.fx);
             if (now - s.puffAt > 45 && run.v > 2) { s.puffAt = now; addPuff(s.fx, rearS, oL, 'dust', now, 1.4); addPuff(s.fx, rearS, oR, 'dust', now, 1.4); }
@@ -364,7 +396,7 @@ function LapGame({ id, onClose }) {
           // 연석을 타면 바퀴 뒤로 옅은 먼지(입체 화면)
           if (s.view3 && !run.offTrack) {
             const W3 = prep3d(tk); const sd = latC >= 0 ? 1 : -1;
-            if (Math.abs(latC) + half > HALF_W - 0.2 && kerbAtS(W3, tk, rearS, sd) && now - (s.kerbAt || 0) > 70) { s.kerbAt = now; addPuff(s.fx, rearS, latC + sd * half, 'kerb', now, 0.55); }
+            if (Math.abs(latC) + half > HALF_W - 0.2 && kerbAtS(W3, tk, rearS, sd)) { sndKerb = 1; sndKerbSide = sd; if (now - (s.kerbAt || 0) > 70) { s.kerbAt = now; addPuff(s.fx, rearS, latC + sd * half, 'kerb', now, 0.55); } }
           }
         }
       }
@@ -378,7 +410,62 @@ function LapGame({ id, onClose }) {
         s.sparkS = b;
       }
 
-      // ---- 알림 하나: 이탈 > 배우기 안내 > 미끄러짐 > 출발 반응 ----
+      // ---- 긴박감: 옅은 차와의 거리(앞지르기 알림 · 그 차의 엔진 소리) · 마지막 코너 뒤 차이를 계속 ----
+      let ghostSnd = null;
+      {
+        const ghostLap = s.best || s.pacer; const running = s.phase === 'run' && !s.frozen;
+        if (ghostLap && (running || s.phase === 'finish')) {
+          const tt = s.react / 1000 + run.t + (s.coast ? s.coast.t : 0);
+          const gp = posAt(ghostLap, tt), gp0 = posAt(ghostLap, Math.max(0, tt - 0.1)), gp1 = posAt(ghostLap, Math.max(0, tt - 0.2));
+          if (gp != null && gp0 != null && Number.isFinite(gp)) {
+            const myS = run.s + (s.coast ? s.coast.s : 0); const myV = s.coast ? s.coast.v : run.v;
+            const d = gp - myS; const gv = (gp - gp0) / 0.1; const gv0 = gp1 != null ? (gp0 - gp1) / 0.1 : gv;
+            ghostSnd = { d, v: gv, down: gv >= gv0 - 0.05, dv: d > 0 ? myV - gv : gv - myV, lat: 0 };
+            if (s.view3) ghostSnd.lat = rlAt(prep3d(tk), tk, gp - NOSE3) - s.view3.lat;
+            // 가까이서 순서가 바뀌면 한 번: 3m 넘게 앞이던 차가 3m 넘게 뒤로(또는 반대로). 출발 3초 뒤부터, 4초에 한 번까지
+            const sg = d > 3 ? 1 : d < -3 ? -1 : s.ghostSign;
+            if (running && run.t > 3 && s.ghostSign && sg !== s.ghostSign && Math.abs(d) < 15 && now - s.passAt > 4000) {
+              s.passAt = now; s.passKey = sg < 0 ? 'passed' : 'passedBy'; s.passUntil = now + 1600;
+              if (s.best && cfgN.delta !== 'off' && !s.finalOn) { const tb = timeAt(s.best, run.s); if (tb != null) { const dd = tt - tb; setDelta({ sec: Math.abs(dd), ahead: dd < 0 }); s.deltaUntil = now + 2400; } }   // 지난 코너의 차이가 남아 거꾸로 보이지 않게
+              snd.current.event('whoosh', { gain: 0.3, rate: 0.85, pan: Math.max(-0.6, Math.min(0.6, -ghostSnd.lat / 6)) });
+            }
+            s.ghostSign = sg;
+          }
+        }
+        // 마지막 코너를 지나면: 한 번 알리고, 최고 기록이 있으면 결승선까지 차이를 0.1초마다
+        if (running) {
+          const fS = finalStretchOf(tk);
+          if (!s.finalOn && run.s >= fS) { s.finalOn = true; if (tk.L - fS > 250) s.finalUntil = now + 1600; }
+          if (s.finalOn && s.best && cfgN.delta !== 'off' && now >= s.deltaNext) {
+            const tb = timeAt(s.best, run.s); s.deltaNext = now + 100;
+            if (tb != null) { const dd = s.react / 1000 + run.t - tb; setDelta({ sec: Math.abs(dd), ahead: dd < 0 }); s.deltaUntil = now + 1e9; }
+          }
+        }
+      }
+      // ---- 소리: 매 프레임 상태를 넘긴다(섞기는 sound.js) ----
+      {
+        const W3s = s.view3 ? prep3d(tk) : null; const lat3 = s.view3 ? s.view3.lat : 0; const carS3 = s.view3 ? s.view3.carS : run.s;
+        let wallL = 30, wallR = 30, stand = 0, standPan = 0;
+        if (W3s) {
+          wallL = wallAtS(W3s, tk, carS3, 1) - lat3; wallR = wallAtS(W3s, tk, carS3, -1) + lat3;
+          const st = W3s.stand; const sp = wrapS(carS3, tk.L); const away = (x) => (x < st.s0 ? st.s0 - x : x > st.s1 ? x - st.s1 : 0);
+          const dS = Math.min(away(sp), away(sp - tk.L)); stand = 1 - smooth01(dS / 240); standPan = st.side > 0 ? -0.55 : 0.55;
+          // 3·2·1 보드를 스칠 때 휙(가까울수록 크게)
+          const a = s.sndS, b = carS3;
+          if (s.phase === 'run' && !s.frozen && a != null && b > a && b - a < 40) for (const bd of W3s.boards) {
+            const bs = bd.s; if (!(bs > a && bs <= b) && !(bs - tk.L > a && bs - tk.L <= b)) continue;
+            const o = bd.side * Math.min(HALF_W + 3, wallAtS(W3s, tk, bs, bd.side) - 0.7); const near = Math.abs(o - lat3);
+            snd.current.event('whoosh', { gain: 0.3 * Math.min(1, run.v / 70) * Math.min(1, 6 / Math.max(3, near)), rate: 0.75 + run.v / 160, pan: bd.side > 0 ? -0.5 : 0.5 });
+          }
+          s.sndS = b;
+        }
+        snd.current.update({
+          phase: s.frozen ? 'ready' : s.phase, v: s.coast ? s.coast.v : run.v, down: s.down, off: run.offTrack, surface: s.offSurface, heat: run.heat, lock: sndLock,
+          launch: s.phase === 'run' && run.t < 1.1 ? 1 - run.t / 1.1 : 0, kerb: sndKerb, kerbSide: sndKerbSide, wallL, wallR, street: STREET.has(tk.id), stand, standPan, lit: s.lit, ghost: ghostSnd,
+        });
+      }
+
+      // ---- 알림 하나: 이탈 > 배우기 안내 > 앞지르기 · 마지막 코너 > 미끄러짐 > 출발 반응 ----
       let want = null;
       if (s.phase === 'wait') want = 'jump';
       else if (s.phase === 'lights') want = 'lights';
@@ -397,6 +484,8 @@ function LapGame({ id, onClose }) {
         }
         if (run.offTrack) want = 'off';
         else if (cue) want = cue;
+        else if (s.passKey && now < s.passUntil) want = s.passKey;
+        else if (now < s.finalUntil) want = 'final';
         else if (cfgN.slip === 'marks' && run.heat > 0.55) want = 'slip';
         else if (now < s.reactUntil) want = 'react';
       }
@@ -773,6 +862,12 @@ function LapGame({ id, onClose }) {
         <button type="button" className="gx-iconbtn" aria-label={tr('lap.close')} onClick={onClose}><Icon n="close" /></button>
         <span className="gx-lap-title gx-t17 gx-w600 gx-ell">{L.circuit}</span>
         {best != null && <span className="gx-lap-best gx-t13">{tr('lap.best', { time: formatLap(best) })}</span>}
+        <button type="button" className="gx-iconbtn gx-lap-snd" aria-pressed={soundOn} aria-label={tr('lap.sound')} onClick={toggleSound}>
+          <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4.5 9.5h3l4.5-4v13l-4.5-4h-3z" />
+            {soundOn ? <path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" /> : <path d="M16 9.5l5 5M21 9.5l-5 5" />}
+          </svg>
+        </button>
       </header>
       <div className="gx-lap-strip">
         <div className="gx-lap-read">
