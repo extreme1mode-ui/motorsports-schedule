@@ -673,7 +673,7 @@ export default {
   'lap.board.of': '{n}명 중',
   'lap.board.joined': '순위표에 올랐어요',
   'lap.board.up': '{n}위에서 올랐어요',
-  'lap.board.top': '이번 주 가장 빠른 기록 {time}',
+  'lap.board.top': '이번 주 1위 기록 {time}',
   'lap.board.first': '이번 주 첫 기록을 남겨 보세요',
   'lap.board.myRank': '이번 주 내 순위 {n}위',
   'lap.promo.cta': '달려 보기',
