@@ -8,7 +8,6 @@ import { lapConfig, useLapConfig } from './config.js';
 import { lapTrackOf, preparedTrack, lapRecords, useLapRecords } from './store.js';
 import { myPlayer, hash32 } from './player.js';
 import { isThisWeek } from './place.js';
-import { fitGhost, idealGhost } from './analysis.js';
 
 const DAY = 864e5, WEEK = 7 * DAY;
 export const BOARD_TOP = 50;   // 순위표에 보이는 줄(내가 그 밖이면 아래에 따로)
@@ -84,19 +83,6 @@ export function boardOf(id, period = 'week', now = Date.now(), recs = lapRecords
     } else if (all.length > 1) goals.push({ kind: 'lead', rank: 2, ms: all[1].ms - mine });   // 1위: 2위와 차이
   }
   return { period, wk, count: all.length, rows, me: mi >= 0 ? { rank: mi + 1, ms: mine, pid: me.id } : null, top: rows[0] || null, near, goals };
-}
-
-// 옅은 차: 이번 주 1위 기록(이번 주에 아무도 없으면 전체 1위)의 움직임. 내가 1위면 내 최고 기록의 움직임을 그 기록 시간에 맞춘 것,
-// 다른 사람이면(데모의 예시 기록) 가장 빠르게 달린 차의 움직임을 그 기록 시간에 맞게 늘인 것. 아무 기록도 없으면 null.
-// 실서비스: 서버가 1위 기록과 그 움직임(0.1초마다 위치)을 함께 준다(DEV-NOTES '순위표 서버')
-export function rivalOf(id, tk, now = Date.now(), recs = lapRecords(), board = lapConfig().board) {
-  if (!tk) return null;
-  for (const period of ['week', 'all']) {
-    const top = boardOf(id, period, now, recs, board).top; if (!top) continue;
-    if (top.me) { const rec = recs[id]; if (rec?.ghost?.length > 2) return { ghost: fitGhost(rec.ghost, tk.L, top.ms / 1000), ms: top.ms, me: true }; continue; }
-    return { ghost: fitGhost(idealGhost(tk), tk.L, top.ms / 1000), ms: top.ms, me: false };
-  }
-  return null;
 }
 
 // 화면용: 기록이 바뀌면(한 바퀴를 끝내면) 다시 계산한다. now는 분 단위로 넘긴다

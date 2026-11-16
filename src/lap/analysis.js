@@ -1,6 +1,9 @@
 // '한 바퀴' 기록 읽기: 유령(0.1초마다 저장한 위치)으로 어느 거리에 몇 초에 닿았는지, 코너 사이 구간마다 얼마나 늦고 빨랐는지.
 // 시각은 신호등이 꺼진 때부터다(출발 반응 포함). DOM 없음.
 import { step, newRun } from './engine.js';
+import { boardOf } from './board.js';
+import { lapConfig } from './config.js';
+import { lapRecords } from './store.js';
 
 export const GHOST_EVERY = 0.1;
 
@@ -108,4 +111,17 @@ export function simLap(tk, { late = 0, react = 0.3, dt = 1 / 120 } = {}) {
     while (react + run.t >= next) { ghost.push(run.s); next += GHOST_EVERY; }
   }
   return { run, ghost, react };
+}
+
+// 옅은 차: 이번 주 1위 기록(이번 주에 아무도 없으면 전체 1위)의 움직임. 내가 1위면 내 최고 기록의 움직임을 그 기록 시간에 맞춘 것,
+// 다른 사람이면(데모의 예시 기록) 가장 빠르게 달린 차의 움직임을 그 기록 시간에 맞게 늘인 것. 아무 기록도 없으면 null.
+// 실서비스: 서버가 1위 기록과 그 움직임(0.1초마다 위치)을 함께 준다(DEV-NOTES '순위표 서버'). 게임 코드에만 있다(첫 화면에 싣지 않게)
+export function rivalOf(id, tk, now = Date.now(), recs = lapRecords(), board = lapConfig().board) {
+  if (!tk) return null;
+  for (const period of ['week', 'all']) {
+    const top = boardOf(id, period, now, recs, board).top; if (!top) continue;
+    if (top.me) { const rec = recs[id]; if (rec?.ghost?.length > 2) return { ghost: fitGhost(rec.ghost, tk.L, top.ms / 1000), ms: top.ms, me: true }; continue; }
+    return { ghost: fitGhost(idealGhost(tk), tk.L, top.ms / 1000), ms: top.ms, me: false };
+  }
+  return null;
 }
