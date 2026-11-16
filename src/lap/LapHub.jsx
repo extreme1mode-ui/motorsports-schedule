@@ -86,7 +86,7 @@ export function LapPromo({ races, now }) {
   }, [run]);
   if (!pick.t) return null;
   const { t, upcoming, week } = pick; const L = fmt.race(t.race);
-  const line = b?.me ? `${tr('lap.board.myRank', { n: b.me.rank })} · ${formatLap(b.me.ms)}`
+  const line = b?.me ? `${tr('lap.board.weekRank', { n: b.me.rank })} · ${formatLap(b.me.ms)}`
     : b?.top ? tr('lap.board.top', { time: formatLap(b.top.ms) }) : tr(upcoming ? 'lap.home.before' : 'lap.home.try');
   return (
     <section className={cx('gx-lap-promo', run && 'is-run')} ref={ref} aria-labelledby="gx-lap-promo-h">
