@@ -1224,7 +1224,10 @@ function building(ctx, cam, P, b, fa, depth) {
     // 밤: 불 켜진 창(층마다 3.2m 칸, 넷에 하나쯤). 건물 · 면 · 층 · 칸으로 정해져 늘 같은 창이 켜진다. 창이 화면에서 작아지면 옅게
     if (depth < 420) {
       const L = Math.hypot(cs[(k + 1) % 4][0] - cs[k][0], cs[(k + 1) % 4][1] - cs[k][1]); const cols = Math.max(1, Math.floor(L / 3.2));
-      const wPx = Math.hypot(bot[k2][0] - bot[k][0], bot[k2][1] - bot[k][1]) / cols; const wa = clamp01((Math.min(wPx, gapPx) - 1.6) / 2.4) * nearA(depth, 340, 420);
+      const wPx = Math.hypot(bot[k2][0] - bot[k][0], bot[k2][1] - bot[k][1]) / cols;
+      // 창이 작거나(3px 아래) 화면이 빠르게 흐르면(코너에서 카메라가 돌 때) 옅게: 작은 밝은 칸이 화소에 걸려 반짝이지 않게
+      const fcx = (bot[k][0] + bot[k2][0] + top[k][0] + top[k2][0]) / 4, fcy = (bot[k][1] + bot[k2][1] + top[k][1] + top[k2][1]) / 4;
+      const wa = clamp01((Math.min(wPx, gapPx) - 2.2) / 3) * nearA(depth, 340, 420) * mbA(fcx, fcy, depth, Math.max(1, Math.min(wPx, gapPx) * 0.5));
       if (wa > 0.03 && floors > 1) {
         const seed = Math.round(b.x * 7 + b.y * 13) + k * 101; const at = (u, v) => [bot[k][0] + (bot[k2][0] - bot[k][0]) * u + ((top[k][0] - bot[k][0]) + ((top[k2][0] - bot[k2][0]) - (top[k][0] - bot[k][0])) * u) * v, bot[k][1] + (bot[k2][1] - bot[k][1]) * u + ((top[k][1] - bot[k][1]) + ((top[k2][1] - bot[k2][1]) - (top[k][1] - bot[k][1])) * u) * v];
         // 낮: 모든 창을 유리색(층 줄과 같은 색)으로 옅게, 몇 개는 조금 더 짙게(빛이 비친 창)
