@@ -1,5 +1,5 @@
 // '서킷 한 바퀴' 목록(달릴 수 있는 서킷 전부, 라운드 순) + 홈·상세의 진입 줄.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import '../screens2/screens2.css';
 import './lap.css';
 import { useFormat } from '../use-format.js';
@@ -69,40 +69,31 @@ function lapPick(races, now, rec) {
   return { t: LAP_TRACKS.find((t) => rec[t.id]?.best == null) || LAP_TRACKS[0], upcoming: false, week: false };
 }
 
-// 홈 맨 위(내 주말 덱 바로 아래) 카드: 그 서킷 그림 · 이번 주 1위(또는 내 순위) · '달려 보기'.
-// 카드가 처음 화면에 보일 때 한 번, 빨간 점이 서킷을 한 바퀴 돈다(2.8초, 줄인 움직임이면 없음)
+// 홈 맨 위(내 주말 덱 바로 아래) 카드: 그 서킷의 게임 장면(결승한 차를 앞에서, public/lap/<id>.webp) 위에
+// '이번 주말'(경기 주간만) · 서킷 이름 · 기록 한 줄(내 순위 · 기록, 없으면 이번 주 1위 기록) · '달려 보기'.
+// 그림은 데모 빌드의 결과 장면을 미리 찍은 것(DEV-NOTES '홈 카드 그림'). 받는 동안 · 없으면 어두운 바탕 그대로
 export function LapPromo({ races, now }) {
   const fmt = useFormat(); const tr = useT(); const shell = useShell();
   const rec = useLapRecords();
   const pick = useMemo(() => lapPick(races, now, rec), [races, now, rec]);
   const b = useBoard(pick.t?.id, 'week', now);
-  const d = useMemo(() => (pick.t ? outlinePath(pick.t.id, 112, 84, 8) : ''), [pick.t]);
-  const ref = useRef(null); const [run, setRun] = useState(false);
-  useEffect(() => {
-    const el = ref.current; if (!el || run) return undefined;
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches || typeof window.IntersectionObserver === 'undefined') return undefined;
-    const io = new window.IntersectionObserver((es) => { if (es.some((e) => e.intersectionRatio >= 0.6)) { setRun(true); io.disconnect(); } }, { threshold: [0.6] });
-    io.observe(el); return () => io.disconnect();
-  }, [run]);
+  const [img, setImg] = useState(null);   // 그림을 다 받은 서킷 id
   if (!pick.t) return null;
   const { t, upcoming, week } = pick; const L = fmt.race(t.race);
   const line = b?.me ? `${tr('lap.board.weekRank', { n: b.me.rank })} · ${formatLap(b.me.ms)}`
     : b?.top ? tr('lap.board.top', { time: formatLap(b.top.ms) }) : tr(upcoming ? 'lap.home.before' : 'lap.home.try');
   return (
-    <section className={cx('gx-lap-promo', run && 'is-run')} ref={ref} aria-labelledby="gx-lap-promo-h">
+    <section className="gx-lap-promo" aria-labelledby="gx-lap-promo-h">
       <ListHeader id="gx-lap-promo-h" title={tr('lap.home.title')} action={tr('lap.all')} onAction={() => { track('lap_hub_opened', { source: 'home' }); shell.push({ t: 'laps' }); }} />
       <button type="button" className="gx-lap-promo-card" {...WARM} onClick={() => open(t.id, 'promo')}>
-        <span className="gx-lap-promo-map" aria-hidden="true">
-          <svg width="112" height="84" viewBox="0 0 112 84"><path d={d} /></svg>
-          <i className="gx-lap-promo-dot" style={{ offsetPath: `path('${d}')` }} />
-        </span>
+        <img key={t.id} className={cx('gx-lap-promo-img', img === t.id && 'is-in')} src={`/lap/${t.id}.webp`} alt="" width="700" height="438" loading="lazy" decoding="async"
+          onLoad={() => setImg(t.id)} onError={(e) => { e.currentTarget.hidden = true; }} />
         <span className="gx-lap-promo-c">
-          <span className="gx-t13 gx-lap-promo-k">{week ? tr('lap.hub.week') : L.country}</span>
-          <span className="gx-t17 gx-w600 gx-lap-promo-t">{L.circuit}</span>
+          {week && <span className="gx-t13 gx-w600 gx-lap-promo-k"><i aria-hidden="true" />{tr('lap.hub.week')}</span>}
+          <span className="gx-t20 gx-w700 gx-lap-promo-t">{L.circuit}</span>
           <span className="gx-t15 gx-lap-promo-l">{line}</span>
-          {b?.count > 1 && <span className="gx-t13 gx-lap-promo-s">{tr('lap.promo.count', { n: b.count.toLocaleString(fmt.locale) })}</span>}
-          <span className="gx-lap-promo-cta gx-t15 gx-w600">{tr('lap.promo.cta')}<Icon n="chev" s={18} /></span>
         </span>
+        <span className="gx-lap-promo-cta gx-t15 gx-w600">{tr('lap.promo.cta')}<Icon n="chev" s={18} /></span>
       </button>
     </section>
   );

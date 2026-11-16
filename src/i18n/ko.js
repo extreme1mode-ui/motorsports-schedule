@@ -675,7 +675,6 @@ export default {
   'lap.board.up': '{n}위에서 올랐어요',
   'lap.board.top': '이번 주 1위 기록 {time}',
   'lap.promo.cta': '달려 보기',
-  'lap.promo.count': '이번 주 {n}명이 달렸어요',
   'lap.result.newBest': '새 최고 기록',
   'lap.tile.title': '기록',
   'lap.tile.best': '내 최고 기록',

@@ -667,7 +667,6 @@ export default {
   'lap.board.up': 'Up from #{n}',
   'lap.board.top': "This week's best {time}",
   'lap.promo.cta': 'Drive',
-  'lap.promo.count': '{n} {n|driver|drivers} this week',
   'lap.result.newBest': 'New best',
   'lap.tile.title': 'Times',
   'lap.tile.best': 'Your best',
