@@ -19,11 +19,13 @@ import { prepWorld, buildView, drawGround, drawTrack, drawStartMarks, drawGantry
 import { newFx, carryFx, addDebris, addMarks, breakMarks, addPuff, drawMarks, drawPuffs, drawStreaks } from './fx.js';
 import { createEngine, revLeds } from './gearbox.js';
 import { LapBoard } from './LapBoard.jsx';
+import { LapRank, LapThirds } from './LapResult.jsx';
+import { isThisWeek } from './place.js';
 import { boardOf, weekOf, useBoard } from './board.js';
 import { myPlayer, nameOf } from './player.js';
 import { prep3d, camera as camera3, render3d, labels3d, rlAt, wallAtS, kerbAtS, CAR3, addSparks, STREET } from './world3d.js';
 import { createLapSound, renderLog, renderScenes, wavBytes } from './sound.js';
-import { GHOST_EVERY, timeAt, posAt, compareSectors, offCorners, zonesOf, simLap } from './analysis.js';
+import { GHOST_EVERY, timeAt, posAt, compareSectors, offCorners, zonesOf, simLap, thirdsOf, THIRDS } from './analysis.js';
 import { useLapConfig, lapDiff, paceOf } from './config.js';
 import { demoApi } from './demo.js';
 import { LAP_SAVE, lapHaptic, lapSaveImage } from './lap-platform.js';
@@ -89,6 +91,8 @@ function LapGame({ id, onClose }) {
   const openBoard = (e, p = 'week') => { boardFrom.current = e?.currentTarget || null; setBoard(p); };
   const closeBoard = () => { setBoard(null); setTimeout(() => boardFrom.current?.focus?.({ preventScroll: true }), 0); };
   const lockRef = useRef(null); const primary = useRef(null); const cardRef = useRef(null);
+  const resBody = useRef(null);   // 결과 카드 안 넘기는 부분: 새 결과가 나오면 맨 위로
+  useEffect(() => { if (resBody.current) resBody.current.scrollTop = 0; }, [result]);
 
   const root = useRef(null); const canvas = useRef(null);
   const timeEl = useRef(null); const speedEl = useRef(null); const pedalEl = useRef(null); const nextEl = useRef(null); const dotEl = useRef(null); const barEl = useRef(null); const progEl = useRef(null); const progGhostEl = useRef(null);
@@ -103,6 +107,14 @@ function LapGame({ id, onClose }) {
   useEffect(() => { if (soundCfg.current !== cfg.sound) { soundCfg.current = cfg.sound; setSoundOn(cfg.sound !== 'off'); } }, [cfg.sound]);   // 데모 조절 판에서 바꾸면 바로
   const toggleSound = () => { const v = !soundOn; setSoundOn(v); try { localStorage.setItem(SOUND_KEY, v ? 'on' : 'off'); } catch { /* 저장소 없음 */ } if (v) { snd.current.enable(true); snd.current.unlock(); } };
   // 위 줄의 작은 전체 그림(84×56): 트랙 좌표 → 그림 좌표
+  const thirdPaths = useMemo(() => {
+    const [x0, y0, x1, y1] = tk.box; const w = 44, h = 30, pad = 3;
+    const k = Math.min((w - pad * 2) / (x1 - x0), (h - pad * 2) / (y1 - y0)); const ox = (w - (x1 - x0) * k) / 2, oy = (h - (y1 - y0) * k) / 2;
+    const pt = (i) => { const q = ((i % tk.n) + tk.n) % tk.n; return `${((tk.x[q] - x0) * k + ox).toFixed(1)},${((tk.y[q] - y0) * k + oy).toFixed(1)}`; };
+    const seg = (a0, a1) => { const out = []; const stp = Math.max(1, Math.floor(tk.n / 240)); for (let i = a0; i < a1; i += stp) out.push(pt(i)); out.push(pt(a1)); return `M${out.join('L')}`; };
+    const cut = [0, ...THIRDS.map((f) => Math.round(f * tk.n)), tk.n];
+    return { full: seg(0, tk.n), parts: [0, 1, 2].map((j) => seg(cut[j], cut[j + 1])) };
+  }, [tk]);
   const mini = useMemo(() => {
     const [x0, y0, x1, y1] = tk.box; const w = 84, h = 56, pad = 5;
     const k = Math.min((w - pad * 2) / (x1 - x0), (h - pad * 2) / (y1 - y0));
@@ -120,7 +132,7 @@ function LapGame({ id, onClose }) {
   }
   const setP = useCallback((p) => { g.current.phase = p; setPhase(p); }, []);
   // 이 서킷 기록이 지워지면(데모 조절 판 '기록 지우기') 화면 속 최고 기록 · 옅은 차도 비운다
-  const hasRec = !!useLapRecords()[id];
+  const rec = useLapRecords()[id] || null; const hasRec = !!rec;
   useEffect(() => { if (!hasRec) { g.current.best = null; setBest(null); } }, [hasRec]);
   const clearTimers = () => { g.current.timers.forEach(clearTimeout); g.current.timers = []; };
   const later = (fn, ms) => { g.current.timers.push(setTimeout(fn, ms)); };
@@ -175,8 +187,10 @@ function LapGame({ id, onClose }) {
     s.resultMarks = { offAt: run.offAt.slice(), sector: saved.best ? cmp?.gained : cmp?.lost, ghost: s.ghost.slice() };
     trackEvent('lap_finished', { track: id, ms, offs: run.offCount, best: saved.best });
     buzz('finish'); snd.current.event('finish', { best: !!saved.best });
-    setResult({ ms, react: Math.round(s.react), vmax: Math.round(run.vmax * 3.6), offs: run.offCount, offList, cmp, isBest: saved.best, prev: saved.prev,
-      rank: after.me ? { n: after.me.rank, count: after.count, before: before ? before.rank : null, pid: after.me.pid } : null });
+    // 구간 기록: 이번 바퀴와 이전 최고 기록(있으면)을 같은 세 구간으로
+    const thirds = thirdsOf(tkk, s.ghost, ms / 1000); const thirdsPrev = prev?.ghost ? thirdsOf(tkk, prev.ghost, prev.best / 1000) : null; s.resultMarks.thirds = !!thirds;
+    setResult({ ms, react: Math.round(s.react), vmax: Math.round(run.vmax * 3.6), offs: run.offCount, offList, cmp, isBest: saved.best, prev: saved.prev, thirds, thirdsPrev,
+      rank: after.me ? { n: after.me.rank, count: after.count, before: before ? before.rank : null, pid: after.me.pid, near: after.near, goals: after.goals } : null });
     setFirstRun(false); setDelta(null);
     // 결승선을 지난 뒤: 차가 속도를 줄이며 1.5초 굴러가는 동안 가운데 큰 기록 → 서킷 전체와 결과 카드
     if (instant) { s.coast = null; setP('done'); return; }
@@ -566,6 +580,13 @@ function LapGame({ id, onClose }) {
           const p2 = poseAt(tk, 0, 0); const [X, Y] = w2s(p2.x, p2.y); const a2 = p2.th + ang; const nx = Math.sin(a2), ny = -Math.cos(a2); const hw2 = roadPx * 1.1;
           ctx.strokeStyle = C.text; ctx.lineWidth = 2.5; ctx.lineCap = 'butt'; ctx.beginPath(); ctx.moveTo(X - nx * hw2, Y - ny * hw2); ctx.lineTo(X + nx * hw2, Y + ny * hw2); ctx.stroke();
         }
+        // 결과: 구간 경계(같은 거리로 셋, 출발선이 구간 1의 시작). 글자 표는 코너 번호와 겹쳐 두지 않고, 결과 카드의 구간 칸에 작은 그림으로 보인다
+        if (full && s.phase === 'done' && s.resultMarks?.thirds) {
+          for (const f of THIRDS) {
+            const p2 = poseAt(tk, tk.L * f, 0); const [X, Y] = w2s(p2.x, p2.y); const a2 = p2.th + ang; const nx = Math.sin(a2), ny = -Math.cos(a2); const hw2 = roadPx * 1.25 + 2;
+            ctx.strokeStyle = C.text; ctx.lineWidth = 3; ctx.lineCap = 'butt'; ctx.beginPath(); ctx.moveTo(X - nx * hw2, Y - ny * hw2); ctx.lineTo(X + nx * hw2, Y + ny * hw2); ctx.stroke();
+          }
+        }
       };
       if (view3d) {
         // ===== 입체: 차 뒤 위에서 앞을 내려다본다. 준비 · 결과는 서킷 전체를 바로 위에서(북쪽이 위) =====
@@ -586,8 +607,9 @@ function LapGame({ id, onClose }) {
         // 피트 담 팀 사람들: 결승선 마셜이 체크 깃발을 드는 때(마지막 320m)부터 담에 올라 팔을 든다
         { const ct = s.flagTest === 'cheq' || (s.phase === 'run' && tk.L - run.s < 320) || s.phase === 'finish' ? 1 : 0; s.crewUp = (s.crewUp || 0) + (ct - (s.crewUp || 0)) * Math.min(1, fdt / (ct > (s.crewUp || 0) ? 0.35 : 1.2)); }
         const kv = smooth01(vv / 94);
+        const intro = s.phase === 'ready';   // 준비: 서킷 전체 대신 그리드 위 차를 도는 소개 카메라(아래 'intro')
         let T;
-        if (over) {
+        if (over && !intro) {
           const [x0, y0, x1, y1] = tk.box; const pad = 24;
           let left = 0, right = w, top = 8, bottom = h - 8;
           const card = cardRef.current;
@@ -615,10 +637,29 @@ function LapGame({ id, onClose }) {
              F, ox: w / 2 - lead, yCar: h * (h < 420 ? 0.74 : 0.66), mix: 1 };
         }
         // 결승선을 지나면 길가 TV 카메라 한 장면(바로 바꾼다): 차가 다가와 옆을 스쳐 지나가는 것을 따라 돌며 당겨 찍는다
-        const mode = over ? 'over' : s.phase === 'finish' && cfgN.finish !== 'chase' && s.coast ? 'tv' : 'chase';
-        if (s.mode !== mode) { s.mode = mode; s.from3 = mode === 'tv' ? null : s.cam3 ? lerpCam3(s.cam3, s.cam3, 0) : null; s.tt = 0; s.c3 = null; if (mode === 'tv') s.tv = null; }
+        const mode = intro ? 'intro' : over ? 'over' : s.phase === 'finish' && cfgN.finish !== 'chase' && s.coast ? 'tv' : 'chase';
+        if (s.mode !== mode) { s.mode = mode; s.from3 = mode === 'tv' ? null : s.cam3 ? lerpCam3(s.cam3, s.cam3, 0) : null; s.tt = 0; s.c3 = null; s.introT = 0; if (mode === 'tv') s.tv = null; }
         let cam;
-        if (mode === 'tv') {
+        if (mode === 'intro') {
+          // 마리오 카트의 코스 소개처럼: 처음 2.4초는 높은 곳에서 그리드로 내려오고, 그 뒤 차 둘레를 60초에 한 바퀴 천천히 돈다(흔들림 없음).
+          // 차는 카드가 덮지 않는 자리 가운데에
+          // 길이 방향으로 긴 타원: 옆으로는 양쪽 벽 안쪽(가까운 벽까지의 72%)만 다녀 벽 · 관중석 · 피트 안으로 들어가지 않는다
+          s.introT = (s.introT || 0) + fdt;
+          const cg = poseAt(tk, wrapS(carS, tk.L), lat); const u = smooth01(Math.min(1, s.introT / 2.4));
+          const ph = Math.PI + 0.75 + s.introT * ((2 * Math.PI) / 60);
+          const A = lerp(70, 22, u), B = Math.max(5, 0.72 * Math.min(wallAtS(W3, tk, carS, 1), wallAtS(W3, tk, carS, -1)));
+          const cp0 = poseAt(tk, wrapS(carS + A * Math.cos(ph), tk.L), B * Math.sin(ph)); const cx = cp0.x, cy = cp0.y;
+          const dH = Math.hypot(cg.x - cx, cg.y - cy); const Hc = lerp(38, Math.max(5.6, Math.sqrt(Math.max(0, 196 - dH * dH))), u);   // 옆을 지날 때(벽이 가까운 시가지)는 높이 올라가 차와 14m 안으로 붙지 않는다
+          let left = 0, right = w, bottom = h;
+          const card = cardRef.current;
+          if (card) {
+            const cr = card.getBoundingClientRect(), sr = cv.getBoundingClientRect();
+            if (cr.left - sr.left > w * 0.25) right = Math.max(left + 160, cr.left - sr.left);
+            else bottom = Math.max(140, cr.top - sr.top);
+          }
+          const Fi = Math.max(bottom, (right - left) * 0.9) / 2 / Math.tan((25 * Math.PI) / 180);
+          cam = { x: cx, y: cy, z: Hc, yaw: Math.atan2(cg.y - cy, cg.x - cx), pitch: Math.atan2(Hc - 0.8, Math.hypot(cg.x - cx, cg.y - cy) || 1), F: Fi, ox: (left + right) / 2, oy: bottom * 0.56, mix: 1 };
+        } else if (mode === 'tv') {
           const Fb = Math.max(h, w * 0.9) / 2 / Math.tan((30 * Math.PI) / 180);
           if (!s.tv) {
             // 자리: 결승 뒤 굴러가는 시간의 55%쯤에 차가 지나가는 곳. 피트 쪽 길 가장자리 바깥 4.5m(벽이 가까우면 벽 안쪽), 높이 4m
@@ -934,6 +975,14 @@ function LapGame({ id, onClose }) {
         </button>
       </header>
       <div className="gx-lap-strip">
+        {phase === 'ready' && (
+          <div className="gx-lap-plate">
+            <span className="gx-lap-plate-k gx-t13 gx-w600">{meta.race && <><i aria-hidden="true" />{[meta.race.series, meta.race.round ? tr('round.n', { n: meta.race.round }) : null].filter(Boolean).join(' · ')}</>}
+              {meta.race && isThisWeek(meta.race, Date.now()) && <span className="gx-lap-tag">{tr('lap.hub.week')}</span>}</span>
+            <h2 className="gx-lap-plate-t" id="gx-lap-h">{L.circuit}</h2>
+            <span className="gx-t15 gx-sub gx-ell">{[L.country, tr('lap.turns', { n: meta.turns })].filter(Boolean).join(' · ')}</span>
+          </div>
+        )}
         <div className="gx-lap-read">
           <div className="gx-lap-l1">
             <span className="gx-lap-time" ref={timeEl} aria-live="off">0:00.000</span>
@@ -982,9 +1031,19 @@ function LapGame({ id, onClose }) {
         )}
 
         {phase === 'ready' && (
-          <section className="gx-lap-card" ref={cardRef} aria-labelledby="gx-lap-h">
-            <div><h2 className="gx-t20" id="gx-lap-h">{L.circuit}</h2><span className="gx-t15 gx-sub">{[L.country, tr('lap.turns', { n: meta.turns })].filter(Boolean).join(' · ')}</span>
-              {cfg.car !== 'dot' && (best != null || cfg.pacer !== 'off') && <span className="gx-t13 gx-lap-legend"><i aria-hidden="true" />{tr(best != null ? 'lap.ghost.best' : 'lap.ghost.pacer')}</span>}</div>
+          <section className="gx-lap-card is-ready" ref={cardRef} aria-labelledby="gx-lap-h">
+            {/* 기록 세 칸: 내 최고 · 이번 주 내 순위 · 이번 주 1위(마리오 카트 타임 어택의 기록 · 목표처럼). 누르면 순위표 */}
+            <div className="gx-lap-tiles-h"><span className="gx-t15 gx-w600">{tr('lap.tile.title')}</span>
+              <button type="button" className="gx-textbtn gx-t15 gx-lap-more" onClick={(e) => openBoard(e)}>{tr('lap.board.title')}<Icon n="chev" s={18} /></button></div>
+            <dl className="gx-lap-tiles">
+              <div><dt className="gx-t13">{tr('lap.tile.best')}</dt>{best != null ? <dd className="gx-lap-tile-v">{formatLap(best)}</dd> : <dd className="gx-lap-tile-v is-none">{tr('lap.tile.none')}</dd>}
+                {rec?.runs > 0 && <dd className="gx-t13 gx-sub">{tr('lap.runs', { n: rec.runs })}</dd>}</div>
+              <div><dt className="gx-t13">{tr('lap.tile.rank')}</dt>{wkBoard?.me ? <dd className="gx-lap-tile-v">{tr('lap.rankV', { n: wkBoard.me.rank })}</dd> : <dd className="gx-lap-tile-v is-none">{tr('lap.tile.none')}</dd>}
+                {wkBoard?.me && <dd className="gx-t13 gx-sub">{tr('lap.board.of', { n: wkBoard.count.toLocaleString(fmt.locale) })}</dd>}</div>
+              <div><dt className="gx-t13">{tr('lap.tile.top')}</dt>{wkBoard?.top ? <dd className="gx-lap-tile-v">{formatLap(wkBoard.top.ms)}</dd> : <dd className="gx-lap-tile-v is-none">{tr('lap.tile.none')}</dd>}
+                {wkBoard?.top && <dd className="gx-t13 gx-sub gx-ell">{wkBoard.top.me ? tr('lap.board.me') : nameOf(wkBoard.top.pid, fmt.locale)}</dd>}</div>
+            </dl>
+            {cfg.car !== 'dot' && (best != null || cfg.pacer !== 'off') && <span className="gx-t13 gx-lap-legend"><i aria-hidden="true" />{tr(best != null ? 'lap.ghost.best' : 'lap.ghost.pacer')}</span>}
             {learn && (
               <ul className="gx-lap-how gx-t15">
                 {cfg.pedal === 'off' ? <li><i className="is-road" />{tr('lap.how.hold')}</li> : <li><i className="is-gas" />{tr('lap.how.pedal')}</li>}
@@ -992,11 +1051,6 @@ function LapGame({ id, onClose }) {
                 {learn === 'practice' ? <li><i className="is-flag" />{tr('lap.how.practice')}</li> : <li><i className="is-light" />{tr('lap.how.lights')}</li>}
               </ul>
             )}
-            <button type="button" className="gx-lap-brow-btn" onClick={(e) => openBoard(e)}>
-              <span className="gx-row-c"><span className="gx-t15 gx-w600">{wkBoard?.top ? tr('lap.board.top', { time: formatLap(wkBoard.top.ms) }) : tr('lap.board.first')}</span>
-                {wkBoard?.me && <span className="gx-t13 gx-sub">{tr('lap.board.myRank', { n: wkBoard.me.rank })}</span>}</span>
-              <span className="gx-t15 gx-sub">{tr('lap.board.title')}</span><Icon n="chev" s={20} />
-            </button>
             {learn === 'practice'
               ? <div className="gx-lap-acts is-col"><button type="button" ref={primary} className="gx-btn is-primary is-full" onClick={startPractice}>{tr('lap.practice')}</button><button type="button" className="gx-textbtn gx-t15 gx-lap-skip" onClick={startLights}>{tr('lap.skip')}</button></div>
               : <button type="button" ref={primary} className="gx-btn is-primary is-full" onClick={startLights}>{tr('lap.start')}</button>}
@@ -1017,27 +1071,23 @@ function LapGame({ id, onClose }) {
         )}
         {phase === 'done' && result && <span className="gx-lap-maplegend gx-t13"><i aria-hidden="true" />{tr('lap.result.map')}</span>}
         {phase === 'done' && result && (
-          <section className="gx-lap-card" ref={cardRef} aria-labelledby="gx-lap-r">
-            <div>
-              <span className="gx-t13 gx-sub" id="gx-lap-r">{tr('lap.result.label', { name: L.circuit })}</span>
-              <b className="gx-lap-big"><Roll>{formatLap(result.ms)}</Roll></b>
-              <span className={`gx-t15 gx-lap-verdict${result.isBest && result.prev != null ? ' is-best' : ''}`}>{verdict}</span>
+          <section className="gx-lap-card is-result" ref={cardRef} aria-labelledby="gx-lap-r">
+            {/* 위에서부터: 기록 → 이번 주 순위(한 칸씩 올라감) · 다음 목표 → 구간 기록 → 한 줄 이야기 → 숫자 셋. 아래 버튼 줄은 늘 보인다 */}
+            <div className="gx-lap-res-body" ref={resBody}>
+              <div>
+                <span className="gx-t13 gx-sub gx-lap-res-k" id="gx-lap-r">{tr('lap.result.label', { name: L.circuit })}{result.isBest && result.prev != null && <em className="gx-lap-newbest gx-t13 gx-w700">{tr('lap.result.newBest')}</em>}</span>
+                <b className="gx-lap-big"><Roll>{formatLap(result.ms)}</Roll></b>
+                <span className={`gx-t15 gx-lap-verdict${result.isBest && result.prev != null ? ' is-best' : ''}`}>{verdict}</span>
+              </div>
+              {result.rank && <LapRank rank={result.rank} reduced={reducedMotion(cfg)} onOpen={(e) => openBoard(e)} />}
+              {result.thirds && <LapThirds thirds={result.thirds} prev={result.thirdsPrev} paths={thirdPaths} />}
+              {insight && <p className="gx-lap-insight gx-t15">{insight}</p>}
+              <dl className="gx-lap-stats">
+                <div><dt className="gx-t13">{tr('lap.stat.react')}</dt><dd className="gx-t17 gx-w600">{tr('lap.stat.reactV', { sec: (result.react / 1000).toFixed(3) })}</dd></div>
+                <div><dt className="gx-t13">{tr('lap.stat.vmax')}</dt><dd className="gx-t17 gx-w600">{result.vmax}km/h</dd></div>
+                <div><dt className="gx-t13">{tr('lap.stat.offs')}</dt><dd className="gx-t17 gx-w600">{tr('lap.stat.offsV', { n: result.offs })}</dd></div>
+              </dl>
             </div>
-            {insight && <p className="gx-lap-insight gx-t15">{insight}</p>}
-            {result.rank && (
-              <button type="button" className="gx-lap-brow-btn is-rank" onClick={(e) => openBoard(e)}>
-                <span className="gx-row-c">
-                  <span className="gx-t17 gx-w600"><Roll>{tr('lap.board.weekRank', { n: result.rank.n })}</Roll><span className="gx-t13 gx-sub"> {tr('lap.board.of', { n: result.rank.count.toLocaleString(fmt.locale) })}</span></span>
-                  <span className="gx-t13 gx-sub">{[nameOf(result.rank.pid, fmt.locale), result.rank.before == null ? tr('lap.board.joined') : result.rank.before > result.rank.n ? tr('lap.board.up', { n: result.rank.before }) : null].filter(Boolean).join(' · ')}</span>
-                </span>
-                <span className="gx-t15 gx-sub">{tr('lap.board.title')}</span><Icon n="chev" s={20} />
-              </button>
-            )}
-            <dl className="gx-lap-stats">
-              <div><dt className="gx-t13">{tr('lap.stat.react')}</dt><dd className="gx-t17 gx-w600">{tr('lap.stat.reactV', { sec: (result.react / 1000).toFixed(3) })}</dd></div>
-              <div><dt className="gx-t13">{tr('lap.stat.vmax')}</dt><dd className="gx-t17 gx-w600">{result.vmax}km/h</dd></div>
-              <div><dt className="gx-t13">{tr('lap.stat.offs')}</dt><dd className="gx-t17 gx-w600">{tr('lap.stat.offsV', { n: result.offs })}</dd></div>
-            </dl>
             <div className="gx-lap-acts">
               <button type="button" ref={primary} className="gx-btn is-primary is-grow" onClick={startLights}>{tr('lap.again')}</button>
               <button type="button" className="gx-btn is-weak is-icon" aria-label={tr('lap.card.open')} onClick={() => makeCard('post')}><Icon n="share" s={22} /></button>

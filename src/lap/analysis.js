@@ -46,6 +46,14 @@ export function compareSectors(tk, cur, best, totalCur, totalBest) {
   return { lost: lost && lost.d > 0.05 ? lost : null, gained: gained && gained.d < -0.05 ? gained : null };
 }
 
+// 구간 기록: 서킷을 같은 거리로 셋으로 나눈 구간(실제 F1 구간 경계가 아니다)마다 걸린 시간(초). 출발 반응을 첫 구간에 넣고, 끝 구간은 전체 기록으로 닫는다
+export const THIRDS = [1 / 3, 2 / 3];
+export function thirdsOf(tk, ghost, total) {
+  const a = timeAt(ghost, tk.L * THIRDS[0]), b = timeAt(ghost, tk.L * THIRDS[1]);
+  if (a == null || b == null || !(total > b)) return null;
+  return [a, b - a, total - b];
+}
+
 // 코스를 벗어난 거리마다 가장 가까운 코너 번호(겹치면 하나)
 export function offCorners(tk, offAt) {
   const out = [];

@@ -611,7 +611,7 @@ export function render3d(ctx, R) {
       if (!R.lite && P.crew && P.crew.length) for (const cr of W3.crew) for (const [a] of spans(runs, tk, wrapM(cr.s, tk.L), wrapM(cr.s, tk.L) + 0.01)) {
         const i0 = mod(Math.round(a), n); const wv = (pt.side > 0 ? W3.wl : W3.wr)[i0];
         if (!(pt.side > 0 ? W3.okL : W3.okR)[i0] || !wp(tk, W3, a, pt.side * (wv + 0.6) * q) || WCL) continue; const FX = WX, FY = WY;
-        if (!proj(cam, FX, FY, 1) || PZ > 220) continue; const dz = PZ; const fa = 1 - fogK(dz); if (fa <= 0.02) continue; const sx = PX;
+        if (!proj(cam, FX, FY, 1) || PZ > 220 || PZ < 6) continue; const dz = PZ; const fa = 1 - fogK(dz); if (fa <= 0.02) continue; const sx = PX;   // 카메라에 너무 붙은 사람은 그리지 않는다(준비 화면 소개 카메라)
         const up = Math.max(0, Math.min(1, ((R.crewUp || 0) - cr.late) / (1 - cr.late))) * cr.up;
         items.push({ z: dz + 2.5, sx, half: (1.2 * cam.F) / dz, draw: () => crewFig(ctx, cam, P, FX, FY, tk.th[i0], cr, up, R.now / 1000, fa) });   // 담 뒤: 담 조각보다 먼저 그려 담이 다리를 가린다
       }

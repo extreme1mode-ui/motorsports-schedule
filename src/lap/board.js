@@ -68,9 +68,21 @@ export function boardOf(id, period = 'week', now = Date.now(), recs = lapRecords
   const mine = me ? myBest(recs[id], period, wk) : null;
   const all = others.slice();
   if (mine != null) { let i = 0; while (i < all.length && all[i].ms <= mine) i += 1; all.splice(i, 0, { pid: me.id, ms: mine, me: true }); }
-  const rows = all.slice(0, BOARD_TOP).map((x, i) => ({ rank: i + 1, pid: x.pid, ms: x.ms, me: !!x.me }));
+  const row = (x, i) => ({ rank: i + 1, pid: x.pid, ms: x.ms, me: !!x.me });
+  const rows = all.slice(0, BOARD_TOP).map(row);
   const mi = mine != null ? all.findIndex((x) => x.me) : -1;
-  return { period, wk, count: all.length, rows, me: mi >= 0 ? { rank: mi + 1, ms: mine, pid: me.id } : null, top: rows[0] || null };
+  // 내 줄 둘레 세 줄(결과 카드의 순위 조각)과 다음 목표. 서버도 위 50줄 + 내 위아래 한 줄씩만 주면 된다
+  let near = null; const goals = [];
+  if (mi >= 0) {
+    const st = Math.max(0, Math.min(mi - 1, all.length - 3)); near = all.slice(st, st + 3).map((x, k) => row(x, st + k));
+    const gap = (j) => Math.max(1, mine - all[j].ms);   // 그 줄보다 빨라지려면 줄여야 하는 시간(ms). 같은 기록이면 1ms
+    if (mi > 0) {
+      goals.push({ kind: 'next', rank: mi, ms: gap(mi - 1) });                       // 바로 위
+      const tier = [10, 3, 1].concat(mi + 1 > BOARD_TOP ? [BOARD_TOP] : []).filter((t) => t < mi).sort((a, b) => b - a)[0];   // 그다음 큰 고비(50 · 10 · 3 · 1위)
+      if (tier) goals.push({ kind: tier === 1 ? 'top' : 'tier', rank: tier, ms: gap(tier - 1) });
+    } else if (all.length > 1) goals.push({ kind: 'lead', rank: 2, ms: all[1].ms - mine });   // 1위: 2위와 차이
+  }
+  return { period, wk, count: all.length, rows, me: mi >= 0 ? { rank: mi + 1, ms: mine, pid: me.id } : null, top: rows[0] || null, near, goals };
 }
 
 // 화면용: 기록이 바뀌면(한 바퀴를 끝내면) 다시 계산한다. now는 분 단위로 넘긴다
