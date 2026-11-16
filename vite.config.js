@@ -14,8 +14,8 @@ const devApi = {
     for (const key of ['VITE_SUPABASE_URL', 'VITE_SUPABASE_PUBLISHABLE_KEY']) {
       if (env[key] && !proc.env[key]) proc.env[key] = env[key]
     }
-    // 캘린더 · 비 예보 · 즐겨찾기 수. 주소 앞부분으로 Function 파일을 고른다.
-    const routes = [['/api/calendar.ics', '/api/calendar.ics.js'], ['/api/weather', '/api/weather.js'], ['/api/likes', '/api/likes.js']]
+    // 캘린더 · 비 예보 · 즐겨찾기 수 · 한 바퀴 순위표. 주소 앞부분으로 Function 파일을 고른다.
+    const routes = [['/api/calendar.ics', '/api/calendar.ics.js'], ['/api/weather', '/api/weather.js'], ['/api/likes', '/api/likes.js'], ['/api/lap', '/api/lap.js']]
     server.middlewares.use(async (req, res, next) => {
       const route = routes.find(([prefix]) => req.url?.startsWith(prefix))
       if (!route) return next()

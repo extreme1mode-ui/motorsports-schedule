@@ -50,6 +50,16 @@ export function saveLap(id, { ms, react, ghost, wkKey = null }) {
   subs.forEach((fn) => fn());
   return { best, prev: prev ? prev.best : null };
 }
+// 서버에 아직 못 보낸 기록(웹만, src/lap/submit.js): 서킷마다 하나, 더 빠른 것만 남긴다. 보내면 지운다
+export function setLapPending(id, p) {
+  const all = { ...read() }; const r = all[id]; if (!r) return;
+  if (r.pend && r.pend.ms <= p.ms) return;
+  all[id] = { ...r, pend: p }; snap = all; storage.lap.write(all); subs.forEach((fn) => fn());
+}
+export function clearLapPending(id, ms) {
+  const all = { ...read() }; const r = all[id]; if (!r?.pend || r.pend.ms !== ms) return;
+  const { pend, ...rest } = r; void pend; all[id] = rest; snap = all; storage.lap.write(all); subs.forEach((fn) => fn());
+}
 const subscribe = (fn) => { subs.add(fn); return () => subs.delete(fn); };
 export function useLapRecords() { return useSyncExternalStore(subscribe, read, read); }
 // 데모 조절 판의 '기록 지우기'와 상태 바로 가기가 쓴다

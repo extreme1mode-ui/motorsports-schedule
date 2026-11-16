@@ -1,13 +1,16 @@
 // '한 바퀴' 순위표: 서킷마다 '이번 주'(월요일 0시 UTC = 한국 오전 9시에 새로) · '전체'. 한 사람은 한 줄(가장 빠른 기록).
-// 지금(데모)은 이 기기의 내 기록 + 계산으로 만든 다른 사람 기록이다. 실서비스 빌드(데모 시계 없음)에서는 다른 사람 기록을 만들지 않는다
-// — 출시 때 boardOf를 서버(Supabase) 읽기로 바꾼다(DEV-NOTES '순위표 서버'). 화면은 이 모양({ count, rows, me, top })만 본다.
-import { useMemo } from 'react';
+// 실서비스: 서버(remote.js → /api/lap → Supabase lap_board)의 다른 사람 줄 + 이 기기의 내 기록. 내 줄은 늘 이 기기 기록으로
+// (서버에 아직 안 간 기록도 바로 보인다). 서버를 못 받으면 내 기록만(서버가 없을 때와 같다).
+// 데모 빌드: 조절 판 '순위표' sample = 계산으로 만든 다른 사람 기록, empty = 내 기록만, server = 실서비스처럼.
+// 화면은 이 모양({ count, rows, me, top, near, goals })만 본다.
+import { useEffect, useMemo } from 'react';
 import { demoClock } from '../demo/clock.js';
 import { botLap } from './engine.js';
 import { lapConfig, useLapConfig } from './config.js';
 import { lapTrackOf, preparedTrack, lapRecords, useLapRecords } from './store.js';
 import { myPlayer, hash32 } from './player.js';
 import { isThisWeek } from './place.js';
+import { serverOn, serverBoard, loadBoard, useRemoteVersion } from './remote.js';
 
 const DAY = 864e5, WEEK = 7 * DAY;
 export const BOARD_TOP = 50;   // 순위표에 보이는 줄(내가 그 밖이면 아래에 따로)
@@ -60,6 +63,7 @@ export function myBest(rec, period, wk) {
 // 순위표: { period, wk, count, rows: [{ rank, pid, ms, me }], me: { rank, ms, pid } | null, top: 첫 줄 | null }
 export function boardOf(id, period = 'week', now = Date.now(), recs = lapRecords(), board = lapConfig().board) {
   const wk = weekOf(now); const me = myPlayer(false);
+  if (serverOn(board)) return fromServer(id, period, wk, me ? myBest(recs[id], period, wk) : null, me ? me.id : null);
   let others = [];
   if (sampleOn(board)) {
     const week = sampleField(id, 'week', wk).filter((x) => x.at <= now);
@@ -85,9 +89,55 @@ export function boardOf(id, period = 'week', now = Date.now(), recs = lapRecords
   return { period, wk, count: all.length, rows, me: mi >= 0 ? { rank: mi + 1, ms: mine, pid: me.id } : null, top: rows[0] || null, near, goals };
 }
 
-// 화면용: 기록이 바뀌면(한 바퀴를 끝내면) 다시 계산한다. now는 분 단위로 넘긴다
+// 서버 줄 + 내 기록. 내 자리는 위 50줄 안이면 이 기기에서 바로 세고, 그 밖이면 서버가 센 자리(ctx, 같은 기록으로 받은 것)를 쓴다.
+// 그 밖인데 아직 못 받았으면 맨 뒤에 두고 approx: true(받으면 다시 계산된다). 같은 기록이면 다른 사람이 앞(데모와 같은 규칙)
+function fromServer(id, period, wk, mine, pid) {
+  const srv = serverBoard(id, period, mine, pid);
+  const others = srv ? srv.rows.filter((r) => r.pid !== pid) : [];
+  const ctx = srv && srv.ctx && srv.ms === mine ? srv.ctx : null;
+  const listed = !!srv && (others.length < srv.rows.length || !!(ctx && ctx.listed));
+  const othersN = srv ? Math.max(others.length, srv.count - (listed ? 1 : 0)) : 0;
+  const complete = othersN <= others.length;   // 모든 사람이 위 50줄 안에 있다
+  let ahead = 0; let above = []; let below = []; let approx = false;
+  if (mine != null) {
+    let k = 0; while (k < others.length && others[k].ms <= mine) k += 1;
+    if (k < others.length || complete) {
+      ahead = k; above = others.slice(Math.max(0, k - 2), k); below = others.slice(k, k + 2);
+      if (below.length < 2 && !complete && ctx) below = ctx.below;
+    } else if (ctx) { ahead = ctx.ahead; above = ctx.above; below = ctx.below; }
+    else { ahead = othersN; above = others.slice(-2); approx = true; }
+  }
+  const list = others.slice(0, BOARD_TOP).map((x) => ({ pid: x.pid, ms: x.ms, me: false }));
+  if (mine != null && ahead < BOARD_TOP) list.splice(ahead, 0, { pid, ms: mine, me: true });
+  const rows = list.slice(0, BOARD_TOP).map((x, i) => ({ rank: i + 1, pid: x.pid, ms: x.ms, me: x.me }));
+  let near = null; const goals = [];
+  if (mine != null) {
+    const r = ahead + 1;
+    const A = above.map((x, i) => ({ rank: r - above.length + i, pid: x.pid, ms: x.ms, me: false }));
+    const B = below.map((x, i) => ({ rank: r + 1 + i, pid: x.pid, ms: x.ms, me: false }));
+    const seq = [...A, { rank: r, pid, ms: mine, me: true }, ...B]; const mi = A.length;
+    const st = Math.max(0, Math.min(mi - 1, seq.length - 3)); near = seq.slice(st, st + 3);
+    const gap = (ms) => Math.max(1, mine - ms);
+    if (ahead > 0) {
+      if (A.length) goals.push({ kind: 'next', rank: ahead, ms: gap(A[A.length - 1].ms) });
+      const tier = [10, 3, 1].concat(r > BOARD_TOP ? [BOARD_TOP] : []).filter((t) => t < ahead).sort((a, b) => b - a)[0];
+      if (tier && others[tier - 1]) goals.push({ kind: tier === 1 ? 'top' : 'tier', rank: tier, ms: gap(others[tier - 1].ms) });
+    } else if (B.length) goals.push({ kind: 'lead', rank: 2, ms: B[0].ms - mine });
+  }
+  const top = rows[0] || null;
+  // 1위의 움직임(옅은 차): 1위가 서버의 1위와 같은 사람일 때만
+  const topGhost = top && !top.me && srv && srv.rows[0] && srv.rows[0].pid === top.pid ? srv.topGhost : null;
+  return { period, wk, count: othersN + (mine != null ? 1 : 0), rows, me: mine != null ? { rank: ahead + 1, ms: mine, pid, approx } : null, top, near, goals, topGhost };
+}
+
+// 화면용: 기록이 바뀌면(한 바퀴를 끝내면) · 서버 줄을 받으면 다시 계산한다. now는 분 단위로 넘긴다
 export function useBoard(id, period, now) {
   const recs = useLapRecords(); const sample = useLapConfig().board;   // 조절 판에서 '아무도 없는 주'로 바꾸면 다시
+  const rv = useRemoteVersion();
   const minute = Math.floor(now / 60000);
-  return useMemo(() => (id ? boardOf(id, period, minute * 60000 + 59999, recs, sample) : null), [id, period, minute, recs, sample]);
+  const b = useMemo(() => (id && rv >= 0 ? boardOf(id, period, minute * 60000 + 59999, recs, sample) : null), [id, period, minute, recs, sample, rv]);
+  const ms = b?.me?.ms ?? null; const pid = b?.me?.pid ?? null;
+  // 서버 줄 받기(내 기록이 바뀌면 그 기록의 자리까지). 1분 안이면 다시 받지 않는다
+  useEffect(() => { if (id && serverOn(sample)) loadBoard(id, period, ms, pid); }, [id, period, ms, pid, sample, minute]);
+  return b;
 }

@@ -23,6 +23,8 @@ import { LapRank, LapThirds } from './LapResult.jsx';
 import { LapDuel } from './LapDuel.jsx';
 import { isThisWeek } from './place.js';
 import { boardOf, weekOf, useBoard } from './board.js';
+import { serverOn, loadBoard } from './remote.js';
+import { queueLap, flushLap } from './submit.js';
 import { myPlayer } from './player.js';
 import { prep3d, camera as camera3, render3d, labels3d, rlAt, wallAtS, kerbAtS, CAR3, addSparks, STREET, groundAt } from './world3d.js';
 import { createLapSound, renderLog, renderScenes, wavBytes } from './sound.js';
@@ -200,8 +202,19 @@ function LapGame({ id, onClose }) {
     const offList = offCorners(tkk, run.offAt);
     // 순위표: 처음 끝까지 달리면 이름(나)을 만들고, 이번 주 순위가 저장 전후로 어떻게 바뀌었는지
     const before = boardOf(id, 'week').me; myPlayer(true);
-    const saved = saveLap(id, { ms, react: Math.round(s.react), ghost: s.ghost.map((v) => Math.round(v)), wkKey: weekOf(Date.now()).key });
+    const wkKey = weekOf(Date.now()).key; const prevWk = prev?.wk && prev.wk.key === wkKey ? prev.wk.ms : null;
+    const lapGhost = s.ghost.map((v) => Math.round(v));
+    const saved = saveLap(id, { ms, react: Math.round(s.react), ghost: lapGhost, wkKey });
     const after = boardOf(id, 'week');
+    // 실서비스(웹): 이번 주 · 전체 최고 기록이 빨라졌으면 서버로(못 보내면 다음에 다시). 토스는 보내지 않는다
+    queueLap(id, { ms, react: s.react, ghost: lapGhost }, saved.best || prevWk == null || ms < prevWk);
+    // 서버 줄: 새 기록이 위 50줄 밖이면 자리를 서버에 물어 결과 카드의 순위를 다시 맞춘다(결과 카드가 뜨기 전에 대개 끝난다)
+    if (serverOn() && after.me && (after.me.approx || before?.approx)) {
+      loadBoard(id, 'week', after.me.ms, after.me.pid)?.then(() => {
+        const a2 = boardOf(id, 'week'); if (!a2.me) return;
+        setResult((r) => (r && r.ms === ms ? { ...r, rank: { n: a2.me.rank, count: a2.count, before: r.rank ? r.rank.before : null, pid: a2.me.pid, near: a2.near, goals: a2.goals } } : r));
+      });
+    }
     if (saved.best) { s.best = s.ghost.slice(); setBest(ms); }
     trackEvent('lap_finished', { track: id, ms, offs: run.offCount, best: saved.best });
     buzz('finish'); snd.current.event('finish', { best: !!saved.best });
@@ -261,6 +274,8 @@ function LapGame({ id, onClose }) {
     return () => { window.removeEventListener('keydown', onKey, true); window.removeEventListener('keyup', onKey, true); };
   }, [hold, release, onClose, card, board]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { trackEvent('lap_opened', { track: id }); return () => clearTimers(); }, [id]);
+  // 실서비스: 열 때 이 서킷의 전체 순위표도 받아 두고(이번 주에 아무도 없을 때의 옅은 차), 못 보낸 기록이 있으면 보낸다
+  useEffect(() => { if (serverOn()) loadBoard(id, 'all'); flushLap(id); }, [id]);
   // 카드가 뜨면 주 버튼으로 포커스(스페이스 · 엔터로 바로 누를 수 있게)
   useEffect(() => { if (!PRESSABLE.has(phase)) primary.current?.focus({ preventScroll: true }); }, [phase, firstRun]);
 

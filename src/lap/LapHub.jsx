@@ -1,5 +1,5 @@
 // '서킷 한 바퀴' 목록(달릴 수 있는 서킷 전부, 라운드 순) + 홈·상세의 진입 줄.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import '../screens2/screens2.css';
 import './lap.css';
 import { useFormat } from '../use-format.js';
@@ -14,7 +14,9 @@ import { formatLap } from './engine.js';
 import { LAP_TRACKS, lapTrackOfRace, outlinePath, openLap, useLapRecords } from './store.js';
 import { isThisWeek } from './place.js';
 import { preloadLapGame } from './load-game.js';
-import { useBoard, boardOf } from './board.js';
+import { useBoard, boardOf, weekOf, myBest } from './board.js';
+import { serverOn, loadBoard, useRemoteVersion } from './remote.js';
+import { myPlayer } from './player.js';
 
 const cx = (...list) => list.filter(Boolean).join(' ');
 
@@ -33,7 +35,14 @@ export function LapHub({ desktop = false, now }) {
   const done = LAP_TRACKS.filter((t) => rec[t.id]?.best != null).length;
   // 이번 주 내 순위(달린 서킷만)
   const minute = Math.floor(+now / 60000);
-  const ranks = useMemo(() => Object.fromEntries(LAP_TRACKS.filter((t) => rec[t.id]?.wk).map((t) => [t.id, boardOf(t.id, 'week', minute * 60000 + 59999, rec).me?.rank])), [rec, minute]);
+  const rv = useRemoteVersion();   // 서버 줄을 받으면 다시
+  const ranks = useMemo(() => (rv >= 0 ? Object.fromEntries(LAP_TRACKS.filter((t) => rec[t.id]?.wk).map((t) => [t.id, boardOf(t.id, 'week', minute * 60000 + 59999, rec).me?.rank])) : {}), [rec, minute, rv]);
+  // 실서비스: 이번 주 기록이 있는 서킷의 서버 줄을 받는다(내 기록의 자리까지)
+  useEffect(() => {
+    if (!serverOn()) return;
+    const me = myPlayer(false); if (!me) return; const wk = weekOf(minute * 60000);
+    for (const t of LAP_TRACKS) { const ms = myBest(rec[t.id], 'week', wk); if (ms != null) loadBoard(t.id, 'week', ms, me.id); }
+  }, [rec, minute]);
   return (
     <div className={cx('gx-screen gx-lap-hub', desktop && 'is-desk')}>
       <div className="gx-tab-top gx-lap-hub-top">

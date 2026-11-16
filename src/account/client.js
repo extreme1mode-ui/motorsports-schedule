@@ -79,3 +79,17 @@ export async function saveMyLikes(raceIds) {
     return false;
   }
 }
+
+// '한 바퀴' 기록 보내기(supabase/migrations/0003_lap.sql submit_lap). 세션이 없으면 익명 사용자를 만든다(보낼 기록이 생겼을 때).
+// 돌려주는 것: { ok: true, data: { pid, week, all_ms, week_ms } } 또는 { ok: false, code }. 실패는 조용히(재시도는 부른 쪽이 정한다)
+export async function submitLap({ track, ms, react, ghost, pid }) {
+  const session = await ensureSession();
+  if (!session) return { ok: false, code: 'no-session' };
+  try {
+    const { data, error } = await session.client.rpc('submit_lap', { track, ms, react: react ?? null, ghost, pid });
+    if (error) return { ok: false, code: String(error.code || 'error') };
+    return { ok: true, data: data && typeof data === 'object' ? data : null };
+  } catch {
+    return { ok: false, code: 'network' };
+  }
+}

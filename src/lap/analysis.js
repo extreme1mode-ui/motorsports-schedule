@@ -115,13 +115,15 @@ export function simLap(tk, { late = 0, react = 0.3, dt = 1 / 120 } = {}) {
 
 // 옅은 차: 이번 주 1위 기록(이번 주에 아무도 없으면 전체 1위)의 움직임. 내가 1위면 내 최고 기록의 움직임을 그 기록 시간에 맞춘 것,
 // 다른 사람이면(데모의 예시 기록) 가장 빠르게 달린 차의 움직임을 그 기록 시간에 맞게 늘인 것. 아무 기록도 없으면 null.
-// 실서비스: 서버가 1위 기록과 그 움직임(0.1초마다 위치)을 함께 준다(DEV-NOTES '순위표 서버'). 게임 코드에만 있다(첫 화면에 싣지 않게)
+// 실서비스: 서버가 1위 기록과 그 움직임(0.1초마다 위치)을 함께 준다(lap_board top_ghost). 게임 코드에만 있다(첫 화면에 싣지 않게)
 export function rivalOf(id, tk, now = Date.now(), recs = lapRecords(), board = lapConfig().board) {
   if (!tk) return null;
   for (const period of ['week', 'all']) {
-    const top = boardOf(id, period, now, recs, board).top; if (!top) continue;
+    const b = boardOf(id, period, now, recs, board); const top = b.top; if (!top) continue;
     if (top.me) { const rec = recs[id]; if (rec?.ghost?.length > 2) return { ghost: fitGhost(rec.ghost, tk.L, top.ms / 1000), ms: top.ms, me: true }; continue; }
-    return { ghost: fitGhost(idealGhost(tk), tk.L, top.ms / 1000), ms: top.ms, me: false };
+    // 서버가 준 1위의 실제 움직임이 있으면 그것, 없으면(예시 기록 · 아직 못 받음) 가장 빠르게 달린 차를 그 기록에 맞게 늘인 것
+    const g = b.topGhost && b.topGhost.length > 2 ? b.topGhost : idealGhost(tk);
+    return { ghost: fitGhost(g, tk.L, top.ms / 1000), ms: top.ms, me: false };
   }
   return null;
 }
