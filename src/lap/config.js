@@ -10,7 +10,7 @@ import { DIFFICULTY, DIFF_KEYS, diffOf } from './engine.js';
 //  slip   미끄러짐      push: 차가 밀리기만 · ring: 차 둘레에 차오르는 원 · marks: 타이어 자국 + 위쪽 알림
 //  delta  최고 기록과의 차이   off · corner: 코너를 지날 때마다 · live: 계속
 //  car    차 모양       car: 위에서 본 F1 차 · dot: 점
-//  haptic 진동          off · on: 코스 이탈과 결승선
+//  haptic 진동          off · on: 코스 이탈과 결승선. 기본은 웹 off(iOS Safari는 진동이 없다) · 토스 on(Device.triggerHaptic)
 //  home   홈 자리       below: 시간표 바로 아래 · bottom: 홈 맨 아래 · week: 경기 주간에만 시간표 아래, 그 밖에는 맨 아래
 //  pacer  기록이 없을 때  guide: 안내대로 달린 차가 옅게 같이 달림 · off
 //  pace   빠르기       게임 시간이 실제 시간보다 몇 배 빨리 가는지. 1 · 1.3 · 1.6 · 2. 기록은 게임 시간(실제 랩 타임 같은 숫자), 한 바퀴에 실제로 걸리는 시간만 줄어든다
@@ -21,7 +21,7 @@ import { DIFFICULTY, DIFF_KEYS, diffOf } from './engine.js';
 //  finish 결승 카메라   tv: 결승선을 지나면 길가 TV 카메라 한 장면 · chase: 차 뒤 카메라 그대로(v3)
 //  view   화면         3d: 차 뒤 위에서 앞을 내려다봄(원근) · top: 위에서 내려다봄(v2). 줄인 움직임이면 언제나 top
 //  motion 데모 전용      auto: 기기 설정을 따름 · reduce: 줄인 움직임으로 보기(조절 판에서 기기 설정 없이 비교하려고)
-export const LAP_DEFAULTS = Object.freeze({ diff: 'normal', tune: null, learn: 'coach', zone: 'bars', slip: 'ring', delta: 'corner', car: 'car', haptic: 'off', home: 'week', pacer: 'guide', view: '3d', pace: '1.6', line: 'rubber', pedal: 'both', sound: 'on', rev: 'on', finish: 'tv', motion: 'auto' });
+export const LAP_DEFAULTS = Object.freeze({ diff: 'normal', tune: null, learn: 'coach', zone: 'bars', slip: 'ring', delta: 'corner', car: 'car', haptic: import.meta.env.MODE === 'toss' ? 'on' : 'off', home: 'week', pacer: 'guide', view: '3d', pace: '1.6', line: 'rubber', pedal: 'both', sound: 'on', rev: 'on', finish: 'tv', motion: 'auto' });
 export const LAP_CHOICES = {
   diff: Object.keys(DIFFICULTY), learn: ['text', 'coach', 'practice'], zone: ['shade', 'bars', 'chevron'], slip: ['push', 'ring', 'marks'],
   delta: ['off', 'corner', 'live'], car: ['car', 'dot'], haptic: ['off', 'on'], home: ['below', 'bottom', 'week'], pacer: ['guide', 'off'], view: ['3d', 'top'], pace: ['1', '1.3', '1.6', '2'], line: ['rubber', 'guide'], pedal: ['both', 'only', 'off'], sound: ['on', 'off'], rev: ['on', 'off'], finish: ['tv', 'chase'], motion: ['auto', 'reduce'],

@@ -28,7 +28,7 @@ import { storage } from './storage/index.js';
 import { setAppTitle } from './document-title.js';
 import { CircuitMapProvider } from './circuit-map/CircuitMap.jsx';
 import { DemoClockSheet } from './demo/DemoClockSheet.jsx';
-import { LapLayer } from './lap/LapGame.jsx';
+import { LapLayer } from './lap/LapLayer.jsx';
 import { LapHub } from './lap/LapHub.jsx';
 import { openLap } from './lap/store.js';
 import { demoClock } from './demo/clock.js';
@@ -62,14 +62,11 @@ export default function Root() {
     setAppTitle(t(locale, 'app.title'));
   }, [prefs.preferences.locale]);
 
-  // 데모 전용: 데모를 처음 열면 '한 바퀴'(라스베이거스)를 바로 보여 준다. 닫으면 홈이다. 실서비스 빌드에서는 돌지 않는다
-  // 주소에 ?lap=서킷 id가 있으면 그 서킷을, ?lap=none이면 열지 않는다(데모 조절 판이 쓴다)
+  // 데모 빌드 전용: 주소에 ?lap=서킷 id가 있으면 그 서킷의 '한 바퀴'를 바로 연다(확인용). 실서비스 빌드에서는 돌지 않는다
   useEffect(() => {
     if (!demoClock.enabled) return;
     const q = new URLSearchParams(window.location.search).get('lap');
-    if (q === 'none') return;
-    if (!q) { try { if (sessionStorage.getItem('gantry.demo.lap')) return; sessionStorage.setItem('gantry.demo.lap', '1'); } catch { return; } }
-    if (prefs.preferences.onboarded) openLap(q || 'lvg26');
+    if (q && q !== 'none' && prefs.preferences.onboarded) openLap(q);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 방문 빈도·재방문율: 앱이 뜰 때 1회 (StrictMode의 이중 effect는 ref로 막는다).
