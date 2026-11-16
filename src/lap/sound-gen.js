@@ -228,4 +228,4 @@ export function crowdJob(excited, sr = 22050, seed = 21, seconds = 5) {
 }
 
 // 이름 → 만드는 함수. 실제 녹음을 쓰게 되면 같은 이름의 파일이 이 소리를 대신한다(sound.js)
-export const SAMPLE_KEYS = ['crowd', 'cheer', 'gravel', 'impact', 'squeal'];
+export const SAMPLE_KEYS = ['crowd', 'cheer', 'gravel', 'impact'];

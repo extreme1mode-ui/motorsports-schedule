@@ -15,6 +15,15 @@ const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
 const smooth = (x, a, b) => { const u = clamp((x - a) / (b - a), 0, 1); return u * u * (3 - 2 * u); };
 
 // ---------- 재료(한 번만, 쉬는 틈에) ----------
+// 녹음 자리: 여기에 파일을 적으면 같은 이름의 '코드로 만든 소리' 대신 쓴다(기본은 비어 있음).
+// 예) 내려받은 CC0 녹음을 public/sounds/에 넣고 { crowd: '/sounds/crowd.mp3', cheer: '/sounds/cheer.mp3', gravel: '/sounds/gravel.mp3', impact: '/sounds/impact.mp3' }
+export const RECORDINGS = {};
+async function loadRecordings(b) {
+  const OAC = typeof window !== 'undefined' && (window.OfflineAudioContext || window.webkitOfflineAudioContext); if (!OAC) return;
+  for (const [k, url] of Object.entries(RECORDINGS)) {
+    try { const res = await fetch(url); if (!res.ok) continue; const ab = await new OAC(1, 1, 44100).decodeAudioData(await res.arrayBuffer()); b[k] = { data: ab.getChannelData(0).slice(), sr: ab.sampleRate }; } catch { /* 녹음이 없으면 만든 소리 그대로 */ }
+  }
+}
 let bankP = null; let coreP = null; let coreRes = null;
 const idle = () => new Promise((res) => { if (typeof window !== 'undefined' && window.requestIdleCallback) window.requestIdleCallback(() => res(), { timeout: 120 }); else setTimeout(res, 16); });
 // 엔진 · 길 소리가 다 되면 coreReady가, 관중까지 다 되면 makeBank가 풀린다
@@ -30,15 +39,16 @@ export function makeBank() {
     await idle(); b.pops = G.genPops(); b.white = G.genNoise('white', 2); b.pink = G.genNoise('pink', 3); b.brown = G.genNoise('brown', 3);
     await idle(); b.gravel = G.genGravel();
     await idle(); b.impact = G.genImpact(); b.clunk = G.genClunk(); b.whoosh = G.genWhoosh();
+    await loadRecordings(b);
     b.ready = true; coreRes(b);
-    for (const ex of [false, true]) { const job = G.crowdJob(ex); while (!job.step()) await idle(); b[ex ? 'cheer' : 'crowd'] = { data: job.result(), sr: job.sr }; }
+    for (const ex of [false, true]) { const k = ex ? 'cheer' : 'crowd'; if (b[k]) continue; const job = G.crowdJob(ex); while (!job.step()) await idle(); b[k] = { data: job.result(), sr: job.sr }; }
     return b;
   })();
   return bankP;
 }
 
 // ---------- 소리 그래프 ----------
-function buf(ctx, data, sr = G.SR) { const ab = ctx.createBuffer(1, data.length, sr); ab.copyToChannel ? ab.copyToChannel(data, 0) : ab.getChannelData(0).set(data); return ab; }
+function buf(ctx, x, sr = G.SR) { const data = x.data || x; sr = x.sr || sr; const ab = ctx.createBuffer(1, data.length, sr); ab.copyToChannel ? ab.copyToChannel(data, 0) : ab.getChannelData(0).set(data); return ab; }
 function loopSrc(ctx, ab, rate = 1) { const s = ctx.createBufferSource(); s.buffer = ab; s.loop = true; s.playbackRate.value = rate; return s; }
 const filt = (ctx, type, f, Q = 0.7, gain = 0) => { const n = ctx.createBiquadFilter(); n.type = type; n.frequency.value = f; n.Q.value = Q; n.gain.value = gain; return n; };
 const gainN = (ctx, v = 0) => { const n = ctx.createGain(); n.gain.value = v; return n; };
@@ -105,8 +115,8 @@ export function buildGraph(ctx, B) {
   g.crowdOut = gainN(ctx, 0); g.crowdPan = panN(ctx, 0); g.crowdOut.connect(g.crowdPan); g.crowdPan.connect(g.master);
   g.cheerOut = gainN(ctx, 0); g.cheerOut.connect(g.master);
   g.addCrowd = (bk) => {   // 관중 소리는 늦게 만들어진다
-    if (bk.crowd && !g.crowdSrc) { g.crowdSrc = loopSrc(ctx, buf(ctx, bk.crowd.data, bk.crowd.sr)); g.crowdSrc.connect(g.crowdOut); g.crowdSrc.start(); }
-    if (bk.cheer && !g.cheerSrc) { g.cheerSrc = loopSrc(ctx, buf(ctx, bk.cheer.data, bk.cheer.sr)); g.cheerSrc.connect(g.cheerOut); g.cheerSrc.start(); }
+    if (bk.crowd && !g.crowdSrc) { g.crowdSrc = loopSrc(ctx, buf(ctx, bk.crowd)); g.crowdSrc.connect(g.crowdOut); g.crowdSrc.start(); }
+    if (bk.cheer && !g.cheerSrc) { g.cheerSrc = loopSrc(ctx, buf(ctx, bk.cheer)); g.cheerSrc.connect(g.cheerOut); g.cheerSrc.start(); }
   };
   g.addCrowd(B);
   return g;
