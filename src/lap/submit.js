@@ -2,25 +2,24 @@
 // - 토스는 보내지 않는다(Supabase 익명 계정을 만들지 않는다, 순위표는 읽기만). Supabase env가 없으면 아무것도 안 한다.
 // - 못 보낸 기록은 이 기기에 서킷마다 하나(가장 빠른 것) 두었다가, 다음에 그 서킷을 열 때 · 다음 바퀴 뒤에 다시 보낸다.
 // - 받지 않는 기록(22023: 너무 빠름 · 움직임이 맞지 않음 등)은 다시 보내지 않는다. 남이 쓰는 이름 씨(23505)면 새 이름 씨로 한 번 더.
-// - supabase-js는 src/account/client.js만 들고 있다(동적 import). 게임 코드에만 있다.
-import { REMOTE_ENABLED } from '../account/config.js';
+// - 보내는 함수는 웹의 원격 계층이 sender.js에 채운다(supabase-js는 src/account/client.js만 들고 있다). 비어 있으면 보내지 않는다.
 import { lapRecords, setLapPending, clearLapPending } from './store.js';
+import { lapSender } from './sender.js';
 import { myPlayer, resetPlayer, adoptPlayerId } from './player.js';
 import { serverOn } from './remote.js';
 
 const IS_TOSS = import.meta.env.MODE === 'toss';
-export const submitOn = () => !IS_TOSS && REMOTE_ENABLED && serverOn();
+export const submitOn = () => !IS_TOSS && !!lapSender() && serverOn();
 
 const busy = new Set();
 
 // 못 보낸 기록이 있으면 보낸다. 돌려주는 것: 서버 답({ pid, week, all_ms, week_ms }) 또는 null
 export async function flushLap(id) {
-  if (import.meta.env.MODE === 'toss') return null;   // 빌드 때 상수로 접혀 토스 번들에는 아래(supabase-js 청크)가 들어가지 않는다
   if (!submitOn() || busy.has(id)) return null;
   const p = lapRecords()[id]?.pend; if (!p) return null;
   busy.add(id);
   try {
-    const { submitLap } = await import('../account/client.js');
+    const submitLap = lapSender();
     const send = () => submitLap({ track: id, ms: p.ms, react: p.react, ghost: p.ghost, pid: myPlayer(true).id });
     let r = await send();
     if (!r.ok && r.code === '23505') { resetPlayer(); r = await send(); }
