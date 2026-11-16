@@ -171,17 +171,19 @@ export function prep3d(tk) {
   const hoard = new Uint8Array(n);
   for (let i = 0; i < n; i += 1) { const sM = i * ds; if (Math.abs(k1[i]) < 1 / 300 && (sM % 70) < 30) hoard[i] = 3; }
   // 마셜 포스트: 약 300m마다, 코너 바깥쪽 벽 뒤
+  // 가까운 구간(앞뒤 60m)의 길에 너무 붙지 않았는지: 머리핀처럼 길이 휘어 돌아오면 벽 뒤 자리가 다른 쪽 길 위가 된다
+  const clearOfOwn = (i, o, need) => { const x = tk.x[i] + NX[i] * o, y = tk.y[i] + NY[i] * o; for (let j = -30; j <= 30; j += 1) { const q = mod(i + j, n); if (Math.hypot(tk.x[q] - x, tk.y[q] - y) < need) return false; } return true; };
   const marshals = [];
   for (let sM = 120; sM < tk.L - 60; sM += 260 + R() * 80) {
     const i = mod(Math.round(sM / ds), n); const ahead = k1[mod(i + Math.round(60 / ds), n)]; const side = ahead > 0 ? 1 : -1;
-    if ((side > 0 ? okL : okR)[i] && !inBlock(i, side, 20) && !onOther(i, side * (wallAt(i, side) + 2), 3)) marshals.push({ s: sM, side });
+    if ((side > 0 ? okL : okR)[i] && !inBlock(i, side, 20) && !onOther(i, side * (wallAt(i, side) + 2), 3) && clearOfOwn(i, side * (wallAt(i, side) + 2.4), wallAt(i, side) + 0.8)) marshals.push({ s: sM, side });
   }
   // 가로등(시가지): 40m마다 좌우 번갈아 벽 바로 뒤, 길 위로 팔을 뻗는다
   const lamps = [];
   if (street) for (let sM = 10, k = 0; sM < tk.L; sM += 40, k += 1) {
     const i = mod(Math.round(sM / ds), n); const side = k % 2 ? 1 : -1;
     if (!(side > 0 ? okL : okR)[i] || side * tk.k[i] < 0 && Math.abs(tk.k[i]) > 1 / 40) continue;
-    if (onOther(i, side * (wallAt(i, side) + 1), 2)) continue;
+    if (onOther(i, side * (wallAt(i, side) + 1), 2) || !clearOfOwn(i, side * (wallAt(i, side) + 0.7), wallAt(i, side) - 0.2)) continue;
     lamps.push({ s: sM, side });
   }
   // 피트 출입 선: 피트 레인 앞뒤의 곧은 길을 따라 내야 쪽에 흰 선

@@ -133,7 +133,7 @@ function shot(g, ab, t, gain, rate = 1, pan = 0) {
 // inp: { phase, v(m/s, 게임 속도), down, off, surface, heat, lock, launch(0~1), kerb(0/1), kerbSide, wallL, wallR, street, stand(0~1), standPan, lit, ghost:{d(앞+ m), lat, v, down, dv}|null }
 export function createMixer(g, seed = 1) {
   let R = seed >>> 0; const rnd = () => { R = (R * 16807) % 2147483647; return R / 2147483647; };
-  const m = { rpm: IDLE, gear: 1, load: 0, blipUntil: 0, lastT: null, liftAt: 0, wasDown: false, ghostGear: 1, ghostRpm: IDLE, popsOn: false };
+  const m = { rpm: IDLE, gear: 1, load: 0, blipUntil: 0, duckUntil: 0, lastT: null, liftAt: 0, wasDown: false, ghostGear: 1, ghostRpm: IDLE, popsOn: false };
   const gearRpm = (v, gear) => (SHIFT * v) / GEAR_TOP[gear - 1];
   const cutAt = (t) => { const p = g.eng.cut.gain; p.cancelScheduledValues(t); p.setValueAtTime(1, t); p.linearRampToValueAtTime(0.28, t + 0.008); p.setValueAtTime(0.28, t + 0.03); p.linearRampToValueAtTime(1, t + 0.05); };
   const pop = (t, gain) => { shot(g, g.ab.pops[Math.floor(rnd() * g.ab.pops.length)], t, gain, 0.8 + rnd() * 0.45, (rnd() - 0.5) * 0.3); };
@@ -171,7 +171,7 @@ export function createMixer(g, seed = 1) {
       set(g.limDepth.gain, limit, t, 0.05);
       if (grid) { set(g.eng.cut.gain, 1 - limit, t, 0.05); m.wasGrid = true; } else if (m.wasGrid) { m.wasGrid = false; g.eng.cut.gain.cancelScheduledValues(t); set(g.eng.cut.gain, 1, t, 0.02); }
       const live = grid || moving;
-      set(g.engOut.gain, live ? (ph === 'finish' ? 0.5 : 0.8) : 0, t, live ? 0.08 : 0.6);   // 결승선을 지나면 엔진을 줄여 함성이 들리게
+      set(g.engOut.gain, live ? (t < m.duckUntil ? 0.3 : ph === 'finish' ? 0.5 : 0.8) : 0, t, live ? 0.08 : 0.6);   // 결승선을 지나면 엔진을 줄여 함성이 들리게
       // 감속 중 배기 터짐: 떼고 1초 동안 많이, 그 뒤 가끔
       if (moving && m.load < 0.2 && m.rpm > 7500) { const lam = t - m.liftAt < 1 ? 9 : 2.5; if (rnd() < lam * dt) pop(t + rnd() * dt, 0.12 + rnd() * 0.25); }
       // 하이브리드 윙: 가속 때 · 회생 제동 때
@@ -220,9 +220,9 @@ export function createMixer(g, seed = 1) {
       else if (name === 'jump') { shot(g, g.ab.clunk, t, 0.38, 0.62); shot(g, g.ab.clunk, t + 0.16, 0.38, 0.62); }
       else if (name === 'launch') { set(g.cheerOut.gain, 0.35, t, 0.3); set(g.cheerOut.gain, 0, t + 1.2, 0.8); }   // 불이 꺼지면 관중석이 들썩인다
       else if (name === 'off') {
-        const k = clamp(d.v / 40, 0.15, 1);
-        if (d.surface === 'wall') shot(g, g.ab.impact, t, 0.95 * k, 1);
-        else shot(g, g.ab.impact, t, 0.45 * k, 1.35);
+        const k = clamp(d.v / 40, 0.2, 1); m.duckUntil = t + 0.7;   // 부딪는 순간 엔진을 잠깐 눌러 충돌음이 들리게
+        if (d.surface === 'wall') shot(g, g.ab.impact, t, 1.5 * k, 1);
+        else shot(g, g.ab.impact, t, 0.8 * k, 1.35);
       } else if (name === 'whoosh') shot(g, g.ab.whoosh, t, clamp(d.gain || 0.3, 0, 0.6), d.rate || 1, d.pan || 0);
       else if (name === 'finish') { set(g.cheerOut.gain, d.best ? 1 : 0.6, t, 0.35); set(g.cheerOut.gain, 0, t + 2.8, 1); }
     },
