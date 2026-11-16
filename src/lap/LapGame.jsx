@@ -296,7 +296,7 @@ function LapGame({ id, onClose }) {
       auto: () => { if (s.phase !== 'run') return; while (!s.run.done) { const i = Math.floor(s.run.s / s.tk.ds) % s.tk.n; step(s.run, s.tk, !s.tk.brake[i], DT); const total = s.react / 1000 + s.run.t; while (total >= s.ghostNext) { s.ghost.push(s.run.s); s.ghostNext += GHOST_EVERY; } } },
       // 흔들림 조사(데모 · 시험 전용): 그리기 루프를 멈추고 차를 s0부터 프레임마다 step m씩 옮기며(속도 v로 보이게) 60fps 간격으로 직접 그린다.
       // 프레임마다 화면을 줄여(1/scale) 밝기만 남기고, 세 프레임 A → B → A로 되돌아가는 칸(깜빡임)을 센다. 문제 자리는 그림으로 돌려준다
-      film: async ({ s0 = 0, frames = 600, step = 1, v = 60, scale = 2, thr = 26, cellPx = 12, minPx = 5, keep = 24, every = 0, phase = 'run', dump = 0, lat = null } = {}) => {
+      film: async ({ s0 = 0, frames = 600, step = 1, v = 60, scale = 2, thr = 26, cellPx = 12, minPx = 5, keep = 24, every = 0, phase = 'run', dump = 0, lat = null, lite = false } = {}) => {
         const cv = canvas.current; if (!cv || !s.frameFn) return null;
         cancelAnimationFrame(s.raf); s.film = true; clearTimers();
         resetRun(false); s.run = { ...newRun(), s: s0, v, t: 3 }; s.frozen = true; s.down = true; s.react = 280; s.coachIdx = 99; s.firstRun = false; s.mode = null; s.c3 = null; s.from3 = null;
@@ -311,6 +311,7 @@ function LapGame({ id, onClose }) {
         const events = []; const shots = []; let total = 0;
         for (let k = 0; k < frames; k += 1) {
           s.run.s = s0 + k * step; s.run.v = v; s.run.t = 3 + k / 60; if (lat != null) s.run.off = lat;
+          if (lite != null) { s.lite = lite; s.heavy = 0; }   // 가벼운 그리기는 이 컴퓨터가 바쁜 정도(그리기 시간)로 켜진다: 조사는 늘 같은 그림으로(기본 끔)
           t += 1000 / 60; s.frameFn(t);
           if (dump) { if (k >= frames - dump) shots.push({ k, s: s0 + k * step, b: cv.toDataURL('image/png') }); continue; }
           const f2 = gray();
