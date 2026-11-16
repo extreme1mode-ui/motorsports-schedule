@@ -347,6 +347,13 @@ const wrapM = (sM, L) => ((sM % L) + L) % L;
 const LV = 6;
 // 거리로 나타나는 것(어느 거리 안에서만 그리는 것)은 끝 거리 near → far 사이에서 서서히: 1(가까움) → 0(far). 문턱에서 툭 나타나지 않게
 const nearA = (z, near, far) => clamp01((far - z) / (far - near));
+// 색(#rrggbb · rgb(…))을 검정 쪽으로 k/5 × (낮 15% · 밤 20%) 섞은 색. 벽 면 밝기용, 색마다 한 번만 계산해 둔다
+const SHADE = new Map();
+function shadeCol(col, k, night) {
+  if (!k) return col; const key = `${col}|${k}|${night ? 1 : 0}`; let v = SHADE.get(key); if (v) return v;
+  let rgb; const m = /^#?([0-9a-f]{6})$/i.exec(col.trim()); if (m) rgb = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)); else { const n = col.match(/[\d.]+/g); rgb = n ? n.slice(0, 3).map(Number) : [128, 128, 128]; }
+  const a = 1 - (k / 5) * (night ? 0.2 : 0.15); v = `rgb(${rgb.map((x) => Math.round(x * a)).join(',')})`; SHADE.set(key, v); return v;
+}
 // 밤 가로등 빛 웅덩이 그림(가운데 밝고 가장자리로 부드럽게 사라지는 원). 색이 바뀔 때만 새로 만든다
 let poolSpr = null, poolKey = '';
 function poolSprite(rgb) {
@@ -481,8 +488,8 @@ export function render3d(ctx, R) {
   // 아스팔트
   fillBands(P.asphalt, () => whole((a, b) => band(ctx, cam, tk, W3, a, b, -hw, hw)));
   if (show) {
-    // 길 가장자리 그늘: 가장자리 1.6m를 아주 옅게 두 번(바깥으로 갈수록 짙다). 길이 둥글게 솟은 느낌
-    ctx.globalAlpha = decoA * 0.07; fillBands('#000', () => whole((a, b) => { for (const sd of [1, -1]) { band(ctx, cam, tk, W3, a, b, sd * (hw - 1.6 * q), sd * hw); band(ctx, cam, tk, W3, a, b, sd * (hw - 0.7 * q), sd * hw); } }));
+    // 길 가장자리 그늘: 가장자리 1.2m를 아주 옅게(길이 둥글게 솟은 느낌). 한 번에 칠한다
+    ctx.globalAlpha = decoA * 0.08; fillBands('#000', () => whole((a, b) => { for (const sd of [1, -1]) band(ctx, cam, tk, W3, a, b, sd * (hw - 1.2 * q), sd * hw); }));
     ctx.globalAlpha = decoA;
     // 보수 자국 · 레이싱 라인(타이어 고무로 진해진 길) · 브레이크 고무 자국
     for (const pt of W3.patches) { ctx.fillStyle = `rgba(${P.patchRGB},${pt.a})`; ctx.beginPath(); for (const [a, b] of spans(runs, tk, pt.s0, pt.s1)) band(ctx, cam, tk, W3, a, b, pt.o0 * q, (pt.o0 + pt.w) * q); ctx.fill(); }
@@ -1042,18 +1049,16 @@ function wallSeg(ctx, cam, P, ax, ay, bx, by, wallH, fenceH, painted, j, post, f
   const quad = (a, b, c, d) => { ctx.beginPath(); ctx.moveTo(p[a][0], p[a][1]); ctx.lineTo(p[b][0], p[b][1]); ctx.lineTo(p[c][0], p[c][1]); ctx.lineTo(p[d][0], p[d][1]); ctx.closePath(); };
   const prevA = ctx.globalAlpha; ctx.globalAlpha = prevA * fa;
   const segPx = Math.hypot(p[1][0] - p[0][0], p[1][1] - p[0][1]);   // 이 조각의 화면 폭: 좁으면 줄무늬 · 기둥을 옅게(밉맵처럼)
+  // 해를 등진 면은 어둡게(코너를 따라 벽 면의 밝기가 서서히 바뀐다, 6단계). 색을 미리 섞어 두어 한 번에 칠한다
+  const ex = bx - ax, ey = by - ay; const el = Math.hypot(ex, ey) || 1; let nx = -ey / el, ny = ex / el;
+  if ((cam.x - (ax + bx) / 2) * nx + (cam.y - (ay + by) / 2) * ny < 0) { nx = -nx; ny = -ny; }
+  const sl = Math.hypot(SUN[0], SUN[1]) || 1; const shK = Math.round((1 - Math.max(0, -(nx * SUN[0] + ny * SUN[1]) / sl)) * 5);
+  const shd = (col) => shadeCol(col, shK, P.night);
   if (painted === 1) {
     const c = stripeLv(segPx) / LV;
-    if (c < 1) { ctx.fillStyle = P.wallPaintMix; quad(0, 1, 2, 3); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.6; ctx.stroke(); }
-    if (c > 0) { ctx.globalAlpha = prevA * fa * c; ctx.fillStyle = mod(Math.floor(j / 2), 2) ? P.kerbA : P.wallPaint; quad(0, 1, 2, 3); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.6; ctx.stroke(); ctx.globalAlpha = prevA * fa; }
-  } else { ctx.fillStyle = P.wall; quad(0, 1, 2, 3); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.6; ctx.stroke(); }
-  {   // 해를 등진 면은 어둡게(코너를 따라 벽 면의 밝기가 서서히 바뀐다). 밤에는 조금 더
-    const ex = bx - ax, ey = by - ay; const el = Math.hypot(ex, ey) || 1; let nx = -ey / el, ny = ex / el;
-    if ((cam.x - (ax + bx) / 2) * nx + (cam.y - (ay + by) / 2) * ny < 0) { nx = -nx; ny = -ny; }
-    const sl = Math.hypot(SUN[0], SUN[1]) || 1; const lit = Math.max(0, -(nx * SUN[0] + ny * SUN[1]) / sl);
-    const sh = (1 - lit) * (P.night ? 0.2 : 0.15);
-    if (sh > 0.01) { ctx.globalAlpha = prevA * fa * sh; ctx.fillStyle = '#000'; quad(0, 1, 2, 3); ctx.fill(); ctx.globalAlpha = prevA * fa; }
-  }
+    if (c < 1) { ctx.fillStyle = shd(P.wallPaintMix); quad(0, 1, 2, 3); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.6; ctx.stroke(); }
+    if (c > 0) { ctx.globalAlpha = prevA * fa * c; ctx.fillStyle = shd(mod(Math.floor(j / 2), 2) ? P.kerbA : P.wallPaint); quad(0, 1, 2, 3); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.6; ctx.stroke(); ctx.globalAlpha = prevA * fa; }
+  } else { ctx.fillStyle = shd(P.wall); quad(0, 1, 2, 3); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.6; ctx.stroke(); }
   ctx.strokeStyle = P.wallTop; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(p[3][0], p[3][1]); ctx.lineTo(p[2][0], p[2][1]); ctx.stroke();
   ctx.fillStyle = P.fence; quad(3, 2, 4, 5); ctx.fill();
   if (hoardOn) {   // 광고판: 철망 아래쪽에 판, 12m마다 갠트리 심볼(빔 하나 + 5열 × 2행)
