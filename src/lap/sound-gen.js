@@ -183,6 +183,55 @@ export function genWhoosh(sr = SR, seed = 17) {
   return normalize(x, 0.85);
 }
 
+// 터보 바람 빠짐(떼는 순간 '칙'): 높은 대역 잡음이 짧게 터졌다 빠르게 잦아든다
+export function genChuff(sr = SR, seed = 19) {
+  const R = rng(seed); const n = Math.round(0.26 * sr); const x = new Float32Array(n);
+  const f1 = bq('bp', 2900, 1.1, sr), f2 = bq('hp', 900, 0.7, sr), f3 = bq('pk', 5200, 2, sr, 6);
+  for (let i = 0; i < n; i += 1) { const t = i / sr; const env = (1 - Math.exp(-t / 0.004)) * Math.exp(-t / 0.055) + 0.18 * Math.exp(-t / 0.13); x[i] = f3.step(f2.step(f1.step((R() * 2 - 1) * env))); }
+  return normalize(x, 0.8);
+}
+
+// 새(낮의 상설 서킷): 짧게 오르내리는 지저귐을 드문드문. 세 가지 새가 번갈아(높이 · 빠르기가 다르다). 처음과 끝이 이어진다
+export function genBirds(seconds = 9, sr = SR, seed = 23) {
+  const R = rng(seed); const n = Math.round(seconds * sr); const x = new Float32Array(n);
+  const kinds = [{ f: 4200, span: 900, dur: 0.07, rep: [3, 6], gap: 0.09 }, { f: 3000, span: -1300, dur: 0.16, rep: [1, 2], gap: 0.2 }, { f: 5600, span: 600, dur: 0.035, rep: [5, 9], gap: 0.05 }];
+  let t = 0.2;
+  while (t < seconds - 1.2) {
+    const k = kinds[Math.floor(R() * kinds.length)]; const reps = k.rep[0] + Math.floor(R() * (k.rep[1] - k.rep[0] + 1)); const amp = 0.35 + R() * 0.65; const f0 = k.f * (0.9 + R() * 0.2);
+    for (let r = 0; r < reps; r += 1) {
+      const s0 = Math.round((t + r * (k.dur + k.gap)) * sr); const len = Math.round(k.dur * sr); let ph = 0;
+      for (let i = 0; i < len && s0 + i < n; i += 1) { const u = i / len; const f = f0 + k.span * (u < 0.5 ? u * 2 : 2 - u * 2) + 140 * Math.sin(TAU * 38 * (i / sr)); ph += (TAU * f) / sr; x[s0 + i] += amp * Math.sin(Math.PI * u) ** 2 * Math.sin(ph); }
+    }
+    t += reps * (k.dur + k.gap) + 0.5 + R() * 1.6;
+  }
+  return normalize(x, 0.7);
+}
+
+// 풀벌레(밤의 상설 서킷): 4~5kHz 짧은 떨림이 세 번씩 묶여 일정하게. 세 마리가 조금씩 다른 박자로
+export function genCrickets(seconds = 6, sr = SR, seed = 29) {
+  const R = rng(seed); const n = Math.round(seconds * sr); const x = new Float32Array(n);
+  for (let c = 0; c < 3; c += 1) {
+    const f = 4300 + R() * 900; const period = 0.42 + R() * 0.18; const amp = 0.3 + R() * 0.5; const pulses = 2 + Math.floor(R() * 3);
+    for (let t = R() * period; t < seconds - 0.2; t += period) for (let p = 0; p < pulses; p += 1) {
+      const s0 = Math.round((t + p * 0.032) * sr); const len = Math.round(0.018 * sr);
+      for (let i = 0; i < len && s0 + i < n; i += 1) { const u = i / len; x[s0 + i] += amp * Math.sin(Math.PI * u) * Math.sin((TAU * f * i) / sr); }
+    }
+  }
+  return normalize(x, 0.6);
+}
+
+// 울림의 응답(관중석 · 피트 건물 · 시가지 벽): 첫 반사 몇 개 + 점점 어두워지며 사라지는 잡음 꼬리. 왼쪽 · 오른쪽 따로(넓게 들린다)
+export function genIR(sr = SR, seconds = 1.3, seed = 31) {
+  const R = rng(seed); const n = Math.round(seconds * sr); const out = [new Float32Array(n), new Float32Array(n)];
+  const pre = Math.round(0.016 * sr); const decay = Math.log(1000) / seconds;   // 60dB 내려가는 시간
+  for (let c = 0; c < 2; c += 1) {
+    const x = out[c]; let lp = 0;
+    for (let i = pre; i < n; i += 1) { const t = (i - pre) / sr; const damp = 0.55 + 0.42 * Math.min(1, t / seconds); lp += ((R() * 2 - 1) - lp) * (1 - damp); x[i] = lp * Math.exp(-decay * t) * (t < 0.01 ? t / 0.01 : 1); }
+    for (let k = 0; k < 7; k += 1) { const at = pre + Math.round((0.004 + R() * 0.07) * sr); if (at < n) x[at] += (R() < 0.5 ? -1 : 1) * (0.5 - k * 0.05); }
+  }
+  return out;
+}
+
 // ---------- 관중: 목소리 수십 개(성대 + 모음 공명) + 박수 + 웅성거림 ----------
 const VOWELS = [[730, 1090, 2440], [570, 840, 2410], [300, 870, 2240], [530, 1840, 2480], [660, 1720, 2410]];
 export function genCrowd(excited, sr = 22050, seed = 21, seconds = 5) { const job = crowdJob(excited, sr, seed, seconds); while (!job.step()); return job.result(); }

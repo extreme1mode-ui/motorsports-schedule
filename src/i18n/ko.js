@@ -656,6 +656,7 @@ export default {
   'lap.card.fallback': '여기서는 공유 창을 열 수 없어요. 이미지를 길게 눌러 저장해 주세요.',
   'lap.pedal.off': '감속',
   'lap.sound': '소리',
+  'lap.gear': '기어',
   'lap.msg.passed': '옅은 차를 앞질렀어요',
   'lap.msg.passedBy': '옅은 차가 앞서 나갔어요',
   'lap.msg.final': '마지막 코너를 지났어요',

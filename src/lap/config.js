@@ -17,12 +17,14 @@ import { DIFFICULTY, DIFF_KEYS, diffOf } from './engine.js';
 //  line   레이싱 라인   rubber: 길에 남은 고무 자국만 · guide: 차 앞 220m에 안내 선(손을 떼는 구간은 빨강)
 //  sound  소리         on: 켬 · off: 끔(처음 기본값. 레이어 위쪽 단추로 바꾸면 이 기기에 기억한다)
 //  pedal  가속 페달     both: 오른쪽 아래 페달 + 화면 어디를 눌러도 달림 · only: 페달을 눌러야 달림(다른 곳을 누르면 페달을 가리킨다) · off: 페달 없이 화면 어디든(v3)
+//  rev    계기        on: 왼쪽 아래 기어 숫자 + 회전수 LED 15칸 · off: 없음(v3)
+//  finish 결승 카메라   tv: 결승선을 지나면 길가 TV 카메라 한 장면 · chase: 차 뒤 카메라 그대로(v3)
 //  view   화면         3d: 차 뒤 위에서 앞을 내려다봄(원근) · top: 위에서 내려다봄(v2). 줄인 움직임이면 언제나 top
 //  motion 데모 전용      auto: 기기 설정을 따름 · reduce: 줄인 움직임으로 보기(조절 판에서 기기 설정 없이 비교하려고)
-export const LAP_DEFAULTS = Object.freeze({ diff: 'normal', tune: null, learn: 'coach', zone: 'bars', slip: 'ring', delta: 'corner', car: 'car', haptic: 'off', home: 'week', pacer: 'guide', view: '3d', pace: '1.6', line: 'rubber', pedal: 'both', sound: 'on', motion: 'auto' });
+export const LAP_DEFAULTS = Object.freeze({ diff: 'normal', tune: null, learn: 'coach', zone: 'bars', slip: 'ring', delta: 'corner', car: 'car', haptic: 'off', home: 'week', pacer: 'guide', view: '3d', pace: '1.6', line: 'rubber', pedal: 'both', sound: 'on', rev: 'on', finish: 'tv', motion: 'auto' });
 export const LAP_CHOICES = {
   diff: Object.keys(DIFFICULTY), learn: ['text', 'coach', 'practice'], zone: ['shade', 'bars', 'chevron'], slip: ['push', 'ring', 'marks'],
-  delta: ['off', 'corner', 'live'], car: ['car', 'dot'], haptic: ['off', 'on'], home: ['below', 'bottom', 'week'], pacer: ['guide', 'off'], view: ['3d', 'top'], pace: ['1', '1.3', '1.6', '2'], line: ['rubber', 'guide'], pedal: ['both', 'only', 'off'], sound: ['on', 'off'], motion: ['auto', 'reduce'],
+  delta: ['off', 'corner', 'live'], car: ['car', 'dot'], haptic: ['off', 'on'], home: ['below', 'bottom', 'week'], pacer: ['guide', 'off'], view: ['3d', 'top'], pace: ['1', '1.3', '1.6', '2'], line: ['rubber', 'guide'], pedal: ['both', 'only', 'off'], sound: ['on', 'off'], rev: ['on', 'off'], finish: ['tv', 'chase'], motion: ['auto', 'reduce'],
 };
 const KEY = 'gantry.lapDemo';
 

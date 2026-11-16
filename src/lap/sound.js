@@ -7,10 +7,11 @@
 // 길: 바람(속도²) · 노면 · 타이어 끌림(미끄러짐) · 끽(잠김 · 휠스핀) · 연석 드르륵(속도에 맞춘 박자) · 자갈 · 충돌.
 // 둘레: 벽에 되돌아오는 엔진(좌우 따로, 벽까지 거리만큼 늦게) · 관중석 웅성거림과 결승 함성 · 보드 · 갠트리를 스치는 바람.
 // 옅은 차: 같은 엔진을 하나 더. 거리만큼 작고 어둡게, 옆 위치만큼 좌우로. 가까이 따라붙으면 들린다.
+// 터보: 밟으면 늦게 차오르는 휘파람, 떼면 '칙' 하고 빠진다. 엔진은 화면에서 차가 있는 쪽으로 조금 치우친다.
+// 공간: 관중석 · 피트 건물 앞과 시가지 벽 사이에서는 울린다(합성한 공간 응답). 광고 다리 밑을 지나면 위에서 되돌아오는 소리.
+// 둘레: 시가지는 도시의 낮은 웅웅거림, 상설 서킷은 바람과 낮의 새 · 밤의 풀벌레(엔진이 조용할 때 들린다).
 import * as G from './sound-gen.js';
-
-const GEAR_TOP = [100, 135, 170, 205, 240, 275, 305, 345].map((k) => k / 3.6);   // 기어마다 최고 속도(m/s)
-const SHIFT = 11800, IDLE = 4000;
+import { createEngine, shiftGear, IDLE } from './gearbox.js';
 const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
 const smooth = (x, a, b) => { const u = clamp((x - a) / (b - a), 0, 1); return u * u * (3 - 2 * u); };
 
@@ -38,7 +39,8 @@ export function makeBank() {
     for (const l of b.engine) { const target = (l.load ? 0.32 : 0.14) * (0.62 + 0.38 * ((l.rpm - 4000) / 10000)); const g = target / (G.rms(l.data) || 1); for (let i = 0; i < l.data.length; i += 1) l.data[i] *= g; }
     await idle(); b.pops = G.genPops(); b.white = G.genNoise('white', 2); b.pink = G.genNoise('pink', 3); b.brown = G.genNoise('brown', 3);
     await idle(); b.gravel = G.genGravel();
-    await idle(); b.impact = G.genImpact(); b.clunk = G.genClunk(); b.whoosh = G.genWhoosh();
+    await idle(); b.impact = G.genImpact(); b.clunk = G.genClunk(); b.whoosh = G.genWhoosh(); b.chuff = G.genChuff();
+    await idle(); b.birds = G.genBirds(); b.crickets = G.genCrickets();
     await loadRecordings(b);
     b.ready = true; coreRes(b);
     for (const ex of [false, true]) { const k = ex ? 'cheer' : 'crowd'; if (b[k]) continue; const job = G.crowdJob(ex); while (!job.step()) await idle(); b[k] = { data: job.result(), sr: job.sr }; }
@@ -81,8 +83,10 @@ export function buildGraph(ctx, B) {
   const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -12; comp.knee.value = 8; comp.ratio.value = 4; comp.attack.value = 0.004; comp.release.value = 0.18;
   g.master = gainN(ctx, 0.9); g.master.connect(comp); comp.connect(ctx.destination);
   // 엔진(내 차) → 바로 + 좌우 벽에 되돌아오는 소리
-  g.engOut = gainN(ctx, 0); g.engOut.connect(g.master);
+  g.engOut = gainN(ctx, 0); g.engPan = panN(ctx, 0); g.engOut.connect(g.engPan); g.engPan.connect(g.master);
   g.eng = engineVoice(ctx, B, g.engOut);
+  // 머리 위에서 되돌아오는 엔진(광고 다리 밑): 평소에는 0
+  { const d = ctx.createDelay(0.1); d.delayTime.value = 0.034; const lp = filt(ctx, 'lowpass', 2600); g.over = gainN(ctx, 0); g.engOut.connect(d); d.connect(lp); lp.connect(g.over); g.over.connect(g.master); }
   g.refl = [1, -1].map((sd) => { const d = ctx.createDelay(0.25); d.delayTime.value = 0.05; const lp = filt(ctx, 'lowpass', 3200); const gn = gainN(ctx, 0); const p = panN(ctx, sd > 0 ? -0.75 : 0.75); g.engOut.connect(d); d.connect(lp); lp.connect(gn); gn.connect(p); p.connect(g.master); return { d, gn }; });
   // 리미터 떨림: 11Hz 네모파로 엔진 끊김을 흔든다(깊이는 0 = 없음)
   g.lim = ctx.createOscillator(); g.lim.type = 'square'; g.lim.frequency.value = 11; g.limDepth = gainN(ctx, 0); g.lim.connect(g.limDepth); g.limDepth.connect(g.eng.cut.gain); g.lim.start();
@@ -90,8 +94,12 @@ export function buildGraph(ctx, B) {
   g.whine = [7.5, 15].map((m, i) => { const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = 400; const gn = gainN(ctx, 0); o.connect(gn); gn.connect(g.master); o.start(); return { o, gn, m, k: i ? 0.4 : 1 }; });
   // 기어박스 윙(곧은 이 기어): 바퀴 속도에 묶인 높이, 느린 코너에서 잘 들린다
   g.gearOsc = ctx.createOscillator(); g.gearOsc.type = 'triangle'; g.gearOsc.frequency.value = 300; g.gearW = gainN(ctx, 0); const gwF = filt(ctx, 'bandpass', 1200, 0.8); g.gearOsc.connect(gwF); gwF.connect(g.gearW); g.gearW.connect(g.master); g.gearOsc.start();
-  // 바람 · 노면
+  // 터보 휘파람: 사인 + 좁은 대역 잡음(높이는 부스트 · 회전수)
   const noise = (data, sr) => loopSrc(ctx, buf(ctx, data, sr));
+  g.turbo = gainN(ctx, 0); g.turboOsc = ctx.createOscillator(); g.turboOsc.type = 'sine'; g.turboOsc.frequency.value = 3000; { const og = gainN(ctx, 0.4); g.turboOsc.connect(og); og.connect(g.turbo); }
+  { const tn = noise(B.white); tn.playbackRate.value = 1.13; g.turboBp = filt(ctx, 'bandpass', 3000, 14); const tg = gainN(ctx, 2.2); tn.connect(g.turboBp); g.turboBp.connect(tg); tg.connect(g.turbo); tn.start(); }
+  g.turbo.connect(g.master); g.turboOsc.start();
+  // 바람 · 노면
   g.windBp = filt(ctx, 'bandpass', 400, 0.6); g.wind = gainN(ctx, 0); const pk = noise(B.pink); pk.connect(g.windBp); g.windBp.connect(g.wind); g.wind.connect(g.master); pk.start();
   g.buffet = gainN(ctx, 0); const br = noise(B.brown); const brLp = filt(ctx, 'lowpass', 110); br.connect(brLp); brLp.connect(g.buffet); g.buffet.connect(g.master); br.start();
   g.road = gainN(ctx, 0); const br2 = noise(B.brown, G.SR); br2.playbackRate.value = 1.37; const rdLp = filt(ctx, 'lowpass', 260); br2.connect(rdLp); rdLp.connect(g.road); g.road.connect(g.master); br2.start();
@@ -108,12 +116,28 @@ export function buildGraph(ctx, B) {
   // 자갈
   g.gravelSrc = noise(B.gravel); g.gravel = gainN(ctx, 0); g.gravelSrc.connect(g.gravel); g.gravel.connect(g.master); g.gravelSrc.start();
   // 한 번 소리들
-  g.ab = { impact: buf(ctx, B.impact), clunk: buf(ctx, B.clunk), whoosh: buf(ctx, B.whoosh), pops: B.pops.map((p) => buf(ctx, p)) };
+  g.ab = { impact: buf(ctx, B.impact), clunk: buf(ctx, B.clunk), whoosh: buf(ctx, B.whoosh), chuff: buf(ctx, B.chuff), pops: B.pops.map((p) => buf(ctx, p)) };
   // 옅은 차 엔진: 거리만큼 어둡게 · 작게, 옆 위치만큼 좌우로
   g.ghostLp = filt(ctx, 'lowpass', 6000); g.ghostPan = panN(ctx, 0); g.ghostOut = gainN(ctx, 0); g.ghostLp.connect(g.ghostPan); g.ghostPan.connect(g.ghostOut); g.ghostOut.connect(g.master);
   g.ghost = engineVoice(ctx, B, g.ghostLp);
   g.crowdOut = gainN(ctx, 0); g.crowdPan = panN(ctx, 0); g.crowdOut.connect(g.crowdPan); g.crowdPan.connect(g.master);
   g.cheerOut = gainN(ctx, 0); g.cheerOut.connect(g.master);
+  // 울림: 엔진(관중석 · 벽 가까이에서만) + 관중을 공간 응답에 보낸다. 응답은 이 소리판의 표본율로 바로 만든다
+  if (ctx.createConvolver) {
+    const ir = G.genIR(ctx.sampleRate, 1.3); const ab2 = ctx.createBuffer(2, ir[0].length, ctx.sampleRate);
+    for (let c = 0; c < 2; c += 1) { if (ab2.copyToChannel) ab2.copyToChannel(ir[c], c); else ab2.getChannelData(c).set(ir[c]); }
+    g.conv = ctx.createConvolver(); g.conv.buffer = ab2; g.revOut = gainN(ctx, 0.9); g.conv.connect(g.revOut); g.revOut.connect(g.master);
+    g.revEng = gainN(ctx, 0); g.engOut.connect(g.revEng); g.revEng.connect(g.conv);
+    g.revCrowd = gainN(ctx, 0.5); g.crowdOut.connect(g.revCrowd); g.cheerOut.connect(g.revCrowd); g.revCrowd.connect(g.conv);
+  }
+  // 둘레: 도시 웅웅(시가지) · 바람(상설) · 새(낮) · 풀벌레(밤)
+  g.ambOut = gainN(ctx, 1); g.ambOut.connect(g.master);
+  { g.city = gainN(ctx, 0); const c1 = noise(B.brown); c1.playbackRate.value = 0.83; const c1f = filt(ctx, 'lowpass', 140); const c2 = noise(B.pink); c2.playbackRate.value = 0.71; const c2f = filt(ctx, 'bandpass', 520, 0.6); const c2g = gainN(ctx, 0.45);
+    c1.connect(c1f); c1f.connect(g.city); c2.connect(c2f); c2f.connect(c2g); c2g.connect(g.city); g.city.connect(g.ambOut); c1.start(); c2.start(); }
+  { g.breeze = gainN(ctx, 0); const w1 = noise(B.pink); w1.playbackRate.value = 0.9; const wf = filt(ctx, 'bandpass', 950, 0.45); const wAm = gainN(ctx, 0.6); const lfo = ctx.createOscillator(); lfo.frequency.value = 0.11; const lfoG = gainN(ctx, 0.4);
+    lfo.connect(lfoG); lfoG.connect(wAm.gain); w1.connect(wf); wf.connect(wAm); wAm.connect(g.breeze); g.breeze.connect(g.ambOut); w1.start(); lfo.start(); }
+  g.birds = gainN(ctx, 0); { const s = loopSrc(ctx, buf(ctx, B.birds)); const p = panN(ctx, 0.35); s.connect(g.birds); g.birds.connect(p); p.connect(g.ambOut); s.start(); }
+  g.crick = gainN(ctx, 0); { const s = loopSrc(ctx, buf(ctx, B.crickets)); const p = panN(ctx, -0.3); s.connect(g.crick); g.crick.connect(p); p.connect(g.ambOut); s.start(); }
   g.addCrowd = (bk) => {   // 관중 소리는 늦게 만들어진다
     if (bk.crowd && !g.crowdSrc) { g.crowdSrc = loopSrc(ctx, buf(ctx, bk.crowd)); g.crowdSrc.connect(g.crowdOut); g.crowdSrc.start(); }
     if (bk.cheer && !g.cheerSrc) { g.cheerSrc = loopSrc(ctx, buf(ctx, bk.cheer)); g.cheerSrc.connect(g.cheerOut); g.cheerSrc.start(); }
@@ -130,54 +154,43 @@ function shot(g, ab, t, gain, rate = 1, pan = 0) {
 }
 
 // ---------- 섞는 규칙: 상태(매 프레임) → 소리 ----------
-// inp: { phase, v(m/s, 게임 속도), down, off, surface, heat, lock, launch(0~1), kerb(0/1), kerbSide, wallL, wallR, street, stand(0~1), standPan, lit, ghost:{d(앞+ m), lat, v, down, dv}|null }
+// inp: { phase, v(m/s, 게임 속도), down, off, surface, heat, lock, launch(0~1), kerb(0/1), kerbSide, wallL, wallR, street, stand(0~1), standPan, lit, night, carPan(-1~1), ghost:{d(앞+ m), lat, v, down, dv}|null }
 export function createMixer(g, seed = 1) {
   let R = seed >>> 0; const rnd = () => { R = (R * 16807) % 2147483647; return R / 2147483647; };
-  const m = { rpm: IDLE, gear: 1, load: 0, blipUntil: 0, duckUntil: 0, lastT: null, liftAt: 0, wasDown: false, ghostGear: 1, ghostRpm: IDLE, popsOn: false };
-  const gearRpm = (v, gear) => (SHIFT * v) / GEAR_TOP[gear - 1];
+  const E = createEngine();
+  const m = { get rpm() { return E.rpm; }, get gear() { return E.gear; }, get load() { return E.load; }, duckUntil: 0, ghostGear: 1, ghostRpm: IDLE, boost: 0, chuffed: true };
   const cutAt = (t) => { const p = g.eng.cut.gain; p.cancelScheduledValues(t); p.setValueAtTime(1, t); p.linearRampToValueAtTime(0.28, t + 0.008); p.setValueAtTime(0.28, t + 0.03); p.linearRampToValueAtTime(1, t + 0.05); };
   const pop = (t, gain) => { shot(g, g.ab.pops[Math.floor(rnd() * g.ab.pops.length)], t, gain, 0.8 + rnd() * 0.45, (rnd() - 0.5) * 0.3); };
-  // 기어 · 회전수(내 차와 옅은 차가 같은 규칙)
-  function drive(st, v, down, t, isMe) {
-    let gear = st.gear;
-    if (down) { while (gear < 8 && gearRpm(v, gear) >= SHIFT) { gear += 1; if (isMe) { cutAt(t); if (rnd() < 0.6) pop(t + 0.012, 0.22); } } if (gear > 1 && gearRpm(v, gear) < 7600) gear -= 1; }
-    else while (gear > 1 && gearRpm(v, gear - 1) < SHIFT - 250) { gear -= 1; if (isMe) { m.blipUntil = t + 0.075; pop(t + 0.07 + rnd() * 0.05, 0.3); } }
-    st.gear = gear; return Math.max(IDLE, gearRpm(v, gear));
-  }
+  // 올림 변속: 30ms 끊김 + 가끔 배기 터짐 · 내림 변속: 블립(gearbox가 회전수를 띄운다) + 터짐
+  const onShift = { up: (t) => { cutAt(t); if (rnd() < 0.6) pop(t + 0.012, 0.22); }, down: (t) => { pop(t + 0.07 + rnd() * 0.05, 0.3); } };
   return {
     m,
     update(inp, t) {
-      const dt = m.lastT == null ? 1 / 60 : clamp(t - m.lastT, 0, 0.1); m.lastT = t;
-      const ph = inp.phase; const grid = ph === 'lights' || ph === 'go' || ph === 'wait'; const moving = ph === 'run' || ph === 'practice' || ph === 'finish';
-      const v = inp.v || 0;
+      E.update(inp, t, onShift);
+      const dt = E.dt; const ph = inp.phase; const grid = E.grid, moving = E.moving;
+      const v = inp.v || 0; const limit = E.limit;
       // ---- 엔진 ----
-      let target, load, limit = 0;
-      if (grid) {
-        target = ph === 'wait' ? 5200 : ph === 'go' ? 10900 : 5600 + (inp.lit || 0) * 1060;
-        load = ph === 'wait' ? 0.3 : 0.75; if (target >= 10400) limit = 0.36;   // 다 켜지면 리미터에 걸려 떨린다
-        m.gear = 1;
-      } else if (moving) {
-        const down = !!inp.down && !inp.off && ph !== 'finish';
-        target = drive(m, v, down, t, true);
-        if (inp.launch > 0 && down) target = Math.max(target, 9200 + 1600 * (1 - inp.launch));   // 출발: 클러치가 붙는 동안 회전수가 버틴다
-        load = down ? 1 : inp.off ? 0.15 : 0;
-        if (m.wasDown && !down) m.liftAt = t; m.wasDown = down;
-      } else { target = IDLE; load = 0; }
-      if (t < m.blipUntil) { load = 0.9; target *= 1.05; }
-      const tau = target > m.rpm ? (grid ? 0.12 : 0.035) : 0.06;
-      m.rpm += (target - m.rpm) * (1 - Math.exp(-dt / tau)); m.load += (load - m.load) * (1 - Math.exp(-dt / 0.025));
-      const rpm = m.rpm * (1 + (limit ? 0.012 * Math.sin(t * 69) : 0));
-      g.eng.set(clamp(rpm, 3600, 15500), m.load, t);
+      const rpm = E.rpm * (1 + (limit ? 0.012 * Math.sin(t * 69) : 0));
+      g.eng.set(clamp(rpm, 3600, 15500), E.load, t);
       set(g.limDepth.gain, limit, t, 0.05);
       if (grid) { set(g.eng.cut.gain, 1 - limit, t, 0.05); m.wasGrid = true; } else if (m.wasGrid) { m.wasGrid = false; g.eng.cut.gain.cancelScheduledValues(t); set(g.eng.cut.gain, 1, t, 0.02); }
       const live = grid || moving;
       set(g.engOut.gain, live ? (t < m.duckUntil ? 0.3 : ph === 'finish' ? 0.5 : 0.8) : 0, t, live ? 0.08 : 0.6);   // 결승선을 지나면 엔진을 줄여 함성이 들리게
+      if (g.engPan.pan) set(g.engPan.pan, clamp((inp.carPan || 0) * 0.3, -0.3, 0.3), t, 0.08);   // 화면에서 차가 있는 쪽으로 조금
+      // ---- 터보: 밟으면 늦게(0.3초) 차오르고 떼면 빨리 빠진다. 많이 차 있다가 떼면 '칙' ----
+      const boostT = moving && E.load > 0.5 ? smooth(E.rpm, 6500, 11500) : grid ? 0.15 * smooth(E.rpm, 6500, 11000) : 0;
+      m.boost += (boostT - m.boost) * (1 - Math.exp(-dt / (boostT > m.boost ? 0.32 : 0.1)));
+      if (moving && !m.chuffed && m.boost > 0.5 && boostT < 0.1) { m.chuffed = true; shot(g, g.ab.chuff, t, 0.5 * m.boost, 0.92 + 0.16 * rnd(), (rnd() - 0.5) * 0.2); }
+      if (boostT > 0.5) m.chuffed = false;
+      const tf = 2400 + 4800 * m.boost * clamp(E.rpm / 12000, 0, 1.2);
+      set(g.turboOsc.frequency, tf, t, 0.04); set(g.turboBp.frequency, tf * 1.015, t, 0.04);
+      set(g.turbo.gain, live ? 0.022 * m.boost * m.boost : 0, t, 0.06);
       // 감속 중 배기 터짐: 떼고 1초 동안 많이, 그 뒤 가끔
-      if (moving && m.load < 0.2 && m.rpm > 7500) { const lam = t - m.liftAt < 1 ? 9 : 2.5; if (rnd() < lam * dt) pop(t + rnd() * dt, 0.12 + rnd() * 0.25); }
+      if (moving && E.load < 0.2 && E.rpm > 7500) { const lam = t - E.liftAt < 1 ? 9 : 2.5; if (rnd() < lam * dt) pop(t + rnd() * dt, 0.12 + rnd() * 0.25); }
       // 하이브리드 윙: 가속 때 · 회생 제동 때
-      const wk = moving ? (m.load > 0.5 ? 0.022 * smooth(v, 10, 80) : 0.03 * smooth(v, 25, 80)) : 0;
-      for (const w of g.whine) { set(w.o.frequency, (m.rpm / 60) * w.m, t, 0.02); set(w.gn.gain, wk * w.k, t, 0.08); }
-      set(g.gearOsc.frequency, clamp(v * 34, 40, 4000), t, 0.03); set(g.gearW.gain, moving && v > 3 ? 0.012 + 0.03 * m.load * (1 - smooth(v, 35, 75)) : 0, t, 0.08);
+      const wk = moving ? (E.load > 0.5 ? 0.022 * smooth(v, 10, 80) : 0.03 * smooth(v, 25, 80)) : 0;
+      for (const w of g.whine) { set(w.o.frequency, (E.rpm / 60) * w.m, t, 0.02); set(w.gn.gain, wk * w.k, t, 0.08); }
+      set(g.gearOsc.frequency, clamp(v * 34, 40, 4000), t, 0.03); set(g.gearW.gain, moving && v > 3 ? 0.012 + 0.03 * E.load * (1 - smooth(v, 35, 75)) : 0, t, 0.08);
       // ---- 벽에 되돌아오는 엔진 ----
       for (const [i, wd] of [[0, inp.wallL], [1, inp.wallR]]) {
         const r = g.refl[i]; const d = clamp(wd || 30, 1.5, 40);
@@ -203,10 +216,22 @@ export function createMixer(g, seed = 1) {
       if (g.B.crowd && !g.crowdSrc) g.addCrowd(g.B);
       const crowd = (grid ? 0.32 : moving ? 0.55 * (inp.stand || 0) : 0.04 * (inp.stand || 0));
       set(g.crowdOut.gain, crowd, t, 0.25); if (g.crowdPan.pan) set(g.crowdPan.pan, inp.standPan || 0, t, 0.2);
+      // ---- 울림: 관중석 · 피트 건물 앞, 시가지 벽 사이 ----
+      if (g.revEng) {
+        const near = Math.min(inp.wallL || 30, inp.wallR || 30);
+        const room = Math.max(inp.stand || 0, inp.street ? 0.25 + 0.5 * clamp(5 / Math.max(2, near), 0, 1) : 0);
+        set(g.revEng.gain, live ? 0.2 * clamp(room, 0, 1) : 0, t, 0.2);
+      }
+      // ---- 둘레: 엔진 · 바람이 크면 묻힌다 ----
+      const quiet = 1 - 0.75 * clamp((live ? 0.4 : 0) + air * 1.6, 0, 1);
+      set(g.city.gain, inp.street ? 0.09 * quiet : 0, t, 0.4);
+      set(g.breeze.gain, (inp.street ? 0.012 : 0.05) * quiet, t, 0.4);
+      set(g.birds.gain, !inp.street && !inp.night ? 0.05 * quiet : 0, t, 0.4);
+      set(g.crick.gain, !inp.street && inp.night ? 0.04 * quiet : 0, t, 0.4);
       // ---- 옅은 차 ----
       const gh = inp.ghost;
       if (gh && moving && ph !== 'finish') {
-        const gr = drive({ get gear() { return m.ghostGear; }, set gear(x) { m.ghostGear = x; } }, gh.v, gh.down, t, false);
+        const gs = { gear: m.ghostGear }; const gr = shiftGear(gs, gh.v, gh.down).rpm; m.ghostGear = gs.gear;
         m.ghostRpm += (gr - m.ghostRpm) * (1 - Math.exp(-dt / 0.05));
         const ad = Math.abs(gh.d);
         g.ghost.set(clamp(m.ghostRpm * (1 + clamp((gh.dv || 0) / 343, -0.04, 0.04)), 3600, 15500), gh.down ? 1 : 0, t, 0.02);   // dv: 서로 가까워지는 속도(도플러)
@@ -224,6 +249,10 @@ export function createMixer(g, seed = 1) {
         if (d.surface === 'wall') shot(g, g.ab.impact, t, 1.5 * k, 1);
         else shot(g, g.ab.impact, t, 0.8 * k, 1.35);
       } else if (name === 'whoosh') shot(g, g.ab.whoosh, t, clamp(d.gain || 0.3, 0, 0.6), d.rate || 1, d.pan || 0);
+      else if (name === 'bridge') {   // 광고 다리 밑: 낮은 휙 + 머리 위에서 되돌아오는 엔진이 잠깐
+        const k = clamp((d.v || 60) / 80, 0.3, 1); shot(g, g.ab.whoosh, t, 0.55 * k, 0.6, 0);
+        const p = g.over.gain; p.cancelScheduledValues(t); p.setValueAtTime(0, t); p.linearRampToValueAtTime(0.75 * k, t + 0.04); p.setTargetAtTime(0, t + 0.1, 0.1);
+      }
       else if (name === 'finish') { set(g.cheerOut.gain, d.best ? 1 : 0.6, t, 0.35); set(g.cheerOut.gain, 0, t + 2.8, 1); }
     },
   };
@@ -232,7 +261,7 @@ export function createMixer(g, seed = 1) {
 // ---------- 레이어에서 쓰는 손잡이 ----------
 // const snd = createLapSound(); snd.enable(on); snd.unlock()(손이 닿을 때); snd.update(inp)(매 프레임); snd.event('light') …; snd.close()
 // 소리 들어 보기(데모 조절 판): 상황 하나를 몇 초 동안 흉내 낸다. 그동안 게임 화면의 상태는 소리에 쓰지 않는다
-const base = { phase: 'run', v: 0, down: true, off: false, surface: null, heat: 0, lock: 0, launch: 0, kerb: 0, kerbSide: 1, wallL: 30, wallR: 30, street: false, stand: 0, standPan: 0, lit: 0, ghost: null };
+const base = { phase: 'run', v: 0, down: true, off: false, surface: null, heat: 0, lock: 0, launch: 0, kerb: 0, kerbSide: 1, wallL: 30, wallR: 30, street: false, stand: 0, standPan: 0, lit: 0, night: false, carPan: 0, ghost: null };
 const lerp = (a, b, u) => a + (b - a) * clamp(u, 0, 1);
 export const SOUND_TESTS = {
   grid: { dur: 10.5, at: (t) => (t < 7.4 ? { ...base, phase: 'lights', lit: Math.min(5, Math.floor(t)) } : { ...base, v: lerp(0, 48, (t - 7.4) / 3), launch: Math.max(0, 1 - (t - 7.4) / 1.1) }),
@@ -246,6 +275,10 @@ export const SOUND_TESTS = {
   ghost: { dur: 6, at: (t) => ({ ...base, v: 70, ghost: { d: lerp(-45, 45, t / 6), lat: 2.5, v: 77, down: true, dv: t < 3 ? 7 : -7 } }), events: [[3, 'whoosh', { gain: 0.3, rate: 0.85, pan: -0.4 }]] },
   street: { dur: 5, at: (t) => ({ ...base, v: lerp(40, 75, t / 5), street: true, wallL: lerp(14, 2.5, t / 2.5), wallR: lerp(3, 12, t / 5) }) },
   crowd: { dur: 7, at: (t) => ({ ...base, phase: t < 2.5 ? 'run' : 'finish', v: t < 2.5 ? 85 : lerp(85, 40, (t - 2.5) / 2), down: t < 2.5, stand: t < 2.5 ? lerp(0, 1, t / 2.5) : lerp(1, 0.5, (t - 2.5) / 3) }), events: [[2.5, 'finish', { best: true }]] },
+  turbo: { dur: 6, at: (t) => ({ ...base, v: t < 3.5 ? lerp(30, 78, t / 3.5) : t < 4.6 ? lerp(78, 62, (t - 3.5) / 1.1) : lerp(62, 70, (t - 4.6) / 1.4), down: t < 3.5 || t > 4.6 }) },
+  bridge: { dur: 3, at: () => ({ ...base, v: 80 }), events: [[1.2, 'bridge', { v: 80 }]] },
+  stands: { dur: 6, at: (t) => ({ ...base, v: lerp(62, 80, t / 6), stand: t < 3 ? lerp(0, 1, t / 3) : lerp(1, 0, (t - 3) / 3), standPan: 0.55 }) },
+  ambience: { dur: 9, at: (t) => ({ ...base, phase: 'ready', street: t >= 6, night: t >= 3 && t < 6 }) },
 };
 
 export function createLapSound() {

@@ -1,9 +1,22 @@
-// '한 바퀴' 효과: 길에 남는 타이어 자국(이번 바퀴 동안), 연기 · 먼지 알갱이, 차 옆을 스치는 바람 줄.
+// '한 바퀴' 효과: 길에 남는 타이어 자국(레이어를 닫을 때까지, 바퀴마다 옅어진다), 자갈밭에서 끌려 나온 자갈, 연기 · 먼지 알갱이, 차 옆을 스치는 바람 줄.
 // 자국과 알갱이는 '거리 s(m) · 옆 o(보이는 미터)'로 저장한다 → 확대가 바뀌어도 길에 붙어 있다.
 // 흔들림 · 번쩍임은 쓰지 않는다. 알갱이는 천천히 커지며 옅어지고, 바람 줄은 속도에 따라 길어진다.
 import { screenAt } from './world.js';
 
-export function newFx() { return { marks: [], puffs: [], streaks: [], rear: null, seed: 1 }; }
+export function newFx() { return { marks: [], debris: [], puffs: [], streaks: [], rear: null, seed: 1, view: null }; }
+// 다음 바퀴로: 자국은 한 단계 옅게(세 바퀴가 지나면 지운다), 자갈은 그대로. 화면 종류(입체 · 위에서)가 같을 때만 넘긴다(단위가 다르다)
+export const MARK_FADE = 0.68;
+export function carryFx(old) {
+  const fx = newFx(); if (!old) return fx;
+  fx.view = old.view; fx.marks = old.marks.filter((m) => (m.age || 0) < 3).map((m) => ({ ...m, age: (m.age || 0) + 1 })); fx.debris = old.debris.slice();
+  return fx;
+}
+// 자갈 한 줌: 자갈밭에서 길로 돌아온 자리(s)부터 앞으로 흩어진다. 길 가장자리(side)에 몰리고 안쪽으로 갈수록 드물다
+export function addDebris(fx, s, side, halfW, rnd) {
+  for (let k = 0; k < 70; k += 1) { const u = rnd(); fx.debris.push({ s: s - 6 + Math.pow(u, 1.6) * 48, o: side * (halfW - 0.2 - Math.pow(rnd(), 1.7) * 4.6), r: 0.05 + rnd() * 0.08 }); }
+  if (fx.debris.length > 420) fx.debris.splice(0, fx.debris.length - 420);
+  fx.debris.sort((a, b) => a.s - b.s);
+}
 const rnd = (fx) => { fx.seed = (fx.seed * 16807) % 2147483647; return fx.seed / 2147483647; };
 
 // 자국 한 조각(뒷바퀴 둘). kind: 'slide' 미끄러짐 · 'lock' 늦은 브레이크 · 'launch' 출발 휠스핀
@@ -11,7 +24,7 @@ export function addMarks(fx, s, oL, oR, a, kind) {
   const prev = fx.rear;
   if (prev && s - prev.s > 0 && s - prev.s < 8) {
     fx.marks.push({ s0: prev.s, s1: s, a0: prev.oL, a1: oL, b0: prev.oR, b1: oR, k: a, kind });
-    if (fx.marks.length > 1800) fx.marks.splice(0, 300);
+    if (fx.marks.length > 2600) fx.marks.splice(0, 300);
   }
   fx.rear = { s, oL, oR };
 }
@@ -30,7 +43,7 @@ export function drawMarks(ctx, V, P, fx) {
   ctx.lineCap = 'round'; ctx.lineWidth = Math.max(1.6, V.latPx * 0.55);
   for (const m of fx.marks) {
     if (!inWin(m.s0)) continue;
-    ctx.strokeStyle = `rgba(${P.markRGB},${(m.k * (m.kind === 'launch' ? 0.75 : 0.55)).toFixed(3)})`;
+    ctx.strokeStyle = `rgba(${P.markRGB},${(m.k * (m.kind === 'launch' ? 0.75 : 0.55) * MARK_FADE ** (m.age || 0)).toFixed(3)})`;
     for (const [o0, o1] of [[m.a0, m.a1], [m.b0, m.b1]]) {
       const p0 = screenAt(V, m.s0, o0), p1 = screenAt(V, m.s1, o1); if (!p0 || !p1) continue;
       ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]); ctx.stroke();

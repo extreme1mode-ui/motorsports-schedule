@@ -648,6 +648,7 @@ export default {
   'lap.card.fallback': 'Sharing is not available here. Press and hold the image to save it.',
   'lap.pedal.off': 'Slowing',
   'lap.sound': 'Sound',
+  'lap.gear': 'Gear',
   'lap.msg.passed': 'You passed the faint car',
   'lap.msg.passedBy': 'The faint car got ahead',
   'lap.msg.final': 'Last corner done',

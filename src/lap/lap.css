@@ -21,6 +21,8 @@
   --lap-marble: rgba(0,0,0,.55); --lap-kerb-lip: rgba(0,0,0,.35); --lap-ao: rgba(0,0,0,.28); --lap-gravel-dot3: rgba(255,255,255,.16); --lap-guide: rgba(244,245,247,.85);
   --lap-booth: #2E333C; --lap-booth-shade: #23272F; --lap-panel: #0B0D10; --lap-lamp: #4A505A; --lap-lamp-head: #5A616D; --lap-lamp-head-on: #F4F7FF; --lap-lamp-glow: 235,240,255; --lap-night: 1;
   --lap-hoard: #0B0D10; --lap-hoard-mark: #E9EBEE;
+  --lap-paint: rgba(255,255,255,.1); --lap-debris: rgba(150,156,166,.85); --lap-cloud-a: 0; --lap-marshal: #F07A2C; --lap-marshal-head: #9AA0AA; --lap-flag-pole: #8E949E; --lap-flag-blue: #3D74FF;
+  --lap-led-g: #2FCB6A; --lap-led-b: #5A82FF;
 }
 [data-theme="light"] .gx .gx-lap, [data-plat="toss"] .gx .gx-lap {
   --lap-ground: #FFFFFF; --lap-dot: rgba(16,18,24,.07); --lap-runoff: #EFF0F2; --lap-gravel: #E4E6EA; --lap-gravel-dot: rgba(16,18,24,.18);
@@ -41,6 +43,8 @@
   --lap-marble: rgba(10,12,16,.6); --lap-kerb-lip: rgba(16,18,24,.28); --lap-ao: rgba(16,18,24,.10); --lap-gravel-dot3: rgba(16,18,24,.22); --lap-guide: rgba(255,255,255,.92);
   --lap-booth: #FFFFFF; --lap-booth-shade: #E3E6EA; --lap-panel: #14161C; --lap-lamp: #8C929C; --lap-lamp-head: #5A616D; --lap-lamp-head-on: #FFFFFF; --lap-lamp-glow: 235,240,255; --lap-night: 0;
   --lap-hoard: #14161C; --lap-hoard-mark: #FFFFFF;
+  --lap-paint: rgba(16,18,24,.15); --lap-debris: rgba(226,229,234,.92); --lap-cloud-a: .09; --lap-marshal: #F26B1D; --lap-marshal-head: #3A3F47; --lap-flag-pole: #5A616D; --lap-flag-blue: #2459E8;
+  --lap-led-g: #1FA855; --lap-led-b: #2F62F0;
 }
 .gx .gx-lap { position: fixed; inset: 0; z-index: 300; display: flex; flex-direction: column; background: var(--bg); color: var(--text);
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; animation: gx-lap-in var(--d3) var(--e-out); }
@@ -97,6 +101,16 @@
 .gx .gx-lap-gas-key { display: none; padding: 1px 7px; border-radius: 6px; font-size: var(--t13); line-height: 1.45; color: var(--text2); background: var(--bg); box-shadow: inset 0 0 0 1px var(--line), 0 1px 0 var(--line); }
 @media (hover: hover) and (pointer: fine) { .gx .gx-lap-gas-key { display: block; } }
 /* 처음 한 번 · 페달 밖을 눌렀을 때: 페달 왼쪽 말풍선(차를 가리지 않게 페달 높이에) */
+/* 계기: 기어 + 회전수 LED 15칸(초록 5 · 빨강 5 · 파랑 5). 리미터에서는 다 켠 채로 둔다(깜빡이지 않는다). 왼쪽 아래(페달 반대쪽) */
+.gx .gx-lap-rev { position: absolute; z-index: 1; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(20px + var(--gx-sab)); display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; background: var(--bg); box-shadow: 0 0 0 1px var(--line), 0 6px 18px rgba(16,18,24,.06); pointer-events: none; }
+.gx .gx-lap:is([data-phase="ready"], [data-phase="done"], [data-phase="practiceDone"]) .gx-lap-rev, .gx .gx-lap-rev.is-hidden { visibility: hidden; }
+.gx .gx-lap-rev-gear { display: flex; align-items: baseline; gap: 4px; color: var(--text2); font-size: var(--t13); line-height: 1; }
+.gx .gx-lap-rev-gear b { min-width: 1ch; font-size: var(--t22); font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; text-align: center; }
+.gx .gx-lap-rev-leds { display: grid; grid-template-columns: repeat(15, 6px); column-gap: 3px; }
+.gx .gx-lap-rev-leds > i { height: 12px; border-radius: 3px; background: var(--fill2); }
+.gx .gx-lap-rev-leds > i.is-on:nth-child(-n+5) { background: var(--lap-led-g); }
+.gx .gx-lap-rev-leds > i.is-on:nth-child(n+6):nth-child(-n+10) { background: var(--f1); }
+.gx .gx-lap-rev-leds > i.is-on:nth-child(n+11) { background: var(--lap-led-b); }
 .gx .gx-lap-gas-tip { grid-column: 1; grid-row: 1; position: relative; padding: 8px 12px; border-radius: 10px; background: var(--brand); color: var(--onbrand); font-weight: 600; white-space: nowrap; animation: gx-lap-fade var(--d2) var(--e-out); }
 .gx .gx-lap-gas-tip::after { content: ""; position: absolute; right: -5px; top: 50%; width: 12px; height: 12px; margin-top: -6px; border-radius: 0 3px 0 0; background: inherit; transform: rotate(45deg); }
 
@@ -169,6 +183,7 @@
   .gx .gx-lap-strip { padding-left: 24px; padding-right: 24px; }
   .gx .gx-lap-stage { box-shadow: -1px 0 0 var(--line), 1px 0 0 var(--line); }
   .gx .gx-lap-gaswrap { right: 24px; bottom: 24px; }
+  .gx .gx-lap-rev { left: 24px; bottom: 24px; }
   .gx .gx-lap-card { left: 50%; right: auto; bottom: 32px; width: 440px; transform: translateX(-50%); border-radius: var(--r-sheet); box-shadow: 0 0 0 1px var(--line), 0 16px 40px rgba(16,18,24,.14); padding-bottom: 24px; animation: none; }
 }
 /* 폰을 눕히면: 숫자를 왼쪽 열로, 무대는 오른쪽 전체 */
@@ -179,6 +194,7 @@
   .gx .gx-lap-l2 { flex-wrap: wrap; white-space: normal; }
   .gx .gx-lap-stage { grid-column: 2; }
   .gx .gx-lap-gaswrap { bottom: calc(12px + var(--gx-sab)); }
+  .gx .gx-lap-rev { bottom: calc(12px + var(--gx-sab)); left: 12px; }
   .gx .gx-lap-gas { width: 60px; height: 88px; }
   .gx .gx-lap-gas-plate { padding: 11px 11px 8px; }
   .gx .gx-lap-gas-plate > i { height: 40px; }

@@ -16,7 +16,8 @@ import { drawShareCard } from './share-card.js';
 import { HALF_W, newRun, step, poseAt, formatLap } from './engine.js';
 import { drawCar, carColors, steerOf } from './car.js';
 import { prepWorld, buildView, drawGround, drawTrack, drawStartMarks, drawGantry, drawBoards } from './world.js';
-import { newFx, addMarks, breakMarks, addPuff, drawMarks, drawPuffs, drawStreaks } from './fx.js';
+import { newFx, carryFx, addDebris, addMarks, breakMarks, addPuff, drawMarks, drawPuffs, drawStreaks } from './fx.js';
+import { createEngine, revLeds } from './gearbox.js';
 import { prep3d, camera as camera3, render3d, labels3d, rlAt, wallAtS, kerbAtS, CAR3, addSparks, STREET } from './world3d.js';
 import { createLapSound, renderLog, renderScenes, wavBytes } from './sound.js';
 import { GHOST_EVERY, timeAt, posAt, compareSectors, offCorners, zonesOf, simLap } from './analysis.js';
@@ -49,6 +50,7 @@ const SOUND_KEY = 'gantry.lapSound';
 const readSound = () => { try { const v = localStorage.getItem(SOUND_KEY); return v === 'on' ? true : v === 'off' ? false : null; } catch { return null; } };
 // 마지막 코너를 지나 결승선까지(m). 코너가 없으면 마지막 600m
 const finalStretchOf = (tk) => (tk.turns.length ? tk.turns[tk.turns.length - 1].s + 40 : tk.L - 600);
+const LEDS = Array.from({ length: 15 }, (_, k) => k);
 const hexRgb = (c) => { const m = /^#?([0-9a-f]{6})$/i.exec((c || '').trim()); if (!m) return '128,128,128'; const v = m[1]; return `${parseInt(v.slice(0, 2), 16)},${parseInt(v.slice(2, 4), 16)},${parseInt(v.slice(4, 6), 16)}`; };
 
 // 기록 카드 이미지 한 장(게시물 4:5 · 스토리 9:16)
@@ -83,6 +85,7 @@ function LapGame({ id, onClose }) {
   const root = useRef(null); const canvas = useRef(null);
   const timeEl = useRef(null); const speedEl = useRef(null); const pedalEl = useRef(null); const nextEl = useRef(null); const dotEl = useRef(null); const barEl = useRef(null); const progEl = useRef(null); const progGhostEl = useRef(null);
   const gasEl = useRef(null); const [gasTip, setGasTip] = useState(false); const gasTipT = useRef(0);
+  const revEl = useRef(null); const gearEl = useRef(null);
   // 소리: 레이어가 열리면 재료를 쉬는 틈에 만들고, 손이 처음 닿을 때 켠다
   const [soundOn, setSoundOn] = useState(() => readSound() ?? cfg.sound !== 'off');
   const snd = useRef(null); if (snd.current === null) snd.current = createLapSound();
@@ -114,11 +117,12 @@ function LapGame({ id, onClose }) {
   // 처음 배우는 사람에게 때를 알려 줄 진한 구간 두 곳(출발 직후 30m 안에서 시작하는 구간은 건너뛴다)
   const coachZones = () => g.current.zones.filter((z) => z.s0 > 30).slice(0, 2);
 
-  const resetRun = () => {
+  // keep: 지난 바퀴 자국 · 자갈을 남긴다(데모의 상태 바로 가기는 깨끗하게 시작한다)
+  const resetRun = (keep = true) => {
     const s = g.current;
     s.run = newRun(); s.ghost = []; s.ghostNext = 0; s.acc = 0; s.down = false; s.react = 0; s.frozen = false;
     s.coachIdx = 0; s.cue = null; s.cueUntil = 0; s.reactUntil = 0; s.deltaUntil = 0; s.deltaNext = 0; s.yaw = 0; s.steer = 0; s.resultMarks = null;
-    s.fx = newFx(); s.coast = null; s.glow = 0; s.aero = 0; s.accSm = 0; s.vPrev = 0; s.rain = 0; s.sparkS = 0;
+    s.fx = keep ? carryFx(s.fx) : newFx(); s.coast = null; s.glow = 0; s.aero = 0; s.accSm = 0; s.vPrev = 0; s.rain = 0; s.sparkS = 0; s.rejoin = null; s.tv = null;
     s.ghostSign = 0; s.passAt = 0; s.passKey = null; s.passUntil = 0; s.finalOn = false; s.finalUntil = 0; s.sndS = null; s.offSurface = null;
     setResult(null); setDelta(null);
   };
@@ -222,7 +226,7 @@ function LapGame({ id, onClose }) {
       s.run = r.run; s.ghost = r.ghost; s.react = react * 1000; s.phase = 'run'; finish(true);
     };
     Object.assign(api, {
-      get: () => { const i = Math.floor(s.run.s / s.tk.ds) % s.tk.n; return { id, phase: s.phase, s: s.run.s, v: s.run.v, brake: s.tk.brake[i], L: s.tk.L, offs: s.run.offCount, heat: s.run.heat, offTrack: s.run.offTrack, t: s.run.t, react: s.react, cost: s.cost }; },
+      get: () => { const i = Math.floor(s.run.s / s.tk.ds) % s.tk.n; return { id, phase: s.phase, s: s.run.s, v: s.run.v, brake: s.tk.brake[i], L: s.tk.L, offs: s.run.offCount, heat: s.run.heat, offTrack: s.run.offTrack, t: s.run.t, react: s.react, cost: s.cost, marks: s.fx.marks.length, debris: s.fx.debris.length, surface: s.offSurface }; },
       press,
       // 소리(데모 · 시험): 지금 엔진 상태 · 상태 기록 켜기 · 기록으로 소리를 다시 만들어 WAV(base64)로
       sound: () => { const m = snd.current.mixer?.m; return { ready: snd.current.ready, enabled: snd.current.enabled, state: snd.current.ctx?.state || null, rpm: m ? Math.round(m.rpm) : null, gear: m ? m.gear : null, load: m ? +m.load.toFixed(2) : null }; },
@@ -233,27 +237,29 @@ function LapGame({ id, onClose }) {
         for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
         return window.btoa(bin);
       },
+      // 깃발 그림 확인: 'blue' · 'cheq' · null(평소대로)
+      flags: (v) => { s.flagTest = v || null; return s.flagTest; },
       soundEvents: () => (snd.current.log || []).filter((e) => e.k === 'e').map((e) => ({ t: e.t, name: e.name })),
       // 남은 구간을 안내대로(진한 구간에서 손을 뗌) 한 번에 달린다 — 결과 화면을 바로 보려는 시험용
       auto: () => { if (s.phase !== 'run') return; while (!s.run.done) { const i = Math.floor(s.run.s / s.tk.ds) % s.tk.n; step(s.run, s.tk, !s.tk.brake[i], DT); const total = s.react / 1000 + s.run.t; while (total >= s.ghostNext) { s.ghost.push(s.run.s); s.ghostNext += GHOST_EVERY; } } },
       // 서킷의 아무 자리(m)에 멈춘 채로 세운다 — 그림 확인용
-      seek: (sp, v) => { clearTimers(); resetRun(); const i = Math.floor(wrapS(sp, s.tk.L) / s.tk.ds) % s.tk.n; at(sp, v ?? s.tk.ideal[i], { t: 3 }); s.coachIdx = 99; setP('run'); return s.phase; },
+      seek: (sp, v) => { clearTimers(); resetRun(false); const i = Math.floor(wrapS(sp, s.tk.L) / s.tk.ds) % s.tk.n; at(sp, v ?? s.tk.ideal[i], { t: 3 }); s.coachIdx = 99; setP('run'); return s.phase; },
       // 상태 바로 가기. 그림을 남기려고 멈춘 채로 둔다(누르면 이어서 달린다)
       state: (name) => {
         const z = s.zones; const ix = (sp) => Math.floor(wrapS(sp, s.tk.L) / s.tk.ds) % s.tk.n;
         setCard(null); setDelta(null);
-        if (name === 'ready') { clearTimers(); resetRun(); setLit(0); setP('ready'); }
-        else if (name === 'lights') { clearTimers(); resetRun(); setLit(3); setP('lights'); }
-        else if (name === 'jump') { clearTimers(); resetRun(); setLit(0); setP('wait'); }
-        else if (name === 'go') { clearTimers(); resetRun(); setLit(0); s.t0 = performance.now(); setP('go'); }
+        if (name === 'ready') { clearTimers(); resetRun(false); setLit(0); setP('ready'); }
+        else if (name === 'lights') { clearTimers(); resetRun(false); setLit(3); setP('lights'); }
+        else if (name === 'jump') { clearTimers(); resetRun(false); setLit(0); setP('wait'); }
+        else if (name === 'go') { clearTimers(); resetRun(false); setLit(0); s.t0 = performance.now(); setP('go'); }
         else if (name === 'run' || name === 'coach') {
-          clearTimers(); resetRun(); const zz = name === 'coach' ? coachZones()[0] : z[Math.min(2, z.length - 1)];
+          clearTimers(); resetRun(false); const zz = name === 'coach' ? coachZones()[0] : z[Math.min(2, z.length - 1)];
           const sp = name === 'coach' ? zz.s0 + 10 : zz.s0 - 140; at(sp, s.tk.ideal[ix(sp)] * (name === 'coach' ? 1 : 0.97));
           if (name === 'coach') { s.firstRun = true; setFirstRun(true); } else s.coachIdx = 99;
           if (s.best && name === 'run') { const tg = timeAt(s.best, sp); if (tg != null) { s.react = 0; s.run.t = tg + 0.31; if (s.cfg.delta !== 'off') { setDelta({ sec: 0.31, ahead: false }); s.deltaUntil = performance.now() + 1e9; } } }
           setP('run');
         } else if (name === 'slip') {
-          clearTimers(); resetRun(); const t = s.tk.turns.reduce((a, b) => (s.tk.vlim[b.i] < s.tk.vlim[a.i] ? b : a)); const sp = t.s - 6;   // 가장 느린 코너에서
+          clearTimers(); resetRun(false); const t = s.tk.turns.reduce((a, b) => (s.tk.vlim[b.i] < s.tk.vlim[a.i] ? b : a)); const sp = t.s - 6;   // 가장 느린 코너에서
           at(sp, s.tk.vlim[ix(sp)] * 1.18, { heat: 0.72, side: s.tk.k[ix(sp)] > 0 ? 1 : -1 }); s.run.off = s.run.side * 0.72 * (HALF_W - 1.5); s.coachIdx = 99;
           if (s.view3) {   // 입체 화면: 세계 m, 레이싱 라인 위에서 밀려난 자국
             const W3 = prep3d(s.tk); const half = 0.76 * CAR3; breakMarks(s.fx);
@@ -262,16 +268,16 @@ function LapGame({ id, onClose }) {
             for (let k = 26; k >= 0; k -= 1) { const rs = sp - (ln * 0.85) / zm - k * 1.4; const o = s.run.off * (1 - k / 30); addMarks(s.fx, rs, o + half, o - half, 0.75 * (1 - k / 28), 'slide'); } }
           setP('run');
         } else if (name === 'off') {
-          clearTimers(); resetRun(); const t = s.tk.turns[Math.min(3, s.tk.turns.length - 1)]; const sp = t.s + 14; const side = s.tk.k[ix(sp)] > 0 ? 1 : -1;
+          clearTimers(); resetRun(false); const t = s.tk.turns[Math.min(3, s.tk.turns.length - 1)]; const sp = t.s + 14; const side = s.tk.k[ix(sp)] > 0 ? 1 : -1;
           at(sp, 9, { offTrack: true, offT: 0.9, offCount: 1, offAt: [sp], side, off: side * (HALF_W + 5.5) }); s.yaw = side * -0.45; s.down = false; s.coachIdx = 99;
           { const nowP = performance.now(); const W3 = s.view3 ? prep3d(s.tk) : null;
             for (let k = 0; k < 8; k += 1) { const ps = sp - 6 - k * 2.5; let o = side * (HALF_W + 5.5); if (W3) { o += rlAt(W3, s.tk, ps); const lim = wallAtS(W3, s.tk, ps, side) - 1.4; o = Math.max(-lim, Math.min(lim, o)); } addPuff(s.fx, ps, o + (k % 2 ? 0.8 : -0.8), 'dust', nowP - k * 90, 1.4); } }
           setP('run');
         } else if (name === 'practice') {
-          clearTimers(); resetRun(); const zz = coachZones()[0]; const sp = zz.s0 - 40; at(sp, s.tk.ideal[ix(sp)]);
+          clearTimers(); resetRun(false); const zz = coachZones()[0]; const sp = zz.s0 - 40; at(sp, s.tk.ideal[ix(sp)]);
           s.practiceEnd = coachZones().slice(-1)[0].s1 + 120; s.react = 0; setP('practice');
-        } else if (name === 'paused') { clearTimers(); resetRun(); at(z[1].s0 - 60, 60); s.pausedFrom = 'run'; setP('paused'); }
-        else if (name === 'practiceDone') { clearTimers(); resetRun(); setP('practiceDone'); }
+        } else if (name === 'paused') { clearTimers(); resetRun(false); at(z[1].s0 - 60, 60); s.pausedFrom = 'run'; setP('paused'); }
+        else if (name === 'practiceDone') { clearTimers(); resetRun(false); setP('practiceDone'); }
         else if (name === 'result-first') { const all = { ...lapRecords() }; delete all[id]; writeLapRecords(all); s.best = null; setBest(null); finishWith(30, 0.34); }
         else if (name === 'result-best' || name === 'card' || name === 'card-story') {
           const rec = fakeRecord(30, 0.41); writeLapRecords({ ...lapRecords(), [id]: rec }); s.best = rec.ghost; setBest(rec.best); finishWith(0, 0.27);
@@ -310,7 +316,8 @@ function LapGame({ id, onClose }) {
         standFront: t('stand-front'), stand: t('stand'), standBack: t('stand-back'), crowd: t('crowd').split(/\s+/).filter(Boolean), garage: t('garage'), glass: t('glass'),
         shadowRGB: t('shadow-rgb'), envShadowA: t('env-shadow-a'), ghostSolid: t('ghost-solid'), ghostA: Number(t('ghost-a')) || 0.4,
         marble: t('marble'), kerbLip: t('kerb-lip'), ao: t('ao'), gravelDot3: t('gravel-dot3'), guide: t('guide'), booth: t('booth'), boothShade: t('booth-shade'), panel: t('panel'),
-        lamp: t('lamp'), lampHead: t('lamp-head'), lampHeadOn: t('lamp-head-on'), lampGlowRGB: t('lamp-glow'), night: Number(t('night')) === 1, hoard: t('hoard'), hoardMark: t('hoard-mark') });
+        lamp: t('lamp'), lampHead: t('lamp-head'), lampHeadOn: t('lamp-head-on'), lampGlowRGB: t('lamp-glow'), night: Number(t('night')) === 1, hoard: t('hoard'), hoardMark: t('hoard-mark'),
+        paint: t('paint'), debris: t('debris'), cloudA: Number(t('cloud-a')) || 0, marshal: t('marshal'), marshalHead: t('marshal-head'), flagPole: t('flag-pole'), flagBlue: t('flag-blue') });
       s.colors.car3d = { body: css(el, '--f1'), carbon: t('carbon'), tyre: t('tyre-car'), rim: t('rim'), white: '#F4F5F7', rain: t('rain-off'), cockpit: '#0B0C0F', glass: t('mirror') };
       s.theme = themeKey();
     };
@@ -349,6 +356,7 @@ function LapGame({ id, onClose }) {
             s.offSurface = STREET.has(tk.id) ? 'wall' : prepWorld(tk).gravel.some((gz) => gz.side === side && ri >= gz.i0 - 10 && ri <= gz.i1 + 10) ? 'gravel' : 'runoff';
             snd.current.event('off', { v: s.run.v, surface: s.offSurface });
           }
+          if (wasOff && !s.run.offTrack && s.offSurface === 'gravel') s.rejoin = { s: s.run.s, side: s.run.side || 1 };
         }
         if (s.phase === 'run' && cfgN.delta === 'live' && s.best && now >= s.deltaNext) {
           const tb = timeAt(s.best, s.run.s); s.deltaNext = now + 250;
@@ -359,6 +367,10 @@ function LapGame({ id, onClose }) {
       }
       if (s.deltaUntil && now > s.deltaUntil) { s.deltaUntil = 0; setDelta(null); }
       const run = s.run; const C = s.colors;
+      // 자국 · 자갈은 화면 종류마다 단위가 다르다(입체: 세계 m, 위에서: 보이는 m). 바뀌면 지운다
+      { const kind = cfgN.view !== 'top' && !reduced ? '3d' : 'top'; if (s.fx.view !== kind) { if (s.fx.view) { s.fx.marks = []; s.fx.debris = []; s.fx.rear = null; } s.fx.view = kind; } }
+      // 자갈밭에서 길로 돌아오면 바퀴가 끌고 나온 자갈이 길 가장자리에 흩어진다(입체 화면, 이 레이어를 닫을 때까지 남는다)
+      if (s.rejoin) { if (s.view3) { const rnd = () => { s.rnd = (s.rnd * 16807) % 2147483647; return s.rnd / 2147483647; }; addDebris(s.fx, s.rejoin.s - NOSE3, s.rejoin.side, HALF_W, rnd); } s.rejoin = null; }
       // 결승선을 지난 뒤 굴러가는 거리
       if (s.phase === 'finish' && s.coast) { const gdt = fdt * TS; s.coast.t += gdt; s.coast.v = Math.max(0, s.coast.v - 24 * gdt); s.coast.s += s.coast.v * gdt; }
       // ---- 차와 길의 반응: 브레이크 빛 · 날개 · 타이어 자국 · 연기 · 먼지(같은 프레임에 바로) ----
@@ -457,12 +469,25 @@ function LapGame({ id, onClose }) {
             const o = bd.side * Math.min(HALF_W + 3, wallAtS(W3s, tk, bs, bd.side) - 0.7); const near = Math.abs(o - lat3);
             snd.current.event('whoosh', { gain: 0.3 * Math.min(1, run.v / 70) * Math.min(1, 6 / Math.max(3, near)), rate: 0.75 + run.v / 160, pan: bd.side > 0 ? -0.5 : 0.5 });
           }
+          // 광고 다리 밑을 지날 때
+          if (s.phase === 'run' && !s.frozen && a != null && b > a && b - a < 40) for (const br of W3s.bridges) { const bs = br.s; if ((bs > a && bs <= b) || (bs - tk.L > a && bs - tk.L <= b)) snd.current.event('bridge', { v: run.v }); }
           s.sndS = b;
         }
-        snd.current.update({
+        // 화면에서 차가 있는 쪽(지난 프레임의 카메라): 엔진을 그쪽으로 조금
+        let carPan = 0; if (s.view3 && s.cam3 && s.cam3.project) { const pr = s.cam3.project(s.view3.car.x, s.view3.car.y, 0.5); const wv = cv.clientWidth || 1; if (pr) carPan = Math.max(-1, Math.min(1, (pr[0] - wv / 2) / (wv / 2))); }
+        const inp = {
           phase: s.frozen ? 'ready' : s.phase, v: s.coast ? s.coast.v : run.v, down: s.down, off: run.offTrack, surface: s.offSurface, heat: run.heat, lock: sndLock,
           launch: s.phase === 'run' && run.t < 1.1 ? 1 - run.t / 1.1 : 0, kerb: sndKerb, kerbSide: sndKerbSide, wallL, wallR, street: STREET.has(tk.id), stand, standPan, lit: s.lit, ghost: ghostSnd,
-        });
+          night: !!(s.stage && s.stage.night), carPan,
+        };
+        snd.current.update(inp);
+        // ---- 계기: 기어 · 회전수 LED(소리와 같은 규칙. 소리를 꺼도 움직인다). 바뀔 때만 DOM에 쓴다 ----
+        if (!s.eng) s.eng = createEngine();
+        s.eng.update(s.frozen ? { ...inp, phase: s.phase } : inp, now / 1000);   // 데모에서 멈춰 세운 자리도 그 속도의 기어로
+        if (revEl.current) {
+          const nL = revLeds(s.eng); if (nL !== s.revN) { s.revN = nL; const leds = revEl.current.querySelectorAll('i'); for (let k = 0; k < leds.length; k += 1) leds[k].classList.toggle('is-on', k < nL); }
+          if (gearEl.current && s.eng.gear !== s.gearShown) { s.gearShown = s.eng.gear; gearEl.current.textContent = String(s.eng.gear); }
+        }
       }
 
       // ---- 알림 하나: 이탈 > 배우기 안내 > 앞지르기 · 마지막 코너 > 미끄러짐 > 출발 반응 ----
@@ -539,6 +564,7 @@ function LapGame({ id, onClose }) {
         if (!run.offTrack && run.heat <= 0 && Math.abs(s.yaw) < 0.002) s.yaw = 0;
         const moving = (s.phase === 'run' || s.phase === 'practice') && !s.frozen;
         s.rain += ((moving && !s.down ? 1 : 0) - s.rain) * Math.min(1, fdt / 0.15);
+        { const ct = s.phase === 'finish' ? 1 : 0; s.cheer = (s.cheer || 0) + (ct - (s.cheer || 0)) * Math.min(1, fdt / (ct > (s.cheer || 0) ? 0.35 : 1.2)); }
         const kv = smooth01(vv / 94);
         let T;
         if (over) {
@@ -568,10 +594,24 @@ function LapGame({ id, onClose }) {
           T = { yaw: yawW, Dc, beta, pitch: Math.max((9 * Math.PI) / 180, beta - (25 * Math.PI) / 180),   // 카메라가 높아지면 시선도 함께 숙인다(차 크기가 그대로 보이게)
              F, ox: w / 2 - lead, yCar: h * (h < 420 ? 0.74 : 0.66), mix: 1 };
         }
-        const mode = over ? 'over' : 'chase';
-        if (s.mode !== mode) { s.mode = mode; s.from3 = s.cam3 ? lerpCam3(s.cam3, s.cam3, 0) : null; s.tt = 0; s.c3 = null; }
+        // 결승선을 지나면 길가 TV 카메라 한 장면(바로 바꾼다): 차가 다가와 옆을 스쳐 지나가는 것을 따라 돌며 당겨 찍는다
+        const mode = over ? 'over' : s.phase === 'finish' && cfgN.finish !== 'chase' && s.coast ? 'tv' : 'chase';
+        if (s.mode !== mode) { s.mode = mode; s.from3 = mode === 'tv' ? null : s.cam3 ? lerpCam3(s.cam3, s.cam3, 0) : null; s.tt = 0; s.c3 = null; if (mode === 'tv') s.tv = null; }
         let cam;
-        if (mode === 'chase') {
+        if (mode === 'tv') {
+          const Fb = Math.max(h, w * 0.9) / 2 / Math.tan((30 * Math.PI) / 180);
+          if (!s.tv) {
+            // 자리: 결승 뒤 굴러가는 시간의 55%쯤에 차가 지나가는 곳. 피트 쪽 길 가장자리 바깥 4.5m(벽이 가까우면 벽 안쪽), 높이 4m
+            const tW = (FINISH_MS / 1000) * TS * 0.55; const v0 = Math.max(10, s.coast.v); const tS = Math.min(tW, v0 / 24); const dist = v0 * tS - 12 * tS * tS;
+            const sd = W3.pit.side; const sC = wrapS(carS + dist, tk.L); const p0 = poseAt(tk, sC, sd * Math.min(HALF_W + 4.5, wallAtS(W3, tk, sC, sd) - 0.8));   // 벽 안쪽
+            s.tv = { x: p0.x, y: p0.y, z: 4, yaw: null, F: Fb };
+          }
+          const tv = s.tv; const ease = (tau) => 1 - Math.exp(-fdt / tau);
+          const tc = poseAt(tk, wrapS(carS, tk.L), lat); const dx = tc.x - tv.x, dy = tc.y - tv.y; const d = Math.hypot(dx, dy) || 1;
+          const yawT = Math.atan2(dy, dx); tv.yaw = tv.yaw == null ? yawT : tv.yaw + angDiff(tv.yaw, yawT) * ease(0.07);   // 카메라맨이 따라 도는 만큼 조금 늦게
+          const FT = Math.max(Fb * 0.8, Math.min(Fb * 6, (0.3 * w * d) / 4.2)); tv.F = lerp(tv.F, FT, ease(0.25));       // 차가 화면 폭의 30%쯤 되게 당긴다
+          cam = { x: tv.x, y: tv.y, z: tv.z, yaw: tv.yaw, pitch: Math.atan2(tv.z - 0.6, d), F: tv.F, ox: w / 2, oy: h * 0.62, mix: 1 };
+        } else if (mode === 'chase') {
           const ease = (tau) => 1 - Math.exp(-fdt / tau);
           const c3 = s.c3 ? { ...T, yaw: s.c3.yaw + angDiff(s.c3.yaw, T.yaw) * ease(0.22), Dc: lerp(s.c3.Dc, T.Dc, ease(0.35)), beta: lerp(s.c3.beta, T.beta, ease(0.35)), F: lerp(s.c3.F, T.F, ease(0.35)), ox: lerp(s.c3.ox, T.ox, ease(0.5)) } : T;
           s.c3 = c3;
@@ -584,8 +624,9 @@ function LapGame({ id, onClose }) {
         camera3(cam); s.cam3 = cam;
         const mix = cam.mix;
         const pxm = (cam.F * Math.max(0.05, Math.sin(cam.pitch))) / cam.z;          // 화면 가운데 바닥의 1m(px)
-        const q = Math.max(1, 6 / (2 * HALF_W) / pxm);                              // 멀리서 볼 때 길을 6px보다 가늘지 않게: 옆으로만 키운다
-        const S3 = CAR3 * Math.max(1, (carLen * 0.55) / (5.25 * CAR3) / pxm);        // 멀리서 볼 때 차도 읽히게
+        const tvOn = mode === 'tv';
+        const q = tvOn ? 1 : Math.max(1, 6 / (2 * HALF_W) / pxm);                    // 멀리서 볼 때 길을 6px보다 가늘지 않게: 옆으로만 키운다
+        const S3 = tvOn ? CAR3 : CAR3 * Math.max(1, (carLen * 0.55) / (5.25 * CAR3) / pxm);   // 멀리서 볼 때 차도 읽히게
         const cp = poseAt(tk, wrapS(carS, tk.L), lat * q);
         const dl = (rlAt(W3, tk, carS + 3) - rlAt(W3, tk, carS - 3)) / 6;
         const carTh = cp.th - Math.atan(dl * q) + s.yaw;
@@ -617,7 +658,10 @@ function LapGame({ id, onClose }) {
         s.heavy = mix > 0.99 && s.cost > 12 ? (s.heavy || 0) + 1 : 0; if (s.heavy > 90) s.lite = true;
         const R = { w, h, dpr, canvas: cv, cam, tk, W3, P, C, detail: mix, q, zone: cfgN.zone, now, fdt: fdt * TS, fx: s.fx, lit: s.lit || 0, car, ghost, font, under, lite: !!s.lite,
           guide: cfgN.line === 'guide' && (s.phase === 'run' || s.phase === 'practice' || s.phase === 'go' || s.phase === 'lights' || s.phase === 'paused'),
-          blur: mix > 0.9 && (s.phase === 'run' || s.phase === 'finish') ? smooth01((vv * TS - 70) / 60) : 0,   // 화면에서 흐르는 빠르기(게임 속도 × 빠르기) 기준
+          blur: mix > 0.9 && !tvOn && (s.phase === 'run' || s.phase === 'finish') ? smooth01((vv * TS - 70) / 60) : 0,   // 화면에서 흐르는 빠르기(게임 속도 × 빠르기) 기준
+          // 깃발: 옅은 차가 뒤에 30m 안으로 붙으면 앞쪽 마셜이 파랑, 결승선 320m 앞부터 결승선 마셜이 체크. 관중은 결승 때 일어선다
+          flags: s.flagTest ? { blue: s.flagTest === 'blue', cheq: s.flagTest === 'cheq' } : { blue: s.phase === 'run' && !!ghostSnd && ghostSnd.d < -2 && ghostSnd.d > -30, cheq: (s.phase === 'run' && tk.L - run.s < 320) || s.phase === 'finish' },
+          cheer: s.cheer || 0,
           far: mix > 0.5 ? 1500 : 1e9, fog: mix > 0.3 ? [230 + (1 - mix) * 4000, 1000 + (1 - mix) * 8000] : null,
           overlay: mix < 0.3 ? () => drawOverlays(w2s3, Math.max(2 * HALF_W * pxm, 6), pxm, 0, true) : null };
         render3d(ctx, R);
@@ -893,6 +937,12 @@ function LapGame({ id, onClose }) {
               <span className="gx-lap-gas-plate" aria-hidden="true"><i /><b>{tr('lap.pedal')}</b></span>
             </button>
             <span className="gx-lap-gas-key" aria-hidden="true">{tr('lap.pedal.key')}</span>
+          </div>
+        )}
+        {cfg.rev !== 'off' && (
+          <div className={`gx-lap-rev${showGas && (gasTip || (firstRun && (phase === 'lights' || phase === 'wait' || phase === 'go'))) ? ' is-hidden' : ''}`} ref={revEl} aria-hidden="true">
+            <span className="gx-lap-rev-gear">{tr('lap.gear')}<b ref={gearEl}>1</b></span>
+            <span className="gx-lap-rev-leds">{LEDS.map((k) => <i key={k} />)}</span>
           </div>
         )}
         {(phase === 'lights' || phase === 'wait' || phase === 'go') && (
