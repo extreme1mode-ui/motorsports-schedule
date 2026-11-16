@@ -1,5 +1,6 @@
 // '한 바퀴' 엔진 · 기어: 속도 · 페달 → 기어(8단) · 회전수 · 부하. 소리(sound.js)와 계기판(LED · 기어 숫자)이 같은 규칙을 쓴다.
-// 신호등 동안은 불이 켜질 때마다 회전수가 오르고, 다 켜지면 리미터에 걸린다. 출발하면 클러치가 붙는 동안 회전수가 버틴다.
+// 신호등: 첫 불이 켜지면 회전수를 올려 10,500rpm 언저리에서 버틴다(실제 출발처럼 운전자가 페달로 잡느라 조금씩 오르내린다. 불마다 오르지 않고 리미터도 없다).
+// 출발하면 클러치가 붙는 동안 회전수가 버틴다. 결과 화면(식히는 바퀴)은 가볍게 밟고 높은 기어로.
 export const GEAR_TOP = [100, 135, 170, 205, 240, 275, 305, 345].map((k) => k / 3.6);   // 기어마다 최고 속도(m/s)
 export const SHIFT = 11800, IDLE = 4000;
 export const REV_FROM = 9000;                                                          // LED가 켜지기 시작하는 회전수
@@ -20,13 +21,20 @@ export function createEngine() {
   const e = { rpm: IDLE, gear: 1, load: 0, limit: 0, blipUntil: 0, lastT: null, liftAt: 0, wasDown: false, grid: false, moving: false, down: false };
   e.update = (inp, t, on = null) => {
     const dt = e.lastT == null ? 1 / 60 : clamp(t - e.lastT, 0, 0.1); e.lastT = t;
-    const ph = inp.phase; const grid = ph === 'lights' || ph === 'go' || ph === 'wait'; const moving = ph === 'run' || ph === 'practice' || ph === 'finish';
+    const ph = inp.phase; const grid = ph === 'lights' || ph === 'go' || ph === 'wait'; const moving = ph === 'run' || ph === 'practice' || ph === 'finish' || ph === 'done';
     const v = inp.v || 0;
     let target, load, limit = 0; let down = false;
     if (grid) {
-      target = ph === 'wait' ? 5200 : ph === 'go' ? 10900 : 5600 + (inp.lit || 0) * 1060;
-      load = ph === 'wait' ? 0.3 : 0.75; if (target >= 10400) limit = 0.36;   // 다 켜지면 리미터에 걸려 떨린다
+      if (ph === 'wait') { target = 5200; load = 0.3; }                                  // 부정 출발: 내려놓는다
+      else if (ph === 'lights' && !(inp.lit > 0)) { target = 5600; load = 0.4; }         // 첫 불 전
+      else {   // 버티는 회전수: 느린 흔들림 셋을 더한다(규칙적인 떨림이 아니게)
+        const TAU = 2 * Math.PI;
+        target = 10500 + 260 * Math.sin(t * TAU * 2.1) + 170 * Math.sin(t * TAU * 4.7 + 1.3) + 110 * Math.sin(t * TAU * 0.7 + 0.4); load = 0.8;
+      }
       e.gear = 1;
+    } else if (ph === 'done') {   // 식히는 바퀴: 6,000rpm 위에 있는 가장 높은 기어
+      let gear = 8; while (gear > 1 && gearRpm(v, gear) < 6000) gear -= 1; e.gear = gear;
+      target = Math.max(IDLE, gearRpm(v, gear)); load = v > 1 ? 0.35 : 0;
     } else if (moving) {
       down = !!inp.down && !inp.off && ph !== 'finish';
       const r = shiftGear(e, v, down);

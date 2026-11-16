@@ -2,8 +2,9 @@
 // 소리는 손이 처음 닿을 때(출발선에 서기 · 페달 · 스페이스) 켠다(브라우저 정책). iOS는 'ambient'로 무음 스위치를 따른다.
 //
 // 엔진: 속도 → 기어(8단) → 회전수. 가까운 회전수 고리 둘을 섞고 재생 속도로 맞춘다. 가속 · 감속 고리를 페달로 섞는다.
-//       올림 변속은 30ms 끊김(점화 차단), 내림 변속은 회전수를 띄우는 블립, 감속 중에는 배기 터짐. 신호등 동안은 회전수가 오르고
-//       다 켜지면 리미터에 걸려 떨린다(출발 직전의 긴장). 하이브리드 모터(MGU-K)의 윙 소리는 가속 · 회생 제동 때.
+//       올림 변속은 30ms 끊김(점화 차단), 내림 변속은 회전수를 띄우는 블립, 감속 중에는 배기 터짐. 신호등 동안은 첫 불에 회전수를 올려
+//       10,500rpm 언저리에서 버틴다(조금씩 오르내림). 불이 켜질 때마다 F1 중계처럼 같은 높이의 짧은 삐 소리. 하이브리드 모터(MGU-K)의 윙 소리는 가속 · 회생 제동 때.
+//       결과 화면에서는 식히는 바퀴로 달리는 차의 엔진이 작게 들린다.
 // 길: 바람(속도²) · 노면 · 타이어 끌림(미끄러짐) · 끽(잠김 · 휠스핀) · 연석 드르륵(속도에 맞춘 박자) · 자갈 · 충돌.
 // 둘레: 벽에 되돌아오는 엔진(좌우 따로, 벽까지 거리만큼 늦게) · 관중석 웅성거림과 결승 함성 · 보드 · 갠트리를 스치는 바람.
 // 옅은 차: 같은 엔진을 하나 더. 거리만큼 작고 어둡게, 옆 위치만큼 좌우로. 가까이 따라붙으면 들린다.
@@ -146,6 +147,17 @@ export function buildGraph(ctx, B) {
   return g;
 }
 
+// 출발 신호음(F1 중계의 신호등 그림과 함께 나는 소리처럼): 불 하나에 같은 높이의 짧은 삐(사인 1kHz + 약한 2배음, 0.17초). 다섯 번 모두 같다
+function beep(g, t, gain = 0.26) {
+  const { ctx } = g; const t0 = Math.max(t || 0, ctx.currentTime);
+  const env = gainN(ctx, 0); env.connect(g.master);
+  const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = 1000; o.connect(env);
+  const o2 = ctx.createOscillator(); o2.type = 'sine'; o2.frequency.value = 2000; const g2 = gainN(ctx, 0.1); o2.connect(g2); g2.connect(env);
+  env.gain.setValueAtTime(0, t0); env.gain.linearRampToValueAtTime(gain, t0 + 0.006); env.gain.setValueAtTime(gain, t0 + 0.15); env.gain.linearRampToValueAtTime(0, t0 + 0.17);
+  o.start(t0); o2.start(t0); o.stop(t0 + 0.2); o2.stop(t0 + 0.2);
+  o.onended = () => { try { env.disconnect(); } catch { /* 이미 끊김 */ } };
+}
+
 // 한 번 소리 재생
 function shot(g, ab, t, gain, rate = 1, pan = 0) {
   const { ctx } = g; const s = ctx.createBufferSource(); s.buffer = ab; s.playbackRate.value = rate;
@@ -175,7 +187,7 @@ export function createMixer(g, seed = 1) {
       set(g.limDepth.gain, limit, t, 0.05);
       if (grid) { set(g.eng.cut.gain, 1 - limit, t, 0.05); m.wasGrid = true; } else if (m.wasGrid) { m.wasGrid = false; g.eng.cut.gain.cancelScheduledValues(t); set(g.eng.cut.gain, 1, t, 0.02); }
       const live = grid || moving;
-      set(g.engOut.gain, live ? (t < m.duckUntil ? 0.3 : ph === 'finish' ? 0.5 : 0.8) : 0, t, live ? 0.08 : 0.6);   // 결승선을 지나면 엔진을 줄여 함성이 들리게
+      set(g.engOut.gain, live ? (t < m.duckUntil ? 0.3 : ph === 'done' ? 0.32 : ph === 'finish' ? 0.5 : 0.8) : 0, t, live ? (ph === 'done' ? 0.8 : 0.08) : 0.6);   // 결승선을 지나면 엔진을 줄여 함성이 들리게 · 결과 화면은 더 작게
       if (g.engPan.pan) set(g.engPan.pan, clamp((inp.carPan || 0) * 0.3, -0.3, 0.3), t, 0.08);   // 화면에서 차가 있는 쪽으로 조금
       // ---- 터보: 밟으면 늦게(0.3초) 차오르고 떼면 빨리 빠진다. 많이 차 있다가 떼면 '칙' ----
       const boostT = moving && E.load > 0.5 ? smooth(E.rpm, 6500, 11500) : grid ? 0.15 * smooth(E.rpm, 6500, 11000) : 0;
@@ -241,7 +253,7 @@ export function createMixer(g, seed = 1) {
     },
     // ---- 일(한 번) ----
     event(name, d = {}, t) {
-      if (name === 'light') shot(g, g.ab.clunk, t, 0.32, 1);
+      if (name === 'light') beep(g, t);
       else if (name === 'jump') { shot(g, g.ab.clunk, t, 0.38, 0.62); shot(g, g.ab.clunk, t + 0.16, 0.38, 0.62); }
       else if (name === 'launch') { set(g.cheerOut.gain, 0.35, t, 0.3); set(g.cheerOut.gain, 0, t + 1.2, 0.8); }   // 불이 꺼지면 관중석이 들썩인다
       else if (name === 'off') {

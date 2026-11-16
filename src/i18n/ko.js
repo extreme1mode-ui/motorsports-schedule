@@ -613,6 +613,7 @@ export default {
   'home.break.weekend': '{date} 주말',
   // 서킷 한 바퀴
   'lap.title': '서킷 한 바퀴',
+  'lap.home.title': '미니 레이싱 게임',
   'lap.sub.none': '서킷 {n}곳을 달려 볼 수 있어요',
   'lap.sub.some': '{n}곳 중 {k}곳을 달렸어요',
   'lap.all': '모든 서킷',
@@ -667,7 +668,6 @@ export default {
   'lap.board.mine': '내 순위',
   'lap.board.emptyWeek': '이번 주에는 아직 달린 사람이 없어요. 첫 기록을 남겨 보세요.',
   'lap.board.emptyAll': '아직 달린 사람이 없어요. 첫 기록을 남겨 보세요.',
-  'lap.board.note': '이름은 자동으로 만들어요. 이 기기에서 달린 기록은 모두 같은 이름으로 올라가요.',
   'lap.board.join': '한 바퀴를 끝까지 달리면 이름이 생기고 순위표에 올라가요.',
   'lap.board.weekRank': '이번 주 {n}위',
   'lap.board.of': '{n}명 중',
@@ -743,7 +743,4 @@ export default {
   'lap.card.save': '이미지 저장',
   'lap.card.saved': '이미지를 저장했어요.',
   'lap.card.saveFail': '이 기기에서는 저장할 수 없어요. 화면을 캡처해 주세요.',
-  'lap.ghost.best': '옅은 차는 내 최고 기록이에요.',
-  'lap.ghost.pacer': '옅은 차는 안내대로 달렸을 때예요.',
-  'lap.result.map': '밝을수록 빨랐던 곳이에요',
 };

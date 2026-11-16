@@ -605,6 +605,7 @@ export default {
   'home.break.weekend': 'Weekend of {date}',
   // One lap
   'lap.title': 'One lap',
+  'lap.home.title': 'Mini racing game',
   'lap.sub.none': '{n} circuits to drive',
   'lap.sub.some': '{k} of {n} circuits driven',
   'lap.all': 'All circuits',
@@ -659,7 +660,6 @@ export default {
   'lap.board.mine': 'Your rank',
   'lap.board.emptyWeek': 'No laps yet this week. Set the first time.',
   'lap.board.emptyAll': 'No laps yet. Set the first time.',
-  'lap.board.note': 'Names are made automatically. Every lap on this device goes on the board under the same name.',
   'lap.board.join': 'Finish a lap to get a name and go on the board.',
   'lap.board.weekRank': 'This week #{n}',
   'lap.board.of': 'of {n}',
@@ -735,7 +735,4 @@ export default {
   'lap.card.save': 'Save image',
   'lap.card.saved': 'Image saved.',
   'lap.card.saveFail': 'Saving is not available on this device. Take a screenshot instead.',
-  'lap.ghost.best': 'The faint car is your best lap.',
-  'lap.ghost.pacer': 'The faint car follows the guide.',
-  'lap.result.map': 'Brighter means faster',
 };

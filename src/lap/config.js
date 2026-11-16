@@ -13,7 +13,7 @@ import { DIFFICULTY, DIFF_KEYS, diffOf } from './engine.js';
 //  haptic 진동          off · on: 코스 이탈과 결승선. 기본은 웹 off(iOS Safari는 진동이 없다) · 토스 on(Device.triggerHaptic)
 //  home   홈 자리       top: 내 주말 덱 바로 아래 큰 카드(늘) · below: 시간표 바로 아래 줄 · bottom: 홈 맨 아래 줄 · week: 경기 주간에만 시간표 아래 줄, 그 밖에는 맨 아래(v3)
 //  board  데모 전용 순위표  sample: 계산으로 만든 다른 사람 기록 + 내 기록 · empty: 내 기록만(아직 아무도 안 달린 주). 실서비스 빌드는 다른 사람 기록을 만들지 않는다
-//  pacer  기록이 없을 때  guide: 안내대로 달린 차가 옅게 같이 달림 · off
+//  pacer  아무 기록도 없을 때(순위표가 비었을 때)  guide: 안내대로 달린 차가 옅게 같이 달림 · off. 기록이 있으면 옅은 차는 늘 1위 기록
 //  pace   빠르기       게임 시간이 실제 시간보다 몇 배 빨리 가는지. 1 · 1.3 · 1.6 · 2. 기록은 게임 시간(실제 랩 타임 같은 숫자), 한 바퀴에 실제로 걸리는 시간만 줄어든다
 //  line   레이싱 라인   rubber: 길에 남은 고무 자국만 · guide: 차 앞 220m에 안내 선(손을 떼는 구간은 빨강)
 //  sound  소리         on: 켬 · off: 끔(처음 기본값. 레이어 위쪽 단추로 바꾸면 이 기기에 기억한다)

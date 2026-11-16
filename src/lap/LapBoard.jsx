@@ -59,7 +59,7 @@ export function LapBoard({ id, circuit, onClose, start = 'week' }) {
         <p className="gx-lap-bempty gx-t15">{tr(period === 'week' ? 'lap.board.emptyWeek' : 'lap.board.emptyAll')}</p>
       )}
       {out && <ol className="gx-lap-blist is-out" start={out.rank} aria-label={tr('lap.board.mine')}><Row r={{ ...out, me: true }} top={b.top} locale={fmt.locale} tr={tr} /></ol>}
-      <p className="gx-lap-bnote gx-t13">{tr(b.me ? 'lap.board.note' : 'lap.board.join')}</p>
+      {!b.me && <p className="gx-lap-bnote gx-t13">{tr('lap.board.join')}</p>}
     </div>
   );
 }

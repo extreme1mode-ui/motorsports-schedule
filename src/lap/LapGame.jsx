@@ -21,9 +21,9 @@ import { createEngine, revLeds } from './gearbox.js';
 import { LapBoard } from './LapBoard.jsx';
 import { LapRank, LapThirds } from './LapResult.jsx';
 import { isThisWeek } from './place.js';
-import { boardOf, weekOf, useBoard } from './board.js';
+import { boardOf, weekOf, useBoard, rivalOf } from './board.js';
 import { myPlayer, nameOf } from './player.js';
-import { prep3d, camera as camera3, render3d, labels3d, rlAt, wallAtS, kerbAtS, CAR3, addSparks, STREET } from './world3d.js';
+import { prep3d, camera as camera3, render3d, labels3d, rlAt, wallAtS, kerbAtS, CAR3, addSparks, STREET, groundAt } from './world3d.js';
 import { createLapSound, renderLog, renderScenes, wavBytes } from './sound.js';
 import { GHOST_EVERY, timeAt, posAt, compareSectors, offCorners, zonesOf, simLap, thirdsOf, THIRDS } from './analysis.js';
 import { useLapConfig, lapDiff, paceOf } from './config.js';
@@ -44,7 +44,11 @@ const angDiff = (a, b) => { let d = b - a; while (d > Math.PI) d -= 2 * Math.PI;
 const reducedMotion = (c) => c?.motion === 'reduce' || (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 const lerp = (a, b, f) => a + (b - a) * f;
 const OVERVIEW = new Set(['ready', 'done', 'practiceDone']);
-const FINISH_MS = 1500;                    // 결승선을 지난 뒤 결과 카드가 뜨기까지(차는 그동안 속도를 줄이며 굴러간다)
+const FINISH_MS = 1500;                    // 결승선을 지난 뒤 결과 카드가 뜨기까지(차는 그동안 속도를 줄인다)
+// 결과 화면: 결승한 차가 식히는 바퀴처럼 계속 달린다(m/s, 시속 150km). 코너 앞에서는 그 코너 한계 속도의 80%로. 줄인 움직임이면 멈춘다
+const COOL_V = 42;
+const coolV = (tk, sM) => Math.min(COOL_V, 0.8 * tk.ideal[Math.floor(wrapS(sM, tk.L) / tk.ds) % tk.n]);
+const coastStep = (c, vT, gdt) => { c.t += gdt; c.v = c.v > vT ? Math.max(vT, c.v - 24 * gdt) : Math.min(vT, c.v + 5 * gdt); c.s += c.v * gdt; };
 const PRESSABLE = new Set(['lights', 'wait', 'go', 'run', 'practice']);
 const NOSE3 = 2.62 * CAR3;                 // 입체 화면: 차 가운데에서 코끝까지(m)
 // 입체 카메라 두 개 사이(서킷 전체 ↔ 차 뒤): 높이와 초점 거리는 로그로, 방향은 짧은 쪽으로
@@ -56,6 +60,8 @@ const readSound = () => { try { const v = localStorage.getItem(SOUND_KEY); retur
 // 마지막 코너를 지나 결승선까지(m). 코너가 없으면 마지막 600m
 const finalStretchOf = (tk) => (tk.turns.length ? tk.turns[tk.turns.length - 1].s + 40 : tk.L - 600);
 const LEDS = Array.from({ length: 15 }, (_, k) => k);
+// 차이를 잴 기록: 옅은 차와 같은 1위 기록. 내 기록이 없으면 재지 않는다(첫 바퀴)
+const dRef = (s) => (s.best ? s.rival || s.best : null);
 const hexRgb = (c) => { const m = /^#?([0-9a-f]{6})$/i.exec((c || '').trim()); if (!m) return '128,128,128'; const v = m[1]; return `${parseInt(v.slice(0, 2), 16)},${parseInt(v.slice(2, 4), 16)},${parseInt(v.slice(4, 6), 16)}`; };
 
 // 기록 카드 이미지 한 장(게시물 4:5 · 스토리 9:16)
@@ -126,7 +132,7 @@ function LapGame({ id, onClose }) {
     g.current = { tk, zones: zonesOf(tk), run: newRun(), phase: 'ready', down: false, t0: 0, react: 0, acc: 0, last: 0, ghost: [], ghostNext: 0,
       best: lapRecords()[id]?.ghost || null, cam: null, from: null, mode: null, colors: null, theme: null, timers: [], raf: 0, frozen: false,
       coachIdx: 0, cueUntil: 0, cue: null, reactUntil: 0, deltaUntil: 0, deltaNext: 0, marks: [], rear: null, steer: 0, yaw: 0, msgKey: null,
-      practiceEnd: 0, pausedFrom: null, resultMarks: null, prevFrame: 0, cfg, firstRun,
+      practiceEnd: 0, pausedFrom: null, prevFrame: 0, cfg, firstRun, rival: null,
       fx: newFx(), coast: null, glow: 0, aero: 0, accSm: 0, vPrev: 0, lit: 0, pacer: null, view: null, puffAt: 0,
       cam3: null, from3: null, c3: null, view3: null, rain: 0, sparkS: 0, rnd: 7 };
   }
@@ -144,7 +150,9 @@ function LapGame({ id, onClose }) {
   const resetRun = (keep = true) => {
     const s = g.current;
     s.run = newRun(); s.ghost = []; s.ghostNext = 0; s.acc = 0; s.down = false; s.react = 0; s.frozen = false;
-    s.coachIdx = 0; s.cue = null; s.cueUntil = 0; s.reactUntil = 0; s.deltaUntil = 0; s.deltaNext = 0; s.yaw = 0; s.steer = 0; s.resultMarks = null;
+    s.coachIdx = 0; s.cue = null; s.cueUntil = 0; s.reactUntil = 0; s.deltaUntil = 0; s.deltaNext = 0; s.yaw = 0; s.steer = 0;
+    // 옅은 차: 이번 주 1위 기록(내가 1위면 내 최고 기록). 바퀴를 시작할 때 정해 두고 그 바퀴 동안 바꾸지 않는다. 아무 기록도 없으면 안내대로 달린 차(s.pacer)
+    s.rival = rivalOf(id, s.tk)?.ghost || null;
     s.fx = keep ? carryFx(s.fx) : newFx(); s.coast = null; s.glow = 0; s.aero = 0; s.accSm = 0; s.vPrev = 0; s.rain = 0; s.sparkS = 0; s.rejoin = null; s.tv = null;
     s.ghostSign = 0; s.passAt = 0; s.passKey = null; s.passUntil = 0; s.finalOn = false; s.finalUntil = 0; s.sndS = null; s.offSurface = null;
     setResult(null); setDelta(null);
@@ -184,16 +192,15 @@ function LapGame({ id, onClose }) {
     const saved = saveLap(id, { ms, react: Math.round(s.react), ghost: s.ghost.map((v) => Math.round(v)), wkKey: weekOf(Date.now()).key });
     const after = boardOf(id, 'week');
     if (saved.best) { s.best = s.ghost.slice(); setBest(ms); }
-    s.resultMarks = { offAt: run.offAt.slice(), sector: saved.best ? cmp?.gained : cmp?.lost, ghost: s.ghost.slice() };
     trackEvent('lap_finished', { track: id, ms, offs: run.offCount, best: saved.best });
     buzz('finish'); snd.current.event('finish', { best: !!saved.best });
     // 구간 기록: 이번 바퀴와 이전 최고 기록(있으면)을 같은 세 구간으로
-    const thirds = thirdsOf(tkk, s.ghost, ms / 1000); const thirdsPrev = prev?.ghost ? thirdsOf(tkk, prev.ghost, prev.best / 1000) : null; s.resultMarks.thirds = !!thirds;
+    const thirds = thirdsOf(tkk, s.ghost, ms / 1000); const thirdsPrev = prev?.ghost ? thirdsOf(tkk, prev.ghost, prev.best / 1000) : null;
     setResult({ ms, react: Math.round(s.react), vmax: Math.round(run.vmax * 3.6), offs: run.offCount, offList, cmp, isBest: saved.best, prev: saved.prev, thirds, thirdsPrev,
       rank: after.me ? { n: after.me.rank, count: after.count, before: before ? before.rank : null, pid: after.me.pid, near: after.near, goals: after.goals } : null });
     setFirstRun(false); setDelta(null);
-    // 결승선을 지난 뒤: 차가 속도를 줄이며 1.5초 굴러가는 동안 가운데 큰 기록 → 서킷 전체와 결과 카드
-    if (instant) { s.coast = null; setP('done'); return; }
+    // 결승선을 지난 뒤: 차가 속도를 줄이는 1.5초 동안 가운데 큰 기록 → 계속 달리는 차와 그 아래 결과 카드
+    if (instant) { s.coast = { s: 0, v: 0, t: 0 }; setP('done'); return; }
     s.coast = { s: 0, v: run.v, t: 0 }; setP('finish');
     later(() => { if (g.current.phase === 'finish') setP('done'); }, reducedMotion(g.current.cfg) ? 900 : FINISH_MS);
   }, [id, setP, buzz]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -285,7 +292,7 @@ function LapGame({ id, onClose }) {
           clearTimers(); resetRun(false); const zz = name === 'coach' ? coachZones()[0] : z[Math.min(2, z.length - 1)];
           const sp = name === 'coach' ? zz.s0 + 10 : zz.s0 - 140; at(sp, s.tk.ideal[ix(sp)] * (name === 'coach' ? 1 : 0.97));
           if (name === 'coach') { s.firstRun = true; setFirstRun(true); } else s.coachIdx = 99;
-          if (s.best && name === 'run') { const tg = timeAt(s.best, sp); if (tg != null) { s.react = 0; s.run.t = tg + 0.31; if (s.cfg.delta !== 'off') { setDelta({ sec: 0.31, ahead: false }); s.deltaUntil = performance.now() + 1e9; } } }
+          if (dRef(s) && name === 'run') { const tg = timeAt(dRef(s), sp); if (tg != null) { s.react = 0; s.run.t = tg + 0.31; if (s.cfg.delta !== 'off') { setDelta({ sec: 0.31, ahead: false }); s.deltaUntil = performance.now() + 1e9; } } }
           setP('run');
         } else if (name === 'slip') {
           clearTimers(); resetRun(false); const t = s.tk.turns.reduce((a, b) => (s.tk.vlim[b.i] < s.tk.vlim[a.i] ? b : a)); const sp = t.s - 6;   // 가장 느린 코너에서
@@ -376,9 +383,9 @@ function LapGame({ id, onClose }) {
           if (s.phase === 'run') {
             const total = s.react / 1000 + s.run.t;
             while (total >= s.ghostNext) { s.ghost.push(s.run.s); s.ghostNext += GHOST_EVERY; }
-            // 코너를 지날 때마다 최고 기록과의 차이
-            if (cfgN.delta === 'corner' && s.best) {
-              for (const t of tk.turns) if (prevS < t.s && s.run.s >= t.s) { const tb = timeAt(s.best, t.s); if (tb != null) { const d = total - tb; setDelta({ sec: Math.abs(d), ahead: d < 0 }); s.deltaUntil = now + 2400; } }
+            // 코너를 지날 때마다 옅은 차(1위 기록)와의 차이. 내 기록이 생긴 뒤부터(첫 바퀴는 배우는 데 집중)
+            if (cfgN.delta === 'corner' && dRef(s)) {
+              for (const t of tk.turns) if (prevS < t.s && s.run.s >= t.s) { const tb = timeAt(dRef(s), t.s); if (tb != null) { const d = total - tb; setDelta({ sec: Math.abs(d), ahead: d < 0 }); s.deltaUntil = now + 2400; } }
             }
           }
           if (!wasOff && s.run.offTrack) {
@@ -390,8 +397,8 @@ function LapGame({ id, onClose }) {
           }
           if (wasOff && !s.run.offTrack && s.offSurface === 'gravel') s.rejoin = { s: s.run.s, side: s.run.side || 1 };
         }
-        if (s.phase === 'run' && cfgN.delta === 'live' && s.best && now >= s.deltaNext) {
-          const tb = timeAt(s.best, s.run.s); s.deltaNext = now + 250;
+        if (s.phase === 'run' && cfgN.delta === 'live' && dRef(s) && now >= s.deltaNext) {
+          const tb = timeAt(dRef(s), s.run.s); s.deltaNext = now + 250;
           if (tb != null && s.run.s > 30) { const d = s.react / 1000 + s.run.t - tb; setDelta({ sec: Math.abs(d), ahead: d < 0 }); s.deltaUntil = now + 1e9; }
         }
         if (s.phase === 'run' && s.run.done) finish();
@@ -403,8 +410,11 @@ function LapGame({ id, onClose }) {
       { const kind = cfgN.view !== 'top' && !reduced ? '3d' : 'top'; if (s.fx.view !== kind) { if (s.fx.view) { s.fx.marks = []; s.fx.debris = []; s.fx.rear = null; } s.fx.view = kind; } }
       // 자갈밭에서 길로 돌아오면 바퀴가 끌고 나온 자갈이 길 가장자리에 흩어진다(입체 화면, 이 레이어를 닫을 때까지 남는다)
       if (s.rejoin) { if (s.view3) { const rnd = () => { s.rnd = (s.rnd * 16807) % 2147483647; return s.rnd / 2147483647; }; addDebris(s.fx, s.rejoin.s - NOSE3, s.rejoin.side, HALF_W, rnd); } s.rejoin = null; }
-      // 결승선을 지난 뒤 굴러가는 거리
-      if (s.phase === 'finish' && s.coast) { const gdt = fdt * TS; s.coast.t += gdt; s.coast.v = Math.max(0, s.coast.v - 24 * gdt); s.coast.s += s.coast.v * gdt; }
+      // 결승선을 지난 뒤: 식히는 바퀴의 속도까지 줄이고(줄인 움직임이면 멈출 때까지) 결과 화면에서도 계속 달린다. 밀려난 자리는 천천히 레이싱 라인으로
+      if ((s.phase === 'finish' || s.phase === 'done') && s.coast) {
+        coastStep(s.coast, reduced ? 0 : coolV(tk, s.run.s + s.coast.s), fdt * TS);
+        if (s.phase === 'done') { s.run.off *= Math.exp(-fdt / 1.2); s.run.heat = 0; s.run.offTrack = false; }
+      }
       // ---- 차와 길의 반응: 브레이크 빛 · 날개 · 타이어 자국 · 연기 · 먼지(같은 프레임에 바로) ----
       let sndLock = 0, sndKerb = 0, sndKerbSide = 0;
       {
@@ -457,7 +467,7 @@ function LapGame({ id, onClose }) {
       // ---- 긴박감: 옅은 차와의 거리(앞지르기 알림 · 그 차의 엔진 소리) · 마지막 코너 뒤 차이를 계속 ----
       let ghostSnd = null;
       {
-        const ghostLap = s.best || s.pacer; const running = s.phase === 'run' && !s.frozen;
+        const ghostLap = s.rival || s.pacer; const running = s.phase === 'run' && !s.frozen;
         if (ghostLap && (running || s.phase === 'finish')) {
           const tt = s.react / 1000 + run.t + (s.coast ? s.coast.t : 0);
           const gp = posAt(ghostLap, tt), gp0 = posAt(ghostLap, Math.max(0, tt - 0.1)), gp1 = posAt(ghostLap, Math.max(0, tt - 0.2));
@@ -470,18 +480,18 @@ function LapGame({ id, onClose }) {
             const sg = d > 3 ? 1 : d < -3 ? -1 : s.ghostSign;
             if (running && run.t > 3 && s.ghostSign && sg !== s.ghostSign && Math.abs(d) < 15 && now - s.passAt > 4000) {
               s.passAt = now; s.passKey = sg < 0 ? 'passed' : 'passedBy'; s.passUntil = now + 1600;
-              if (s.best && cfgN.delta !== 'off' && !s.finalOn) { const tb = timeAt(s.best, run.s); if (tb != null) { const dd = tt - tb; setDelta({ sec: Math.abs(dd), ahead: dd < 0 }); s.deltaUntil = now + 2400; } }   // 지난 코너의 차이가 남아 거꾸로 보이지 않게
+              if (dRef(s) && cfgN.delta !== 'off' && !s.finalOn) { const tb = timeAt(dRef(s), run.s); if (tb != null) { const dd = tt - tb; setDelta({ sec: Math.abs(dd), ahead: dd < 0 }); s.deltaUntil = now + 2400; } }   // 지난 코너의 차이가 남아 거꾸로 보이지 않게
               snd.current.event('whoosh', { gain: 0.3, rate: 0.85, pan: Math.max(-0.6, Math.min(0.6, -ghostSnd.lat / 6)) });
             }
             s.ghostSign = sg;
           }
         }
-        // 마지막 코너를 지나면: 한 번 알리고, 최고 기록이 있으면 결승선까지 차이를 0.1초마다
+        // 마지막 코너를 지나면: 한 번 알리고, 내 기록이 있으면 결승선까지 옅은 차와의 차이를 0.1초마다
         if (running) {
           const fS = finalStretchOf(tk);
           if (!s.finalOn && run.s >= fS) { s.finalOn = true; if (tk.L - fS > 250) s.finalUntil = now + 1600; }
-          if (s.finalOn && s.best && cfgN.delta !== 'off' && now >= s.deltaNext) {
-            const tb = timeAt(s.best, run.s); s.deltaNext = now + 100;
+          if (s.finalOn && dRef(s) && cfgN.delta !== 'off' && now >= s.deltaNext) {
+            const tb = timeAt(dRef(s), run.s); s.deltaNext = now + 100;
             if (tb != null) { const dd = s.react / 1000 + run.t - tb; setDelta({ sec: Math.abs(dd), ahead: dd < 0 }); s.deltaUntil = now + 1e9; }
           }
         }
@@ -557,35 +567,10 @@ function LapGame({ id, onClose }) {
       const view3d = cfgN.view !== 'top' && !reduced;        // 입체(차 뒤 위에서) · 위에서 보기(v2). 줄인 움직임이면 위에서 보기
       const P = s.stage;
       const drawOverlays = (w2s, roadPx, zoom, ang, full) => {
-        // 결과: 이번 바퀴의 속도(밝을수록 빠름) · 가장 많이 늦은(또는 줄인) 구간 · 코스를 벗어난 곳
-        if (s.phase === 'done' && s.resultMarks) {
-          const gh = s.resultMarks.ghost; const pathS = (a0, b0) => { ctx.beginPath(); for (let i = Math.floor(a0 / tk.ds); i <= Math.ceil(b0 / tk.ds); i += 1) { const q = ((i % tk.n) + tk.n) % tk.n; const [X, Y] = w2s(tk.x[q], tk.y[q]); if (i === Math.floor(a0 / tk.ds)) ctx.moveTo(X, Y); else ctx.lineTo(X, Y); } };
-          if (gh && gh.length > 2) {
-            let vmax = 1; for (let k = 1; k < gh.length; k += 1) vmax = Math.max(vmax, (gh[k] - gh[k - 1]) / GHOST_EVERY);
-            ctx.lineCap = 'round'; ctx.lineWidth = Math.max(2.5, roadPx * 0.5);
-            for (let k = 1; k < gh.length; k += 1) {
-              if (gh[k] <= gh[k - 1]) continue;
-              const v0 = (gh[k] - gh[k - 1]) / GHOST_EVERY; const a0 = Math.pow(v0 / vmax, 2.2);
-              ctx.strokeStyle = `rgba(${P.speedRGB},${(0.12 + 0.88 * a0).toFixed(3)})`; pathS(gh[k - 1], gh[k]); ctx.stroke();
-            }
-          }
-          const sec = s.resultMarks.sector;
-          if (sec) { ctx.lineCap = 'round'; ctx.strokeStyle = C.text; ctx.lineWidth = 2; ctx.setLineDash([4, 3]); const hw2 = roadPx / 2 + 5;
-            for (const sgn of [1, -1]) { ctx.beginPath(); for (let i = Math.floor(sec.s0 / tk.ds); i <= Math.ceil(sec.s1 / tk.ds); i += 1) { const p2 = poseAt(tk, wrapS(i * tk.ds, tk.L), sgn * hw2 / zoom); const [X, Y] = w2s(p2.x, p2.y); if (i === Math.floor(sec.s0 / tk.ds)) ctx.moveTo(X, Y); else ctx.lineTo(X, Y); } ctx.stroke(); }
-            ctx.setLineDash([]); }
-          for (const sp of s.resultMarks.offAt) { const p2 = poseAt(tk, wrapS(sp, tk.L), 0); const [X, Y] = w2s(p2.x, p2.y); ctx.fillStyle = C.bg; ctx.strokeStyle = C.car; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(X, Y, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
-        }
         // 출발선(멀리서 볼 때는 선 하나)
         if (full) {
           const p2 = poseAt(tk, 0, 0); const [X, Y] = w2s(p2.x, p2.y); const a2 = p2.th + ang; const nx = Math.sin(a2), ny = -Math.cos(a2); const hw2 = roadPx * 1.1;
           ctx.strokeStyle = C.text; ctx.lineWidth = 2.5; ctx.lineCap = 'butt'; ctx.beginPath(); ctx.moveTo(X - nx * hw2, Y - ny * hw2); ctx.lineTo(X + nx * hw2, Y + ny * hw2); ctx.stroke();
-        }
-        // 결과: 구간 경계(같은 거리로 셋, 출발선이 구간 1의 시작). 글자 표는 코너 번호와 겹쳐 두지 않고, 결과 카드의 구간 칸에 작은 그림으로 보인다
-        if (full && s.phase === 'done' && s.resultMarks?.thirds) {
-          for (const f of THIRDS) {
-            const p2 = poseAt(tk, tk.L * f, 0); const [X, Y] = w2s(p2.x, p2.y); const a2 = p2.th + ang; const nx = Math.sin(a2), ny = -Math.cos(a2); const hw2 = roadPx * 1.25 + 2;
-            ctx.strokeStyle = C.text; ctx.lineWidth = 3; ctx.lineCap = 'butt'; ctx.beginPath(); ctx.moveTo(X - nx * hw2, Y - ny * hw2); ctx.lineTo(X + nx * hw2, Y + ny * hw2); ctx.stroke();
-          }
         }
       };
       if (view3d) {
@@ -608,16 +593,23 @@ function LapGame({ id, onClose }) {
         { const ct = s.flagTest === 'cheq' || (s.phase === 'run' && tk.L - run.s < 320) || s.phase === 'finish' ? 1 : 0; s.crewUp = (s.crewUp || 0) + (ct - (s.crewUp || 0)) * Math.min(1, fdt / (ct > (s.crewUp || 0) ? 0.35 : 1.2)); }
         const kv = smooth01(vv / 94);
         const intro = s.phase === 'ready';   // 준비: 서킷 전체 대신 그리드 위 차를 도는 소개 카메라(아래 'intro')
-        let T;
-        if (over && !intro) {
-          const [x0, y0, x1, y1] = tk.box; const pad = 24;
-          let left = 0, right = w, top = 8, bottom = h - 8;
+        const parade = s.phase === 'done';   // 결과: 서킷 전체 대신 결승한 차가 계속 달리는 장면(아래 'parade')
+        // 카드가 덮지 않는 자리: 카드가 아래에 있으면 그 위, 오른쪽에 있으면(폰을 눕혔을 때) 그 왼쪽
+        const freeArea = (gap = 0) => {
+          let left = 0, right = w, bottom = h;
           const card = cardRef.current;
           if (card) {
             const cr = card.getBoundingClientRect(), sr = cv.getBoundingClientRect();
-            if (cr.left - sr.left > w * 0.25) right = Math.max(left + 160, cr.left - sr.left - 8);
-            else bottom = Math.max(top + 140, cr.top - sr.top - 8);
+            if (cr.left - sr.left > w * 0.25) right = Math.max(left + 160, cr.left - sr.left - gap);
+            else bottom = Math.max(140, cr.top - sr.top - gap);
           }
+          return { left, right, bottom };
+        };
+        const cg0 = poseAt(tk, wrapS(carS, tk.L), lat); const gzCar = groundAt(W3, cg0.x, cg0.y);   // 차 아래 땅 높이(고도 자료가 없는 서킷은 0)
+        let T;
+        if (over && !intro && !parade) {
+          const [x0, y0, x1, y1] = tk.box; const pad = 24;
+          const top = 8; const fa = freeArea(8); const left = fa.left, right = fa.right, bottom = Math.min(h - 8, fa.bottom);
           const zoom = Math.min((right - left - pad * 2) / (x1 - x0), (bottom - top - pad * 2) / (y1 - y0)); const ALT = 2600;
           T = { x: (x0 + x1) / 2, y: (y0 + y1) / 2, z: ALT, yaw: -Math.PI / 2, pitch: Math.PI / 2, F: zoom * ALT, ox: (left + right) / 2, oy: (top + bottom) / 2, mix: 0 };
         } else {
@@ -637,7 +629,7 @@ function LapGame({ id, onClose }) {
              F, ox: w / 2 - lead, yCar: h * (h < 420 ? 0.74 : 0.66), mix: 1 };
         }
         // 결승선을 지나면 길가 TV 카메라 한 장면(바로 바꾼다): 차가 다가와 옆을 스쳐 지나가는 것을 따라 돌며 당겨 찍는다
-        const mode = intro ? 'intro' : over ? 'over' : s.phase === 'finish' && cfgN.finish !== 'chase' && s.coast ? 'tv' : 'chase';
+        const mode = intro ? 'intro' : parade ? 'parade' : over ? 'over' : s.phase === 'finish' && cfgN.finish !== 'chase' && s.coast ? 'tv' : 'chase';
         if (s.mode !== mode) { s.mode = mode; s.from3 = mode === 'tv' ? null : s.cam3 ? lerpCam3(s.cam3, s.cam3, 0) : null; s.tt = 0; s.c3 = null; s.introT = 0; if (mode === 'tv') s.tv = null; }
         let cam;
         if (mode === 'intro') {
@@ -650,41 +642,56 @@ function LapGame({ id, onClose }) {
           const A = lerp(70, 22, u), B = Math.max(5, 0.72 * Math.min(wallAtS(W3, tk, carS, 1), wallAtS(W3, tk, carS, -1)));
           const cp0 = poseAt(tk, wrapS(carS + A * Math.cos(ph), tk.L), B * Math.sin(ph)); const cx = cp0.x, cy = cp0.y;
           const dH = Math.hypot(cg.x - cx, cg.y - cy); const Hc = lerp(38, Math.max(5.6, Math.sqrt(Math.max(0, 196 - dH * dH))), u);   // 옆을 지날 때(벽이 가까운 시가지)는 높이 올라가 차와 14m 안으로 붙지 않는다
-          let left = 0, right = w, bottom = h;
-          const card = cardRef.current;
-          if (card) {
-            const cr = card.getBoundingClientRect(), sr = cv.getBoundingClientRect();
-            if (cr.left - sr.left > w * 0.25) right = Math.max(left + 160, cr.left - sr.left);
-            else bottom = Math.max(140, cr.top - sr.top);
-          }
+          const { left, right, bottom } = freeArea();
           const Fi = Math.max(bottom, (right - left) * 0.9) / 2 / Math.tan((25 * Math.PI) / 180);
-          cam = { x: cx, y: cy, z: Hc, yaw: Math.atan2(cg.y - cy, cg.x - cx), pitch: Math.atan2(Hc - 0.8, Math.hypot(cg.x - cx, cg.y - cy) || 1), F: Fi, ox: (left + right) / 2, oy: bottom * 0.56, mix: 1 };
+          const z = Math.max(gzCar + Hc, groundAt(W3, cx, cy) + 1.2);   // 높이는 차 아래 땅에서(고저차가 있어도 같은 그림)
+          cam = { x: cx, y: cy, z, yaw: Math.atan2(cg.y - cy, cg.x - cx), pitch: Math.atan2(z - gzCar - 0.8, dH || 1), F: Fi, ox: (left + right) / 2, oy: bottom * 0.56, mix: 1, gz: gzCar };
+        } else if (mode === 'parade') {
+          // 결과(마리오 카트의 결승 뒤 장면처럼): 결승한 차가 식히는 바퀴로 계속 달리는 것을 앞에서 비춘다. 카메라는 차 앞 16m에서
+          // 왼쪽 앞 54° → 바로 앞 → 오른쪽 앞 54°를 40초에 한 번 오가며 천천히 돈다(흔들림 없음). 차는 결과 카드가 덮지 않는 자리 가운데에.
+          // 옆으로는 양쪽 벽 안쪽(가까운 벽까지의 72%)만 다니고 차와 13m 안으로 붙지 않는다. 급한 코너에서는 조금 가까이 · 높이(안쪽 벽이 차를 가리지 않게)
+          s.introT = (s.introT || 0) + fdt;
+          let kM = 0; for (let q2 = -10; q2 <= 10; q2 += 2) kM = Math.max(kM, Math.abs(tk.k[((nIdx + q2) % tk.n + tk.n) % tk.n]));
+          s.paradeTight = lerp(s.paradeTight ?? 0, smooth01((kM - 1 / 80) / (1 / 20 - 1 / 80)), Math.min(1, fdt / 0.6)); const tight = s.paradeTight;
+          const cg = poseAt(tk, wrapS(carS, tk.L), lat); const ph = 0.95 * Math.cos(0.9 + s.introT * ((2 * Math.PI) / 40));
+          const A = 16 - 5 * tight, B = Math.max(4.5, 0.72 * Math.min(wallAtS(W3, tk, carS, 1), wallAtS(W3, tk, carS, -1)));
+          const cp0 = poseAt(tk, wrapS(carS + A * Math.cos(ph), tk.L), B * Math.sin(ph)); const cx = cp0.x, cy = cp0.y;
+          const dH = Math.hypot(cg.x - cx, cg.y - cy); const Hc = Math.max(2.6 + 8 * tight, Math.sqrt(Math.max(0, 169 - dH * dH)));
+          const { left, right, bottom } = freeArea();
+          const Fi = Math.max(bottom, (right - left) * 0.9) / 2 / Math.tan((25 * Math.PI) / 180);
+          const z = Math.max(gzCar + Hc, groundAt(W3, cx, cy) + 1.2);
+          cam = { x: cx, y: cy, z, yaw: Math.atan2(cg.y - cy, cg.x - cx), pitch: Math.atan2(z - gzCar - 0.7, dH || 1), F: Fi, ox: (left + right) / 2, oy: bottom * 0.56, mix: 1, gz: gzCar };
         } else if (mode === 'tv') {
           const Fb = Math.max(h, w * 0.9) / 2 / Math.tan((30 * Math.PI) / 180);
           if (!s.tv) {
             // 자리: 결승 뒤 굴러가는 시간의 55%쯤에 차가 지나가는 곳. 피트 쪽 길 가장자리 바깥 4.5m(벽이 가까우면 벽 안쪽), 높이 4m
-            const tW = (FINISH_MS / 1000) * TS * 0.55; const v0 = Math.max(10, s.coast.v); const tS = Math.min(tW, v0 / 24); const dist = v0 * tS - 12 * tS * tS;
-            const sd = W3.pit.side; const sC = wrapS(carS + dist, tk.L); const p0 = poseAt(tk, sC, sd * Math.min(HALF_W + 4.5, wallAtS(W3, tk, sC, sd) - 0.8));   // 벽 안쪽
-            s.tv = { x: p0.x, y: p0.y, z: 4, yaw: null, F: Fb };
+            const tW = (FINISH_MS / 1000) * TS * 0.55; const c = { s: 0, v: Math.max(10, s.coast.v), t: 0 };
+            while (c.t < tW) coastStep(c, reduced ? 0 : coolV(tk, noseS + c.s), 1 / 60);   // 위 '결승선을 지난 뒤'와 같은 규칙으로 미리
+            const sd = W3.pit.side; const sC = wrapS(carS + c.s, tk.L); const p0 = poseAt(tk, sC, sd * Math.min(HALF_W + 4.5, wallAtS(W3, tk, sC, sd) - 0.8));   // 벽 안쪽
+            s.tv = { x: p0.x, y: p0.y, z: 4 + groundAt(W3, p0.x, p0.y), yaw: null, F: Fb };
           }
           const tv = s.tv; const ease = (tau) => 1 - Math.exp(-fdt / tau);
           const tc = poseAt(tk, wrapS(carS, tk.L), lat); const dx = tc.x - tv.x, dy = tc.y - tv.y; const d = Math.hypot(dx, dy) || 1;
           const yawT = Math.atan2(dy, dx); tv.yaw = tv.yaw == null ? yawT : tv.yaw + angDiff(tv.yaw, yawT) * ease(0.07);   // 카메라맨이 따라 도는 만큼 조금 늦게
           const FT = Math.max(Fb * 0.8, Math.min(Fb * 6, (0.3 * w * d) / 4.2)); tv.F = lerp(tv.F, FT, ease(0.25));       // 차가 화면 폭의 30%쯤 되게 당긴다
-          cam = { x: tv.x, y: tv.y, z: tv.z, yaw: tv.yaw, pitch: Math.atan2(tv.z - 0.6, d), F: tv.F, ox: w / 2, oy: h * 0.62, mix: 1 };
+          cam = { x: tv.x, y: tv.y, z: tv.z, yaw: tv.yaw, pitch: Math.atan2(tv.z - gzCar - 0.6, d), F: tv.F, ox: w / 2, oy: h * 0.62, mix: 1, gz: gzCar };
         } else if (mode === 'chase') {
           const ease = (tau) => 1 - Math.exp(-fdt / tau);
           const c3 = s.c3 ? { ...T, yaw: s.c3.yaw + angDiff(s.c3.yaw, T.yaw) * ease(0.22), Dc: lerp(s.c3.Dc, T.Dc, ease(0.35)), beta: lerp(s.c3.beta, T.beta, ease(0.35)), F: lerp(s.c3.F, T.F, ease(0.35)), ox: lerp(s.c3.ox, T.ox, ease(0.5)) } : T;
           s.c3 = c3;
           // 카메라는 차 옆 위치의 절반만 따라간다 → 레이싱 라인을 탈 때 차가 화면에서 좌우로 움직인다
           const cg = poseAt(tk, wrapS(carS, tk.L), lat * 0.5);
-          const B = c3.Dc * Math.cos(c3.beta), H = c3.Dc * Math.sin(c3.beta);
-          cam = { x: cg.x - Math.cos(c3.yaw) * B, y: cg.y - Math.sin(c3.yaw) * B, z: H, yaw: c3.yaw, pitch: c3.pitch, F: c3.F, ox: c3.ox, oy: c3.yCar - c3.F * Math.tan(c3.beta - c3.pitch), mix: 1 };
+          // 오르막 · 내리막: 카메라 받침이 차와 함께 기울어진다(경사각의 80%). 차는 화면 같은 자리에 있고 세상(지평선 · 건물)이 그만큼 오르내린다
+          const cI = Math.floor(wrapS(carS, tk.L) / tk.ds) % tk.n; const al = W3.hs ? Math.atan((W3.hs[(cI + 5) % tk.n] - W3.hs[(cI - 5 + tk.n) % tk.n]) / (10 * tk.ds)) * 0.8 : 0;
+          const B = c3.Dc * Math.cos(c3.beta - al), H = c3.Dc * Math.sin(c3.beta - al);
+          cam = { x: cg.x - Math.cos(c3.yaw) * B, y: cg.y - Math.sin(c3.yaw) * B, z: H + gzCar, yaw: c3.yaw, pitch: c3.pitch - al, F: c3.F, ox: c3.ox, oy: c3.yCar - c3.F * Math.tan(c3.beta - c3.pitch), mix: 1, gz: gzCar };
         } else cam = T;
+        const gzT = cam.gz || 0;
         if (s.from3) { s.tt += fdt; const u = Math.min(1, s.tt / 0.34); cam = lerpCam3(s.from3, cam, 1 - (1 - u) ** 3); if (u >= 1) s.from3 = null; }
+        cam.gz = gzT; cam.hg = W3.hg;   // 땅 높이(고도 자료가 있는 서킷): 그리는 점마다 그 자리 땅 높이를 더한다
         camera3(cam); s.cam3 = cam;
         const mix = cam.mix;
-        const pxm = (cam.F * Math.max(0.05, Math.sin(cam.pitch))) / cam.z;          // 화면 가운데 바닥의 1m(px)
+        const pxm = (cam.F * Math.max(0.05, Math.sin(cam.pitch))) / Math.max(0.5, cam.z - gzT);   // 화면 가운데 바닥의 1m(px)
         const tvOn = mode === 'tv';
         const q = tvOn ? 1 : Math.max(1, 6 / (2 * HALF_W) / pxm);                    // 멀리서 볼 때 길을 6px보다 가늘지 않게: 옆으로만 키운다
         const S3 = tvOn ? CAR3 : CAR3 * Math.max(1, (carLen * 0.55) / (5.25 * CAR3) / pxm);   // 멀리서 볼 때 차도 읽히게
@@ -694,9 +701,9 @@ function LapGame({ id, onClose }) {
         const car = { x: cp.x, y: cp.y, th: carTh, S: S3, s: carS, steer: s.steer, brake: s.glow || 0, aero: s.aero || 0, rain: s.rain, spin: noseS, blur: smooth01((vv * TS - 6) / 26),
           roll: Math.max(-0.03, Math.min(0.03, ((vv * vv * kAhead) / 9.8) * 0.006)), pitch: s.accSm < 0 ? Math.max(-0.012, (s.accSm / 40) * 0.012) : Math.min(0.006, (s.accSm / 12) * 0.006),
           C: C.car3d, dot: cfgN.car === 'dot' };
-        // 옅은 차: 내 최고 기록(없으면 안내대로 달린 차)
+        // 옅은 차: 1위 기록(아무 기록도 없으면 안내대로 달린 차)
         let ghost = null;
-        const ghostLap = s.best || s.pacer;
+        const ghostLap = s.rival || s.pacer;
         if (ghostLap && (s.phase === 'run' || s.phase === 'go' || s.phase === 'paused' || s.phase === 'finish') && mix > 0.5) {
           const total = Math.max(0, s.phase === 'go' ? (now - s.t0) / 1000 : s.react / 1000 + run.t + (s.coast ? s.coast.t : 0));
           const gs = posAt(ghostLap, total);
@@ -736,8 +743,9 @@ function LapGame({ id, onClose }) {
         s.view3 = { carS, lat, car: { x: cp.x, y: cp.y, th: carTh, S: S3 } };
       } else {
       s.view3 = null;
+        const overview = over && s.phase !== 'done';   // 결과는 서킷 전체 대신 계속 달리는 차
         let T;
-        if (over) {
+        if (overview) {
           // 카드가 덮지 않는 자리에 서킷 전체를 맞춘다: 카드가 아래에 있으면 그 위, 오른쪽에 있으면(폰을 눕혔을 때) 그 왼쪽
           const [x0, y0, x1, y1] = tk.box; const pad = 24;
           let left = 0, right = w, top = 8, bottom = h - 8;
@@ -760,8 +768,13 @@ function LapGame({ id, onClose }) {
           const ni = Math.floor(wrapS(noseS, tk.L) / tk.ds); let kSum = 0; for (let q = 30; q <= 80; q += 10) kSum += tk.k[(ni + q) % tk.n];
           const lead = reduced ? 0 : Math.max(-1, Math.min(1, (kSum / 6) * 700)) * w * 0.08;
           T = { cx: c.x, cy: c.y, ang: reduced ? 0 : -c.th - Math.PI / 2, zoom: ay / D, ax: w / 2 - lead, ay, mix: 1 };
+          if (s.phase === 'done') {   // 결과: 카드가 덮지 않는 자리 가운데에 차(앞으로 120m가 보이게)
+            let right = w, bottom = h; const card = cardRef.current;
+            if (card) { const cr = card.getBoundingClientRect(), sr = cv.getBoundingClientRect(); if (cr.left - sr.left > w * 0.25) right = Math.max(160, cr.left - sr.left); else bottom = Math.max(140, cr.top - sr.top); }
+            T = { ...T, ax: right / 2, ay: bottom * 0.62, zoom: (bottom * 0.62) / 120 };
+          }
         }
-        const mode = over ? 'over' : 'chase';
+        const mode = overview ? 'over' : 'chase';
         if (s.mode !== mode) { s.mode = mode; s.from = s.cam && !reduced ? { ...s.cam } : null; s.tt = 0; }
         let cam = T;
         if (mode === 'chase' && s.cam && !reduced) {
@@ -824,9 +837,9 @@ function LapGame({ id, onClose }) {
         }
         drawGantry(ctx, V, P, s.lit || 0, 'shadow');
         drawPuffs(ctx, V, P, s.fx, now);
-        // 내 최고 기록(같은 모양의 옅은 차). 기록이 없으면 안내대로 달린 차
+        // 1위 기록(같은 모양의 옅은 차). 아무 기록도 없으면 안내대로 달린 차
         const len = carLen * lerp(0.55, 1, mix);
-        const ghostLap = s.best || s.pacer;
+        const ghostLap = s.rival || s.pacer;
         if (ghostLap && (s.phase === 'run' || s.phase === 'go' || s.phase === 'paused' || s.phase === 'finish') && mix > 0.5) {
           const total = s.phase === 'go' ? (now - s.t0) / 1000 : s.react / 1000 + run.t + (s.coast ? s.coast.t : 0);
           const gs = posAt(ghostLap, total);
@@ -881,7 +894,7 @@ function LapGame({ id, onClose }) {
       // 한 바퀴 진행 막대: 내 차(채움)와 옅은 차(빈 원)
       if (progEl.current) progEl.current.style.transform = `scaleX(${Math.min(1, (run.s + (s.coast ? 0 : 0)) / tk.L).toFixed(4)})`;
       if (progGhostEl.current) {
-        const gl = s.best || s.pacer; const tt = s.phase === 'go' ? (now - s.t0) / 1000 : s.react / 1000 + run.t;
+        const gl = s.rival || s.pacer; const tt = s.phase === 'go' ? (now - s.t0) / 1000 : s.react / 1000 + run.t;
         const gpos = gl && (s.phase === 'run' || s.phase === 'go' || s.phase === 'paused') ? posAt(gl, tt) : null;
         progGhostEl.current.style.opacity = gpos == null ? '0' : '1';
         if (gpos != null) progGhostEl.current.style.left = `${Math.min(100, (gpos / tk.L) * 100).toFixed(2)}%`;
@@ -1045,7 +1058,6 @@ function LapGame({ id, onClose }) {
               <div><dt className="gx-t13">{tr('lap.tile.top')}</dt>{wkBoard?.top ? <dd className="gx-lap-tile-v">{formatLap(wkBoard.top.ms)}</dd> : <dd className="gx-lap-tile-v is-none">{tr('lap.tile.none')}</dd>}
                 {wkBoard?.top && <dd className="gx-t13 gx-sub gx-ell">{wkBoard.top.me ? tr('lap.board.me') : nameOf(wkBoard.top.pid, fmt.locale)}</dd>}</div>
             </dl>
-            {cfg.car !== 'dot' && (best != null || cfg.pacer !== 'off') && <span className="gx-t13 gx-lap-legend"><i aria-hidden="true" />{tr(best != null ? 'lap.ghost.best' : 'lap.ghost.pacer')}</span>}
             {learn && (
               <ul className="gx-lap-how gx-t15">
                 {cfg.pedal === 'off' ? <li><i className="is-road" />{tr('lap.how.hold')}</li> : <li><i className="is-gas" />{tr('lap.how.pedal')}</li>}
@@ -1072,7 +1084,6 @@ function LapGame({ id, onClose }) {
             <div className="gx-lap-acts is-col"><button type="button" ref={primary} className="gx-btn is-primary is-full" onClick={resume}>{tr('lap.pause.resume')}</button><button type="button" className="gx-textbtn gx-t15 gx-lap-skip" onClick={restart}>{tr('lap.pause.restart')}</button></div>
           </section>
         )}
-        {phase === 'done' && result && <span className="gx-lap-maplegend gx-t13"><i aria-hidden="true" />{tr('lap.result.map')}</span>}
         {phase === 'done' && result && (
           <section className="gx-lap-card is-result" ref={cardRef} aria-labelledby="gx-lap-r">
             {/* 위에서부터: 기록 → 이번 주 순위(한 칸씩 올라감) · 다음 목표 → 구간 기록 → 한 줄 이야기 → 숫자 셋. 아래 버튼 줄은 늘 보인다 */}

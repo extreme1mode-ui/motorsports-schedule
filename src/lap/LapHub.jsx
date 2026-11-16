@@ -90,7 +90,7 @@ export function LapPromo({ races, now }) {
     : b?.top ? tr('lap.board.top', { time: formatLap(b.top.ms) }) : tr(upcoming ? 'lap.home.before' : 'lap.home.try');
   return (
     <section className={cx('gx-lap-promo', run && 'is-run')} ref={ref} aria-labelledby="gx-lap-promo-h">
-      <ListHeader id="gx-lap-promo-h" title={tr('lap.title')} action={tr('lap.all')} onAction={() => { track('lap_hub_opened', { source: 'home' }); shell.push({ t: 'laps' }); }} />
+      <ListHeader id="gx-lap-promo-h" title={tr('lap.home.title')} action={tr('lap.all')} onAction={() => { track('lap_hub_opened', { source: 'home' }); shell.push({ t: 'laps' }); }} />
       <button type="button" className="gx-lap-promo-card" {...WARM} onClick={() => open(t.id, 'promo')}>
         <span className="gx-lap-promo-map" aria-hidden="true">
           <svg width="112" height="84" viewBox="0 0 112 84"><path d={d} /></svg>
@@ -121,7 +121,7 @@ export function LapHome({ races, now }) {
     : upcoming ? tr('lap.home.before') : left > 0 && left < LAP_TRACKS.length ? tr('lap.home.left', { n: left }) : tr('lap.home.try');
   return (
     <section className="gx-lap-home" aria-labelledby="gx-lap-home-h">
-      <ListHeader id="gx-lap-home-h" title={tr('lap.title')} action={tr('lap.all')} onAction={() => { track('lap_hub_opened', { source: 'home' }); shell.push({ t: 'laps' }); }} />
+      <ListHeader id="gx-lap-home-h" title={tr('lap.home.title')} action={tr('lap.all')} onAction={() => { track('lap_hub_opened', { source: 'home' }); shell.push({ t: 'laps' }); }} />
       <button type="button" className="gx-row gx-lap-row" {...WARM} onClick={() => open(t.id, 'home')}>
         <LapThumb id={t.id} />
         <span className="gx-row-c">

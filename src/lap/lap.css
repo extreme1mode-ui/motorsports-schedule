@@ -148,10 +148,6 @@
 .gx .gx-lap-big-react b, .gx .gx-lap-big-finish b { white-space: nowrap; }
 @keyframes gx-lap-fade { from { opacity: 0; } }
 /* 결과 지도 범례 */
-.gx .gx-lap-maplegend { position: absolute; left: var(--gutter); top: 12px; display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 999px; background: var(--bg); box-shadow: 0 0 0 1px var(--line); color: var(--text2); pointer-events: none; }
-.gx .gx-lap-maplegend i { width: 28px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, rgba(var(--lap-speed), .15), rgba(var(--lap-speed), 1)), var(--lap-asphalt); background-blend-mode: normal; box-shadow: inset 0 0 0 1px var(--line); }
-.gx .gx-lap-legend { display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; color: var(--text3); }
-.gx .gx-lap-legend i { width: 10px; height: 16px; border-radius: 3px; background: var(--lap-ghost); box-shadow: inset 0 0 0 1px var(--line); background-color: var(--lap-asphalt); background-image: linear-gradient(var(--lap-ghost), var(--lap-ghost)); }
 
 /* 시작 · 결과 · 멈춤 카드: 아래에 붙는 한 장 */
 .gx .gx-lap-card { position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; display: grid; gap: 16px; padding: 24px var(--gutter) calc(20px + var(--gx-sab)); background: var(--bg);
@@ -199,10 +195,11 @@
 .gx .gx-lap-tiles dd { margin: 0; min-width: 0; }
 .gx .gx-lap-tile-v { font-size: max(14px, min(var(--t20), 4.4vw)); line-height: 1.3; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; white-space: nowrap; }
 .gx .gx-lap-tile-v.is-none { font-size: var(--t15); font-weight: 600; color: var(--text3); }
-.gx .gx-lap-card.is-ready .gx-lap-legend { margin-top: -6px; }
 
-/* 결과 카드: 위 내용은 카드 안에서 넘기고(서킷 그림이 위에 남게), 버튼 줄은 늘 아래에 */
+/* 결과 카드: 위 내용은 카드 안에서 넘기고(위에 결승한 차가 달리는 장면이 남게), 버튼 줄은 늘 아래에. 결과에서는 위 줄(시간 · 작은 서킷)을 감춰 장면을 넓힌다 */
 .gx .gx-lap-card:is(.is-result, .is-ready) { display: flex; flex-direction: column; gap: 12px; max-height: calc(100% - 180px); padding-top: 20px; }
+.gx .gx-lap-card.is-result { max-height: calc(100% - max(220px, 36%)); }
+.gx .gx-lap[data-phase="done"] .gx-lap-strip { display: none; }
 .gx .gx-lap-card.is-ready { max-height: calc(100% - 150px); }
 .gx .gx-lap-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; align-content: start; gap: 16px; margin: 0 calc(-1 * var(--gutter)); padding: 0 var(--gutter) 12px;
   -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 16px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 16px), transparent); }
@@ -253,7 +250,7 @@
   .gx .gx-lap-gaswrap { right: 24px; bottom: 24px; }
   .gx .gx-lap-rev { left: 24px; bottom: 24px; }
   .gx .gx-lap-card { left: 50%; right: auto; bottom: 32px; width: 440px; transform: translateX(-50%); border-radius: var(--r-sheet); box-shadow: 0 0 0 1px var(--line), 0 16px 40px rgba(16,18,24,.14); padding-bottom: 24px; animation: none; }
-  .gx .gx-lap-card.is-result { max-height: min(600px, calc(100% - 280px)); }   /* 위에 서킷 그림이 남게 */
+  .gx .gx-lap-card.is-result { max-height: min(600px, calc(100% - max(300px, 40%))); }   /* 위에 달리는 차가 보이게 */
   .gx .gx-lap-card.is-ready { max-height: calc(100% - 200px); }
   .gx .gx-lap-tile-v { font-size: var(--t20); }
 }
@@ -271,6 +268,7 @@
   .gx .gx-lap-gas-plate > i { height: 40px; }
   .gx .gx-lap-card { left: auto; right: 16px; bottom: 12px; width: min(420px, calc(100% - 32px)); border-radius: var(--r-sheet); max-height: calc(100% - 24px); overflow: auto; padding-bottom: 16px; }
   .gx .gx-lap-card:is(.is-result, .is-ready) { max-height: calc(100% - 24px); overflow: hidden; }
+  .gx .gx-lap[data-phase="done"] .gx-lap-stage { grid-column: 1 / -1; }   /* 결과: 왼쪽 숫자 열 없이 차는 왼쪽, 카드는 오른쪽 */
   .gx .gx-lap-plate { flex: none; align-content: start; align-self: stretch; }
   .gx .gx-lap-plate-t { font-size: var(--t20); -webkit-line-clamp: 3; }
   .gx .gx-lap-tile-v { font-size: var(--t17); }

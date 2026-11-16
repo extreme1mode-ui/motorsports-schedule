@@ -1,5 +1,6 @@
 // '한 바퀴' 입체 무대: 차 뒤 위에서 앞을 내려다보는 카메라(원근)로 서킷을 그린다. 캔버스 2D만 쓴다.
-// 세계 좌표는 엔진과 같다(x 오른쪽 · y 아래 = 남쪽, 단위 m, 바닥 z = 0, z는 위). 서킷 좌표와 코너 위치는 데이터 그대로다.
+// 세계 좌표는 엔진과 같다(x 오른쪽 · y 아래 = 남쪽, 단위 m, z는 위). 서킷 좌표와 코너 위치는 데이터 그대로다.
+// 바닥 높이: 실측 고도 자료(elev.json)가 있는 서킷은 그 고저차, 없으면 z = 0. 그리는 점의 Z는 그 자리 땅에서 잰 높이다(proj가 땅 높이를 더한다).
 // 길 위의 것(아스팔트 · 연석 · 진한 구간 · 선)은 띠로, 서 있는 것(벽 · 철망 · 보드 · 갠트리 · 관중석 · 피트 건물 · 나무 · 건물 · 차 · 연기)은
 // 카메라에서 먼 것부터 그린다. 주변 풍경(관중석 · 피트 · 나무 · 건물 · 먼 스카이라인 · 광고 다리 · 마셜 · 런오프 심볼 · 구름 그림자)은
 // 계산으로 만든 장식이다. 실제 서킷의 배치가 아니다.
@@ -9,6 +10,7 @@ import { HALF_W } from './engine.js';
 import { prepWorld } from './world.js';
 import { MARK_FADE } from './fx.js';
 import { drawCar3d, drawCarShadow } from './car3d.js';
+import ELEV from './elev.json';
 
 const TAU = Math.PI * 2;
 const NEAR = 0.6;
@@ -98,6 +100,35 @@ export function prep3d(tk) {
     for (let y = GH - 1; y >= 0; y -= 1) for (let x = GW - 1; x >= 0; x -= 1) { const c = y * GW + x; if (x < GW - 1) relax(c, c + 1); if (y < GH - 1) { relax(c, c + GW); if (x < GW - 1) relax(c, c + GW + 1); if (x > 0) relax(c, c + GW - 1); } }
   }
   const field = (x, y) => { const cx = Math.floor((x - gx0) / G), cy = Math.floor((y - gy0) / G); if (cx < 0 || cy < 0 || cx >= GW || cy >= GH) return { d: 1e9, i: -1 }; const c = cy * GW + cx; const i = near[c]; if (i < 0) return { d: 1e9, i: -1 }; return { d: Math.hypot(tk.x[i] - x, tk.y[i] - y), i }; };
+  // 고저차(실측 고도가 있는 서킷만 · 그림에만 쓰고 달리는 계산은 평평한 그대로). elev.json의 z는 길을 따라 같은 간격(L / 개수)으로 잰 고도(m)다.
+  // 길을 따라 σ(m)로 고르게 편 뒤 가장 낮은 곳을 0으로. 땅은 칸마다 가장 가까운 중심선 점의 높이를 주고 흐리게 편다:
+  // 길에서 24m 안은 조금(길 높이 그대로), 그보다 멀면 많이(먼 두 구간 사이 경계에 턱이 생기지 않게)
+  let hg = null, hs = null;
+  const ev = ELEV[tk.id];
+  if (ev && ev.z && ev.z.length > 8) {
+    const m = ev.z.length; const st = tk.L / m; const sg = Math.max(0.5, (ev.sigma || 50) / st); const r = Math.ceil(3 * sg);
+    const zs = new Float32Array(m);
+    for (let i = 0; i < m; i += 1) { let a = 0, ws = 0; for (let j = -r; j <= r; j += 1) { const wv = Math.exp(-0.5 * (j / sg) ** 2); a += ev.z[mod(i + j, m)] * wv; ws += wv; } zs[i] = a / ws; }
+    let lo = Infinity; for (let i = 0; i < m; i += 1) lo = Math.min(lo, zs[i]);
+    const h0 = new Float32Array(n);
+    for (let i = 0; i < n; i += 1) { const f = (i * ds) / st; const a = Math.floor(f); const u = f - a; h0[i] = zs[mod(a, m)] + (zs[mod(a + 1, m)] - zs[mod(a, m)]) * u - lo; }
+    hs = conv(h0, gauss(20));
+    const base0 = new Float32Array(GW * GH); for (let c = 0; c < GW * GH; c += 1) base0[c] = near[c] >= 0 ? hs[near[c]] : 0;
+    const blur = (src, rad, passes) => {
+      let a = Float32Array.from(src); const tmp = new Float32Array(a.length);
+      for (let p = 0; p < passes; p += 1) {
+        for (let y = 0; y < GH; y += 1) { let acc = 0; const row = y * GW; for (let x = -rad; x <= rad; x += 1) acc += a[row + Math.min(GW - 1, Math.max(0, x))];
+          for (let x = 0; x < GW; x += 1) { tmp[row + x] = acc / (2 * rad + 1); acc += a[row + Math.min(GW - 1, x + rad + 1)] - a[row + Math.max(0, x - rad)]; } }
+        for (let x = 0; x < GW; x += 1) { let acc = 0; for (let y = -rad; y <= rad; y += 1) acc += tmp[Math.min(GH - 1, Math.max(0, y)) * GW + x];
+          for (let y = 0; y < GH; y += 1) { a[y * GW + x] = acc / (2 * rad + 1); acc += tmp[Math.min(GH - 1, y + rad + 1) * GW + x] - tmp[Math.max(0, y - rad) * GW + x]; } }
+      }
+      return a;
+    };
+    const fine = blur(base0, 1, 2), wide = blur(base0, 6, 3);
+    const a = new Float32Array(GW * GH);
+    for (let c = 0; c < GW * GH; c += 1) { const k = clamp01((dist[c] - 24) / 60); const kk = k * k * (3 - 2 * k); a[c] = fine[c] + (wide[c] - fine[c]) * kk; }
+    hg = { x0: gx0, y0: gy0, G, W: GW, H: GH, a };
+  }
   const sideOf = (x, y, i) => ((x - tk.x[i]) * NX[i] + (y - tk.y[i]) * NY[i] > 0 ? 1 : -1);
   const inBlock = (i, side, pad) => {   // 관중석 · 피트 건물 자리
     const sM = i * ds; const sw = (a, b) => { let d = sM; if (d > tk.L / 2) d -= tk.L; return d >= a - pad && d <= b + pad; };
@@ -235,7 +266,7 @@ export function prep3d(tk) {
       crew.push({ s: sM, kit, h: 0.95 + Rc() * 0.1, up: 0.55 + Rc() * 0.45, ph: Rc() * TAU, late: Rc() * 0.25 }); left -= 1;
     }
   }
-  const out = { base, street, rl, rI, wl, wr, okL, okR, edgeL, edgeR, NX, NY, paint, infield, stand, pit, trees, blds, SKY, bumps, patches, boards, kerbF, marbles, hoard, marshals, lamps, pitLines, bridges, logos, clouds, wind, crew };
+  const out = { base, street, rl, rI, wl, wr, okL, okR, edgeL, edgeR, NX, NY, paint, infield, stand, pit, trees, blds, SKY, bumps, patches, boards, kerbF, marbles, hoard, marshals, lamps, pitLines, bridges, logos, clouds, wind, crew, hg, hs };
   cache.set(tk, out);
   return out;
 }
@@ -243,8 +274,19 @@ export const rlAt = (W3, tk, sM) => { const f = (((sM % tk.L) + tk.L) % tk.L) / 
 export const kerbAtS = (W3, tk, sM, side) => { const i = Math.round((((sM % tk.L) + tk.L) % tk.L) / tk.ds) % tk.n; return (W3.kerbF[i] & (side > 0 ? 1 : 2)) !== 0; };
 export const wallAtS = (W3, tk, sM, side) => { const i = Math.round((((sM % tk.L) + tk.L) % tk.L) / tk.ds) % tk.n; return (side > 0 ? W3.wl : W3.wr)[i]; };
 
+// 땅 높이(m, 서킷에서 가장 낮은 곳 0): 칸 가운데 값 넷을 섞는다. 고도 자료가 없는 서킷은 0
+function hAt(g, X, Y) {
+  let fx = (X - g.x0) / g.G - 0.5, fy = (Y - g.y0) / g.G - 0.5;
+  if (fx < 0) fx = 0; else if (fx > g.W - 1.001) fx = g.W - 1.001;
+  if (fy < 0) fy = 0; else if (fy > g.H - 1.001) fy = g.H - 1.001;
+  const ix = fx | 0, iy = fy | 0; const u = fx - ix, v = fy - iy; const k = iy * g.W + ix; const a = g.a;
+  return (a[k] * (1 - u) + a[k + 1] * u) * (1 - v) + (a[k + g.W] * (1 - u) + a[k + g.W + 1] * u) * v;
+}
+export const groundAt = (W3, X, Y) => (W3.hg ? hAt(W3.hg, X, Y) : 0);
+
 // ---------- 카메라 ----------
-// c: { x, y, z, yaw, pitch, F, ox, oy } — yaw: 바닥에서 보는 방향(세계 각), pitch: 아래로 숙인 각(0 수평 · π/2 바로 아래)
+// c: { x, y, z, yaw, pitch, F, ox, oy, hg } — yaw: 바닥에서 보는 방향(세계 각), pitch: 아래로 숙인 각(0 수평 · π/2 바로 아래)
+// z는 높이 0 기준(땅 높이 포함). hg가 있으면 그리는 모든 점의 Z(그 자리 땅에서 잰 높이)에 땅 높이를 더한다
 let PX = 0, PY = 0, PZ = 0;
 export function camera(c) {
   const cyw = Math.cos(c.yaw), syw = Math.sin(c.yaw), cp = Math.cos(c.pitch), sp = Math.sin(c.pitch);
@@ -254,7 +296,7 @@ export function camera(c) {
   return c;
 }
 function proj(c, X, Y, Z) {
-  const ax = X - c.x, ay = Y - c.y, az = Z - c.z;
+  const ax = X - c.x, ay = Y - c.y, az = (c.hg ? Z + hAt(c.hg, X, Y) : Z) - c.z;
   const zc = ax * c.dx + ay * c.dy + az * c.dz; if (zc < NEAR) return false;
   PX = c.ox + (c.F * (ax * c.rx + ay * c.ry)) / zc; PY = c.oy - (c.F * (ax * c.ux + ay * c.uy + az * c.uz)) / zc; PZ = zc;
   return true;

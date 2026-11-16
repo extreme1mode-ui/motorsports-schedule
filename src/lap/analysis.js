@@ -22,6 +22,25 @@ export function posAt(ghost, t) {
   return ghost[k] + (ghost[k + 1] - ghost[k]) * (f - k);
 }
 
+// 같은 길을 다른 시간에: 움직임(0.1초마다 위치)을 시간만 늘이거나 줄여 거리 L에 total초에 닿게
+export function fitGhost(ghost, L, total) {
+  const t0 = timeAt(ghost, L); if (t0 == null || !(total > 0) || Math.abs(t0 / total - 1) < 1e-4) return ghost;
+  const k = t0 / total; const out = [];
+  for (let t = 0; out.length < 20000; t += GHOST_EVERY) { const p = posAt(ghost, t * k); if (p == null) { out.push(ghost[ghost.length - 1]); break; } out.push(p); if (p >= L) break; }
+  return out;
+}
+
+// 가장 빠르게 달린 차의 움직임(이상 속도를 넘으면 뗀다, 출발 반응 0.2초). 서킷(준비된 트랙)마다 한 번
+const idealCache = new WeakMap();
+export function idealGhost(tk, react = 0.2, dt = 1 / 120) {
+  if (idealCache.has(tk)) return idealCache.get(tk);
+  const run = newRun(); const ghost = []; let next = 0; let guard = 0;
+  while (react >= next) { ghost.push(0); next += GHOST_EVERY; }
+  while (!run.done && guard < 120 * 900) { const i = Math.floor(run.s / tk.ds) % tk.n; step(run, tk, run.v <= tk.ideal[i], dt); guard += 1; while (react + run.t >= next) { ghost.push(run.s); next += GHOST_EVERY; } }
+  idealCache.set(tk, ghost);
+  return ghost;
+}
+
 // 구간: 출발 → 코너 1 → … → 마지막 코너 → 결승선. 구간마다 [from 코너 번호 | null, to 코너 번호 | null, s0, s1]
 export function sectorsOf(tk) {
   const pts = [{ n: null, s: 0 }, ...tk.turns.map((t) => ({ n: t.n, s: t.s })), { n: null, s: tk.L }];
