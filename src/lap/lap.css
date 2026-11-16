@@ -46,6 +46,7 @@
   --lap-paint: rgba(16,18,24,.15); --lap-debris: rgba(226,229,234,.92); --lap-cloud-a: .09; --lap-marshal: #F26B1D; --lap-marshal-head: #3A3F47; --lap-flag-pole: #5A616D; --lap-flag-blue: #2459E8;
   --lap-led-g: #1FA855; --lap-led-b: #2F62F0;
 }
+.gx .gx-lap-boot { position: fixed; inset: 0; z-index: 300; background: var(--bg); }   /* 게임 코드를 받는 동안(처음 열 때 한 번) */
 .gx .gx-lap { position: fixed; inset: 0; z-index: 300; display: flex; flex-direction: column; background: var(--bg); color: var(--text);
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; animation: gx-lap-in var(--d3) var(--e-out); }
 @keyframes gx-lap-in { from { opacity: 0; transform: translateY(12px); } }

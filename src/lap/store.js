@@ -5,6 +5,7 @@ import { prepareTrack, diffKey } from './engine.js';
 import { lapDiff } from './config.js';
 import { storage } from '../storage/index.js';
 import { SEASON_RACES } from '../champions/champions.js';
+import { preloadLapGame } from './load-game.js';
 
 const BY_RACE = new Map(SEASON_RACES.map((r) => [r.id, r]));
 // 달릴 수 있는 서킷(라운드 순). race: 이름을 읽을 시즌 경기, turns: 코너 수
@@ -57,7 +58,7 @@ export const isFirstVisit = () => !Object.values(read()).some((r) => r && r.runs
 // ---------- 열기(전체 화면 레이어). 어느 셸에서든 openLap(id)만 부르면 된다 ----------
 let openId = null;
 const openSubs = new Set();
-export function openLap(id) { if (BY_ID.has(id)) { openId = id; openSubs.forEach((fn) => fn()); } }
+export function openLap(id) { if (BY_ID.has(id)) { preloadLapGame(); openId = id; openSubs.forEach((fn) => fn()); } }
 export function closeLap() { openId = null; openSubs.forEach((fn) => fn()); }
 const subOpen = (fn) => { openSubs.add(fn); return () => openSubs.delete(fn); };
 const getOpen = () => openId;

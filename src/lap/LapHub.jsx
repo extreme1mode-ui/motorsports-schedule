@@ -13,6 +13,7 @@ import { joinDot } from '../ui2/hooks.js';
 import { formatLap } from './engine.js';
 import { LAP_TRACKS, lapTrackOfRace, outlinePath, openLap, useLapRecords } from './store.js';
 import { isThisWeek } from './place.js';
+import { preloadLapGame } from './load-game.js';
 
 const cx = (...list) => list.filter(Boolean).join(' ');
 
@@ -22,6 +23,8 @@ export function LapThumb({ id }) {
 }
 
 function open(id, source) { track('lap_entry_clicked', { track: id, source }); openLap(id); }
+// 손이 닿으면 게임 코드를 미리 받는다(누를 때는 대개 이미 받아 둔 상태)
+const WARM = { onPointerEnter: preloadLapGame, onPointerDown: preloadLapGame, onFocus: preloadLapGame };
 
 export function LapHub({ desktop = false, now }) {
   const fmt = useFormat(); const tr = useT();
@@ -38,7 +41,7 @@ export function LapHub({ desktop = false, now }) {
       {LAP_TRACKS.map((t) => {
         const L = fmt.race(t.race); const r = rec[t.id];
         return (
-          <button type="button" key={t.id} className="gx-row gx-lap-row" onClick={() => open(t.id, 'hub')}>
+          <button type="button" key={t.id} className="gx-row gx-lap-row" {...WARM} onClick={() => open(t.id, 'hub')}>
             <LapThumb id={t.id} />
             <span className="gx-row-c">
               <span className="gx-row-t gx-t17 gx-w600">{L.circuit}{isThisWeek(t.race, +now) && <span className="gx-lap-tag">{tr('lap.hub.week')}</span>}</span>
@@ -73,7 +76,7 @@ export function LapHome({ races, now }) {
   return (
     <section className="gx-lap-home" aria-labelledby="gx-lap-home-h">
       <ListHeader id="gx-lap-home-h" title={tr('lap.title')} action={tr('lap.all')} onAction={() => { track('lap_hub_opened', { source: 'home' }); shell.push({ t: 'laps' }); }} />
-      <button type="button" className="gx-row gx-lap-row" onClick={() => open(t.id, 'home')}>
+      <button type="button" className="gx-row gx-lap-row" {...WARM} onClick={() => open(t.id, 'home')}>
         <LapThumb id={t.id} />
         <span className="gx-row-c">
           <span className="gx-row-t gx-t17 gx-w600">{L.circuit}{week && <span className="gx-lap-tag">{tr('lap.hub.week')}</span>}</span>
@@ -92,7 +95,7 @@ export function LapDetailRow({ race }) {
   if (!t) return null;
   const r = rec[t.id];
   return (
-    <button type="button" className="gx-row gx-lap-row" onClick={() => open(t.id, 'detail')}>
+    <button type="button" className="gx-row gx-lap-row" {...WARM} onClick={() => open(t.id, 'detail')}>
       <span className="gx-bc-ic gx-lap-ic" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24"><path d={outlinePath(t.id, 24, 24, 1.5)} /></svg></span>
       <span className="gx-row-c"><span className="gx-t17">{tr('lap.row')}</span></span>
       <span className="gx-row-r">{r?.best != null ? <span className="gx-t15 gx-sub">{formatLap(r.best)}</span> : <Icon n="chev" s={20} className="gx-ter" />}</span>
