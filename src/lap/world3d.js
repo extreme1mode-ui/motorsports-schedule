@@ -654,14 +654,15 @@ export function render3d(ctx, R) {
       while (j < end) {
         const i0 = mod(j, n); const zc = CZs[i0];
         const pnt = (W3.paint[i0] & (sd > 0 ? 1 : 2)) !== 0;
-        const st = pnt && zc < 260 ? 2 : zc < 90 ? 2 : zc < 220 ? 4 : 8; const j2 = Math.min(end, (Math.floor(j / st) + 1) * st);
+        // 칠한 벽은 멀어도 2칸(4m) 조각: 먼 줄무늬는 stripeLv가 가운데 색으로 서서히 바꾼다(260m에서 긴 조각 ↔ 줄무늬로 툭 바뀌지 않게)
+        const st = pnt ? 2 : zc < 90 ? 2 : zc < 220 ? 4 : 8; const j2 = Math.min(end, (Math.floor(j / st) + 1) * st);
         const i1 = mod(j2, n); const o0 = sd * warr[i0] * q, o1 = sd * warr[i1] * q;
         const okA = sd > 0 ? W3.okL : W3.okR; if (!okA[i0] || !okA[i1]) { j = j2; continue; }
         // 급한 코너(반지름 35m 아래)의 안쪽 · 작은 섬(벽이 중심에서 6m 안)에는 벽을 세우지 않는다(머리핀 안쪽에서 벽이 차를 가리지 않게)
         const kI = Math.abs(tk.k[i0]) > Math.abs(tk.k[i1]) ? tk.k[i0] : tk.k[i1]; if (o0 * kI < 0 && (Math.abs(o0) > 1 / Math.abs(kI) - 6 || Math.abs(kI) > 1 / 35)) { j = j2; continue; }
         const ok0 = wp(tk, W3, j, o0) && !WCL; const ax = WX, ay = WY; const ok1 = wp(tk, W3, j2, o1) && !WCL; const bx = WX, by = WY;
         if (ok0 && ok1 && proj(cam, (ax + bx) / 2, (ay + by) / 2, 1) && PZ > 12) {
-          const depth = PZ; const painted = pnt ? (st > 2 ? 2 : 1) : 0; const post = mod(j, 4) === 0 ? (j2 - j) * tk.ds : 0;   // 기둥: 8m마다(서킷 번호 기준). 값은 조각 길이(m, 기둥 간격 환산용). 먼 칠한 벽(긴 조각)은 두 색을 섞은 한 색
+          const depth = PZ; const painted = pnt ? 1 : 0; const post = mod(j, 4) === 0 ? (j2 - j) * tk.ds : 0;   // 기둥: 8m마다(서킷 번호 기준). 값은 조각 길이(m, 기둥 간격 환산용). 먼 칠한 벽(긴 조각)은 두 색을 섞은 한 색
           const hoardOn = !painted && depth < 450 && W3.hoard[i0] && W3.hoard[i1]; const mark = hoardOn && depth < 150 && Math.floor(j / 6) !== Math.floor(j2 / 6) ? nearA(depth, 115, 150) : 0;   // 갠트리 심볼: 115 → 150m에서 서서히
           const jS = j;   // 그릴 때(정렬 뒤)의 j는 이미 다음 조각으로 넘어가 있다: 조각의 번호를 따로 잡아 둔다(안 그러면 모든 칠한 조각이 같은 색이 되어 벽 전체가 빨강 ↔ 흰색으로 깜빡인다)
           items.push({ z: depth, sx: PX, half: 6, draw: () => wallSeg(ctx, cam, P, ax, ay, bx, by, wallH, fenceH, painted, jS, post, 1 - fogK(depth), hoardOn, mark) });
@@ -1045,7 +1046,7 @@ function wallSeg(ctx, cam, P, ax, ay, bx, by, wallH, fenceH, painted, j, post, f
     const c = stripeLv(segPx) / LV;
     if (c < 1) { ctx.fillStyle = P.wallPaintMix; quad(0, 1, 2, 3); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.6; ctx.stroke(); }
     if (c > 0) { ctx.globalAlpha = prevA * fa * c; ctx.fillStyle = mod(Math.floor(j / 2), 2) ? P.kerbA : P.wallPaint; quad(0, 1, 2, 3); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.6; ctx.stroke(); ctx.globalAlpha = prevA * fa; }
-  } else { ctx.fillStyle = painted === 2 ? P.wallPaintMix : P.wall; quad(0, 1, 2, 3); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.6; ctx.stroke(); }
+  } else { ctx.fillStyle = P.wall; quad(0, 1, 2, 3); ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 0.6; ctx.stroke(); }
   {   // 해를 등진 면은 어둡게(코너를 따라 벽 면의 밝기가 서서히 바뀐다). 밤에는 조금 더
     const ex = bx - ax, ey = by - ay; const el = Math.hypot(ex, ey) || 1; let nx = -ey / el, ny = ex / el;
     if ((cam.x - (ax + bx) / 2) * nx + (cam.y - (ay + by) / 2) * ny < 0) { nx = -nx; ny = -ny; }
@@ -1227,7 +1228,7 @@ function building(ctx, cam, P, b, fa, depth) {
       const wPx = Math.hypot(bot[k2][0] - bot[k][0], bot[k2][1] - bot[k][1]) / cols;
       // 창이 작거나(3px 아래) 화면이 빠르게 흐르면(코너에서 카메라가 돌 때) 옅게: 작은 밝은 칸이 화소에 걸려 반짝이지 않게
       const fcx = (bot[k][0] + bot[k2][0] + top[k][0] + top[k2][0]) / 4, fcy = (bot[k][1] + bot[k2][1] + top[k][1] + top[k2][1]) / 4;
-      const wa = clamp01((Math.min(wPx, gapPx) - 2.2) / 3) * nearA(depth, 340, 420) * mbA(fcx, fcy, depth, Math.max(1, Math.min(wPx, gapPx) * 0.5));
+      const wa = clamp01((Math.min(wPx, gapPx) - 2.2) / 3) * nearA(depth, 340, 420) * mbA(fcx, fcy, depth, Math.max(0.8, Math.min(wPx, gapPx) * 0.35)) ** 1.5;
       if (wa > 0.03 && floors > 1) {
         const seed = Math.round(b.x * 7 + b.y * 13) + k * 101; const at = (u, v) => [bot[k][0] + (bot[k2][0] - bot[k][0]) * u + ((top[k][0] - bot[k][0]) + ((top[k2][0] - bot[k2][0]) - (top[k][0] - bot[k][0])) * u) * v, bot[k][1] + (bot[k2][1] - bot[k][1]) * u + ((top[k][1] - bot[k][1]) + ((top[k2][1] - bot[k2][1]) - (top[k][1] - bot[k][1])) * u) * v];
         // 낮: 모든 창을 유리색(층 줄과 같은 색)으로 옅게, 몇 개는 조금 더 짙게(빛이 비친 창)
