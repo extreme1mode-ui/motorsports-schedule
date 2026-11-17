@@ -152,6 +152,7 @@ function LapGame({ id, onClose }) {
   const setP = useCallback((p) => { g.current.phase = p; setPhase(p); }, []);
   // 이 서킷 기록이 지워지면(데모 조절 판 '기록 지우기') 화면 속 최고 기록 · 옅은 차도 비운다
   const rec = useLapRecords()[id] || null; const hasRec = !!rec;
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- 바깥 저장소(기록)가 지워진 것을 게임 상태(ref)와 함께 맞춘다
   useEffect(() => { if (!hasRec) { g.current.best = null; setBest(null); } }, [hasRec]);
   const clearTimers = () => { g.current.timers.forEach(clearTimeout); g.current.timers = []; };
   const later = (fn, ms) => { g.current.timers.push(setTimeout(fn, ms)); };

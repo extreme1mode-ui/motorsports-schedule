@@ -1,28 +1,14 @@
 // '한 바퀴' 결과 카드의 순위 · 다음 목표 · 구간 기록(마리오 카트 결과 화면처럼 순위가 한 칸씩 올라가는 장면).
 // 움직임: 카드가 뜬 뒤 260ms에 내 줄이 아래에서 올라오고 바로 아래 줄은 내려간다(340ms, 튀지 않음). 순위 숫자는 이전 순위에서 한 칸씩(0.9초 안).
 // 줄인 움직임에서는 바로 끝 모습
-import { useEffect, useState } from 'react';
 import { useFormat } from '../use-format.js';
 import { useT } from '../i18n/index.js';
 import { Icon } from '../ui2/Icon.jsx';
 import { formatLap } from './engine.js';
 import { nameOf } from './player.js';
+import { useCountDown } from './count-down.js';
 
-const DELAY = 260, STEP = 110, MAX_STEPS = 8;
 const secText = (t) => (t >= 60 ? formatLap(t * 1000) : t.toFixed(3));
-
-// 순위 숫자: before → n
-export function useCountDown(before, n, on) {
-  const [v, setV] = useState(on ? before : n);
-  useEffect(() => {
-    if (!on) { setV(n); return undefined; }
-    const steps = Math.min(MAX_STEPS, before - n); let i = 0; let t = 0;
-    const tick = () => { i += 1; setV(Math.round(before - ((before - n) * i) / steps)); if (i < steps) t = setTimeout(tick, STEP); };
-    t = setTimeout(tick, DELAY);
-    return () => clearTimeout(t);
-  }, [before, n, on]);
-  return v;
-}
 
 export function LapRank({ rank, reduced, onOpen }) {
   const tr = useT(); const fmt = useFormat();

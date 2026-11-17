@@ -9,7 +9,7 @@ import { Icon } from '../ui2/Icon.jsx';
 import { formatLap } from './engine.js';
 import { posAt } from './analysis.js';
 import { nameOf } from './player.js';
-import { useCountDown } from './LapResult.jsx';
+import { useCountDown } from './count-down.js';
 
 const SPAN = 200;   // 트랙 한 줄이 보여 주는 거리(결승선 앞 m)
 const xOf = (gapM) => Math.max(0.04, 1 - gapM / SPAN);
