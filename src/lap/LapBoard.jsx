@@ -24,6 +24,7 @@ function Row({ r, top, locale, tr }) {
 export function LapBoard({ id, circuit, onClose, start = 'week' }) {
   const tr = useT(); const fmt = useFormat();
   const [period, setPeriod] = useState(start);
+  // eslint-disable-next-line react-hooks/purity -- 렌더마다 지금 시각을 넘긴다(useBoard가 분 단위로 끊어 메모한다)
   const b = useBoard(id, period, Date.now());
   const closeRef = useRef(null); const listRef = useRef(null);
   useEffect(() => { closeRef.current?.focus({ preventScroll: true }); }, []);
