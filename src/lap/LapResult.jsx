@@ -57,7 +57,7 @@ export function LapThirds({ thirds, prev, paths }) {
   const tr = useT();
   return (
     <div className="gx-lap-thirds">
-      <div className="gx-lap-rk-h"><span className="gx-t15 gx-w600">{tr('lap.sector.title')}</span><span className="gx-t13 gx-sub">{tr(prev ? 'lap.sector.vs' : 'lap.sector.how')}</span></div>
+      <div className="gx-lap-rk-h"><span className="gx-t15 gx-w600">{tr('lap.sector.title')}</span>{prev && <span className="gx-t13 gx-sub">{tr('lap.sector.vs')}</span>}</div>
       <ol className="gx-lap-secs">
         {thirds.map((t, i) => {
           const d = prev ? t - prev[i] : null; const same = d != null && Math.abs(d) < 0.0005;

@@ -97,7 +97,6 @@ function LapGame({ id, onClose }) {
   const [lit, setLit] = useState(0);
   const [msgKey, setMsgKey] = useState(null);
   const [reactMs, setReactMs] = useState(0);
-  const [delta, setDelta] = useState(null);        // { sec, ahead }
   const [result, setResult] = useState(null);
   const [best, setBest] = useState(() => lapRecords()[id]?.best ?? null);
   const [firstRun, setFirstRun] = useState(() => isFirstVisit());
@@ -113,7 +112,7 @@ function LapGame({ id, onClose }) {
   useEffect(() => { if (resBody.current) resBody.current.scrollTop = 0; }, [result]);
 
   const root = useRef(null); const canvas = useRef(null);
-  const timeEl = useRef(null); const speedEl = useRef(null); const pedalEl = useRef(null); const nextEl = useRef(null); const dotEl = useRef(null); const barEl = useRef(null); const progEl = useRef(null); const progGhostEl = useRef(null);
+  const timeEl = useRef(null); const speedEl = useRef(null); const pedalEl = useRef(null); const nextEl = useRef(null); const dotEl = useRef(null); const barEl = useRef(null);
   const gasEl = useRef(null); const [gasTip, setGasTip] = useState(false); const gasTipT = useRef(0); const stageEl = useRef(null);
   const held = useRef(new Set());   // 지금 누르고 있는 것(포인터 id · 'key:…'). 하나라도 있으면 가속
   const revEl = useRef(null); const gearEl = useRef(null);
@@ -144,7 +143,7 @@ function LapGame({ id, onClose }) {
   if (g.current === null) {
     g.current = { tk, zones: zonesOf(tk), run: newRun(), phase: 'ready', down: false, t0: 0, react: 0, acc: 0, last: 0, ghost: [], ghostNext: 0,
       best: lapRecords()[id]?.ghost || null, cam: null, from: null, mode: null, colors: null, theme: null, timers: [], raf: 0, frozen: false,
-      coachIdx: 0, cueUntil: 0, cue: null, reactUntil: 0, deltaUntil: 0, deltaNext: 0, marks: [], rear: null, steer: 0, yaw: 0, msgKey: null,
+      coachIdx: 0, cueUntil: 0, cue: null, reactUntil: 0, marks: [], rear: null, steer: 0, yaw: 0, msgKey: null,
       practiceEnd: 0, pausedFrom: null, prevFrame: 0, cfg, firstRun, rival: null,
       fx: newFx(), coast: null, glow: 0, aero: 0, accSm: 0, vPrev: 0, lit: 0, pacer: null, view: null, puffAt: 0,
       cam3: null, from3: null, c3: null, view3: null, rain: 0, sparkS: 0, rnd: 7 };
@@ -164,12 +163,12 @@ function LapGame({ id, onClose }) {
   const resetRun = (keep = true) => {
     const s = g.current;
     s.run = newRun(); s.ghost = []; s.ghostNext = 0; s.acc = 0; s.down = false; s.react = 0; s.frozen = false;
-    s.coachIdx = 0; s.cue = null; s.cueUntil = 0; s.reactUntil = 0; s.deltaUntil = 0; s.deltaNext = 0; s.yaw = 0; s.steer = 0;
+    s.coachIdx = 0; s.cue = null; s.cueUntil = 0; s.reactUntil = 0; s.yaw = 0; s.steer = 0;
     // 옅은 차: 이번 주 1위 기록(내가 1위면 내 최고 기록). 바퀴를 시작할 때 정해 두고 그 바퀴 동안 바꾸지 않는다. 아무 기록도 없으면 안내대로 달린 차(s.pacer)
     s.rival = rivalOf(id, s.tk)?.ghost || null;
     s.fx = keep ? carryFx(s.fx) : newFx(); s.coast = null; s.glow = 0; s.aero = 0; s.accSm = 0; s.vPrev = 0; s.rain = 0; s.sparkS = 0; s.rejoin = null; s.tv = null;
     s.ghostSign = 0; s.passAt = 0; s.passKey = null; s.passUntil = 0; s.finalOn = false; s.finalUntil = 0; s.sndS = null; s.offSurface = null;
-    setResult(null); setDelta(null);
+    setResult(null);
   };
 
   // 설정은 그리기 루프가 읽는다. 난이도를 바꾸면 트랙(진한 구간 · 코너 한계)이 바뀌고, 달리던 중이면 준비로 돌아간다
@@ -223,7 +222,7 @@ function LapGame({ id, onClose }) {
     const thirds = thirdsOf(tkk, s.ghost, ms / 1000); const thirdsPrev = prev?.ghost ? thirdsOf(tkk, prev.ghost, prev.best / 1000) : null;
     setResult({ ms, react: Math.round(s.react), vmax: Math.round(run.vmax * 3.6), offs: run.offCount, offList, cmp, isBest: saved.best, prev: saved.prev, thirds, thirdsPrev,
       rank: after.me ? { n: after.me.rank, count: after.count, before: before ? before.rank : null, pid: after.me.pid, near: after.near, goals: after.goals } : null });
-    setFirstRun(false); setDelta(null);
+    setFirstRun(false);
     // 결승선을 지난 뒤: 차가 속도를 줄이는 1.5초 동안 가운데 큰 기록 → 계속 달리는 차와 그 아래 결과 카드
     if (instant) { s.coast = { s: 0, v: 0, t: 0 }; setP('done'); return; }
     s.coast = { s: 0, v: run.v, t: 0 }; setP('finish');
@@ -359,7 +358,7 @@ function LapGame({ id, onClose }) {
       // 상태 바로 가기. 그림을 남기려고 멈춘 채로 둔다(누르면 이어서 달린다)
       state: (name) => {
         const z = s.zones; const ix = (sp) => Math.floor(wrapS(sp, s.tk.L) / s.tk.ds) % s.tk.n;
-        setCard(null); setDelta(null); setBoard(null);
+        setCard(null); setBoard(null);
         if (name === 'ready') { clearTimers(); resetRun(false); setLit(0); setP('ready'); }
         else if (name === 'lights') { clearTimers(); resetRun(false); setLit(3); setP('lights'); }
         else if (name === 'jump') { clearTimers(); resetRun(false); setLit(0); setP('wait'); }
@@ -368,7 +367,7 @@ function LapGame({ id, onClose }) {
           clearTimers(); resetRun(false); const zz = name === 'coach' ? coachZones()[0] : z[Math.min(2, z.length - 1)];
           const sp = name === 'coach' ? zz.s0 + 10 : zz.s0 - 140; at(sp, s.tk.ideal[ix(sp)] * (name === 'coach' ? 1 : 0.97));
           if (name === 'coach') { s.firstRun = true; setFirstRun(true); } else s.coachIdx = 99;
-          if (dRef(s) && name === 'run') { const tg = timeAt(dRef(s), sp); if (tg != null) { s.react = 0; s.run.t = tg + 0.31; if (s.cfg.delta !== 'off') { setDelta({ sec: 0.31, ahead: false }); s.deltaUntil = performance.now() + 1e9; } } }
+          if (dRef(s) && name === 'run') { const tg = timeAt(dRef(s), sp); if (tg != null) { s.react = 0; s.run.t = tg + 0.31; } }
           setP('run');
         } else if (name === 'slip') {
           clearTimers(); resetRun(false); const t = s.tk.turns.reduce((a, b) => (s.tk.vlim[b.i] < s.tk.vlim[a.i] ? b : a)); const sp = t.s - 6;   // 가장 느린 코너에서
@@ -454,15 +453,11 @@ function LapGame({ id, onClose }) {
       if ((s.phase === 'run' || s.phase === 'practice') && !s.frozen) {
         s.acc += Math.min(0.05, (now - s.last) / 1000) * TS; s.last = now;
         while (s.acc >= DT && !s.run.done) {
-          const wasOff = s.run.offTrack; const prevS = s.run.s;
+          const wasOff = s.run.offTrack;
           step(s.run, tk, s.down, DT); s.acc -= DT;
           if (s.phase === 'run') {
             const total = s.react / 1000 + s.run.t;
             while (total >= s.ghostNext) { s.ghost.push(s.run.s); s.ghostNext += GHOST_EVERY; }
-            // 코너를 지날 때마다 옅은 차(1위 기록)와의 차이. 내 기록이 생긴 뒤부터(첫 바퀴는 배우는 데 집중)
-            if (cfgN.delta === 'corner' && dRef(s)) {
-              for (const t of tk.turns) if (prevS < t.s && s.run.s >= t.s) { const tb = timeAt(dRef(s), t.s); if (tb != null) { const d = total - tb; setDelta({ sec: Math.abs(d), ahead: d < 0 }); s.deltaUntil = now + 2400; } }
-            }
           }
           if (!wasOff && s.run.offTrack) {
             buzz('off');
@@ -473,14 +468,9 @@ function LapGame({ id, onClose }) {
           }
           if (wasOff && !s.run.offTrack && s.offSurface === 'gravel') s.rejoin = { s: s.run.s, side: s.run.side || 1 };
         }
-        if (s.phase === 'run' && cfgN.delta === 'live' && dRef(s) && now >= s.deltaNext) {
-          const tb = timeAt(dRef(s), s.run.s); s.deltaNext = now + 250;
-          if (tb != null && s.run.s > 30) { const d = s.react / 1000 + s.run.t - tb; setDelta({ sec: Math.abs(d), ahead: d < 0 }); s.deltaUntil = now + 1e9; }
-        }
         if (s.phase === 'run' && s.run.done) finish();
         if (s.phase === 'practice' && s.run.s >= s.practiceEnd) { trackEvent('lap_practice_done', { track: s.tk.id }); setP('practiceDone'); }
       }
-      if (s.deltaUntil && now > s.deltaUntil) { s.deltaUntil = 0; setDelta(null); }
       const run = s.run; const C = s.colors;
       // 자국 · 자갈은 화면 종류마다 단위가 다르다(입체: 세계 m, 위에서: 보이는 m). 바뀌면 지운다
       { const kind = cfgN.view !== 'top' && !reduced ? '3d' : 'top'; if (s.fx.view !== kind) { if (s.fx.view) { s.fx.marks = []; s.fx.debris = []; s.fx.rear = null; } s.fx.view = kind; } }
@@ -556,20 +546,15 @@ function LapGame({ id, onClose }) {
             const sg = d > 3 ? 1 : d < -3 ? -1 : s.ghostSign;
             if (running && run.t > 3 && s.ghostSign && sg !== s.ghostSign && Math.abs(d) < 15 && now - s.passAt > 4000) {
               s.passAt = now; s.passKey = sg < 0 ? 'passed' : 'passedBy'; s.passUntil = now + 1600;
-              if (dRef(s) && cfgN.delta !== 'off' && !s.finalOn) { const tb = timeAt(dRef(s), run.s); if (tb != null) { const dd = tt - tb; setDelta({ sec: Math.abs(dd), ahead: dd < 0 }); s.deltaUntil = now + 2400; } }   // 지난 코너의 차이가 남아 거꾸로 보이지 않게
               snd.current.event('whoosh', { gain: 0.3, rate: 0.85, pan: Math.max(-0.6, Math.min(0.6, -ghostSnd.lat / 6)) });
             }
             s.ghostSign = sg;
           }
         }
-        // 마지막 코너를 지나면: 한 번 알리고, 내 기록이 있으면 결승선까지 옅은 차와의 차이를 0.1초마다
+        // 마지막 코너를 지나면 한 번 알린다
         if (running) {
           const fS = finalStretchOf(tk);
           if (!s.finalOn && run.s >= fS) { s.finalOn = true; if (tk.L - fS > 250) s.finalUntil = now + 1600; }
-          if (s.finalOn && dRef(s) && cfgN.delta !== 'off' && now >= s.deltaNext) {
-            const tb = timeAt(dRef(s), run.s); s.deltaNext = now + 100;
-            if (tb != null) { const dd = s.react / 1000 + run.t - tb; setDelta({ sec: Math.abs(dd), ahead: dd < 0 }); s.deltaUntil = now + 1e9; }
-          }
         }
       }
       // ---- 소리: 매 프레임 상태를 넘긴다(섞기는 sound.js) ----
@@ -967,14 +952,6 @@ function LapGame({ id, onClose }) {
       }
       if (dotEl.current) { const c = poseS(tk, wrapS(run.s, tk.L), 0); const [mx, my] = mini.at(c.x, c.y); dotEl.current.setAttribute('cx', mx.toFixed(1)); dotEl.current.setAttribute('cy', my.toFixed(1)); }
       if (nextEl.current) { const v = nextT ? String(nextT.n) : ''; if (nextEl.current.textContent !== v) nextEl.current.textContent = v; }
-      // 한 바퀴 진행 막대: 내 차(채움)와 옅은 차(빈 원)
-      if (progEl.current) progEl.current.style.transform = `scaleX(${Math.min(1, (run.s + (s.coast ? 0 : 0)) / tk.L).toFixed(4)})`;
-      if (progGhostEl.current) {
-        const gl = s.rival || s.pacer; const tt = s.phase === 'go' ? (now - s.t0) / 1000 : s.react / 1000 + run.t;
-        const gpos = gl && (s.phase === 'run' || s.phase === 'go' || s.phase === 'paused') ? posAt(gl, tt) : null;
-        progGhostEl.current.style.opacity = gpos == null ? '0' : '1';
-        if (gpos != null) progGhostEl.current.style.left = `${Math.min(100, (gpos / tk.L) * 100).toFixed(2)}%`;
-      }
     };
     s.raf = requestAnimationFrame(frame); s.frameFn = frame;
     return () => { cancelAnimationFrame(s.raf); s.frameFn = null; };
@@ -982,7 +959,7 @@ function LapGame({ id, onClose }) {
 
   // ---------- 기록 카드 ----------
   const circuitName = L.circuit;
-  const cardText = (r) => ({ kicker: tr('lap.title'), circuit: circuitName, stats: tr('lap.card.stats', { react: (r.react / 1000).toFixed(3), offs: r.offs }), site: 'gantryracing.com' });
+  const cardText = (r) => ({ kicker: tr('lap.title'), circuit: circuitName, stats: tr('lap.card.stats', { react: (r.react / 1000).toFixed(3) }), site: 'gantryracing.com' });
   const makeCard = (format = 'post') => {
     if (!result) return;
     if (!card) trackEvent('lap_card_opened', { track: id });
@@ -993,7 +970,7 @@ function LapGame({ id, onClose }) {
   useEffect(() => {
     if (!demoCard || !result || demoDone.current === demoCard.n) return;
     demoDone.current = demoCard.n;
-    const text = { kicker: tr('lap.title'), circuit: circuitName, stats: tr('lap.card.stats', { react: (result.react / 1000).toFixed(3), offs: result.offs }), site: 'gantryracing.com' };
+    const text = { kicker: tr('lap.title'), circuit: circuitName, stats: tr('lap.card.stats', { react: (result.react / 1000).toFixed(3) }), site: 'gantryracing.com' };
     buildCard(demoCard.f, g.current.tk, result, lockRef.current, text).then(setCard);
   }, [demoCard, result, tr, circuitName]);
   const shareCard = async () => {
@@ -1094,19 +1071,11 @@ function LapGame({ id, onClose }) {
             <span className="gx-t15 gx-sub gx-ell">{[L.country, tr('lap.turns', { n: meta.turns })].filter(Boolean).join(' · ')}</span>
           </div>
         )}
+        {/* 위에는 랩타임만. 속도 · 가속 · 다음 코너는 아래 계기(RPM) 위에 */}
         <div className="gx-lap-read">
-          <div className="gx-lap-l1">
-            <span className="gx-lap-time" ref={timeEl} aria-live="off">0:00.000</span>
-            {delta && <span className="gx-lap-delta gx-t15 gx-w600" role="status"><Roll>{tr(delta.ahead ? 'lap.delta.ahead' : 'lap.delta.behind', { sec: delta.sec.toFixed(2) })}</Roll></span>}
-          </div>
-          <div className="gx-lap-l2 gx-t15">
-            <span className="gx-lap-speed"><b ref={speedEl}>0</b>km/h</span>
-            <em className="gx-lap-pedal gx-t13" ref={pedalEl} data-state="idle">{tr('lap.pedal')}</em>
-            <span className="gx-lap-next">{tr('lap.next')} <b ref={nextEl} /></span>
-          </div>
+          <span className="gx-lap-time" ref={timeEl} aria-live="off">0:00.000</span>
         </div>
-        <svg className="gx-lap-mini" width="84" height="56" viewBox="0 0 84 56" aria-hidden="true"><path d={mini.d} /><circle ref={dotEl} r="3.5" cx="0" cy="0" /></svg>
-        <span className="gx-lap-prog" aria-hidden="true"><i ref={progEl} /><b ref={progGhostEl} /></span>
+        {phase === 'ready' && <svg className="gx-lap-mini" width="84" height="56" viewBox="0 0 84 56" aria-hidden="true"><path d={mini.d} /><circle ref={dotEl} r="3.5" cx="0" cy="0" /></svg>}
       </div>
       <div className="gx-lap-stage" ref={stageEl} {...stage}>
         <canvas ref={canvas} aria-hidden="true" />
@@ -1119,12 +1088,20 @@ function LapGame({ id, onClose }) {
             <span className="gx-lap-gas-key" aria-hidden="true">{tr('lap.pedal.key')}</span>
           </div>
         )}
-        {cfg.rev !== 'off' && (
-          <div className={`gx-lap-rev${showGas && (gasTip || (firstRun && (phase === 'lights' || phase === 'wait' || phase === 'go'))) ? ' is-hidden' : ''}`} ref={revEl} aria-hidden="true">
-            <span className="gx-lap-rev-gear">{tr('lap.gear')}<b ref={gearEl}>1</b></span>
-            <span className="gx-lap-rev-leds">{LEDS.map((k) => <i key={k} />)}</span>
+        {/* 왼쪽 아래 계기(페달 반대쪽): 위 줄 속도 · 가속 · 다음 코너, 아래 줄 기어 · 회전수 LED */}
+        <div className={`gx-lap-dash${showGas && (gasTip || (firstRun && (phase === 'lights' || phase === 'wait' || phase === 'go'))) ? ' is-hidden' : ''}`}>
+          <div className="gx-lap-l2">
+            <span className="gx-lap-speed"><b ref={speedEl}>0</b>km/h</span>
+            <em className="gx-lap-pedal gx-t13" ref={pedalEl} data-state="idle">{tr('lap.pedal')}</em>
+            <span className="gx-lap-next gx-t13">{tr('lap.next')} <b ref={nextEl} /></span>
           </div>
-        )}
+          {cfg.rev !== 'off' && (
+            <div className="gx-lap-rev" ref={revEl} aria-hidden="true">
+              <span className="gx-lap-rev-gear">{tr('lap.gear')}<b ref={gearEl}>1</b></span>
+              <span className="gx-lap-rev-leds">{LEDS.map((k) => <i key={k} />)}</span>
+            </div>
+          )}
+        </div>
         {(phase === 'lights' || phase === 'wait' || phase === 'go') && (
           <span className="gx-lap-lights" role="img" aria-label={tr('lap.lights', { n: lit })}>
             <i className="gx-lap-beam" />
@@ -1154,7 +1131,6 @@ function LapGame({ id, onClose }) {
                 {learn === 'practice' ? <li><i className="is-flag" />{tr('lap.how.practice')}</li> : <li><i className="is-light" />{tr('lap.how.lights')}</li>}
               </ul>
             )}
-            {learn && <p className="gx-t13 gx-ter">{tr('lap.note')}</p>}
             </div>
             {learn === 'practice'
               ? <div className="gx-lap-acts is-col"><button type="button" ref={primary} className="gx-btn is-primary is-full" onClick={startPractice}>{tr('lap.practice')}</button><button type="button" className="gx-textbtn gx-t15 gx-lap-skip" onClick={startLights}>{tr('lap.skip')}</button></div>
@@ -1188,7 +1164,6 @@ function LapGame({ id, onClose }) {
               <dl className="gx-lap-stats">
                 <div><dt className="gx-t13">{tr('lap.stat.react')}</dt><dd className="gx-t17 gx-w600">{tr('lap.stat.reactV', { sec: (result.react / 1000).toFixed(3) })}</dd></div>
                 <div><dt className="gx-t13">{tr('lap.stat.vmax')}</dt><dd className="gx-t17 gx-w600">{result.vmax}km/h</dd></div>
-                <div><dt className="gx-t13">{tr('lap.stat.offs')}</dt><dd className="gx-t17 gx-w600">{tr('lap.stat.offsV', { n: result.offs })}</dd></div>
               </dl>
             </div>
             <div className="gx-lap-acts">
