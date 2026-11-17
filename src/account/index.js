@@ -7,6 +7,7 @@
 import { storage, subscribe } from '../storage/index.js';
 import { REMOTE_ENABLED } from './config.js';
 import { setCalendarToken } from './calendar-token.js';
+import { setLapSender } from '../lap/sender.js';
 
 const DEBOUNCE_MS = 1000;
 
@@ -62,6 +63,8 @@ function queueLikes(favorites) {
 export function startAccountSync() {
   if (started || !REMOTE_ENABLED || typeof window === 'undefined') return;
   started = true;
+  // '한 바퀴' 기록 보내기(src/lap/submit.js). 익명 사용자는 보낼 기록이 생겼을 때 만든다
+  setLapSender((args) => import('./client.js').then((m) => m.submitLap(args)));
 
   // 저장될 때마다 듣는다. preferences와 favorites만 — alerts·attend·circuitMap은 올리지 않는다.
   let wasOnboarded = worthSaving(storage.preferences.read());

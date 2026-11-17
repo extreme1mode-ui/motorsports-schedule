@@ -9,6 +9,9 @@ import { TimelineList } from './TimelineList.jsx';
 import { HomeChampions } from '../champions/Champions.jsx';
 import { homeChampions, nextSeasonOpeners } from '../champions/champions.js';
 import { SeasonBreak } from '../champions/SeasonBreak.jsx';
+import { LapHome, LapPromo } from '../lap/LapHub.jsx';
+import { lapHomePlace } from '../lap/place.js';
+import { useLapConfig } from '../lap/config.js';
 import { likeCount, formatCount, popularRaces, useLikes, COUNT_IN_HEART } from '../likes/likes.js';
 import { Popular, LikeInline } from '../likes/Likes.jsx';
 import { WxCardTag, WxInline } from '../weather/Wx.jsx';
@@ -501,10 +504,14 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
   // 시즌 사이: 관심 시리즈에 남은 경기가 없으면 '예정된 경기가 없어요' 대신 다음 시즌 첫 경기
   const openers = useMemo(() => (plan.hero ? [] : nextSeasonOpeners(minute, preferences)), [plan.hero, minute, preferences]);
   const brk = openers.length ? <SeasonBreak list={openers} now={minute} onGo={onGo} /> : null;
+  // 서킷 한 바퀴: 다가오는 경기의 서킷을 미리 달려 보는 한 줄(시즌 사이에는 아직 안 달린 서킷)
+  const lapCfg = useLapConfig();
+  const lapAt = lapHomePlace(races, minute, lapCfg.home);
+  const lap = lapAt === 'top' ? <LapPromo races={races} now={minute} /> : <LapHome races={races} now={minute} />;
   const daysToNext = openers.length ? Math.max(1, fmt.dayDiff(openers[0].t, minute)) : null;
   // 토스: 배너 광고는 히어로(없으면 시즌 사이·빈 화면) 다음 첫 섹션 뒤. 히어로 바로 아래·화면 맨 위에는 두지 않는다
   const firstSec = !IS_TOSS ? null : shell.desktop ? 'timeline'
-    : [[freshLast && last, 'last'], [plan.days.length > 0, 'timeline'], [champs, 'champs'], [popular, 'popular'], [!freshLast && last, 'last'], [disc, 'disc'], [plan.later.length > 0, 'later']].find(([on]) => on)?.[1];
+    : [[lapAt === 'top', 'lap'], [freshLast && last, 'last'], [plan.days.length > 0, 'timeline'], [champs, 'champs'], [popular, 'popular'], [!freshLast && last, 'last'], [disc, 'disc'], [plan.later.length > 0, 'later']].find(([on]) => on)?.[1];
   const ad = (k) => (IS_TOSS && k === firstSec ? <AdBanner slot="home" margin="24px 0" /> : null);
   const head = (
     <div className="gx-home-top">
@@ -521,10 +528,12 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
         <div className="gx-dhome-grid">
           <div className="gx-dhome-main">{timeline}{ad('timeline')}{champs}</div>
           <aside className="gx-rail" aria-label={tr('home.railAria')}>
+            {(lapAt === 'top' || lapAt === 'below') && <div className="gx-rail-card">{lap}</div>}
             {last && <div className="gx-rail-card">{last}</div>}
             {popular && <div className="gx-rail-card">{popular}</div>}
             {disc && <div className="gx-rail-card">{disc}</div>}
             {plan.later.length > 0 && <div className="gx-rail-card">{later}</div>}
+            {lapAt === 'bottom' && <div className="gx-rail-card">{lap}</div>}
           </aside>
         </div>
       </div>
@@ -543,13 +552,16 @@ function HomeView({ now, races, myRaces, preferences, favorites, toggleFav, onOp
         </>
       )}
       {plan.hero ? <DeckMobile deck={deck} states={states} curs={curs} openAt={openAt} actions={actions} now={minute} /> : brk || <Empty onGo={onGo} />}
+      {lapAt === 'top' && <><Band />{lap}{ad('lap')}</>}
       {freshLast && last && <><Band />{last}{ad('last')}</>}
       {plan.days.length > 0 && <><Band />{timeline}{ad('timeline')}</>}
+      {lapAt === 'below' && <><Band />{lap}</>}
       {champs && <><Band />{champs}{ad('champs')}</>}
       {popular && <><Band />{popular}{ad('popular')}</>}
       {!freshLast && last && <><Band />{last}{ad('last')}</>}
       {disc && <><Band />{disc}{ad('disc')}</>}
       {plan.later.length > 0 && <><Band />{later}{ad('later')}</>}
+      {lapAt === 'bottom' && <><Band />{lap}</>}
     </div>
   );
 }

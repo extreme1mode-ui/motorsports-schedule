@@ -61,6 +61,10 @@ export const RECORDS = {
   attend: { key: 'gantry.attend', scope: 'account', codec: idSet, fallback: () => new Set() },
   // 라이브 서킷 맵(싱가포르 2026) 상태: 티켓·내 자리·담은 세션·레이어·내 위치. 지도 코어가 HOST.store로만 읽고 쓴다.
   circuitMap: { key: 'gantry.map.sgp26', scope: 'account', codec: json, fallback: () => ({}) },
+  // '한 바퀴' 기록 { <서킷 id>: { best(ms), react(ms), runs, at(ISO), ghost([0.1초마다 달린 거리 m]), wk: { key('2026-W47'), ms } } }. 이 기기에서 달린 기록만.
+  lap: { key: 'gantry.lap', scope: 'device', codec: json, fallback: () => ({}) },
+  // '한 바퀴' 순위표의 나 { id, at(ISO) }. 처음 끝까지 달릴 때 만든다. 이름은 id에서 만든다(player.js). 이 기기에서 달린 기록은 모두 이 id로 모인다.
+  lapPlayer: { key: 'gantry.lapPlayer', scope: 'device', codec: json, fallback: () => null },
   // 데모 빌드 전용 시계 {base, at, speed}. VITE_DEMO_CLOCK이 꺼진 빌드에서는 읽지 않는다.
   demoClock: { key: 'gantry.demoClock', scope: 'device', codec: json, fallback: () => null },
   // Supabase 세션. supabase-js가 createClient의 storage 어댑터를 통해 직접 읽고 쓴다

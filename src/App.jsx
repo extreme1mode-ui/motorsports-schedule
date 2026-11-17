@@ -29,6 +29,10 @@ import { setAppTitle } from './document-title.js';
 import { CircuitMapProvider } from './circuit-map/CircuitMap.jsx';
 import { DemoClockSheet } from './demo/DemoClockSheet.jsx';
 import { IS_TOSS, launchParam, clearLaunchParam, useSystemBack } from './platform.js';
+import { LapLayer } from './lap/LapLayer.jsx';
+import { LapHub } from './lap/LapHub.jsx';
+import { openLap } from './lap/store.js';
+import { demoClock } from './demo/clock.js';
 
 export default function Root() {
   const prefs = usePreferences();
@@ -58,6 +62,13 @@ export default function Root() {
     document.documentElement.lang = locale;
     setAppTitle(t(locale, 'app.title'));
   }, [prefs.preferences.locale]);
+
+  // 데모 빌드 전용: 주소에 ?lap=서킷 id가 있으면 그 서킷의 '한 바퀴'를 바로 연다(확인용). 실서비스 빌드에서는 돌지 않는다
+  useEffect(() => {
+    if (!demoClock.enabled) return;
+    const q = new URLSearchParams(window.location.search).get('lap');
+    if (q && q !== 'none' && prefs.preferences.onboarded) openLap(q);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 방문 빈도·재방문율: 앱이 뜰 때 1회 (StrictMode의 이중 effect는 ref로 막는다).
   const openedRef = useRef(false);
@@ -118,6 +129,7 @@ export default function Root() {
       {IS_TOSS ? (
         <div className="gx" style={{ display: 'contents' }}>
           {screen}
+          <LapLayer />
           <div id="gx-layer" className="gx-layer" />
         </div>
       ) : (
@@ -127,6 +139,7 @@ export default function Root() {
           <div className="gx" style={{ display: 'contents' }}>
             {screen}
             <DemoClockSheet />
+            <LapLayer />
             <div id="gx-layer" className="gx-layer" />
           </div>
         </CircuitMapProvider>
@@ -298,6 +311,12 @@ function App({ theme, setTheme, themePref, onShareLinkDone, startRedo, entry, on
       return race ? <RaceDetailV2 race={race} now={now} races={raceList} onOpenRace={onOpenRace} onClose={isTop ? back : () => {}} favorites={favorites} toggleFav={toggleFav} preferences={preferences} /> : null;
     }
     if (r.t === 'settings') return <SettingsScreen preferences={preferences} themePref={themePref} onRedo={startRedo} />;
+    if (r.t === 'laps') return (
+      <>
+        <div className="gx-stack-bar"><button type="button" className="gx-iconbtn" aria-label={t(preferences.locale || 'ko', 'aria.back')} onClick={back}><Icon n="back" /></button></div>
+        <LapHub now={now} />
+      </>
+    );
     if (r.t === 'series') return (
       <>
         {/* 토스: 뒤로는 네이티브 내비 바 */}
